@@ -53,7 +53,7 @@ class BamReadsdistributionAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = '100G'
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -67,23 +67,33 @@ class BamReadsdistributionTool(Tool):
     def __init__(self, config):
         super(BamReadsdistributionTool, self).__init__(config)
         self.cmd_path = self.config.SOFTWARE_DIR + "/program/Python/bin/"
+        self.shell_path = "bioinfo/rna/scripts"
 
     def run_reads_distribution(self):
         """
         运行read_distribution
         """
-        cmd = "python {}read_distribution.py -i {} -r {} -> {}.reads_distribution.txt"\
-            .format(self.cmd_path, self.option("bam").prop["path"], self.option("bed").prop["path"],
+        cmd = "{}/read_distribution.sh {} {} {} {}"\
+            .format(self.shell_path, self.cmd_path, self.option("bam").prop["path"], self.option("bed").prop["path"],
                     os.path.basename(self.option("bam").prop["path"]).split(".")[0])
         self.logger.info("开始运行read_distribution")
         self.logger.info(cmd)
-        try:
-            subprocess.check_output(cmd, shell=True)
-        except subprocess.CalledProcessError:
-            raise Exception("运行出错!")
+        # try:
+        #     subprocess.check_output(cmd, shell=True)
+        # except subprocess.CalledProcessError:
+        #     raise Exception("运行出错!")
+        cmd_obj = self.add_command("cmd", cmd)
+        cmd_obj.run()
 #        distribution = os.path.join(self.work_dir, "reads_distribution.txt")
  #       shutil.copyfile(distribution, "../ReadsDistribution/output/reads_distribution.txt")
-        self.wait()
+        self.wait(cmd_obj)
+        if cmd_obj.return_code == 0:
+            self.logger.info("read_distribution运行完成")
+        else:
+            cmd_obj.rerun()
+            self.wait(cmd_obj)
+            if cmd_obj.return_code == 0:
+                self.logger.info("read_distribution重新运行完成")
 
     def set_out(self):
         self.logger.info("set out put")

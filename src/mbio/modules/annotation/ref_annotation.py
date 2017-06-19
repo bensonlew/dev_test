@@ -3,7 +3,6 @@
 from __future__ import division
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
-from mbio.packages.annotation.ref_annotation_query import AllAnnoStat
 import os
 import shutil
 
@@ -27,7 +26,8 @@ class RefAnnotationModule(Module):
             {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},   # 客户上传go注释文件
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
-            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
+            {"name": "length_file", "type": "infile", "format": "annotation.cog.cog_list"},  # 注释转录本序列的长度
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新转录本gtf文件
             {"name": "anno_statistics", "type": "bool", "default": True},
             {"name": "go_annot", "type": "bool", "default": True},
             {"name": "nr_annot", "type": "bool", "default": False},  # 参考基因组注释不提供缺少nr_xml文件，因此将默认值改为False
@@ -37,6 +37,8 @@ class RefAnnotationModule(Module):
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
         ]
         self.add_option(options)
+        self.swissprot_annot = self.add_tool('align.xml2table')
+        self.nr_annot = self.add_tool('align.xml2table')
         self.go_annot = self.add_tool('annotation.go.go_annotation')
         self.go_upload = self.add_tool('annotation.go.go_upload')
         self.string_cog = self.add_tool('annotation.cog.string2cogv9')
@@ -44,14 +46,17 @@ class RefAnnotationModule(Module):
         self.swissprot_annot = self.add_tool("annotation.swissprot")
         self.kegg_upload = self.add_tool('annotation.kegg.kegg_upload')
         self.anno_stat = self.add_tool('rna.ref_anno_stat')
-        self.step.add_steps('blast_statistics', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat')
+        self.anno_query = self.add_tool('rna.ref_anno_query')
+        self.step.add_steps('blast_statistics', 'nr_annot', 'go_annot', 'go_upload', 'kegg_annot', 'kegg_upload', 'cog_annot', 'anno_stat', 'swissprot_annot', 'anno_query')
 
     def check_options(self):
         if self.option('anno_statistics'):
             if not self.option('gene_file').is_set:
-                raise OptionError('运行注释统计的tool必须要设置gene_file')
+                raise OptionError('进行注释统计的tool必须要设置gene_file')
             if not self.option('ref_genome_gtf').is_set:
                 raise OptionError('缺少gtf文件')
+            if not self.option("length_file").is_set:
+                raise OptionError("缺少注释转录本序列的长度文件")
 
     def set_step(self, event):
         if 'start' in event['data']:
@@ -60,56 +65,25 @@ class RefAnnotationModule(Module):
             event['data']['end'].finish()
         self.step.update()
 
-    def run_annot_stat(self):
-        """
-        """
-        opts = {'gene_file': self.option('gene_file'), 'database': ','.join(self.anno_database)}
-        if 'kegg' in self.anno_database:
-            opts['kegg_xml'] = self.option('blast_kegg_xml')
-            opts['kos_list_upload'] = self.option('kos_list_upload')
-        if 'go' in self.anno_database:
-            opts['gos_list'] = self.go_annot.option('golist_out')
-            opts['blast2go_annot'] = self.go_annot.option('blast2go_annot')
-            opts['gos_list_upload'] = self.option('gos_list_upload')
-        if 'cog' in self.anno_database:
-            opts['string_xml'] = self.option('blast_string_xml')
-            opts['string_table'] = self.option('blast_string_table')
-            opts['cog_list'] = self.string_cog.option('cog_list')
-            opts['cog_table'] = self.string_cog.option('cog_table')
-        if 'nr' in self.anno_database:
-            opts['nr_xml'] = self.option('blast_nr_xml')
-        opts['swissprot_xml'] = self.option('blast_swissprot_xml')
-        opts['pfam_domain'] = self.option('pfam_domain')
-        opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
-        self.anno_stat.set_options(opts)
-        self.anno_stat.on('start', self.set_step, {'start': self.step.anno_stat})
-        self.anno_stat.on('end', self.set_step, {'end': self.step.anno_stat})
-        self.anno_stat.on('end', self.set_output, 'anno_stat')
-        self.anno_stat.run()
-
-    def run_kegg_anno(self):
-        """
-        """
+    def run_nr_anno(self):
         options = {
-            'blastout': self.option('blast_kegg_xml'),
-            'taxonomy': self.option('taxonomy')
+            'blastout': self.option('blast_nr_xml')
         }
-        self.kegg_annot.set_options(options)
-        self.kegg_annot.on('start', self.set_step, {'start': self.step.kegg_annot})
-        self.kegg_annot.on('end', self.set_step, {'end': self.step.kegg_annot})
-        self.kegg_annot.on('end', self.set_output, 'kegg_annot')
-        self.kegg_annot.run()
+        self.nr_annot.set_options(options)
+        self.nr_annot.on('start', self.set_step, {'start': self.step.nr_annot})
+        self.nr_annot.on('end', self.set_step, {'end': self.step.nr_annot})
+        self.nr_annot.on('end', self.set_output, 'nr_annot')
+        self.nr_annot.run()
 
-    def run_kegg_upload(self):
+    def run_swissprot_anno(self):
         options = {
-            'kos_list_upload': self.option('kos_list_upload'),
-            'taxonomy': self.option('taxonomy')
+            'blastout': self.option('blast_swissprot_xml')
         }
-        self.kegg_upload.set_options(options)
-        self.kegg_upload.on('start', self.set_step, {'start': self.step.kegg_upload})
-        self.kegg_upload.on('end', self.set_step, {'end': self.step.kegg_upload})
-        self.kegg_upload.on('end', self.set_output, 'kegg_annot')
-        self.kegg_upload.run()
+        self.swissprot_annot.set_options(options)
+        self.swissprot_annot.on('start', self.set_step, {'start': self.step.swissprot_annot})
+        self.swissprot_annot.on('end', self.set_step, {'end': self.step.swissprot_annot})
+        self.swissprot_annot.on('end', self.set_output, 'swissprot_annot')
+        self.swissprot_annot.run()
 
     def run_string2cog(self):
         options = {
@@ -144,15 +118,92 @@ class RefAnnotationModule(Module):
         self.go_upload.on('end', self.set_output, 'go_annot')
         self.go_upload.run()
 
-    def run_swissprot_anno(self):
+    def run_kegg_anno(self):
+        """
+        """
         options = {
-            'blastout': self.option('blast_swissprot_xml')
+            'blastout': self.option('blast_kegg_xml'),
+            'taxonomy': self.option('taxonomy')
         }
-        self.swissprot_annot.set_options(options)
-        self.swissprot_annot.on('start', self.set_step, {'start': self.step.swissprot_annot})
-        self.swissprot_annot.on('end', self.set_step, {'end': self.step.swissprot_annot})
-        self.swissprot_annot.on('end', self.set_output, 'swissprot_annot')
-        self.swissprot_annot.run()
+        self.kegg_annot.set_options(options)
+        self.kegg_annot.on('start', self.set_step, {'start': self.step.kegg_annot})
+        self.kegg_annot.on('end', self.set_step, {'end': self.step.kegg_annot})
+        self.kegg_annot.on('end', self.set_output, 'kegg_annot')
+        self.kegg_annot.run()
+
+    def run_kegg_upload(self):
+        options = {
+            'kos_list_upload': self.option('kos_list_upload'),
+            'taxonomy': self.option('taxonomy')
+        }
+        self.kegg_upload.set_options(options)
+        self.kegg_upload.on('start', self.set_step, {'start': self.step.kegg_upload})
+        self.kegg_upload.on('end', self.set_step, {'end': self.step.kegg_upload})
+        self.kegg_upload.on('end', self.set_output, 'kegg_annot')
+        self.kegg_upload.run()
+
+    def run_annot_stat(self):
+        """
+        """
+        opts = {'gene_file': self.option('gene_file'), 'database': ','.join(self.anno_database)}
+        if 'kegg' in self.anno_database:
+            opts['kegg_xml'] = self.option('blast_kegg_xml')
+            opts['kos_list_upload'] = self.option('kos_list_upload')
+        if 'go' in self.anno_database:
+            if self.option("gos_list_upload").is_set:
+                opts['gos_list'] = self.go_upload.option('golist_out')
+            else:
+                opts['gos_list'] = self.go_annot.option('golist_out')
+            opts['blast2go_annot'] = self.go_annot.option('blast2go_annot')
+            opts['gos_list_upload'] = self.option('gos_list_upload')
+        if 'cog' in self.anno_database:
+            opts['string_xml'] = self.option('blast_string_xml')
+            opts['string_table'] = self.option('blast_string_table')
+            opts['cog_list'] = self.string_cog.option('cog_list')
+            opts['cog_table'] = self.string_cog.option('cog_table')
+        if 'nr' in self.anno_database:
+            opts['nr_xml'] = self.option('blast_nr_xml')
+        opts['swissprot_xml'] = self.option('blast_swissprot_xml')
+        opts['pfam_domain'] = self.option('pfam_domain')
+        opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
+        opts['taxonomy'] = self.option('taxonomy')
+        self.anno_stat.set_options(opts)
+        self.anno_stat.on('start', self.set_step, {'start': self.step.anno_stat})
+        self.anno_stat.on('end', self.run_anno_query)
+        self.anno_stat.on('end', self.set_step, {'end': self.step.anno_stat})
+        self.anno_stat.on('end', self.set_output, 'anno_stat')
+        self.anno_stat.run()
+
+    def run_anno_query(self):
+        opts = {'length_path': self.option('length_file').prop['path'], 'gtf_path': self.option('ref_genome_gtf').prop['path']}
+        nr_path = self.output_dir + "/anno_stat/blast/nr.xls"
+        swissprot_path = self.output_dir + "/anno_stat/blast/swissprot.xls"
+        if os.path.exists(nr_path):
+            opts['blast_nr_table'] = nr_path
+        else:
+            opts['blast_nr_table'] = None
+        if os.path.exists(swissprot_path):
+            opts['blast_swissprot_table'] = swissprot_path
+        else:
+            opts['blast_swissprot_table'] = None
+        if self.option('pfam_domain').is_set:
+            opts['pfam_domain'] = self.option('pfam_domain').prop['path']
+        else:
+            opts['pfam_domain'] = None
+        if self.option("gos_list_upload").is_set:
+            opts['gos_list'] = self.go_upload.option('golist_out')
+        else:
+            opts['gos_list'] = self.go_annot.option('golist_out')
+        if self.option('blast_kegg_xml').is_set:
+            opts['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
+        if self.option('kos_list_upload').is_set:
+            opts['kegg_table'] = self.kegg_upload.option('kegg_table').prop['path']
+        opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        self.anno_query.set_options(opts)
+        self.anno_query.on('start', self.set_step, {'start': self.step.anno_query})
+        self.anno_query.on('end', self.set_step, {'end': self.step.anno_query})
+        self.anno_query.on('end', self.set_output, 'anno_query')
+        self.anno_query.run()
 
     def run(self):
         super(RefAnnotationModule, self).run()
@@ -160,6 +211,9 @@ class RefAnnotationModule(Module):
         self.anno_database = []
         if self.option('nr_annot'):
             self.anno_database.append('nr')
+        if self.option('blast_nr_xml').is_set:
+            self.all_end_tool.append(self.nr_annot)
+            self.run_nr_anno()
         if self.option('go_annot'):
             self.anno_database.append('go')
             if self.option("gos_list_upload").is_set:
@@ -182,7 +236,7 @@ class RefAnnotationModule(Module):
             self.run_kegg_upload()
         if self.option("blast_swissprot_xml").is_set:
             self.anno_database.append('swissprot')
-            self.run_swissprot_anno()  # add
+            self.run_swissprot_anno()
         if self.option("pfam_domain").is_set:
             self.anno_database.append('pfam')
         if len(self.all_end_tool) > 1:
@@ -206,37 +260,18 @@ class RefAnnotationModule(Module):
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
             if 'kegg' in self.anno_database:
-                self.option('gene_kegg_table', obj.option('gene_kegg_anno_table').prop['path'])
+                self.option('gene_kegg_table').set_path(obj.option('gene_kegg_anno_table').prop['path'])
             if 'go' in self.anno_database:
-                self.option('gene_go_list', obj.option('gene_go_list').prop['path'])
-                self.option('gene_go_level_2', obj.option('gene_go_level_2').prop['path'])
-            try:
-                self.get_all_anno_stat(self.output_dir + '/anno_stat/all_annotation.xls')
-            except Exception as e:
-                self.logger.info("统计all_annotation出错：{}".format(e))
+                self.option('gene_go_list').set_path(obj.option('gene_go_list').prop['path'])
+                self.option('gene_go_level_2').set_path(obj.option('gene_go_level_2').prop['path'])
+        elif event['data'] == 'anno_query':
+            if os.path.exists(self.output_dir + "/all_annotation.xls"):
+                os.remove(self.output_dir + "/all_annotation.xls")
+            self.logger.info(self.anno_query.output_dir + "/all_annotation.xls")
+            os.link(self.anno_query.output_dir + "/all_annotation.xls", self.output_dir + "/anno_stat/all_annotation.xls")
             self.end()
         else:
             pass
-
-    def get_all_anno_stat(self, all_anno_path):
-        # stat all_annotation.xls
-        kwargs = {'outpath': all_anno_path, 'gtf_path': self.option('ref_genome_gtf').prop['path']}
-        for db in self.anno_database:
-            if db == 'cog':
-                kwargs['cog_list'] = self.string_cog.option('cog_list').prop['path']
-            if db == 'go':
-                kwargs['gos_list'] = self.go_annot.option('golist_out').prop['path']
-            if db == 'kegg':
-                kwargs['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
-            if db == 'nr':
-                kwargs['blast_nr_table'] = self.option('blast_nr_table').prop['path']
-            if db == 'swissprot':
-                kwargs['blast_swissprot_table'] = self.option('blast_swissprot_table').prop['path']
-            if db == 'pfam':
-                kwargs['pfam_domain'] = self.option('pfam_domain').prop['path']
-
-        allstat = AllAnnoStat()
-        allstat.get_anno_stat(**kwargs)
 
     def linkdir(self, olddir, newname, mode='link'):
         """
@@ -245,27 +280,35 @@ class RefAnnotationModule(Module):
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
-        if not os.path.exists(newdir):
-            if mode == 'link':
-                shutil.copytree(olddir, newdir, symlinks=True)
-            elif mode == 'copy':
-                shutil.copytree(olddir, newdir)
+        if os.path.exists(newdir):
+            shutil.rmtree(newdir)
+        os.mkdir(newdir)
+        allfiles = os.listdir(olddir)
+        oldfiles = [os.path.join(olddir, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
             else:
-                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
-        else:
-            allfiles = os.listdir(olddir)
-            oldfiles = [os.path.join(olddir, i) for i in allfiles]
-            newfiles = [os.path.join(newdir, i) for i in allfiles]
-            for newfile in newfiles:
-                if os.path.isfile(newfile) and os.path.exists(newfile):
-                    os.remove(newfile)
-                elif os.path.isdir(newfile) and os.path.exists(newfile):
-                    shutil.rmtree(newfile)
-            for i in range(len(allfiles)):
-                if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
-                else:
-                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+                new1 = os.path.join(newdir, os.path.basename(oldfiles[i]))
+                if not os.path.exists(new1):
+                    os.mkdir(new1)
+                for f in os.listdir(oldfiles[i]):
+                    old = os.path.join(oldfiles[i], f)
+                    new2 = os.path.join(new1, f)
+                    if os.path.isfile(old):
+                        if os.path.exists(new2):
+                            os.remove(new2)
+                        os.link(old, new2)
+                    else:
+                        if not os.path.exists(new2):
+                            os.mkdir(new2)
+                        for f in os.listdir(old):
+                            old1 = os.path.join(old, f)
+                            new3 = os.path.join(new2, f)
+                            if os.path.exists(new3):
+                                os.remove(new3)
+                            os.link(old1, new3)
 
     def end(self):
         repaths = [

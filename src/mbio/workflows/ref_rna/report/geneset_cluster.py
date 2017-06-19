@@ -67,7 +67,7 @@ class GenesetClusterWorkflow(Workflow):
             # print new_fpkm.columns
             self.new_fpkm = self.cluster.work_dir + "/ref_fpkm"
             header=['']
-            header.extend(self.samples)
+            header.extend(samples)
             new_fpkm.columns=header
             new_fpkm.to_csv(self.new_fpkm, sep="\t",index=False)
             return self.new_fpkm
@@ -173,7 +173,7 @@ class GenesetClusterWorkflow(Workflow):
                     with open(sub_cluster_path, 'rb') as heatmap:
                         specimen = heatmap.readline().strip().split("\t")  # 第一行信息
                         
-                        heat_lst = heatmap.readlines()[1:]
+                        heat_lst = heatmap.readlines()  #bug修改
                         for gene_num in heat_lst:
                             gene = gene_num.split('\t')[0]
                             genes.append(gene)  # 获取

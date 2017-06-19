@@ -18,7 +18,12 @@ def get_diff_matrix(matrix, diff_list, output):
                 w.write(mline)
 
 
-def get_diff_list(edgerfile, output, diff_ci=0.05):
+def get_diff_list(edgerfile, output, fc=2, pvalue_padjust=None,diff_ci=0.05):
+    """根据fc和diff_ci过滤差异基因/转录本"""
+
+    import math
+    from math import log
+    from math import pow
     with open(edgerfile, 'rb') as r, open(output, 'wb') as w:
         line = r.readline()
         while True:
@@ -26,8 +31,25 @@ def get_diff_list(edgerfile, output, diff_ci=0.05):
             if not line:
                 break
             line = line.strip('\n').split('\t')
-            if float(line[4]) <= diff_ci:
-                w.write('%s\n' % line[0])
+            if pvalue_padjust == 'padjust':
+                print 'edgerfile{}开始过滤差异基因'.format(edgerfile)
+                if float(line[4]) <= float(diff_ci):
+                    
+                    if float(fc)>=1:
+                        if pow(2,float(line[1])) > float(fc) or pow(2,float(line[1])) <= (float(1)/float(fc)):
+                            w.write('%s\n' % line[0])
+                    if float(fc)<1:
+                        if pow(2,float(line[1])) < float(fc) or pow(2,float(line[1])) >= (float(1)/float(fc)):
+                            w.write('%s\n' % line[0])
+            elif pvalue_padjust == 'pvalue':
+                
+                if float(line[3]) <= float(diff_ci):
+                    if float(fc)>=1:
+                        if pow(2,float(line[1])) > float(fc) or pow(2,float(line[1])) <= (float(1)/float(fc)):
+                            w.write('%s\n' % line[0])
+                    if float(fc)<1:
+                        if pow(2,float(line[1])) < float(fc) or pow(2,float(line[1])) >= (float(1)/float(fc)):
+                            w.write('%s\n' % line[0])
 
 
 def check_dispersion(genes, diff_num, diff_rate):
@@ -51,3 +73,10 @@ def get_gene_list(fpkm_file, output):
         lines = r.readlines()
         for line in lines[1:]:
             w.write('{}\t{}\n'.format(line.split('\t')[0], line.split('\t')[0]))
+if __name__ == "__main__":
+    edgerfile = "/mnt/ilustre/users/sanger-dev/workspace/20170524/Single_diff_transcript_12/DiffExp/edger_result/transcripts.counts.matrix.CD_vs_HGD.edgeR.DE_results"
+    output = "/mnt/ilustre/users/sanger-dev/workspace/20170524/Single_diff_transcript_12/DiffExp/diff_list_dir/CD_vs_HGD.new"
+    fc=1
+    pvalue_padjust='padjust'
+    diff_ci = 0.01
+    get_diff_list(edgerfile, output, fc, pvalue_padjust, diff_ci)

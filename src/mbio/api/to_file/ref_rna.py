@@ -40,8 +40,14 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
     gene_nr_table_path = os.path.join(dir_path, "gene_nr_{}.xls".format(option_name))
     sw_table_path = os.path.join(dir_path, "swissprot_{}.xls".format(option_name))
     gene_sw_table_path = os.path.join(dir_path, "gene_swissprot_{}.xls".format(option_name))
+    stat_collection = db["sg_annotation_stat"]
+    stat_result = stat_collection.find({"_id": ObjectId(data)})
+    if not stat_result.count():
+        raise Exception("stat_id:{}在sg_annotation_stat表中未找到".format(data))
+    for result in stat_result:
+        task_id = result["task_id"]
     blast_collection = db["sg_annotation_blast"]
-    blast_result = blast_collection.find({"stat_id": ObjectId(data)})
+    blast_result = blast_collection.find({"task_id": task_id})
     if not blast_result.count():
         raise Exception("stat_id:{}在sg_annotation_blast表中未找到".format(data))
     for result in blast_result:
@@ -105,7 +111,8 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
         raise Exception("意外错误，annotation_go_id:{}在sg_annotation_go中未找到！".format(go_id))
     collection = db["sg_annotation_go_list"]
     results = collection.find({"go_id": ObjectId(go_id)})
-    if not results:
+    one_record = collection.find_one({"go_id": ObjectId(go_id)})
+    if not one_record:
         raise Exception("生成gos_list出错：annotation_id:{}在sg_annotation_gos_list中未找到！".format(ObjectId(go_id)))
     with open(go_list_path, "wb") as w:
         for result in results:
@@ -121,10 +128,10 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
     bind_obj.logger.debug("正在导出参数%s的kegg_table文件，路径:%s" % (option_name, kegg_path))
     geneset_collection = db["sg_geneset"]
     bind_obj.logger.debug(data)
-    # data = data.split(",")[0]
-    # bind_obj.logger.debug(data)
     geneset_result = geneset_collection.find_one({"_id": ObjectId(data)})
     task_id = geneset_result["task_id"]
+    bind_obj.logger.debug("ttttttt")
+    bind_obj.logger.debug(task_id)
     geneset_type = geneset_result["type"]
     # my_result = db["sg_annotation_kegg"].find_one({"task_id": task_id, "seq_type": "new"})
     my_result = db["sg_annotation_kegg"].find({"task_id": task_id})
@@ -132,12 +139,14 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
         w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
         for main_table in my_result:
             kegg_id = main_table["_id"]
+            bind_obj.logger.debug(kegg_id)
             if not my_result:
                 raise Exception("意外错误，annotation_kegg_id:{}在sg_annotation_kegg中未找到！".format(kegg_id))
             # with open(kegg_path, 'wb') as w:
             #     w.write('#Query\tKO_ID(Gene id)\tKO_name(Gene name)\tHyperlink\tPaths\n')
             results = db['sg_annotation_kegg_table'].find({'kegg_id': kegg_id, 'anno_type': geneset_type})
-            if not results:
+            one_record = db['sg_annotation_kegg_table'].find_one({'kegg_id': kegg_id, 'anno_type': geneset_type})
+            if not one_record:
                 raise Exception("生成kegg_table出错：kegg_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(kegg_id)))
             for result in results:
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
@@ -286,13 +295,17 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
     go_path = os.path.join(dir_path, 'go_class_table.xls')
     bind_obj.logger.debug("正在导出{}".format(go_path))
     genesets, table_title, task_id, seq_type = get_geneset_detail(data)
-    bind_obj.logger.debug(seq_type)
+    # bind_obj.logger.debug(seq_type)
+    # bind_obj.logger.debug(genesets)
     go_collection = db["sg_annotation_go"]
     go_level_collection = db["sg_annotation_go_level"]
     go_id = go_collection.find_one({"task_id": task_id})["_id"]
     # go_results = go_level_collection.find({'go_id': go_id, "level": 2})
+    # bind_obj.logger.debug(go_id)
     go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
-
+    one_record = go_level_collection.find_one({'go_id': go_id, "level": 2, "anno_type": seq_type})
+    if not one_record:
+        raise Exception("意外错误:未找到go_id为{}的基因集信息".format(go_id))
     # print table_title
     new_table_title = []
     for tt in table_title:
@@ -303,8 +316,8 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
     with open(go_path, "wb") as w:
         w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
         for gr in go_results:
-            # seq_list = set(gr["seq_list"].split(";"))
-            seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
+            seq_list = set(gr["seq_list"].split(";"))
+            # seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
             # bind_obj.logger.debug(seq_list)
             write_line = {}
             for gt in genesets:
@@ -313,7 +326,7 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
                 # print len(go_count)
                 # bind_obj.logger.debug(go_count)
                 if not len(go_count) == 0:
-                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "\t" + ";".join(go_count)
+                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
             if len(write_line):
                 w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
                 for tt in table_title:
@@ -348,7 +361,7 @@ def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
 def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     """
     type对应的是gene/transcript字段，workflow里确保有这个字段
-    level对应的是fpkm/tpm字段，workflow里确保有这个字段
+    express_level对应的是fpkm/tpm字段，workflow里确保有这个字段
     """
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
@@ -360,36 +373,37 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     bind_obj.logger.debug(type)
     level = bind_obj.sheet.option("express_level")
     #sample_group = bind_obj.sheet.option("sample_group")
-    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"}]})
+    results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"},{"value_type":level}]})
+    count_results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"},{"value_type":"count"}]})
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
+
     samples = my_result['specimen']
-    with open(fpkm_path, "wb") as f, open(count_path, 'wb') as c:
-        head = '\t'.join(samples)
-        f.write('\t' + head + '\n')
-        c.write('\t' + head + '\n')
-        for result in results:
-            #bind_obj.logger.debug(result)
-            gene_id = result['seq_id']
-            fpkm_write = '{}'.format(gene_id)
-            count_write = '{}'.format(gene_id)
-            for sam in samples:
-                fpkm = sam + '_{}'.format(level)
-                count = sam + '_count'
-                #bind_obj.logger.debug(fpkm)
-                try:
-                    fpkm_write += '\t{}'.format(result[fpkm])
-                    count_write += '\t{}'.format(result[count])
-                except Exception:
-                    print fpkm_write
-                    print sam
-                    print result
-                    raise Exception("{}错误".format(result[fpkm]))
-            fpkm_write += '\n'
-            count_write += '\n'
-            f.write(fpkm_write)
-            c.write(count_write)
+    def write_file(path, collcetion_results):
+        with open(path, "wb") as f:
+            head = '\t'.join(samples)
+            f.write('\t' + head + '\n')
+            for result in collcetion_results:
+                #bind_obj.logger.debug(result)
+                gene_id = result['seq_id']
+                fpkm_write = '{}'.format(gene_id)
+                for sam in samples:
+                    fpkm = sam
+                    try:
+                        fpkm_write += '\t{}'.format(result[fpkm])
+                        #count_write += '\t{}'.format(result[count])
+                    except Exception:
+                        print fpkm_write
+                        print sam
+                        print result
+                        raise Exception("{}错误".format(result[fpkm]))
+                fpkm_write += '\n'
+                #count_write += '\n'
+                f.write(fpkm_write)
+                #c.write(count_write)
+    write_file(fpkm_path, results)
+    write_file(count_path, count_results)
     paths = ','.join([fpkm_path, count_path])
     return paths
 

@@ -54,6 +54,7 @@ class GenesetClassWorkflow(Workflow):
             api_geneset.add_geneset_cog_detail(output_file, self.option("main_table_id"))
         elif self.option("anno_type") == "go":
             output_file = self.option("geneset_go")
+            os.link(output_file, self.output_dir + "/go_class_table.xls")
             api_geneset.add_go_regulate_detail(output_file, self.option("main_table_id"))
         else:
             output_file = self.output_dir + '/kegg_stat.xls'
@@ -88,13 +89,13 @@ class GenesetClassWorkflow(Workflow):
             # ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
         # print self.get_upload_files()
+        self.set_end()
+        self.fire('end')
         self._upload_result()
         self._import_report_data()
         self.step.finish()
         self.step.update()
         self.logger.info("运行结束!")
-        self._update("end")
-        self.set_end()
-        self.fire('end')
+        self._save_report_data()
         # super(GenesetClassWorkflow, self).end()
 

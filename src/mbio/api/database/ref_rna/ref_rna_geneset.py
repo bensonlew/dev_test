@@ -84,7 +84,8 @@ class RefRnaGeneset(Base):
             collection = self.db['sg_geneset_cog_class_detail']
             main_collection = self.db['sg_geneset_cog_class']
             collection.insert_many(data_list)
-            main_collection.update({"_id": geneset_cog_id}, {"$set": {"table_columns": geneset_name}})
+            main_collection.update({"_id": ObjectId(geneset_cog_id)}, {"$set": {"table_columns": geneset_name, "status": "end"}})
+            self.bind_object.logger.error(geneset_name)
         except Exception, e:
             self.bind_object.logger.error("导入cog表格：%s出错:%s" % (geneset_cog_table, e))
         else:
@@ -110,58 +111,88 @@ class RefRnaGeneset(Base):
             f.readline()
             for line in f:
                 line = line.strip().split('\t')
-                if float(line[8]):
-                    m = re.match(r"(.+)/(.+)", line[5])
-                    pop_count = int(m.group(1))
-                    line[6] = float(line[6])
-                    line[7] = int(line[7])
-                    line[8] = int(line[8])
-                    line[9] = float(line[9])
-                    line[10] = float(line[10])
-                    line[11] = float(line[11])
-                    line[12] = float(line[12])
-                    data = [
-                        ('go_enrich_id', go_enrich_id),
-                        ('go_id', line[0]),
-                        ('go_type', line[1]),
-                        ('enrichment', line[2]),
-                        ('discription', line[3]),
-                        ('ratio_in_study', line[4]),
-                        ('ratio_in_pop', line[5]),
-                        ('p_uncorrected', line[6]),
-                        ('depth', line[7]),
-                        ('study_count', line[8]),
-                        ('pop_count', pop_count),
-                        ('gene_list', line[13]),
-                    ]
-                    try:
-                        data += [('p_bonferroni', line[9])]
-                    except:
-                        data += [('p_bonferroni', '')]
-                    try:
-                        data += [('p_sidak', line[10])]
-                    except:
-                        data += [('p_sidak', '')]
-                    try:
-                        data += [('p_holm', line[11])]
-                    except:
-                        data += [('p_holm', '')]
-                    try:
-                        data += [('p_fdr', line[12])]
-                    except:
-                        data += [('p_fdr', '')]
-                    data = SON(data)
-                    data_list.append(data)
+                data = [
+                    ('go_enrich_id', go_enrich_id),
+                    ('go_id', line[0]),
+                    ('go_type', line[1]),
+                    ('enrichment', line[2]),
+                    ('discription', line[3]),
+                    ('ratio_in_study', line[4]),
+                    ('ratio_in_pop', line[5]),
+                    ('p_uncorrected', float(line[6])),
+                    ('p_corrected', float(line[9])),
+                    ('depth', int(line[7])),
+                    ('study_count', int(line[4].split("/")[0])),
+                    ('pop_count', int(line[5].split("/")[0])),
+                    ('gene_list', line[-1]),
+                    ('gene_str', line[-1].split(";"))
+                ]
+                # if float(line[8]):
+                #     m = re.match(r"(.+)/(.+)", line[5])
+                #     pop_count = int(m.group(1))
+                #     line[6] = float(line[6])
+                #     line[7] = int(line[7])
+                #     line[8] = int(line[8])
+                #     line[9] = float(line[9])
+                #     line[10] = float(line[10])
+                #     line[11] = float(line[11])
+                #     line[12] = float(line[12])
+                #     data = [
+                #         ('go_enrich_id', go_enrich_id),
+                #         ('go_id', line[0]),
+                #         ('go_type', line[1]),
+                #         ('enrichment', line[2]),
+                #         ('discription', line[3]),
+                #         ('ratio_in_study', line[4]),
+                #         ('ratio_in_pop', line[5]),
+                #         ('p_uncorrected', line[6]),
+                #         ('depth', line[7]),
+                #         ('study_count', line[8]),
+                #         ('pop_count', pop_count),
+                #         ('gene_list', line[13]),
+                #     ]
+                #     try:
+                #         data += [('p_bonferroni', line[9])]
+                #     except:
+                #         data += [('p_bonferroni', '')]
+                #     try:
+                #         data += [('p_sidak', line[10])]
+                #     except:
+                #         data += [('p_sidak', '')]
+                #     try:
+                #         data += [('p_holm', line[11])]
+                #     except:
+                #         data += [('p_holm', '')]
+                #     try:
+                #         data += [('p_fdr', line[12])]
+                #     except:
+                #         data += [('p_fdr', '')]
+                data = SON(data)
+                data_list.append(data)
         try:
             collection = self.db['sg_geneset_go_enrich_detail']
             collection.insert_many(data_list)
+            # main_collection = self.db['sg_geneset_go_enrich']
+            # main_collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {"status": "end"}})
         except Exception, e:
             print("导入go富集信息：%s出错:%s" % (go_enrich_dir, e))
         else:
             print("导入go富集信息：%s成功!" % (go_enrich_dir))
 
     @report_check
-    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table):
+    def update_directed_graph(self, go_enrich_id, go_graph_dir):
+        collection = self.db['sg_geneset_go_enrich']
+        fs = gridfs.GridFS(self.db)
+        gra = fs.put(open(go_graph_dir, 'rb'))
+        try:
+            collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {'go_directed_graph': gra}})
+        except Exception, e:
+            print("导入%s信息出错：%s" % (go_graph_dir, e))
+        else:
+            print("导入%s信息成功！" % (go_graph_dir))
+
+    @report_check
+    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table, geneset_list_path, all_list_path):
         """
         KEGG富集详情表导表函数
         :param enrich_id: 主表id
@@ -176,6 +207,8 @@ class RefRnaGeneset(Base):
         if not os.path.exists(kegg_enrich_table):
             raise Exception('kegg_enrich_table所指定的路径:{}不存在，请检查！'.format(kegg_enrich_table))
         data_list = []
+        geneset_length = len(open(geneset_list_path, "r").readlines())
+        all_list_length = len(open(all_list_path, "r").readlines())
         with open(kegg_enrich_table, 'rb') as r:
             for line in r:
                 if re.match(r'\w', line):
@@ -187,16 +220,20 @@ class RefRnaGeneset(Base):
                         'id': line[2],
                         'study_number': int(line[3]),
                         'backgroud_number': int(line[4]),
+                        'ratio_in_study': line[3] + "/" + str(geneset_length),
+                        'ratio_in_pop': line[4] + "/" + str(all_list_length),
                         'pvalue': round(float(line[5]), 4),
-                        'corrected_pvalue': round(float(line[6]), 4),
-                        'gene_lists': line[7],
-                        'hyperlink': line[8]
+                        'corrected_pvalue': round(float(line[-3]), 4) if not line[-3] == "None" else "None",
+                        'gene_lists': line[-2],
+                        'hyperlink': line[-1]
                     }
                     data_list.append(insert_data)
             if data_list:
                 try:
                     collection = self.db['sg_geneset_kegg_enrich_detail']
                     collection.insert_many(data_list)
+                    # main_collection = self.db['sg_geneset_kegg_enrich']
+                    # main_collection.update({"_id": ObjectId(enrich_id)}, {"$set": {"status": "end"}})
                 except Exception, e:
                     self.bind_object.logger.error("导入kegg富集统计表：%s信息出错:%s" % (kegg_enrich_table, e))
                 else:
@@ -249,14 +286,17 @@ class RefRnaGeneset(Base):
                 collection = self.db['sg_geneset_go_class_detail']
                 main_collection = self.db['sg_geneset_go_class']
                 collection.insert_many(data_list)
-                main_collection.update({"_id": go_regulate_id}, {"$set": {"table_columns": geneset_name}})
+                main_collection.update({"_id": ObjectId(go_regulate_id)}, {"$set": {"table_columns": list(geneset_name)}})
+                self.bind_object.logger.info("llllllll")
+                self.bind_object.logger.info(geneset_name)
+                self.bind_object.logger.info(ObjectId(go_regulate_id))
             except Exception, e:
                 self.bind_object.logger.info("导入go调控信息：%s出错:%s" % (go_regulate_dir, e))
             else:
                 self.bind_object.logger.info("导入go调控信息：%s成功!" % (go_regulate_dir))
 
     @report_check
-    def add_kegg_regulate_pathway(self, regulate_id, pathway_dir):
+    def add_kegg_regulate_pathway(self, pathway_dir, regulate_id):
         """
 
         :param regulate_id: 主表id
@@ -323,15 +363,16 @@ class RefRnaGeneset(Base):
                 }
                 # print line
                 for n, gn in enumerate(genesets_name):
-                    insert_data["{}_numbers".format(gn)] = line[3+2*n]
-                    insert_data["{}_genes".format(gn)] = line[4+2*n].split(";")
-                    insert_data["{}_str".format(gn)] = line[4+2*n]
+                    gene_list = re.findall(r"(.*?)\(.*?\);", line[3+2*n])
+                    insert_data["{}_numbers".format(gn)] = line[2+2*n]
+                    insert_data["{}_genes".format(gn)] = gene_list
+                    insert_data["{}_str".format(gn)] = ";".join(gene_list)
                 data_list.append(insert_data)
             try:
                 collection = self.db['sg_geneset_kegg_class_detail']
                 main_collection = self.db['sg_geneset_kegg_class']
                 collection.insert_many(data_list)
-                main_collection.update({"_id": regulate_id}, {"$set": {"table_columns": genesets_name}})
+                main_collection.update({"_id": ObjectId(regulate_id)}, {"$set": {"table_columns": genesets_name}})
             except Exception, e:
                 self.bind_object.logger.info("导入kegg调控统计表：%s信息出错:%s" % (kegg_regulate_table, e))
             else:

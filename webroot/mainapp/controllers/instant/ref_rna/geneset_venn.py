@@ -45,7 +45,8 @@ class GenesetVennAction(RefRnaController):
         if task_info:
             geneset_num=len(data.geneset_id.split(","))
             if geneset_num<=1 or geneset_num >=7:
-                raise Exception("venn图分析只能选择2至6个样本！")
+                info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
+                return json.dumps(info)
             
             main_table_name = 'GenesetVenn_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
             collection_name = 'sg_geneset_venn'

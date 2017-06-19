@@ -4,6 +4,7 @@ from biocluster.config import Config
 import re
 from Bio.KEGG.KGML import KGML_parser
 from Bio.Graphics.KGML_vis import KGMLCanvas
+from reportlab.lib import colors
 import collections
 from itertools import islice
 import subprocess
@@ -86,7 +87,7 @@ class KeggAnnotation(object):
     def pathSearch_upload(self, kegg_ids, kegg_table, taxonomy=None):
         # 输入blast比对的xml文件
         """
-        输入blast比对的xml文件(Trinity_vs_kegg.xml)，输出kegg_table.xls
+        输入基因/转录本id对应的K编号文件(kegg.list)，输出kegg_table.xls
         """
         tablefile = open(kegg_table, "wb")
         ko_list = []
@@ -177,7 +178,7 @@ class KeggAnnotation(object):
     def getPic(self, pidpath, pathwaydir, image_magick=None):
         """
         输入文件pid.txt，输出文件夹pathways，作图
-        image_magick:将pdf转为png的软件目录
+        image_magick:将pdf转为png的软件目录(/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert)
         """
         fs = gridfs.GridFS(self.mongodb)
         f = open(pidpath)
@@ -201,28 +202,33 @@ class KeggAnnotation(object):
                         png_id = result['pathway_ko_png']
                         k.write(fs.get(kgml_id).read())
                         p.write(fs.get(png_id).read())
-                try:
-                    p_kgml = KGML_parser.read(open("pathway.kgml"))
-                    p_kgml.image = png_path
-                    for ko in koid:
-                        for degree in p_kgml.entries.values():
-                            if re.search(ko, degree.name):
-                                l.append(degree.id)
-                        for n in l:
-                            for graphic in p_kgml.entries[n].graphics:
-                                graphic.fgcolor = '#CC0000'
-                    canvas = KGMLCanvas(p_kgml, import_imagemap=True)
-                    pdf = pathwaydir + '/' + pid + '.pdf'
-                    png = pathwaydir + '/' + pid + '.png'
-                    canvas.draw(pdf)
-                    if image_magick:
-                        cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
-                        try:
-                            subprocess.check_output(cmd, shell=True)
-                        except subprocess.CalledProcessError:
-                            print '图片格式pdf转png出错'
-                except:
-                    print "没找到对应的通路图"
+                p_kgml = KGML_parser.read(open("pathway.kgml"))
+                p_kgml.image = png_path
+                for ortholog in p_kgml.orthologs:
+                    for g in ortholog.graphics:
+                        g.bgcolor = colors.Color(alpha=0)
+                for ko in koid:
+                    for degree in p_kgml.entries.values():
+                        if re.search(ko, degree.name):
+                            l.append(degree.id)
+                    for n in l:
+                        for graphic in p_kgml.entries[n].graphics:
+                            graphic.fgcolor = '#CC0000'
+                canvas = KGMLCanvas(p_kgml, import_imagemap=True, label_compounds=True,
+                                    label_orthologs=False, label_reaction_entries=False,
+                                    label_maps=False, show_maps=False, draw_relations=False, show_orthologs=True,
+                                    show_compounds=False, show_genes=False,
+                                    show_reaction_entries=False)
+                pdf = pathwaydir + '/' + pid + '.pdf'
+                png = pathwaydir + '/' + pid + '.png'
+                canvas.draw(pdf)
+                if image_magick:
+                    cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
+                    try:
+                        subprocess.check_output(cmd, shell=True)
+                    except subprocess.CalledProcessError:
+                        print '图片格式pdf转png出错'
+
         print "getPic finished!!!"
 
     def keggLayer(self, pathway_table, layerfile, taxonomyfile):
