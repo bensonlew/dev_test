@@ -1028,7 +1028,7 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.exp.output_dir, 'express')
         self.move2outputdir(self.exp_fc.output_dir, 'express_fc_all')
         self.move2outputdir(self.exp_diff_gene.output_dir, 'express_diff_gene')
-        self.move2outputdir(self.exp_diff.output_dir, 'express_diff_trans')
+        self.move2outputdir(self.exp_diff_trans.output_dir, 'express_diff_trans')
         self.move2outputdir(self.snp_rna.output_dir, 'snp_rna')
         self.move2outputdir(self.network_trans.output_dir, 'network_analysis')
         self.move2outputdir(self.annotation.output_dir, 'annotation')
@@ -1040,7 +1040,7 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.blast_string.output_dir, 'stringblast')
         self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
         self.move2outputdir(self.new_blast_swissprot.output_dir, 'new_swissprotblast')
-        self.move2outputdir(self.snp_rna.output_dir, 'pfam')
+        self.move2outputdir(self.pfam.output_dir, 'pfam')
         if self.as_on:
             self.move2outputdir(self.altersplicing.output_dir, 'altersplicing')
         self.logger.info("结果文件导入完成！")
