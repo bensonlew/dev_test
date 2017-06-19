@@ -138,9 +138,29 @@ class PipeSubmitTool(Tool):
             self.logger.info("当前运行中的投递任务数为: {}, which analysis:{}".format(
                 self.count_submit_running, ana._params['submit_location']))
         self.logger.info("END COUNT: {}".format(self.count_ends))
+
+        if not ana.success and self.count_ends == self.all_count:
+            self.final_end(self.all_count)
+
         if self.count_ends == self.all_count:
             self.all_end.set()
         pass
+
+    def final_end(self, all_count):
+        """
+        用于最后一个分析因为参数不合适，计算失败, 不投递出去计算，这样导致进度条更新不了
+        :return:
+        """
+        self.logger.info("all_count:{}".format(all_count))
+        for i in xrange(100):
+            ends_counts = self.db['sg_pipe_detail'].find({'pipe_batch_id': ObjectId(self.option('pipe_id')),
+                                                          'status': {'$in': ['end', "failed"]}}).count()
+            self.logger.info("第{}次查询ends_count值: {}".format(i + 1, ends_counts))
+            if ends_counts == all_count - 1:
+                self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                             {'$set': {"ends_count": ends_counts}}, upsert=True)
+                break
+            gevent.sleep(10)
 
     def get_params(self, config_name):
         """
