@@ -29,7 +29,7 @@ class PtDatasplitWorkflow(Workflow):
 			{"name": "data_dir", "type": "string"},
 
 			{"name": "family_table", "type": "infile", "format": "paternity_test.tab"},  # 亲子鉴定的家系表
-			{"name": "customer_table", "type": "infile", "format": "paternity_test.tab"},  # 产前筛查家系表
+			{"name": "customer_table", "type": "infile", "format": "nipt.xlsx"},  # 产前筛查家系表
 
 			{"name": "pt_data_split_id", "type": "string"},
 			{"name": "member_id", "type": "string"},
@@ -49,6 +49,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.ws_dir = ''
 		self.un_dir = ''
 		self.done_wq = ''
+		self.done_ws = ''
 		self.done_data_split = ''
 
 	def check_options(self):
@@ -75,13 +76,19 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split.run()
 
 	def db_customer(self):
-		self.logger.info("开始导表(家系表)")
+		self.logger.info("开始导入pt家系表")
 		db_customer = self.api.pt_customer
 		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
 		                            customer_file=self.option('family_table').prop['path'])
-		self.logger.info("导表结束(家系表)")
+		self.logger.info("pt家系表导入完成")
 		self.logger.info("导入样本类型信息")
 		db_customer.add_sample_type(self.option('message_table').prop['path'])
+
+		self.logger.info("开始导入nipt家系表")
+		self.api_nipt = self.api.nipt_analysis
+		file = self.option('customer_table').prop['path']
+		self.api_nipt.nipt_customer(file)
+		self.logger.info("nipt家系表导入完成")
 
 	def run_merge_fastq_wq(self):
 		self.data_dir = self.data_split.output_dir + "/MED"
@@ -199,24 +206,34 @@ class PtDatasplitWorkflow(Workflow):
 		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 
 	def run_ws_wf(self):
-		self.logger.info("给产筛分析的workflow传送数据")
+		self.logger.info("给nipt的workflow传送数据")
+		mongo_data = [
+			('batch_id', ObjectId(self.option('pt_data_split_id'))),
+			("type", "nipt"),
+			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+			("status", "start"),
+			("member_id", self.option('member_id'))
+		]
+		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
+		update_info = {str(main_table_id): 'sg_analysis_status'}
+		update_info = json.dumps(update_info)
 		data = {
 			'stage_id': 0,
 			'UPDATE_STATUS_API': self._update_status_api(),
 			"id": 'nipt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
 			"type": "workflow",
-			"name": "nipt.nipt_workflow",
+			"name": "nipt.nipt",
 			"instant": False,
 			"IMPORT_REPORT_DATA": True,
 			"IMPORT_REPORT_AFTER_END": False,
 			"options": {
-				"customer_table": self.option('customer_table'),
 				"fastq_path": self.ws_dir,
 				"batch_id": self.option('pt_data_split_id'),
 				'member_id': self.option('member_id'),
 				"bw": 10,
 				"bs": 1,
-				"ref_group": 2
+				"ref_group": 2,
+				"update_info": update_info,
 			}
 		}
 		WC().add_task(data)
