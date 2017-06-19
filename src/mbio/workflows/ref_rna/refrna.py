@@ -152,8 +152,7 @@ class RefrnaWorkflow(Workflow):
                 self.gff = self.option('genome_structure_file').prop["path"]
         else:
             self.gff = self.json_dict[self.option("ref_genome")]["gff"]
-        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans,
-                            self.exp_alter, self.exp_fc]
+        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
         self.step.add_steps("filecheck_ref", "rna_qc", "mapping", "assembly", "new_annotation", "exp", "snp_rna")
@@ -1019,6 +1018,7 @@ class RefrnaWorkflow(Workflow):
         #     self.logger.info("pfam文件移动完成")
 
     def set_output_all(self):
+        self.logger.info("开始导入结果文件！")
         self.move2outputdir(self.qc.output_dir, 'QC_stat')
         self.move2outputdir(self.qc_stat_before.output_dir, 'QC_stat/before_qc')
         self.move2outputdir(self.qc_stat_after.output_dir, 'QC_stat/after_qc')
@@ -1043,6 +1043,7 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.snp_rna.output_dir, 'pfam')
         if self.as_on:
             self.move2outputdir(self.altersplicing.output_dir, 'altersplicing')
+        self.logger.info("结果文件导入完成！")
 
     def run(self):
         """
