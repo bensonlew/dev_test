@@ -121,7 +121,7 @@ class ParallelAnnoModule(Module):
         # xml.set_path(self.cat_cog.option("blast_result").prop["path"])
         # xml.convert2table(self.output_dir + "/cog.list")
         # self.option("out_cog").set_path(self.output_dir + "/cog.list")
-        self.option("out_cog", self.xml2table.option("blast_table").prop["path"])
+        self.option("out_cog").set_path(self.xml2table.option("blast_table").prop["path"])
         self.option("out_kegg").set_path(self.output_dir + "/kegg.list")
         self.option("out_go").set_path(self.output_dir + "/go.list")
         self.end()
