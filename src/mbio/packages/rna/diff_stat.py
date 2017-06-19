@@ -92,6 +92,7 @@ class DiffStat(object):
         """
         with open(edgr_result, 'rb') as r, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w:
             import math
+            from math import log
             r.readline()
             count_ = []
             fpkm_ = []
@@ -105,11 +106,9 @@ class DiffStat(object):
                 for ss in samples_:
                     count_.append("{}_count".format(ss))
                     fpkm_.append("{}_fpkm".format(ss))
-                head = "seq_id\t%s\t%s\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
-                    "\t".join(count_), "\t".join(fpkm_), control, other, control, other)
+                head = "seq_id\t%s\t%s\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % ("\t".join(count_), "\t".join(fpkm_), control, other, control, other,control,other,control,other)
             else:
-                head = "seq_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
-                control, other, control, other)
+                head = "seq_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (control, other, control, other,control,other,control,other)
             w.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')
@@ -122,13 +121,21 @@ class DiffStat(object):
                 if group_info:
                     # con_sams = group_info[control]
                     # oth_sams = group_info[other]
-                    control_count, control_fpkm = self.get_mean(con_sams, counts, fpkms)
-                    other_count, other_fpkm = self.get_mean(oth_sams, counts, fpkms)
+                    control_count,control_fpkm = self.get_mean(con_sams, counts, fpkms)
+                    other_count,other_fpkm = self.get_mean(oth_sams, counts, fpkms)
+                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
+                    control_count_log2 = log(control_count+0.1)/float(log(2))
+                    other_fpkm_log2 = log(other_fpkm+0.1)/log(2)
+                    other_count_log2 = log(other_count+0.1)/float(log(2))
                 else:
                     control_count = express_info[gene].counts[control]
                     control_fpkm = express_info[gene].fpkms[control]
                     other_count = express_info[gene].counts[other]
                     other_fpkm = express_info[gene].fpkms[other]
+                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
+                    control_count_log2 = log(control_count+0.1)/float(log(2))
+                    other_fpkm_log2 = log(other_fpkm+0.1)/float(log(2))
+                    other_count_log2 = log(other_count+0.1)/float(log(2))
                 # lfc = (other_fpkm + 0.1) / (control_fpkm + 0.1)
                 # logfc = round(math.log(lfc, 2), 3)
                 """
@@ -140,25 +147,48 @@ class DiffStat(object):
                     logfc = math.log(logfc, fc)
                 """
                 from math import pow
-                
                 ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
-                logfc = float(line[-4])
+
+                fc = float((other_fpkm+0.1)/(control_fpkm+0.1))
+                logfc=float(log(fc)/log(2))
+
+                # logfc = float(line[-4])
                 if logfc > 0:
                     reg = 'up'
                 elif logfc < 0:
                     reg = 'down'
                 else:
                     reg = 'no change'
-                if pvalue_padjust == 'padjust':
-                        if fdr <= float(diff_fdr_ci):
-                            sig = 'yes'
+                def check_fc(fc,pvalue,pvalue_filter,fc_filter=None):
+                        if fc_filter and fc_filter != 0:
+                            if float(fc_filter)>=1:
+                                if float(pow(2,float(fc))) > float(fc_filter) or float(pow(2,float(fc))) <= (float(1)/float(fc_filter)):
+                                   if pvalue <= float(pvalue_filter):
+                                      sig = 'yes'
+                                   else:
+                                      sig = 'no'
+                                else:
+                                    sig='no'
+                            if float(fc_filter)<1:
+                                if float(pow(2,float(fc))) < float(fc_filter) or float(pow(2,float(fc))) >= (float(1)/float(fc_filter)):
+                                   if pvalue <= float(pvalue_filter):
+                                       sig = 'yes'
+                                   else:
+                                       sig = 'no'
+                                else:
+                                    sig='no'
+                            return sig
                         else:
-                            sig = 'no'
+                            if pvalue <= float(pvalue_filter):
+                                sig='yes'
+                            else:
+                                sig='no'
+                            return sig
                 if pvalue_padjust == 'pvalue':
-                        if pvalue <= float(diff_ci):
-                            sig='yes'
-                        else:
-                            sig='no'
+                    sig =  check_fc(fc=logfc,pvalue=pvalue,pvalue_filter=diff_ci,fc_filter=fc)
+                if pvalue_padjust == 'padjust':
+                    sig = check_fc(fc=logfc,pvalue = fdr,pvalue_filter=diff_fdr_ci,fc_filter=fc)
+
                 """
                 if pvalue < diff_ci and fdr < diff_fdr_ci:
                     sig = 'yes'
@@ -173,32 +203,10 @@ class DiffStat(object):
                         fpkm_.append("{}_fpkm".format(ss))
                         count_data.append(str(counts[ss]))
                         fpkm_data.append(str(fpkms[ss]))
-                    if fc:
-                        if float(fc)>=1:
-                            if pow(2,float(line[1])) > float(fc) or pow(2,float(line[1])) <= (float(1)/float(fc)):
-                                w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, '%0.4g' %logfc,'%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-                        elif float(fc)<1:
-                            if pow(2,float(line[1])) < float(fc) or pow(2,float(line[1])) >= (float(1)/float(fc)):
-                                w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, '%0.4g' %logfc,'%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-                        else:
-                            continue
-                    else:
-                        w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, '%0.4g' %logfc,'%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2,other_fpkm_log2,control_count_log2,other_count_log2,'%0.4g' %logfc,'%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
                     
-                else:
-                    
-                    if fc:
-                        if float(fc)>=1:
-                            if pow(2,float(line[1])) > float(fc) or pow(2,float(line[1])) <= (float(1)/float(fc)):
-                                w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, control_count, other_count, control_fpkm, other_fpkm, '%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-                        elif float(fc)<1:
-                            if pow(2,float(line[1])) < float(fc) or pow(2,float(line[1])) >= (float(1)/float(fc)):
-                                w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, control_count, other_count, control_fpkm, other_fpkm, '%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-                        else:
-                            continue
-                    else:            
-                        w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
-                            gene, control_count, other_count, control_fpkm, other_fpkm, '%0.4g' % logfc,'%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
+                else: 
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2,other_fpkm_log2,control_count_log2,other_count_log2,'%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
                     
 
 if __name__ == "__main__":

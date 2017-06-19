@@ -4,6 +4,7 @@
 import web
 import json
 import datetime
+from bson import SON
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
@@ -75,7 +76,9 @@ class CorrNetwork(MetaController):
             ('params', json.dumps(params_json, sort_keys=True, separators=(',', ':'))),
             ('name', main_table_name)
         ]
-        main_table_id = self.meta.insert_main_table('sg_corr_network', mongo_data)
+
+        main_table_id = self.meta.insert_none_table('sg_corr_network')
+        # main_table_id = self.meta.insert_main_table('sg_corr_network', mongo_data)
         update_info = {str(main_table_id): 'sg_corr_network'}
         options = {
             'otutable': data.otu_id,
@@ -86,6 +89,7 @@ class CorrNetwork(MetaController):
             'level': int(data.level_id),
             'coefficient': float(data.coefficient),
             'abundance': int(data.abundance),
+            'main_table_data': SON(mongo_data),
             'update_info': json.dumps(update_info),
             'corr_network_id': str(main_table_id)
         }
@@ -93,10 +97,6 @@ class CorrNetwork(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name="CorrNetwork/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(CorrNetwork, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
-            }
-        }
+        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        print "task_info", task_info
         return json.dumps(task_info)

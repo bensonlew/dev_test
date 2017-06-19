@@ -29,9 +29,12 @@ class GenesetClassAction(RefRnaController):
             "geneset_type": data.geneset_type
         }
         # 判断传入的基因集id是否存在
+        print(data.geneset_id)
         geneset_info = {}
-        for geneset in data.geneset_id.split(","):
-            geneset_info = self.ref_rna.get_main_info(geneset, 'sg_geneset')
+        for gd in data.geneset_id.split(","):
+            # print("lllll")
+            # print gd
+            geneset_info = self.ref_rna.get_main_info(gd, 'sg_geneset')
             if not geneset_info:
                 info = {"success": False, "info": "geneset不存在，请确认参数是否正确！!"}
                 return json.dumps(info)
@@ -57,6 +60,7 @@ class GenesetClassAction(RefRnaController):
             return json.dumps(info)
 
         main_table_name = 'Geneset' + table_name + "Class_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        print(main_table_name)
 
         mongo_data = [
             ('project_sn', task_info['project_sn']),
