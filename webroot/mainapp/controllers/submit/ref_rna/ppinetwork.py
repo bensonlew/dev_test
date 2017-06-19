@@ -56,7 +56,8 @@ class PpinetworkAction(RefRnaController):
             ('geneset_id', ObjectId(data.geneset_id)),
             ('desc', 'ppi_network分析中...'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
+            ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':'))),
+            ("gene_type", data.gene_type)
         ]
         main_table_id = self.ref_rna.insert_main_table('sg_ppinetwork', mongo_data)
         update_info = {str(main_table_id): "sg_ppinetwork"}
