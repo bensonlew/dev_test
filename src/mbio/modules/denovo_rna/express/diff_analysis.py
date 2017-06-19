@@ -12,7 +12,7 @@ from mbio.files.rna.diff_stat_table import DiffStatTableFile
 class DiffAnalysisModule(Module):
     def __init__(self, work_id):
         super(DiffAnalysisModule, self).__init__(work_id)
-        self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich', 'go_regulate', 'kegg_regulate')
+        self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich', 'go_regulate', 'kegg_regulate', 'cog_class')
         options = [
             {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate,cog_class"},  # 选择要做的分析
             {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 差异基因表达量表
@@ -33,9 +33,10 @@ class DiffAnalysisModule(Module):
             {"name": "gene_go_level_2", "type": "infile", "format": "annotation.go.level2"},
             {"name": "diff_stat_dir", "type": "infile", "format": "rna.diff_stat_dir"},
             {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"},
+            {"name":"is_genelist","type":"bool","default":False}, #是否设置gene_list参数
         ]
         self.add_option(options)
-        self.cluster = self.add_tool("denovo_rna.express.cluster")
+        self.cluster = self.add_tool("rna.cluster")
         self.network = self.add_tool("denovo_rna.express.network")
         self._end_info = 0
         self.kegg_rich_tool = []
@@ -89,7 +90,7 @@ class DiffAnalysisModule(Module):
             raise OptionError("模块network相异值超出范围")
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
-        if 'cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'kegg_regulate' or 'go_regulate' in self.option('analysis'):
+        if 'cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'kegg_regulate' or 'go_regulate'or 'cog_class' in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
@@ -105,10 +106,11 @@ class DiffAnalysisModule(Module):
     def cluster_run(self):
         self.cluster.set_options({
             "diff_fpkm": self.option("diff_fpkm"),
-            "distance_method": self.option("distance_method"),
             "log": self.option("log"),
             "method": self.option("method"),
-            "sub_num": self.option("sub_num")
+            "sub_num": self.option("sub_num"),
+            "is_genelist": True,
+            "diff_list_dir": self.option("diff_list_dir")
         })
         self.cluster.on('end', self.set_output, 'cluster')
         self.cluster.on('start', self.set_step, {'start': self.step.cluster})
@@ -184,6 +186,8 @@ class DiffAnalysisModule(Module):
             diff_gene, regulate_dict = tmpfile.get_table_info()
             go_genes = self.option("gene_go_level_2").get_gene()
             same_gene = list(set(diff_gene) & set(go_genes))
+            self.logger.info(str(len(go_genes)))
+            self.logger.info(str(len(diff_gene)))
             if same_gene:
                 self.go_regulate = self.add_tool("denovo_rna.express.go_regulate")
                 self.go_regulate.set_options({
@@ -191,6 +195,8 @@ class DiffAnalysisModule(Module):
                     "go_level_2": self.option("gene_go_level_2")
                 })
                 self.go_regulate_tool.append(self.go_regulate)
+            else:
+                self.logger.info("gene_go_level_2与stat_table中无相同基因")
         if len(self.go_regulate_tool) == 1:
             self.go_regulate.on('end', self.set_output, 'go_regulate')
         elif len(self.go_regulate_tool) == 0:
@@ -280,6 +286,12 @@ class DiffAnalysisModule(Module):
                 self.linkdir(tool.output_dir, dirname)
             self.set_step(event={'data': {'end': self.step.kegg_regulate}})
             print '.......kr:%s...kegg_regulate end' % len(self.kegg_regulate_tool)
+        elif event['data'] == 'cog_class':
+            for tool in self.cog_class_tool:
+                dirname = 'cog_class/' + os.path.splitext(os.path.basename(tool.option('diff_list').path))[0]
+                self.linkdir(tool.output_dir, dirname)
+            self.set_step(event={'data': {'end': self.step.cog_class}})
+            print '.......kr:%s...cog class end' % len(self.cog_class_tool)
         else:
             pass
 
@@ -308,13 +320,14 @@ class DiffAnalysisModule(Module):
         self.run_tools()
 
     def cog_class_run(self):
+        self.step.cog_class.start()
         opts = {
             "cog_table": self.option("cog_table")
         }
         files = os.listdir(self.option('diff_list_dir').prop['path'])
         for f in files:
             opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
-            self.cog_class = self.add_tool("denovo_rna.express.cog_class")
+            self.cog_class = self.add_tool("annotation.cog_class")
             self.cog_class.set_options(opts)
             self.cog_class_tool.append(self.cog_class)
         if len(self.cog_class_tool) == 1:
@@ -340,6 +353,9 @@ class DiffAnalysisModule(Module):
                 tool.run()
         if 'kegg_regulate' in analysis:
             for tool in self.kegg_regulate_tool:
+                tool.run()
+        if 'cog_class' in analysis:
+            for tool in self.cog_class_tool:
                 tool.run()
 
     def end(self):

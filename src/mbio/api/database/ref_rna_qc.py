@@ -22,7 +22,7 @@ class RefRnaQc(Base):
         self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
-    def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se'):
+    def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se', about_qc='before'):
         """
         :param qc_stat: 统计结果文件夹，即module.output_dir
         :param qc_adapt:去接头率文件，由于需求变动，可不传
@@ -79,8 +79,8 @@ class RefRnaQc(Base):
                         "error_rate": float(line[10]),
                         "q30_rate": float(line[11]),
                         "q20_rate": float(line[12]),
-                        "cg_rate": float(line[13]),
-                        "about_qc": "before",
+                        "gc_rate": float(line[13]),
+                        "about_qc": about_qc,
                         "type": fq_type   # 怎么得知待定
                         }
                 if line[0] in dup_rate:
@@ -214,7 +214,7 @@ class RefRnaQc(Base):
         }
         col = self.db["sg_specimen_group_compare"]
         try:
-            com_id = col.insert_one(data).inserted_id
+            com_id = col.insert_one(SON(data)).inserted_id
         except Exception,e:
             self.bind_object.logger.error("导入样本对照组信息出错:%s" % e)
         else:
@@ -249,14 +249,14 @@ class RefRnaQc(Base):
                     "task_id": self.bind_object.sheet.id,
                     "type": type,
                     "specimen_name": line[0],
-                    "total_reads": float(line[1]),
-                    "mapping_reads": float(line[2]),
-                    "multiple_mapped": float(line[3]),
-                    "uniq_mapped": float(line[4]),
-                    "map_to_up": float(line[5]),
-                    "map_to_down": float(line[6]),
-                    "non_splice_reads": float(line[-1]),
-                    "rRNA_reads": float(line[7]),
+                    "total_reads": line[1],
+                    "mapping_reads": line[2] + "(" + str(float("%0.4f" % (float(line[2])/float(line[1])))*100) + "%" + ")",
+                    "multiple_mapped": line[3] + "(" + str(float("%0.4f" % (float(line[3])/float(line[1])))*100) + "%" + ")",
+                    "uniq_mapped": line[4] + "(" + str(float("%0.4f" % (float(line[4])/float(line[1])))*100) + "%" + ")",
+                    "map_to_up": line[5] + "(" + str(float("%0.4f" % (float(line[5])/float(line[1])))*100) + "%" + ")",
+                    "map_to_down": line[6] + "(" + str(float("%0.4f" % (float(line[6])/float(line[1])))*100) + "%" + ")",
+                    "non_splice_reads": line[7] + "(" + str(float("%0.4f" % (float(line[7])/float(line[1])))*100) + "%" + ")",
+                    "splice_reads": line[8] + "(" + str(float("%0.4f" % (float(line[8])/float(line[1])))*100) + "%" + ")",
                     "mapping_rate": str(float("%0.4f" % (float(line[2])/float(line[1])))*100) + "%",
                     # "multiple_mapped": line[3],
                     "multiple_rate": str(float("%0.4f" % (float(line[3])/float(line[1])))*100) + "%",
@@ -286,7 +286,7 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "saturation_origin",
-            "status": "start",
+            "status": "end",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "curve_category": ['5', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55', '60', '65', '70', '75', '80', '85', '90', '95', '100'],
             "curve_specimen": {"column1": "[0-0.3)", "column2": "[0.3-0.6)", "column3": "[0.6-3.5)", "column4": "[3.5-15)", "column5": "[15-60)", "column6": ">=60"},
@@ -307,6 +307,14 @@ class RefRnaQc(Base):
         """
         rpkm_id = ObjectId(rpkm_id)
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
+        # curve_data = []
+        R_files = glob.glob("{}/*eRPKM.xls.saturation.R".format(rpkm_file))
+        # print R_files
+        sample_categaries = {}
+        for rf in R_files:
+            sample_name = os.path.basename(rf).split(".")[0][6:]
+            categaries = self.add_satur_count(rf)
+            sample_categaries[sample_name] = categaries
         curve_data = []
         for cf in curve_files:
             sample_name = os.path.basename(cf).split(".")[0][6:]
@@ -317,8 +325,9 @@ class RefRnaQc(Base):
                     line.pop(0)
                     line_list.append(line)
                 data = {
-                    "rpkm_id": rpkm_id,
+                    "saturation_id": rpkm_id,
                     "specimen_name": sample_name,
+                    "categaries": sample_categaries[sample_name],
                     "column1": line_list[0],
                     "column2": line_list[1],
                     "column3": line_list[2],
@@ -337,6 +346,24 @@ class RefRnaQc(Base):
             self.bind_object.logger.info("导入rpkm曲线数据成功")
 
     @report_check
+    def add_satur_count(self, count_r_file):
+        categaries = {"column1": "[0-0.3)", "column2": "[0.3-0.6)", "column3": "[0.6-3.5)", "column4": "[3.5-15)", "column5": "[15-60)", "column6": ">=60"}
+        with open(count_r_file, "r") as f:
+            for line in f:
+                if re.match(r"legend", line):
+                    all_num = re.findall("num=[\d]*", line)
+                    # print all_num
+                    categaries = {
+                        "column5": "[15-60)=" + all_num[4][4:],
+                        "column4": "[3.5-15)=" + all_num[3][4:],
+                        "column6": ">=60=" + all_num[5][4:],
+                        "column1": "[0-0.3)=" + all_num[0][4:],
+                        "column3": "[0.6-3.5)=" + all_num[2][2:],
+                        "column2": "[0.3-0.6)=" + all_num[1][4:]
+                    }
+        return categaries
+
+    @report_check
     def add_coverage_table(self, coverage, name=None, params=None, detail=True):
         """
         :param coverage: 文件夹，即~/MapAssessment/output/coverage
@@ -349,7 +376,7 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "coverage_origin",
-            "status": "start",
+            "status": "end",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -404,7 +431,7 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "distribution_origin",
-            "status": "start",
+            "status": "end",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -461,7 +488,7 @@ class RefRnaQc(Base):
     @report_check
     def add_chorm_distribution_table(self, distribution=None, name=None, params=None):
         """
-        :param distribution: 文件夹，即~/MapAssessment/output/distribution,不传的时候只导主表
+        :param distribution: 文件夹，即~/MapAssessment/output/chr_stat,不传的时候只导主表
         :param name: 主表名称。可不传
         :param params:参数，可不传
         :return:
@@ -470,25 +497,28 @@ class RefRnaQc(Base):
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
             "name": name if name else "distribution_origin",
-            "status": "start",
+            "status": "end",
             "desc": "",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
-        collection = self.db["sg_assessment_chrom_distributione"]
+        collection = self.db["sg_assessment_chrom_distribution"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if distribution:
-            self.add_distribution_detail(distribution, inserted_id)
+            self.add_chorm_distribution_detail(distribution, inserted_id)
         return inserted_id
 
     @report_check
     def add_chorm_distribution_detail(self, chorm_stat, chorm_stat_id):
         stat_files = glob.glob("{}/*.bam_chr_stat.xls".format(chorm_stat))
         data_list = []
+        distribution = set()
+        specimen_names = []
         for fls in stat_files:
             chrs = []
             # chr_values = []
             sample_name = os.path.basename(fls).split(".")[0]
+            specimen_names.append(sample_name)
             with open(fls, "r") as f:
                 data = {
                     "chrom_distribution_id": chorm_stat_id,
@@ -502,7 +532,7 @@ class RefRnaQc(Base):
                     else:
                         line = line.strip().split()
                         chrs.append(line[0])
-                        # print line
+                        distribution.add(line[0])
                         values["chr_name"] = line[0]
                         values["value"] = line[1]
                         data["chr_values"].append(values)
@@ -512,7 +542,53 @@ class RefRnaQc(Base):
         try:
             collection = self.db["sg_assessment_chrom_distribution_detail"]
             result = collection.insert_many(data_list)
+            main_collection = self.db["sg_assessment_chrom_distribution"]
+            main_collection.update({"_id": ObjectId(chorm_stat_id)}, {"$set": {"distribution": list(distribution), "specimen_name": specimen_names}})
         except Exception, e:
             self.bind_object.logger.info("导入sg_assessment_chrom_distribution_detail出错:%s" % e)
         else:
             self.bind_object.logger.info("导入sg_assessment_chrom_distribution_detail成功")
+
+    @report_check
+    def add_tophat_mapping_stat(self, stat_file):
+        files = glob.glob("{}/*".format(stat_file))
+        data_list = []
+        for fs in files:
+            specimen_name = os.path.basename(fs).split(".")[0]
+            print specimen_name
+            f = open(fs, "r")
+            data = {
+                    "project_sn": self.bind_object.sheet.project_sn,
+                    "task_id": self.bind_object.sheet.id,
+                    "type": "genome",
+                    "specimen_name": specimen_name
+            }
+            total_reads = 0
+            map_reads = 0
+            multiple = 0
+            for line in f:
+                # print map_reads
+                if re.match(r"Left", line):
+                    total_reads += int(f.next().split()[-1])
+                    map_reads += int(f.next().split()[2])
+                    multiple += int(f.next().split()[2])
+                if re.match(r"Right", line):
+                    total_reads += int(f.next().split()[-1])
+                    map_reads += int(f.next().split()[2])
+                    multiple += int(f.next().split()[2])
+            print total_reads, map_reads, multiple, total_reads - multiple
+            data["total_reads"] = total_reads
+            # print "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
+            data["mapping_reads"] = str(map_reads) + "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
+            data["multiple_mapped"] = str(multiple) + "(" + str(float("%0.4f" % ( multiple/total_reads)) * 100) + "%" + ")"
+            data["uniq_mapped"] = str(total_reads - multiple) + "(" + str(float("%0.4f" % ( (total_reads - multiple)/total_reads)) * 100) + "%" + ")"
+            # print data
+            data_list.append(data)
+            f.close()
+        try:
+            collection = self.db["sg_specimen_mapping"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            print("导入比对结果统计信息出错:%s" % e)
+        else:
+            print("导入比对结果统计信息成功")

@@ -91,6 +91,8 @@ class DiffStat(object):
         pvalue_padjust:padjust-对应diff_fdr_ci pvalue-对应diff_ci  默认按照diff_fdr_ci筛选
         """
         with open(edgr_result, 'rb') as r, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w:
+            import math
+            from math import log
             r.readline()
             count_ = []
             fpkm_ = []
@@ -104,36 +106,36 @@ class DiffStat(object):
                 for ss in samples_:
                     count_.append("{}_count".format(ss))
                     fpkm_.append("{}_fpkm".format(ss))
-                head = "seq_id\t%s\t%s\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc\tlogCPM\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
-                    "\t".join(count_), "\t".join(fpkm_), control, other, control, other)
+                head = "seq_id\t%s\t%s\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % ("\t".join(count_), "\t".join(fpkm_), control, other, control, other,control,other,control,other)
             else:
-                head = "seq_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\tlog2fc\tlogCPM\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
-                control, other, control, other)
+                head = "seq_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (control, other, control, other,control,other,control,other)
             w.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')
                 gene = line[0]
                 pvalue = float(line[-2])
-                if fc == 2:
-                    logCPM = float(line[-3])
-                else:
-                    print fc
-                    logCPM = float(line[-3])
-                    logCPM = math.pow(2, logCPM)
-                    logCPM = math.log(logCPM, fc)
+                
                 fdr = float(line[-1])
                 counts = express_info[gene].counts
                 fpkms = express_info[gene].fpkms
                 if group_info:
                     # con_sams = group_info[control]
                     # oth_sams = group_info[other]
-                    control_count, control_fpkm = self.get_mean(con_sams, counts, fpkms)
-                    other_count, other_fpkm = self.get_mean(oth_sams, counts, fpkms)
+                    control_count,control_fpkm = self.get_mean(con_sams, counts, fpkms)
+                    other_count,other_fpkm = self.get_mean(oth_sams, counts, fpkms)
+                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
+                    control_count_log2 = log(control_count+0.1)/float(log(2))
+                    other_fpkm_log2 = log(other_fpkm+0.1)/log(2)
+                    other_count_log2 = log(other_count+0.1)/float(log(2))
                 else:
                     control_count = express_info[gene].counts[control]
                     control_fpkm = express_info[gene].fpkms[control]
                     other_count = express_info[gene].counts[other]
                     other_fpkm = express_info[gene].fpkms[other]
+                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
+                    control_count_log2 = log(control_count+0.1)/float(log(2))
+                    other_fpkm_log2 = log(other_fpkm+0.1)/float(log(2))
+                    other_count_log2 = log(other_count+0.1)/float(log(2))
                 # lfc = (other_fpkm + 0.1) / (control_fpkm + 0.1)
                 # logfc = round(math.log(lfc, 2), 3)
                 """
@@ -144,36 +146,49 @@ class DiffStat(object):
                     logfc = math.pow(2, logfc)
                     logfc = math.log(logfc, fc)
                 """
-                import math
-                if fc:  #如果设置fc倍数变化，则按照fc筛选
-                    filter_fc = float(log(fc)/log(2))
-                    if float(line[-4]) <filter_fc:
-                        continue  #跳出此次循环
-                    else:
-                        logfc=float(line[-4])
-                else:  #否则不过滤fc
-                    logfc= float(line[-4])
+                from math import pow
                 ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
-                # if regulate:
-                # print regulate
+
+                fc = float((other_fpkm+0.1)/(control_fpkm+0.1))
+                logfc=float(log(fc)/log(2))
+
+                # logfc = float(line[-4])
                 if logfc > 0:
                     reg = 'up'
                 elif logfc < 0:
                     reg = 'down'
                 else:
                     reg = 'no change'
-                    # else:
-                    # reg = 'undone'
-                if pvalue_padjust == 'padjust':
-                    if fdr<diff_fdr_ci:
-                        sig = 'yes'
-                    else:
-                        sig = 'no'
+                def check_fc(fc,pvalue,pvalue_filter,fc_filter=None):
+                        if fc_filter and fc_filter != 0:
+                            if float(fc_filter)>=1:
+                                if float(pow(2,float(fc))) > float(fc_filter) or float(pow(2,float(fc))) <= (float(1)/float(fc_filter)):
+                                   if pvalue <= float(pvalue_filter):
+                                      sig = 'yes'
+                                   else:
+                                      sig = 'no'
+                                else:
+                                    sig='no'
+                            if float(fc_filter)<1:
+                                if float(pow(2,float(fc))) < float(fc_filter) or float(pow(2,float(fc))) >= (float(1)/float(fc_filter)):
+                                   if pvalue <= float(pvalue_filter):
+                                       sig = 'yes'
+                                   else:
+                                       sig = 'no'
+                                else:
+                                    sig='no'
+                            return sig
+                        else:
+                            if pvalue <= float(pvalue_filter):
+                                sig='yes'
+                            else:
+                                sig='no'
+                            return sig
                 if pvalue_padjust == 'pvalue':
-                    if pvalue<diff_ci:
-                        sig='yes'
-                    else:
-                        sig='no'
+                    sig =  check_fc(fc=logfc,pvalue=pvalue,pvalue_filter=diff_ci,fc_filter=fc)
+                if pvalue_padjust == 'padjust':
+                    sig = check_fc(fc=logfc,pvalue = fdr,pvalue_filter=diff_fdr_ci,fc_filter=fc)
+
                 """
                 if pvalue < diff_ci and fdr < diff_fdr_ci:
                     sig = 'yes'
@@ -188,23 +203,27 @@ class DiffStat(object):
                         fpkm_.append("{}_fpkm".format(ss))
                         count_data.append(str(counts[ss]))
                         fpkm_data.append(str(fpkms[ss]))
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2,other_fpkm_log2,control_count_log2,other_count_log2,'%0.4g' %logfc,'%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
+                    
+                else: 
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2,other_fpkm_log2,control_count_log2,other_count_log2,'%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
+                    
 
-                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, '%0.4g' %logfc,'%0.4g' %logCPM, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-                else:
-                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
-                    gene, control_count, other_count, control_fpkm, other_fpkm, '%0.4g' % logfc, '%0.4g' % logCPM,
-                    '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-
-
-a = DiffStat()
-path = "/mnt/ilustre/users/sanger-dev/workspace/20170509/Single_rsem_stringtie_zebra_fpkm_6/Expresstest/output/rsem"
-a.get_express_info(path + "/transcripts.counts.matrix", path + "/transcripts.TMM.fpkm.matrix")
-edgr_result = "/mnt/ilustre/users/sanger-dev/workspace/20170509/Single_rsem_stringtie_zebra_fpkm_6/Expresstest/DiffExp1/edger_result/transcripts.counts.matrix.A_vs_B.edgeR.DE_results"
-# ERR1621569      ERR1621480      ERR1621391      ERR1621658
-group_info = {"A": ["ERR1621569", "ERR1621480"], "B": ["ERR1621391", "ERR1621658"]}
-output = "/mnt/ilustre/users/sanger-dev/sg-users/konghualei/ref_rna/tofiles"
-a.diff_stat(express_info=a.express_info, edgr_result=edgr_result, control="A", other="B", output=output,
+if __name__ == "__main__":
+    pass
+    """
+    a = DiffStat()
+    path = "/mnt/ilustre/users/sanger-dev/workspace/20170509/Single_rsem_stringtie_zebra_fpkm_6/Expresstest/output/rsem"
+    a.get_express_info(path + "/transcripts.counts.matrix", path + "/transcripts.TMM.fpkm.matrix")
+    edgr_result = "/mnt/ilustre/users/sanger-dev/workspace/20170509/Single_rsem_stringtie_zebra_fpkm_6/Expresstest/DiffExp1/edger_result/transcripts.counts.matrix.A_vs_B.edgeR.DE_results"
+    # ERR1621569      ERR1621480      ERR1621391      ERR1621658
+    group_info = {"A": ["ERR1621569", "ERR1621480"], "B": ["ERR1621391", "ERR1621658"]}
+    output = "/mnt/ilustre/users/sanger-dev/sg-users/konghualei/ref_rna/tofiles"
+    a.diff_stat(express_info=a.express_info, edgr_result=edgr_result, control="A", other="B", output=output,
             group_info=group_info, regulate=True, diff_ci=0.05,diff_fdr_ci=0.05)
-# a.get_express_info('/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/genes.counts.matrix', '/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/genes.TMM.fpkm.matrix')
-# # print a.express_info
-# a.diff_stat(express_info=a.express_info, edgr_result='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/DiffExp/edger_result/genes.counts.matrix.E18_1_vs_E18_2.edgeR.DE_results', control='E18_1', other='E18_2', output='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/', group_info=None, regulate=True, diff_ci=0.05)
+    # a.get_express_info('/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/genes.counts.matrix', '/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/genes.TMM.fpkm.matrix')
+    # # print a.express_info
+    # a.diff_stat(express_info=a.express_info, edgr_result='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/DiffExp/edger_result/genes.counts.matrix.E18_1_vs_E18_2.edgeR.DE_results', control='E18_1', other='E18_2', output='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/', group_info=None, regulate=True, diff_ci=0.05)
+    """
+
+

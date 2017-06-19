@@ -83,7 +83,7 @@ class FactorDistanceTool(Tool):
     def run(self):
         super(FactorDistanceTool, self).run()
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + 'gcc/5.1.0/lib64')
-        self.biom = self.biom_fac_table()
+        self.biom = self.biom_fac_table()  # 传入otu表需要转化为biom格式
         self.run_beta_diversity()
 
     def run_beta_diversity(self):

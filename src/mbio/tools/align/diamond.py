@@ -120,13 +120,14 @@ class DiamondTool(Tool):
         elif blast_command.return_code == None:
             self.logger.info("重新运行diamond")
             blast_command.rerun()
-            self.wait()
+            self.wait(blast_command)
             if blast_command.return_code == 0:
                 self.logger.info("重新运行diamond成功")
                 # self.end()
                 self.change_version(outputfile)
         else:
             self.set_error("diamond运行出错!")
+            raise Exception("diamond运行出错!")
 
     def run(self):
         """
@@ -165,7 +166,13 @@ class DiamondTool(Tool):
                     m = re.match("<Hit_id>(.+)</Hit_id>", line.lstrip())
                     if m:
                         line = line.replace(self.ori[i],self.repl[i])
+                if line.lstrip().startswith("<Hit_def>"):
+                    m = re.match("<Hit_def>(.+)</Hit_def>", line.lstrip())
+                    if m:
+                        line = line.replace(self.repl[i],self.ori[i])
                         i += 1
                 fw.write(line)
-        os.system("mv {} {}".format(path + "_new", path))
+        # os.system("mv {} {}".format(path + "_new", path))
+        os.remove(path)
+        os.link(path + "_new", path)
         self.end()

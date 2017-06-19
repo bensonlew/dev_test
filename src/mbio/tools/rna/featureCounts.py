@@ -7,7 +7,7 @@ from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
 from mbio.packages.ref_rna.express.single_sample import *
 from mbio.packages.ref_rna.express.set_strand import set_strand
-from mbio.packages.denovo_rna.express.express_distribution import *
+from mbio.packages.ref_rna.express.express_distribution import *
 import shutil
 import os
 import re
@@ -29,8 +29,8 @@ class FeaturecountsAgent(Agent):
             {"name": "out_file", "type": "outfile", "format": "rna.express_matrix"}, #featureCounts软件直接生成的表达量文件
             {"name": "gtf", "type":"string"}, #该物种的参考基因组文件路径  gtf格式而非gff格式
             {"name": "cpu", "type": "int", "default": 10},  #设置CPU
-            {"name": "is_duplicate", "type": "bool"}, # 是否有生物学重复 
-            {"name": "edger_group", "type":"infile", "format":"sample.group_table"}, 
+            {"name": "is_duplicate", "type": "bool"}, # 是否有生物学重复
+            {"name": "edger_group", "type":"infile", "format":"sample.group_table"},
             {"name": "max_memory", "type": "string", "default": "100G"},  #设置内存
             {"name": "exp_way", "type": "string","default": "fpkm"}, #fpkm水平表达量  fpkm tpm all
             {"name": "all_gene_list", "type": "outfile", "format": "rna.express_matrix"},  #所有基因list列表，提供给下游差异分析module
@@ -97,7 +97,7 @@ class FeaturecountsTool(Tool):
         self.python_path = self.config.SOFTWARE_DIR+"/program/Python/bin:$PATH"
         self.set_environ(PATH=self.python_path)
         self.distribution_path = '/mnt/ilustre/users/sanger-dev/biocluster/src/mbio/packages/denovo_rna/express'
-        
+
     def featurecounts_run(self):
         self.logger.info("开始进行表达量分析！")
         self.new_gtf = self.option('ref_gtf').prop['path']
@@ -131,12 +131,12 @@ class FeaturecountsTool(Tool):
                          self._out_dir, self.input_bam_file)
         self.logger.info("开始运行featureCounts计算表达量")
         featurecounts_cmd = self.add_command("featurecounts", cmd).run()
-        self.wait()
+        self.wait(featurecounts_cmd)
         if featurecounts_cmd.return_code == 0:
             self.logger.info("%s运行完成" % featurecounts_cmd)
         else:
             self.set_error("%s运行出错" % cmd)
-    
+
     def fpkm_tpm(self):
         """计算fpkm，tpm的表达量"""
         if os.path.exists(self._out_dir):
@@ -152,12 +152,12 @@ class FeaturecountsTool(Tool):
             gtf_file = self.new_gtf, count_matrix=self.count_path, gene_length=self.gene_length_path)
         fpkm_tpm_cmd= self.perl_path+self.parse_featurecounts_perl+self.count_path +" " +self.gene_length_path + " "+"fpkm_tpm"
         _fpkm_tpm_cmd = self.add_command("fpkm.tpm", fpkm_tpm_cmd).run()
-        self.wait()
+        self.wait(_fpkm_tpm_cmd)
         if _fpkm_tpm_cmd.return_code ==0:
             self.logger.info("计算fpkm, tpm表达量成功!\n{}".format(_fpkm_tpm_cmd))
         else:
             self.set_error("计算fpkkm, tpm表达量失败!\n{}".format(_fpkm_tpm_cmd))
-    
+
     def get_distribution(self, old_fpkm, out_path, exp_way=None):
         if not os.path.exists(out_path):
             os.mkdir(out_path)
@@ -165,13 +165,15 @@ class FeaturecountsTool(Tool):
         distribution(rfile=out_path+"/express_distribution.r",input_matrix=old_fpkm,outputfile=out_path,filename="gene")
         gcmd=self.r_path1+out_path+"/express_distribution.r"
         cmd1 = self.add_command("gene_{}_cmd".format(exp_way), gcmd).run()
-        self.wait()
+        self.wait(cmd1)
         if cmd1.return_code == 0:
             self.logger.info("表达量分布图{}的数据分析成功".format(exp_way))
         else:
             self.set_error("表达量分布图{}的数据分析出错".format(exp_way))
-            
+
     def sample_distribution(self):
+        #样本count  distribution
+        self.get_distribution(self.output_dir + "/count.xls", self.work_dir + "/count", "count")
         if self.option("exp_way") == "fpkm":
             self.get_distribution(self.output_dir+"/fpkm_tpm.fpkm.xls",self.work_dir+"/fpkm","fpkm")
             self.logger.info("计算fpkm成功")
@@ -184,24 +186,40 @@ class FeaturecountsTool(Tool):
             self.get_distribution(self.output_dir+"/fpkm_tpm.tpm.xls",self.work_dir+"/tpm","tpm")
             self.logger.info("计算tpm成功")
 
-    def group_distribution(self, old_fpkm, new_fpkm,sample_group_info, outputfile, filename): # add by khl 
-        import random
-        shutil.copy2(self.distribution_path+"/express_distribution.py",outputfile+"/express_distribution.py")
-        shutil.copy2(self.distribution_path+"/express_distribution.r",outputfile+"/express_distribution.r")
-        self.logger.info("express_distribution py和r文件复制完毕！")
-        rfile = outputfile+"/express_distribution.r"
-        group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, sample_group_info = sample_group_info, \
-                        rfile=rfile, outputfile = outputfile, filename = filename)
-        cmd = self.r_path1 + " {}".format(rfile)
-        cmd1 = self.add_command("{}".format("".join(random.sample("abcdeghijk",3))), cmd).run()
-        self.logger.info(cmd)
-        self.wait()
-        if cmd1.return_code == 0:
-            self.logger.info("计算group密度分布成功")
+    def group_distribution(self, old_fpkm, new_fpkm,old_count, new_count, sample_group_info, outputfile, filename,_type=None): # add by khl
+        """
+        :param _type: fpkm或者tpm
+        """
+        group_express(old_fpkm = old_fpkm, new_fpkm = new_fpkm, old_count = old_count, new_count = new_count, sample_group_info = sample_group_info, \
+                        outputfile = outputfile, filename = filename)
+        # cmd = self.r_path1 + " {}".format(rfile)
+        # cmd1 = self.add_command("{}".format(filename+_type), cmd).run()
+        # self.logger.info(cmd)
+        # self.wait()
+
+        group_fpkm_distribution = self.work_dir + "/group_{}_distribution".format(_type)
+        if not os.path.exists(group_fpkm_distribution):
+            os.mkdir(group_fpkm_distribution)
+
+        distribution(rfile='./group_{}_distribution.r'.format(_type), input_matrix=new_fpkm, outputfile=group_fpkm_distribution,
+                     filename=filename)
+        cmd = self.r_path1 + " group_{}_distribution.r".format(_type)
+        cmd_run = self.add_command("{}".format((filename + "{}".format(_type)).lower()), cmd).run()
+
+        group_count_distribution = self.work_dir + "/group_count_distribution"
+        if not os.path.exists(group_count_distribution):
+            os.mkdir(group_count_distribution)
+            distribution(rfile='./group_count_distribution.r', input_matrix=new_count, outputfile=group_count_distribution,
+                     filename=filename)
+            cmd1 = self.r_path1 + " group_count_distribution.r"
+            cmd1_run = self.add_command("{}".format((filename + "count").lower()), cmd1).run()
+        self.wait(cmd_run)
+        if cmd_run.return_code == 0:
+            self.logger.info("计算group{}密度分布成功".format(_type))
         else:
-            self.logger.info("计算group密度分布失败")
-    
-    def group_detail(self): 
+            self.logger.info("计算group{}密度分布失败".format(_type))
+
+    def group_detail(self):
         g = GroupTableFile()
         if self.option("edger_group").is_set:
             g.set_path(self.option("edger_group").prop['path'])
@@ -219,31 +237,19 @@ class FeaturecountsTool(Tool):
                 os.mkdir(group_fpkm)
             if not os.path.exists(group_tpm):
                 os.mkdir(group_tpm)
-            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.fpkm.xls",new_fpkm=new_group_path+"/group.fpkm.xls",\
-                            sample_group_info=sample_group_info, outputfile=group_fpkm,filename='GroupGenes')
-            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.tpm.xls",new_fpkm=new_group_path+"/group.tpm.xls",\
-                            sample_group_info=sample_group_info, outputfile=group_tpm,filename='GroupGenes')
+            old_count = outputfile+"/count.xls"
+
+            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.fpkm.xls", new_fpkm=new_group_path+"/group.fpkm.xls",
+                                    old_count=old_count, new_count=outputfile+"/fpkm_count.xls",
+                            sample_group_info=sample_group_info, outputfile=group_fpkm,filename='GroupGenes', _type='fpkm')
+            self.group_distribution(old_fpkm=outputfile+"/fpkm_tpm.tpm.xls",new_fpkm=new_group_path+"/group.tpm.xls",
+                                    old_count = old_count, new_count = outputfile+"/tpm_count.xls",
+                            sample_group_info=sample_group_info, outputfile=group_tpm,filename='GroupGenes', _type='tpm')
+
             self.logger.info("计算基因转录本group成功！")
-            # for f in results:
-                # if re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
-                    # self.logger.info("开始计算trans group分布信息")
-                    # trans_new_fpkm = self.work_dir + "/Group.trans_"+f
-                    # self.logger.info("生成trans group 文件")
-                    # trans_filename = "GroupTrans"
-                    # self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=trans_new_fpkm,\
-                            # sample_group_info=sample_group_info, outputfile=outputfile, filename = trans_filename)
-                    # shutil.copy2(trans_new_fpkm, new_group_path+"/Group.trans_"+f)
-                # elif re.search(r'^(genes\.TMM)(.+)(matrix)$', f):
-                    # self.logger.info("开始计算gene group分布信息")
-                    # genes_new_fpkm = self.work_dir + "/Group.genes_"+f
-                    # self.logger.info("生成gene group 文件")
-                    # genes_filename = "GroupGenes"
-                    # self.group_distribution(old_fpkm=self.work_dir + "/"+f, new_fpkm=genes_new_fpkm,\
-                            # sample_group_info=sample_group_info, outputfile=outputfile, filename = genes_filename)
-                    # shutil.copy2(genes_new_fpkm, new_group_path+"/Group.genes_"+f)
         else:
             raise Exception("有生物学重复时，请设置样本生物学分组信息！")
-    
+
     def set_output(self):
         self.logger.info("设置结果目录")
         if os.path.exists(self.count_path):
@@ -263,7 +269,7 @@ class FeaturecountsTool(Tool):
         self.logger.info("生成gene_list成功！")
         self.logger.info("设置count表达量成功")
 
-    def run(self): 
+    def run(self):
         super(FeaturecountsTool, self).run()
         self.featurecounts_run()
         self.fpkm_tpm()

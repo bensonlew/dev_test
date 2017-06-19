@@ -20,7 +20,7 @@ class MapAssessmentModule(Module):
             {"name": "bed", "type": "infile", "format": "gene_structure.bed"},  # bed格式文件
             {"name": "bam", "type": "infile", "format": "align.bwa.bam,align.bwa.bam_dir"},  # bam格式文件,排序过的
             {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # 基因表达量表
-            {"name": "analysis", "type": "string", "default": "saturation,stat,distribution,coverage,chr_stat"},  # 分析类型
+            {"name": "analysis", "type": "string", "default": "saturation,distribution,coverage,chr_stat"},  # 分析类型
             {"name": "quality_satur", "type": "int", "default": 30},  # 测序饱和度分析质量值
             {"name": "quality_dup", "type": "int", "default": 30},  # 冗余率分析质量值
             {"name": "low_bound", "type": "int", "default": 5},  # Sampling starts from this percentile
@@ -256,7 +256,9 @@ class MapAssessmentModule(Module):
                         os.remove(target)
                     os.link(fp, target)
         with open(os.path.join(self.output_dir, "bam_stat.xls"), "w") as w:
-            w.write("sample\ttotal_reads\tmapped_reads\tmultiple_mapped\tuniq_mapped\n")
+            w.write("{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n".format("sample", "total_reads", "mappped_reads",
+                                                                  "multiple_mapped", "uniq_mapped", "reads_up",
+                                                                  "reads_down", "no_splice", "splice"))
             for f in bam_out:
                 with open(f, "r") as r:
                     r.readline()

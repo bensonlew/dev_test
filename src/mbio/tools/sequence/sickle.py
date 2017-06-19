@@ -26,7 +26,7 @@ class SickleAgent(Agent):
                 {"name": "sickle_s", "type": "outfile", "format": "sequence.fastq"},  # SE输出结果
                 {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
                 {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
-                {"name": "quality", "type": "int", "default": 30},
+                {"name": "quality", "type": "int", "default": 20},
                 {"name": "length", "type": "int", "default": 30},
                 {"name": "qual_type", "type": "string", "default": 'sanger'},
                 # {"name": "no_fiveprime", "type": "int", "default": '-x'},

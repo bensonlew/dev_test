@@ -43,7 +43,8 @@ class RefAnnoStatAgent(Agent):
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
-            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新转录本gtf文件
+            {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
@@ -162,10 +163,10 @@ class RefAnnoStatAgent(Agent):
             ["/blast_nr_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
             ["/blast_nr_statistics/nr_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
             ["/blast_nr_statistics/nr_similar.xls", "xls", "转录本序列blast结果similarity统计"],
-            ["/blast_swissprot_statistics/gene_nr_evalue.xls", "xls", "基因序列blast结果E-value统计"],
-            ["/blast_swissprot_statistics/gene_nr_similar.xls", "xls", "基因序列blast结果similarity统计"],
-            ["/blast_swissprot_statistics/nr_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
-            ["/blast_swissprot_statistics/nr_similar.xls", "xls", "转录本序列blast结果similarity统计"],
+            ["/blast_swissprot_statistics/gene_swissprot_evalue.xls", "xls", "基因序列blast结果E-value统计"],
+            ["/blast_swissprot_statistics/gene_swissprot_similar.xls", "xls", "基因序列blast结果similarity统计"],
+            ["/blast_swissprot_statistics/swissprot_evalue.xls", "xls", "转录本序列blast结果E-value统计"],
+            ["/blast_swissprot_statistics/swissprot_similar.xls", "xls", "转录本序列blast结果similarity统计"],
         ]
         result_dir.add_relpath_rules(relpath)
         result_dir.add_regexp_rules([
@@ -186,10 +187,11 @@ class RefAnnoStatTool(Tool):
         self.denovo_stat = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/denovo_stat/'
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
-        self.kegg_anno = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
+        self.kegg_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
         self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
         self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
-        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
+        self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
         self.gene_list = self.option('gene_file').prop['gene_list']
         self.gene_nr_xml = self.work_dir + '/blast/gene_nr.xml'
         if self.option('string_xml').is_set:
@@ -217,6 +219,7 @@ class RefAnnoStatTool(Tool):
         # 筛选gene_nr.xml、gene_nr.xls
         self.logger.info("开始筛选gene_nr.xml、gene_nr.xls")
         self.option('nr_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_nr_xml, trinity_mode=False)
+        transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_nr_xml, gene_xml_path=self.gene_nr_xml)
         xml2table(self.gene_nr_xml, self.work_dir + '/blast/gene_nr.xls')
         xml2table(self.option('nr_xml').prop['path'], self.work_dir + '/blast/nr.xls')
         self.logger.info("完成筛选gene_nr.xml、gene_nr.xls")
@@ -269,6 +272,7 @@ class RefAnnoStatTool(Tool):
                     item = line.strip().split('\t')
                     name = item[0]
                     if name in gene_list:
+                        line = re.sub(r"{}".format(name), self.tran_gene[name], line)
                         w.write(line)
         get_gene_pfam(pfam_domain=self.option('pfam_domain').prop['path'], gene_list=self.gene_list, outpath=self.pfam_stat_path + 'gene_pfam_domain')
         self.option('gene_pfam_domain', self.pfam_stat_path + 'gene_pfam_domain')
@@ -286,21 +290,28 @@ class RefAnnoStatTool(Tool):
             transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_kegg_xml, gene_xml_path=self.gene_kegg_xml)
             xml2table(self.gene_kegg_xml, self.work_dir + '/blast/gene_kegg.xls')
             self.logger.info("完成筛选gene_kegg.xml、gene_kegg.xls")
-        try:
-            kegg_anno = self.load_package('annotation.kegg_annotation')()
-            if self.option("kegg_xml").is_set:
-                kegg_anno.pathSearch(blast_xml=self.gene_kegg_xml, kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-            else:
-                self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
-                kegg_anno.pathSearch_upload(kegg_ids=self.work_dir + "/gene_kegg.list", kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls')
-            kegg_anno.pathTable(kegg_table=self.kegg_stat_path + '/gene_kegg_table.xls', pathway_path=self.kegg_stat_path + '/gene_pathway_table.xls', pidpath=self.work_dir + '/gene_pid.txt')
-            kegg_anno.getPic(pidpath=self.work_dir + '/gene_pid.txt', pathwaydir=gene_pathway, image_magick=self.image_magick)
-            kegg_anno.keggLayer(pathway_table=self.kegg_stat_path + '/gene_pathway_table.xls', layerfile=self.kegg_stat_path + '/gene_kegg_layer.xls', taxonomyfile=self.kegg_stat_path + '/gene_kegg_taxonomy.xls')
-            self.logger.info('finish: kegg stat')
-        except:
-            import traceback
-            self.logger.info('error:{}'.format(traceback.format_exc()))
-            self.set_error("运行kegg脚本出错！")
+        kegg_table = self.kegg_stat_path + '/gene_kegg_table.xls'
+        pidpath = self.work_dir + '/gene_pid.txt'
+        pathway_table = self.kegg_stat_path + '/gene_pathway_table.xls'
+        layerfile = self.kegg_stat_path + '/gene_kegg_layer.xls'
+        taxonomyfile = self.kegg_stat_path + '/gene_kegg_taxonomy.xls'
+        if self.option("taxonomy"):
+            taxonomy = self.taxonomy_path
+        else:
+            taxonomy = None
+        if self.option("kegg_xml").is_set:
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        else:
+            self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
+            kegg_ids = self.work_dir + "/gene_kegg.list"
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        self.logger.info("开始运行kegg注释脚本")
+        command = self.add_command("kegg_anno", cmd).run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("运行kegg注释脚本完成")
+        else:
+            self.set_error("运行kegg注释脚本出错")
 
     def run_go_stat(self):
         self.go_stat_path = self.work_dir + '/go_stat/'
@@ -332,18 +343,19 @@ class RefAnnoStatTool(Tool):
             self.option("gos_list", self.work_dir + "/query_gos.list")
         self.option("gene_go_list", self.go_stat_path + '/gene_gos.list')
         go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', 'localhost', self.b2g_user, self.b2g_password)
-        go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
+        # go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
         go_annot_cmd = self.add_command('go_annot_cmd', go_cmd1).run()
         self.wait(go_annot_cmd)
         if go_annot_cmd.return_code == 0:
             self.logger.info("go_annot_cmd运行完成")
-            self.add_command('go_split_cmd', go_cmd2).run()
+            # self.add_command('go_split_cmd', go_cmd2).run()
         else:
             self.set_error("go_annot_cmd运行出错!")
 
     def run_swissprot_stat(self):
         self.logger.info("开始筛选gene_swissprot.xml、gene_swissprot.xls")
         self.option('swissprot_xml').sub_blast_xml(genes=self.gene_list, new_fp=self.gene_swissprot_xml, trinity_mode=False)
+        transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_swissprot_xml, gene_xml_path=self.gene_swissprot_xml)
         xml2table(self.gene_swissprot_xml, self.work_dir + '/blast/gene_swissprot.xls')
         xml2table(self.option('swissprot_xml').prop['path'], self.work_dir + '/blast/swissprot.xls')
         self.logger.info("完成筛选gene_swissprot.xml、gene_swissprot.xls")
@@ -432,7 +444,7 @@ class RefAnnoStatTool(Tool):
                             if os.path.exists(self.output_dir + '/go_stat/gene_{}'.format(f)):
                                 os.remove(self.output_dir + '/go_stat/gene_{}'.format(f))
                             os.link(self.work_dir + '/' + f, self.output_dir + '/go_stat/gene_{}'.format(f))
-                    self.option('gene_go_level_2', self.output_dir + '/go_stat/gene_go2level.xls')
+                    self.option('gene_go_level_2', self.output_dir + '/go_stat/gene_go12level_statistics.xls')
                     # venn_stat
                     go_venn = self.list_num(self.option("gos_list").prop["path"])
                     go_gene_venn = self.list_num(self.option("gene_go_list").prop["path"])
@@ -463,27 +475,27 @@ class RefAnnoStatTool(Tool):
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
-        if not os.path.exists(newdir):
-            if mode == 'link':
-                shutil.copytree(olddir, newdir, symlinks=True)
-            elif mode == 'copy':
-                shutil.copytree(olddir, newdir)
+        self.logger.info(newdir)
+        if os.path.exists(newdir):
+            shutil.rmtree(newdir)
+        os.mkdir(newdir)
+        self.logger.info(newdir)
+        allfiles = os.listdir(olddir)
+        oldfiles = [os.path.join(olddir, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
             else:
-                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
-        else:
-            allfiles = os.listdir(olddir)
-            oldfiles = [os.path.join(olddir, i) for i in allfiles]
-            newfiles = [os.path.join(newdir, i) for i in allfiles]
-            for newfile in newfiles:
-                if os.path.isfile(newfile) and os.path.exists(newfile):
-                    os.remove(newfile)
-                elif os.path.isdir(newfile) and os.path.exists(newfile):
-                    shutil.rmtree(newfile)
-            for i in range(len(allfiles)):
-                if os.path.isfile(oldfiles[i]):
-                    os.system('cp {} {}'.format(oldfiles[i], newfiles[i]))
-                else:
-                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+                newdir = os.path.join(newdir, os.path.basename(oldfiles[i]))
+                if not os.path.exists(newdir):
+                    os.mkdir(newdir)
+                for f in os.listdir(oldfiles[i]):
+                    old = os.path.join(oldfiles[i], f)
+                    new = os.path.join(newdir, f)
+                    if os.path.exists(new):
+                        os.remove(new)
+                    os.link(old, new)
 
     def run(self):
         super(RefAnnoStatTool, self).run()
@@ -523,13 +535,21 @@ class RefAnnoStatTool(Tool):
             anno_num['total']['gene'] = len(self.option('gene_file').prop['gene_list'])
             anno_num['total']['tran'] = len(self.tran_list)
             for db in self.anno_list:
-                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]), '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran']), '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])))
+                tran_db_percent = '%0.4g' % (len(self.anno_list[db]) / anno_num['total']['tran'])
+                tran_db_percent = float(tran_db_percent) * 100
+                gene_db_percent = '%0.4g' % (len(self.gene_anno_list[db]) / anno_num['total']['gene'])
+                gene_db_percent = float(gene_db_percent) * 100
+                w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]),  str(tran_db_percent) + '%', str(gene_db_percent) + '%'))
                 tmp += self.anno_list[db]
                 tmp_gene += self.gene_anno_list[db]
             anno_num['total_anno']['gene'] = len(set(tmp_gene))
             anno_num['total_anno']['tran'] = len(set(tmp))
-            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran']), '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])))
-            w.write('total\t{}\t{}\t1\t1\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
+            tran_total_percent = '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran'])
+            tran_total_percent = float(tran_total_percent) * 100
+            gene_total_percent = '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])
+            gene_total_percent = float(gene_total_percent) * 100
+            w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], str(tran_total_percent) + '%',  str(gene_total_percent) + '%'))
+            w.write('total\t{}\t{}\t100%\t100%\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
 
     def list_num(self, list_file):
         with open(list_file, "rb") as f:

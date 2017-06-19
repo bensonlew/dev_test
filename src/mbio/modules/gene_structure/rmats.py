@@ -118,10 +118,10 @@ class RmatsModule(Module):
             b_group_path_lst = []
             b_group_samples = group_sample_dic[b_group_name]
             for a_group_sample in a_group_samples:
-                a_group_path_lst.append(sample_path_dic[a_group_sample + '.bam.sorted'])
+                a_group_path_lst.append(sample_path_dic[a_group_sample])
                 # a_group_path_lst.append(sample_path_dic[a_group_sample])
             for b_group_sample in b_group_samples:
-                b_group_path_lst.append(sample_path_dic[b_group_sample + '.bam.sorted'])
+                b_group_path_lst.append(sample_path_dic[b_group_sample])
                 # b_group_path_lst.append(sample_path_dic[b_group_sample])
             a_group_path_str = ','.join(a_group_path_lst)
             b_group_path_str = ','.join(b_group_path_lst)
@@ -129,14 +129,15 @@ class RmatsModule(Module):
         return a_b_bam_path_tuple_lst
     
     def multi_rmats_bam_run(self):
-        vs_group_path_pair_lst = self.get_group_str()
+        temp_vs_group_path_pair_lst = self.get_group_str()
+        vs_group_path_pair_lst = [temp_vs_group_path_pair_lst[0]]
         n = 0
         for vs_pair in vs_group_path_pair_lst:
             rmats_bam = self.add_tool('gene_structure.rmats_bam')
             n = n + 1
             self.step.add_steps('rmats_bam_{}'.format(n))
             rmats_bam.set_options({
-                "ref_gtf": self.option("ref_gtf").path,
+                "ref_gtf": self.option("ref_gtf"),
                 "seq_type": self.option('seq_type'),
                 "analysis_mode": self.option('analysis_mode'),
                 "read_length": self.option('read_length'),
@@ -144,7 +145,7 @@ class RmatsModule(Module):
                 "B_group_bam": vs_pair[1],
                 "novel_as": self.option('novel_as'),
                 "lib_type": self.option('lib_type'),
-                "as_diff": self.option('as_diff'),
+                "cut_off": self.option('as_diff'),
                 "output_dir": rmats_bam.output_dir,
                 "keep_temp": self.option('keep_temp')
             })

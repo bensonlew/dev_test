@@ -64,9 +64,12 @@ class PicardRnaTool(Tool):
         super(PicardRnaTool, self).__init__(config)
         # self.picard_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/"
         self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
+        self.sample_name = ''
 
     def addorreplacereadgroups(self):
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 SM=HG19".format(self.picard_path, self.option("in_sam").prop["path"], "add_sorted.bam")
+        self.sample_name = os.path.basename(self.option("in_sam").prop["path"])[:-4]
+        self.logger.info(self.sample_name)
+        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 SM={}".format(self.picard_path, self.option("in_sam").prop["path"], "add_sorted.bam", self.sample_name)
         print cmd
         self.logger.info("使用picard对sam文件进行加头和排序")
         command = self.add_command("addorreplacereadgroups", cmd)
@@ -75,7 +78,12 @@ class PicardRnaTool(Tool):
         if command.return_code == 0:
             self.logger.info("sam文件addorreplacereadgroups完成!")
         else:
-            self.set_error("sam文件addorreplacereadgroups出错！")
+            command.rerun()
+            if command.return_code == 0:
+                self.logger.info("sam文件addorreplacereadgroups完成!")
+            else:
+                self.set_error("sam文件addorreplacereadgroups出错！")
+                raise Exception("sam文件addorreplacereadgroups出错！")
     
     def markduplicates(self, add_sorted_bam):
         """
