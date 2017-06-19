@@ -68,7 +68,7 @@ class NiptAnalysis(Base):
         temp = collection.find_one({"sample_id": name})
         collection_inter = self.database["sg_interaction"]
         temp1 = collection_inter.find_one({"main_id": temp[u'_id']})
-        return temp[u'_id'],temp1[u'id']
+        return temp[u'_id'],temp1[u'_id']
 
     # @report_check
     def add_z_result(self, file_path, table_id=None):
@@ -331,7 +331,7 @@ class NiptAnalysis(Base):
     def update_interaction(self,main_id):
         collection = self.database['sg_interaction']
         try:
-            collection.update({"main_id": main_id},{'$set':{'status':'start'}})
+            collection.update({"main_id": main_id},{'$set':{'status':'end'}})
         except Exception as e:
             raise Exception('更新交互表出错：{}'.format(e))
         else:
@@ -392,7 +392,7 @@ class NiptAnalysis(Base):
         insert = {}
         insert['interaction_id'] = interaction_id
         temp = collection_interaction.find_one({"_id": interaction_id})
-        main_id = temp[u'"main_id']
+        main_id = temp[u'main_id']
 
         with open(file,'r') as f:
             for line in f:
