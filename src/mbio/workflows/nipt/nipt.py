@@ -18,13 +18,13 @@ class NiptWorkflow(Workflow):
 		self._sheet = wsheet_object
 		super(NiptWorkflow, self).__init__(wsheet_object)
 		options = [
-			{"name": "customer_table", "type": "infile", "format": "nipt.xlsx"},
 			{"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
 			{"name": "batch_id", "type": "string"},
 			{'name': 'member_id','type':'string'},
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
-			{"name": "ref_group", "type": "int", "default": 2}
+			{"name": "ref_group", "type": "int", "default": 2},
+			{"name": "update_info", "type": "string"}
 
 		]
 		self.add_option(options)
@@ -54,10 +54,6 @@ class NiptWorkflow(Workflow):
 
 	def analysis_run(self):
 		self.api_nipt = self.api.nipt_analysis
-		file = self.option('customer_table').prop['path']
-		self.api_nipt.nipt_customer(file)
-		os.listdir(self.option('fastq_path').prop['path'])
-
 		n = 0
 		for i in os.listdir(self.option('fastq_path').prop['path']):
 			m = re.match('(.*)_R1.fastq.gz', i)
