@@ -10,6 +10,8 @@ from biocluster.core.exceptions import OptionError
 import os
 import re
 
+from bson import ObjectId
+
 
 class MongoTestWorkflow(Workflow):
 	def __init__(self, wsheet_object):
@@ -134,19 +136,25 @@ class MongoTestWorkflow(Workflow):
 				os.link(oldfiles[i], newfiles[i])
 
 	def mongo(self):
-		output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170605/Nipt_20170605_132724/NiptAnalysis/output'
-		main_id = "5934ebc3a4e1af25f49b922f"
+		output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170616/Nipt_20170616_154029/output'
+		main_id = ObjectId("59438b75a4e1af3f04d8e9cb")
+		interaction_id = ObjectId("59438b75a4e1af3f04d8e9cc")
+		name = 'WS170300106'
 		for i in os.listdir(output_dir):
-			if re.search(r'.*bed.2$', i):
-				self.api_nipt.add_bed_file(output_dir + '/' + i)
-			elif re.search(r'.*qc$', i):
-				self.api_nipt.add_qc(output_dir + '/' + i)
-			elif re.search(r'.*_z.xls$', i):
-				self.api_nipt.add_z_result(output_dir + '/' + i, main_id)
-			elif re.search(r'.*_zz.xls$', i):
-				self.api_nipt.add_zz_result(output_dir + '/' + i, main_id)
-			elif re.search(r'.*_fastqc.html$', i):
-				self.api_nipt.add_fastqc(main_id, output_dir + '/' + i)  # fastqc入库
+				if re.search(name + '.*bed.2$', i):
+					self.api_nipt.add_bed_file(output_dir + '/'+ i)
+				elif re.search(name +'.*qc$', i):
+					self.api_nipt.add_qc(output_dir + '/' + i)
+				elif re.search(name +'.*_z.xls$', i):
+					self.api_nipt.add_z_result(output_dir + '/' + i,interaction_id)
+				elif re.search(name +'.*_zz.xls$', i):
+					self.api_nipt.add_zz_result(output_dir + '/' + i, interaction_id)
+					self.api_nipt.update_main(main_id, output_dir + '/' + i) #更新zz值到主表中去
+				elif re.search(name +'.*_fastqc.html$', i):
+					self.api_nipt.add_fastqc(output_dir + '/' + i)  # fastqc入库
+				elif re.search(name +'.*_result.txt$', i):
+					self.api_nipt.report_result(interaction_id, output_dir + '/' + i)
+		self.api_nipt.update_interaction(main_id)
 
 	def run(self):
 		self.mongo()
