@@ -71,7 +71,7 @@ class DrawFastqInfoTool(Tool):
     def fastq_quality_stats(self, fastq, outfile):
         fastq_name = fastq.split("/")[-1]
         fastq_name = fastq_name.lower()
-        cmd = self.fastxtoolkit_path + 'fastx_quality_stats -i {} -o {}'.format(fastq, outfile)
+        cmd = self.fastxtoolkit_path + 'fastx_quality_stats -i {} -Q 33 -o {}'.format(fastq, outfile)
         self.logger.info(cmd)
         self.logger.info("开始运行{}_quality_stats".format(fastq_name))
         command = self.add_command("{}_quality_stats".format(fastq_name), cmd)

@@ -12,7 +12,7 @@ from mbio.files.rna.diff_stat_table import DiffStatTableFile
 class DiffAnalysisModule(Module):
     def __init__(self, work_id):
         super(DiffAnalysisModule, self).__init__(work_id)
-        self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich', 'go_regulate', 'kegg_regulate')
+        self.step.add_steps('cluster', 'network', 'go_rich', 'kegg_rich', 'go_regulate', 'kegg_regulate', 'cog_class')
         options = [
             {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate,cog_class"},  # 选择要做的分析
             {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 差异基因表达量表
@@ -44,7 +44,6 @@ class DiffAnalysisModule(Module):
         self.go_rich_tool = []
         self.go_regulate_tool = []
         self.kegg_regulate_tool = []
-        self.cog_class_tool = []
         self.tools = []
 
     def check_options(self):
@@ -91,7 +90,7 @@ class DiffAnalysisModule(Module):
             raise OptionError("模块network相异值超出范围")
         if self.option('correct') not in ['BY', 'BH', 'None', 'QVALUE']:
             raise OptionError('多重检验校正的方法不在提供的范围内')
-        if 'cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'kegg_regulate' or 'go_regulate' in self.option('analysis'):
+        if 'cluster' or 'network' or 'kegg_rich' or 'go_rich' or 'kegg_regulate' or 'go_regulate'or 'cog_class' in self.option('analysis'):
             pass
         else:
             raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
@@ -287,6 +286,12 @@ class DiffAnalysisModule(Module):
                 self.linkdir(tool.output_dir, dirname)
             self.set_step(event={'data': {'end': self.step.kegg_regulate}})
             print '.......kr:%s...kegg_regulate end' % len(self.kegg_regulate_tool)
+        elif event['data'] == 'cog_class':
+            for tool in self.cog_class_tool:
+                dirname = 'cog_class/' + os.path.splitext(os.path.basename(tool.option('diff_list').path))[0]
+                self.linkdir(tool.output_dir, dirname)
+            self.set_step(event={'data': {'end': self.step.cog_class}})
+            print '.......kr:%s...cog class end' % len(self.cog_class_tool)
         else:
             pass
 
@@ -315,6 +320,7 @@ class DiffAnalysisModule(Module):
         self.run_tools()
 
     def cog_class_run(self):
+        self.step.cog_class.start()
         opts = {
             "cog_table": self.option("cog_table")
         }

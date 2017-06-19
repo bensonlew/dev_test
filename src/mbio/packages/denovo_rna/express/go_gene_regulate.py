@@ -10,6 +10,7 @@ import os
 def up_down_express_list(fp):
     """
     """
+    group_name = os.path.basename(fp).split("_edgr_")[0]
     with open(fp) as f:
         header = f.readline().strip()
         if not header.lower().endswith('pvalue\tpadjust\tsignificant\tregulate\tncbi'):
@@ -29,7 +30,7 @@ def up_down_express_list(fp):
                     raise Exception('未知的上下调说明类型:{}，必须为up或者为down'.format(line_sp[-1]))
             else:
                 break
-        return up, down
+        return up, down, group_name
 
 
 def get_level_2_info(fp):
