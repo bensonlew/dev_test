@@ -78,12 +78,12 @@ class RefAnnotation(Base):
         else:
             raise Exception("已知序列注释统计文件和venn图文件夹不存在")
         query_id = self.add_annotation_query(name=None, params=params, stat_id=stat_id)
-        query_path = ref_anno_path + "/anno_stat/all_annotation_statistics.xls"
+        query_path = ref_anno_path + "/anno_stat/all_annotation.xls"
         if os.path.exists(query_path):
             self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
         else:
             raise Exception("已知序列注释查询文件all_annotation.xls不存在")
-        query_path = new_anno_path + "/anno_stat/all_annotation_statistics.xls"
+        query_path = new_anno_path + "/anno_stat/all_annotation.xls"
         if os.path.exists(query_path):
             self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
         else:
