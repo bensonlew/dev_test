@@ -155,6 +155,7 @@ class RefrnaWorkflow(Workflow):
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans,
                             self.exp_alter, self.exp_fc]
         self.genome_status = True
+        self.as_on = False  # 是否进行可变剪切
         self.step.add_steps("filecheck_ref", "rna_qc", "mapping", "assembly", "new_annotation", "exp", "snp_rna")
 
 
@@ -895,16 +896,20 @@ class RefrnaWorkflow(Workflow):
             for key in group_spname.keys():
                 if len(group_spname[key]) <= 3:
                     self.logger.info("某分组中样本数小于等于3，将不进行可变剪切分析")
+                    self.as_on = False  # 不进行可变剪切分析
                     return False
                 else:
                     lst.append(len(group_spname[key]))
             if len(set(lst)) != 1:
+                self.as_on = False  # 不进行可变剪切分析
                 return False  # 各分组，样本数不相同
+            self.as_on = True  # 不进行可变剪切分析
             return True
         else:
+            self.as_on = True
             return True
 
-    def move2outputdir(self, olddir, newname, mode='link'):
+    def move2outputdir(self, olddir, newname, mode='link'):  # 阻塞
         """
         移动一个目录下的所有文件/文件夹到workflow输出文件夹下
         """
@@ -935,82 +940,109 @@ class RefrnaWorkflow(Workflow):
                     os.system('cp -r {} {}'.format(oldfiles[i], newdir))
 
     def set_output(self, event):
-        obj = event["bind_object"]
-        # 设置qc报告文件
-        if event['data'] == 'qc':
-            self.move2outputdir(obj.output_dir, 'QC_stat')
-        if event['data'] == 'qc_stat_before':
-            self.move2outputdir(obj.output_dir, 'QC_stat/before_qc')
-            self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
-        if event['data'] == 'qc_stat_after':
-            self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
-            self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
-        if event['data'] == 'mapping':
-            self.move2outputdir(obj.output_dir, 'mapping')
-            self.logger.info('mapping results are put into output dir')
-        if event['data'] == 'map_qc':
-            self.move2outputdir(obj.output_dir, 'map_qc')
-            self.logger.info('mapping assessments are done')
-        if event['data'] == 'assembly':
-            self.move2outputdir(obj.output_dir, 'assembly')
-            self.logger.info('assembly are done')
-        if event['data'] == 'exp':
-            self.move2outputdir(obj.output_dir, 'express')
-            self.logger.info('express文件移动完成')
-        if event["data"] == "exp_alter":
-            self.move2outputdir(obj.output_dir, 'exp_alter')
-            self.logger.info('express_alter文件移动完成')
-        if event['data'] == 'exp_fc_all':
-            self.move2outputdir(obj.output_dir, 'express_fc_all')
-            self.logger.info('express_fc_all文件移动完成')
-        if event['data'] == 'exp_diff_gene':
-            self.move2outputdir(obj.output_dir, 'express_diff_gene')
-            self.logger.info("express diff")
-        if event['data'] == 'exp_diff_trans':
-            self.move2outputdir(obj.output_dir, 'express_diff_trans')
-            self.logger.info("express diff")
-        if event['data'] == 'snp_rna':
-            self.move2outputdir(obj.output_dir, 'snp_rna')
-            self.logger.info("snp_rna文件移动完成")
-        if event['data'] == 'network_analysis':
-            self.move2outputdir(obj.output_dir, 'network_analysis')
-            self.logger.info("network_analysis文件移动完成")
-        if event['data'] == 'annotation':
-            self.move2outputdir(obj.output_dir, 'annotation')
-            self.logger.info("annotation文件移动完成")
-        if event['data'] == 'new_annotation':
-            self.move2outputdir(obj.output_dir, 'new_annotation')
-            self.logger.info("新转录本与新基因annotation文件移动完成")
-        if event['data'] == 'altersplicing':
-            self.move2outputdir(obj.output_dir, 'altersplicing')
-            self.logger.info("altersplicing文件移动完成")
-        if event["data"] == "new_keggblast":
-            self.move2outputdir(obj.output_dir, 'new_keggblast')
-            self.logger.info("new_keggblast文件移动完成")
-        if event["data"] == "new_stringblast":
-            self.move2outputdir(obj.output_dir, 'new_stringblast')
-            self.logger.info("new_stringblast文件移动完成")
-        if event["data"] == "new_nrblast":
-            self.move2outputdir(obj.output_dir, 'new_nrblast')
-            self.logger.info("new_nrblast文件移动完成")
-        if event["data"] == "keggblast":
-            self.move2outputdir(obj.output_dir, 'keggblast')
-            self.logger.info("keggblast文件移动完成")
-        if event["data"] == "stringblast":
-            self.move2outputdir(obj.output_dir, 'stringblast')
-            self.logger.info("stringblast文件移动完成")
-        if event["data"] == "nrblast":
-            self.move2outputdir(obj.output_dir, 'nrblast')
-            self.logger.info("nrblast文件移动完成")
-        if event["data"] == "map_gene":
-            self.move2outputdir(obj.output_dir, 'map_gene')
-            self.logger.info("map_gene文件移动完成")
-        if event["data"] == "swsissprot":
-            self.move2outputdir(obj.output_dir, 'new_swissprotblast')
-            self.logger.info("swissprot文件移动完成")
-        if event["data"] == "pfam":
-            self.move2outputdir(obj.output_dir, 'pfam')
-            self.logger.info("pfam文件移动完成")
+        pass
+        # obj = event["bind_object"]
+        # # 设置qc报告文件
+        # if event['data'] == 'qc':
+        #     self.move2outputdir(obj.output_dir, 'QC_stat')
+        # if event['data'] == 'qc_stat_before':
+        #     self.move2outputdir(obj.output_dir, 'QC_stat/before_qc')
+        #     self.logger.info('{}'.format(self.qc_stat_before._upload_dir_obj))
+        # if event['data'] == 'qc_stat_after':
+        #     self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
+        #     self.logger.info('{}'.format(self.qc_stat_after._upload_dir_obj))
+        # if event['data'] == 'mapping':
+        #     self.move2outputdir(obj.output_dir, 'mapping')
+        #     self.logger.info('mapping results are put into output dir')
+        # if event['data'] == 'map_qc':
+        #     self.move2outputdir(obj.output_dir, 'map_qc')
+        #     self.logger.info('mapping assessments are done')
+        # if event['data'] == 'assembly':
+        #     self.move2outputdir(obj.output_dir, 'assembly')
+        #     self.logger.info('assembly are done')
+        # if event['data'] == 'exp':
+        #     self.move2outputdir(obj.output_dir, 'express')
+        #     self.logger.info('express文件移动完成')
+        # if event["data"] == "exp_alter":
+        #     self.move2outputdir(obj.output_dir, 'exp_alter')
+        #     self.logger.info('express_alter文件移动完成')
+        # if event['data'] == 'exp_fc_all':
+        #     self.move2outputdir(obj.output_dir, 'express_fc_all')
+        #     self.logger.info('express_fc_all文件移动完成')
+        # if event['data'] == 'exp_diff_gene':
+        #     self.move2outputdir(obj.output_dir, 'express_diff_gene')
+        #     self.logger.info("express diff")
+        # if event['data'] == 'exp_diff_trans':
+        #     self.move2outputdir(obj.output_dir, 'express_diff_trans')
+        #     self.logger.info("express diff")
+        # if event['data'] == 'snp_rna':
+        #     self.move2outputdir(obj.output_dir, 'snp_rna')
+        #     self.logger.info("snp_rna文件移动完成")
+        # if event['data'] == 'network_analysis':
+        #     self.move2outputdir(obj.output_dir, 'network_analysis')
+        #     self.logger.info("network_analysis文件移动完成")
+        # if event['data'] == 'annotation':
+        #     self.move2outputdir(obj.output_dir, 'annotation')
+        #     self.logger.info("annotation文件移动完成")
+        # if event['data'] == 'new_annotation':
+        #     self.move2outputdir(obj.output_dir, 'new_annotation')
+        #     self.logger.info("新转录本与新基因annotation文件移动完成")
+        # if event['data'] == 'altersplicing':
+        #     self.move2outputdir(obj.output_dir, 'altersplicing')
+        #     self.logger.info("altersplicing文件移动完成")
+        # if event["data"] == "new_keggblast":
+        #     self.move2outputdir(obj.output_dir, 'new_keggblast')
+        #     self.logger.info("new_keggblast文件移动完成")
+        # if event["data"] == "new_stringblast":
+        #     self.move2outputdir(obj.output_dir, 'new_stringblast')
+        #     self.logger.info("new_stringblast文件移动完成")
+        # if event["data"] == "new_nrblast":
+        #     self.move2outputdir(obj.output_dir, 'new_nrblast')
+        #     self.logger.info("new_nrblast文件移动完成")
+        # if event["data"] == "keggblast":
+        #     self.move2outputdir(obj.output_dir, 'keggblast')
+        #     self.logger.info("keggblast文件移动完成")
+        # if event["data"] == "stringblast":
+        #     self.move2outputdir(obj.output_dir, 'stringblast')
+        #     self.logger.info("stringblast文件移动完成")
+        # if event["data"] == "nrblast":
+        #     self.move2outputdir(obj.output_dir, 'nrblast')
+        #     self.logger.info("nrblast文件移动完成")
+        # if event["data"] == "map_gene":
+        #     self.move2outputdir(obj.output_dir, 'map_gene')
+        #     self.logger.info("map_gene文件移动完成")
+        # if event["data"] == "swsissprot":
+        #     self.move2outputdir(obj.output_dir, 'new_swissprotblast')
+        #     self.logger.info("swissprot文件移动完成")
+        # if event["data"] == "pfam":
+        #     self.move2outputdir(obj.output_dir, 'pfam')
+        #     self.logger.info("pfam文件移动完成")
+
+    def set_output_all(self):
+        self.move2outputdir(self.qc.output_dir, 'QC_stat')
+        self.move2outputdir(self.qc_stat_before.output_dir, 'QC_stat/before_qc')
+        self.move2outputdir(self.qc_stat_after.output_dir, 'QC_stat/after_qc')
+        self.move2outputdir(self.mapping.output_dir, 'mapping')
+        self.move2outputdir(self.map_qc.output_dir, 'map_qc')
+        self.move2outputdir(self.assembly.output_dir, 'assembly')
+        self.move2outputdir(self.exp.output_dir, 'express')
+        self.move2outputdir(self.exp_fc.output_dir, 'express_fc_all')
+        self.move2outputdir(self.exp_diff_gene.output_dir, 'express_diff_gene')
+        self.move2outputdir(self.exp_diff.output_dir, 'express_diff_trans')
+        self.move2outputdir(self.snp_rna.output_dir, 'snp_rna')
+        self.move2outputdir(self.network_trans.output_dir, 'network_analysis')
+        self.move2outputdir(self.annotation.output_dir, 'annotation')
+        self.move2outputdir(self.new_annotation.output_dir, 'new_annotation')
+        self.move2outputdir(self.new_blast_kegg.output_dir, 'new_keggblast')
+        self.move2outputdir(self.new_blast_string.output_dir, 'new_stringblast')
+        self.move2outputdir(self.new_blast_nr.output_dir, 'new_nrblast')
+        self.move2outputdir(self.blast_kegg.output_dir, 'keggblast')
+        self.move2outputdir(self.blast_string.output_dir, 'stringblast')
+        self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
+        self.move2outputdir(self.new_blast_swissprot.output_dir, 'new_swissprotblast')
+        self.move2outputdir(self.ssss.output_dir, 'pfam')
+        if self.as_on:
+            self.move2outputdir(self.altersplicing.output_dir, 'altersplicing')
 
     def run(self):
         """
@@ -1039,21 +1071,17 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
         self.qc.on("end", self.run_star_mapping)
-        # self.on_rely([self.qc, self.seq_abs], self.run_map_gene)
         self.map_gene.on("end", self.run_map_assess_gene)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
-        # self.assembly.on("end", self.run_exp_rsem_alter)
         self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
             self.exp.on("end", self.run_network_trans)
-            # self.exp.on("end", self.run_network_gene)
-            # self.final_tools.append(self.network_gene)
             self.final_tools.append(self.network_trans)
-        self.on_rely(self.final_tools, self.run_api)
+        self.on_rely(self.final_tools, self.run_api_and_set_output)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
 
@@ -1061,21 +1089,22 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).end()
 
     def test_ore(self):
-        self.run_api()
+        self.run_api_and_set_output()
 
-    def run_api(self):
+    def run_api_and_set_output(self):
+        self.set_output_all()
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
         self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
         self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
         self.export_qc()
-        # self.export_annotation()
+        self.export_annotation()
         self.export_assembly()
         self.export_snp()
         self.export_map_assess()
         self.export_exp_rsem_default()
-        # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
+        self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
         self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         # self.express_id = "5940fc42a4e1af648d87badf"
         self.export_gene_set()
@@ -1471,7 +1500,7 @@ class RefrnaWorkflow(Workflow):
                 group[key] = "s2"
         outpath = self.altersplicing.output_dir
         self.logger.info(params)
-        if self.get_group_from_edger_group():
+        if self.as_on:
             self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
         else:
             self.api_as.add_sg_splicing_rmats(params=params, major=False, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
@@ -1773,7 +1802,7 @@ class RefrnaWorkflow(Workflow):
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
             params["geneset_type"] = "transcript"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="cog_class_main_table")
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="CogClass_transcript")
             for dir in os.listdir(trans_cog_class_dir):
                 if self.trans_gs_id_name[trans_id] in dir:
                     dir_path = os.path.join(trans_cog_class_dir, dir)
@@ -1785,7 +1814,7 @@ class RefrnaWorkflow(Workflow):
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
             params["geneset_type"] = "gene"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="cog_class_main_table")
+            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="CogClass_gene")
             for dir in os.listdir(gene_cog_class_dir):
                 if self.gene_gs_id_name[str(gene_id)] in dir:
                     dir_path = os.path.join(gene_cog_class_dir, dir)
