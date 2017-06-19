@@ -6,9 +6,9 @@ from biocluster.config import Config
 from bson import SON
 
 
-class TaskInfo(Base):
+class Ref(Base):
     def __init__(self, bind_object):
-        super(TaskInfo, self).__init__(bind_object)
+        super(Ref, self).__init__(bind_object)
         self._db_name = Config().MONGODB + "_ref_rna"
 
     @report_check
