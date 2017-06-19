@@ -142,7 +142,7 @@ class RmatsRerunAction(RefRnaController):
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'end'),
+                ('status', 'start'),
                 ('desc', "rmats主表"),
                 ('name', main_table_name),
                 ('chr_set', chr_set),

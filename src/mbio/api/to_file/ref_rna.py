@@ -258,8 +258,6 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
                     w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\tnone\tnone\tnone\t")
                 # print write_line
                 w.write("\n")
-            # else:
-            #     raise Exception("没有找到基因集的COG注释信息")
     return cog_path
 
 
