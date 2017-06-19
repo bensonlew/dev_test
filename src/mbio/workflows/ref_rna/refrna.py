@@ -1040,7 +1040,7 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.blast_string.output_dir, 'stringblast')
         self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
         self.move2outputdir(self.new_blast_swissprot.output_dir, 'new_swissprotblast')
-        self.move2outputdir(self.ssss.output_dir, 'pfam')
+        self.move2outputdir(self.snp_rna.output_dir, 'pfam')
         if self.as_on:
             self.move2outputdir(self.altersplicing.output_dir, 'altersplicing')
 
@@ -1075,7 +1075,7 @@ class RefrnaWorkflow(Workflow):
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
-        self.assembly.on("end", self.run_exp_fc)
+        # self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
@@ -1089,15 +1089,17 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).end()
 
     def test_ore(self):
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
+        self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
+        self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
         self.run_api_and_set_output()
 
     def run_api_and_set_output(self):
         self.set_output_all()
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
-        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
-        self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
-        self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
+        task_info = self.api.api('task_info.ref')
+        task_info.add_task_info()
         self.export_qc()
         self.export_annotation()
         self.export_assembly()
@@ -1106,7 +1108,6 @@ class RefrnaWorkflow(Workflow):
         self.export_exp_rsem_default()
         self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
         self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
-        # self.express_id = "5940fc42a4e1af648d87badf"
         self.export_gene_set()
         self.export_diff_gene()
         self.export_diff_trans()
@@ -1119,37 +1120,13 @@ class RefrnaWorkflow(Workflow):
         self.export_go_enrich()
         self.export_kegg_enrich()
         self.export_cog_class()
-        # self.transet_id = ["59422beca4e1af08604e5ad8"]
         if self.taxon_id != "":
             with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
                 ft.readline()
                 content = ft.read()
                 if content:
                     self.export_ppi()
-        # self.test_export_map_assess()
-        # self.group_id = "59422778a4e1af086016beae"
-        # self.control_id = "59422778a4e1af086016beaf"
-        # self.group_category = ["A", "B"]
-        # self.group_detail = [
-        # {
-        #     "59422778a4e1af086016b40c" : "HFL3",
-        #     "59422778a4e1af086016b40e" : "CL1",
-        #     "59422778a4e1af086016b40d" : "CL5",
-        #     "59422778a4e1af086016b40f" : "CL2"
-        # },
-        # {
-        #     "59422778a4e1af086016b40a" : "HFL6",
-        #     "59422778a4e1af086016b409" : "HGL1",
-        #     "59422778a4e1af086016b40b" : "HFL4",
-        #     "59422778a4e1af086016b407" : "HGL4",
-        #     "59422778a4e1af086016b408" : "HGL3"
-        # }
-        # ]
         self.export_as()
-        # if self.get_group_from_edger_group():
-        #     self.export_as()
-        # else:
-        #     self.logger.info("不进行as导表")
         self.end()
 
     def export_qc(self):
@@ -1327,6 +1304,7 @@ class RefrnaWorkflow(Workflow):
                     if up_down:
                         self.transet_id.append(up_down)
                         self.trans_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
+                        self.up_down_trans_id = str(down_id) + "," + str(up_id)
                 else:
                     self.logger.info("转录本name和compare_name匹配错误")
         path = self.exp.output_dir + "/diff/genes_diff/diff_stat_dir"
@@ -1346,6 +1324,7 @@ class RefrnaWorkflow(Workflow):
                     up_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id, name=name,
                                                          compare_name=compare_name, express_method="rsem", type="gene",
                                                          up_down='up', major=True)
+                    self.up_down_gene_id = str(down_id) + "," + str(up_id)
                     self.geneset_id.append(up_down)
                     self.gene_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
                 else:
@@ -1654,7 +1633,7 @@ class RefrnaWorkflow(Workflow):
         gene_go_regulate_dir = gene_dir + "/go_regulate"
         for trans_id in self.trans_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(trans_id)
+            params["geneset_id"] = str(self.up_down_trans_id)
             params["anno_type"] = "go"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
@@ -1666,7 +1645,7 @@ class RefrnaWorkflow(Workflow):
                     self.api_regulate.add_go_regulate_detail(go_regulate_dir=dir_path + "/GO_regulate.xls", go_regulate_id=str(inserted_id))
         for gene_id in self.gene_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(gene_id)
+            params["geneset_id"] = str(self.up_down_gene_id)
             params["anno_type"] = "go"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
@@ -1718,7 +1697,7 @@ class RefrnaWorkflow(Workflow):
         gene_kegg_regulate_dir = gene_dir + "/kegg_regulate"
         for trans_id in self.trans_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(trans_id)
+            params["geneset_id"] = str(self.up_down_trans_id)
             params["anno_type"] = "kegg"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
@@ -1732,7 +1711,7 @@ class RefrnaWorkflow(Workflow):
                     self.api_regulate.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
         for gene_id in self.gene_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(gene_id)
+            params["geneset_id"] = str(self.up_down_gene_id)
             params["anno_type"] = "kegg"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
