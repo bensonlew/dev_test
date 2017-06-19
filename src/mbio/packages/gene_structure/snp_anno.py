@@ -15,7 +15,7 @@ def snp_anno(variant_function, exonic_variant_function, combine_vcf, snp_stat):
                 continue
             elif re.match(r"#", line):
                 title_line = line.strip().split()
-                samples = title_line[9:]
+                samples = [i.split(".")[0] for i in title_line[9:]]
                 print samples
             else:
                 line = line.split()

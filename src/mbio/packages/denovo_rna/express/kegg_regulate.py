@@ -8,6 +8,7 @@ import gridfs
 import re
 import os
 from reportlab.lib import colors
+import subprocess
 
 
 class KeggRegulate(object):
@@ -38,6 +39,7 @@ class KeggRegulate(object):
         regulate_dict：gene调控信息:{'up': [gene1,gene2], 'down': [gene1,gene2]}
         """
         colors_w = ['red', 'yellow', 'blue', "green", 'purple', 'pink']
+        new_path_ko = {}
         with open(output, 'wb') as w:
             # w.write('Pathway_id\tKo_ids\tup_numbers\tdown_numbers\tup_genes\tdown_genes\n')
             # modified by qindanhua add 7 line 支持两个以上的基因集统计
@@ -65,7 +67,6 @@ class KeggRegulate(object):
                             # print same_gene
                             for sg in same_gene:
                                 write_dict[gn].append('{}({})'.format(sg, ko))
-                # print write_dict
                 count = 0
                 link = 'http://www.genome.jp/kegg-bin/show_pathway?' + path
                 # print link
@@ -85,8 +86,10 @@ class KeggRegulate(object):
                         # print link
                     w.write('{}'.format(link))
                     w.write("\n")
+                    new_path_ko[path] = path_ko[path]
+        return new_path_ko
 
-    def get_pictrue(self, path_ko, out_dir, regulate_dict=None):
+    def get_pictrue(self, path_ko, out_dir, regulate_dict=None, image_magick=None):
             """
             传入path_ko统计信息，生成pathway绘图文件夹
             path_ko：path对应的ko信息:{'pathway': [ko1,ko2], ...,'pathway': [ko1,ko2]}
@@ -122,5 +125,14 @@ class KeggRegulate(object):
                                     label_maps=False, show_maps=False, draw_relations=False, show_orthologs=True,
                                     show_compounds=False, show_genes=False,
                                     show_reaction_entries=False)
-                    canvas.draw(out_dir + '/' + path + '.pdf')
+                    pdf = out_dir + '/' + path + '.pdf'
+                    png = out_dir + '/' + path + '.png'
+                    canvas.draw(pdf)
                     os.remove(kgml_path)
+                    os.remove(png_path)
+                    if image_magick:
+                        cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
+                        try:
+                            subprocess.check_output(cmd, shell=True)
+                        except subprocess.CalledProcessError:
+                            print '图片格式pdf转png出错'

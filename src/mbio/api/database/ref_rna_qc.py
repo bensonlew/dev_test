@@ -307,6 +307,14 @@ class RefRnaQc(Base):
         """
         rpkm_id = ObjectId(rpkm_id)
         curve_files = glob.glob("{}/*cluster_percent.xls".format(rpkm_file))
+        # curve_data = []
+        R_files = glob.glob("{}/*eRPKM.xls.saturation.R".format(rpkm_file))
+        # print R_files
+        sample_categaries = {}
+        for rf in R_files:
+            sample_name = os.path.basename(rf).split(".")[0][6:]
+            categaries = self.add_satur_count(rf)
+            sample_categaries[sample_name] = categaries
         curve_data = []
         for cf in curve_files:
             sample_name = os.path.basename(cf).split(".")[0][6:]
@@ -319,6 +327,7 @@ class RefRnaQc(Base):
                 data = {
                     "saturation_id": rpkm_id,
                     "specimen_name": sample_name,
+                    "categaries": sample_categaries[sample_name],
                     "column1": line_list[0],
                     "column2": line_list[1],
                     "column3": line_list[2],
@@ -335,6 +344,24 @@ class RefRnaQc(Base):
             self.bind_object.logger.error("导入rpkm曲线数据出错:%s" % e)
         else:
             self.bind_object.logger.info("导入rpkm曲线数据成功")
+
+    @report_check
+    def add_satur_count(self, count_r_file):
+        categaries = {"column1": "[0-0.3)", "column2": "[0.3-0.6)", "column3": "[0.6-3.5)", "column4": "[3.5-15)", "column5": "[15-60)", "column6": ">=60"}
+        with open(count_r_file, "r") as f:
+            for line in f:
+                if re.match(r"legend", line):
+                    all_num = re.findall("num=[\d]*", line)
+                    # print all_num
+                    categaries = {
+                        "column5": "[15-60)=" + all_num[4][4:],
+                        "column4": "[3.5-15)=" + all_num[3][4:],
+                        "column6": ">=60=" + all_num[5][4:],
+                        "column1": "[0-0.3)=" + all_num[0][4:],
+                        "column3": "[0.6-3.5)=" + all_num[2][2:],
+                        "column2": "[0.3-0.6)=" + all_num[1][4:]
+                    }
+        return categaries
 
     @report_check
     def add_coverage_table(self, coverage, name=None, params=None, detail=True):
