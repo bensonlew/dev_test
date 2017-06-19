@@ -8,6 +8,7 @@ from mainapp.models.mongo.meta import Meta
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import *
 from bson import ObjectId
+from bson import SON
 
 
 class Otunetwork(MetaController):
@@ -75,7 +76,8 @@ class Otunetwork(MetaController):
             ('params', params),
             ('name', main_table_name)
         ]
-        main_table_id = Meta().insert_main_table('sg_network', mongo_data)
+        # main_table_id = Meta().insert_main_table('sg_network', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_network')  #这里只插入一个空表，没有真实数据
         update_info = {str(main_table_id): 'sg_network'}
         options = {
             "otutable": data.otu_id,
@@ -85,18 +87,17 @@ class Otunetwork(MetaController):
             "group_id": data.group_id,
             "level": int(data.level_id),
             # "add_Algorithm": data.add_Algorithm,
-            "network_id": str(main_table_id)
+            "network_id": str(main_table_id),
+            'main_table_data': SON(mongo_data)
         }
         to_file = ["meta.export_otu_table_by_detail(otutable)", "meta.export_group_table_by_detail(grouptable)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name="OTUnetwork/" + main_table_name,
                             module_type=task_type, to_file=to_file)  # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
         task_info = super(Otunetwork, self).POST()
         # print "+++++..."
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
-            }
-        }
-        # print task_info
+        if task_info['success']:
+            task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        else:
+            pass
+        print task_info
         return json.dumps(task_info)
