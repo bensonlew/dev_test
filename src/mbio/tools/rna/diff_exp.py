@@ -27,7 +27,7 @@ class DiffExpAgent(Agent):
             {"name": "count", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，基因技术矩阵
             {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，基因表达量矩阵
             {"name": "dispersion", "type": "float", "default": 0.1},  # edger离散值
-            {"name": "min_rowsum_counts", "type": "int", "default": 2},  # 离散值估计检验的最小计数值
+            {"name": "min_rowsum_counts", "type": "int", "default": 20},  # 离散值估计检验的最小计数值 默认最小的是20
             {"name": "edger_group", "type": "infile", "format": "sample.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "sample.control_table"},  # 对照组文件，格式同分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
@@ -139,7 +139,7 @@ class DiffExpTool(Tool):
     def run_edger(self, dispersion=None):
         if self.option('edger_group').is_set:
             self.option('edger_group').get_edger_group([self.option('gname')], './edger_group')
-            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), self.option('dispersion'), './edger_group', self.option('min_rowsum_counts'))
+            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'),self.option('dispersion'), './edger_group', self.option('min_rowsum_counts'))
         else:
             edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('method'), self.option('dispersion'), self.option('min_rowsum_counts'))
             restart_edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), dispersion, self.option('min_rowsum_counts'))
@@ -168,8 +168,18 @@ class DiffExpTool(Tool):
             os.mkdir(output_dir)
         for f in edger:
             if re.search(r'edgeR.DE_results$', f):
-                get_diff_list(edger_dir + f, output_dir + f.split('.')[-3], self.option('diff_ci'))
+                self.logger.info('fc')
+                self.logger.info(edger_dir+f)
+                self.logger.info(output_dir + f.split('.')[-3])
+                self.logger.info(self.option("pvalue_padjust"))
+                if self.option("pvalue_padjust") == 'pvalue':
+                    get_diff_list(edger_dir + f, output_dir + f.split('.')[-3], self.option('fc'), self.option("pvalue_padjust"), self.option('diff_ci'))
+                if self.option("pvalue_padjust") == 'padjust':
+                    get_diff_list(edger_dir + f, output_dir + f.split('.')[-3], self.option('fc'), self.option("pvalue_padjust"), self.option('diff_fdr_ci'))
                 edger_files += '%s ' % (output_dir + f.split('.')[-3])
+        self.logger.info("edger_files")
+        self.logger.info(edger_files)
+        self.logger.info('cat %s> diff_lists && sort diff_lists | uniq > diff_list' % edger_files)
         os.system('cat %s> diff_lists && sort diff_lists | uniq > diff_list' % edger_files)
         os.remove('diff_lists')
 

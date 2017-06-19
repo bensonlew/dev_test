@@ -7,7 +7,6 @@
 import re
 import os
 
-
 def up_down_express_list(fp):
     """
     """
@@ -49,12 +48,12 @@ def get_level_2_info(fp):
     return level2info
 
 
-def get_level_2_up_down(level2fp, up, down, group_name, outfile='./GO_up_down.xls'):
+def get_level_2_up_down(level2fp, up, down, outfile='./GO_up_down.xls', name=""):
     with open(outfile, 'wb') as w:
         all_genes = set()  # 保存注释和上下调同时存在基因
         all_records = []  # 保存上下调基因
-        w.write('term_type\tterm\tGO\t{}_up num\t{}_up percent\t{}_up genes\t{}_down num\t{}_down percent\t{}_down genes\n'
-                .format(group_name, group_name, group_name, group_name, group_name, group_name))
+        head = "term_type\tterm\tGO\t{}_up num\t{}_up percent\t{}_up genes\t{}_down num\t{}_down percent\t{}_down genes\n".format(name, name, name, name, name, name)
+        w.write(head)
         go_info = get_level_2_info(level2fp)  # level2的go统计表的信息 二维列表
         for record in go_info:
             one_up = []
@@ -81,8 +80,9 @@ def get_level_2_up_down(level2fp, up, down, group_name, outfile='./GO_up_down.xl
 
 
 def GO_level_2_regulate(diff_express_fp, go_level_2_stat_fp, outfile):
-    up, down, group_name = up_down_express_list(diff_express_fp)
-    get_level_2_up_down(go_level_2_stat_fp, up, down, group_name, outfile)
+    up, down = up_down_express_list(diff_express_fp)
+    file_name = os.path.splitext(os.path.basename(diff_express_fp))[0].split("_edgr_stat")[0]
+    get_level_2_up_down(go_level_2_stat_fp, up, down, outfile, name=file_name)
 
 
 if __name__ == '__main__':

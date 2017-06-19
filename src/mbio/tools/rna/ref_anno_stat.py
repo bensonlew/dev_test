@@ -43,7 +43,7 @@ class RefAnnoStatAgent(Agent):
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
-            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新基因gtf文件，功能:将参考基因组转录本ID替换成gene ID
+            {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新转录本gtf文件
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},
@@ -343,12 +343,12 @@ class RefAnnoStatTool(Tool):
             self.option("gos_list", self.work_dir + "/query_gos.list")
         self.option("gene_go_list", self.go_stat_path + '/gene_gos.list')
         go_cmd1 = '{} {} {} {} {} {}'.format(self.python_path, self.go_annot, self.go_stat_path + '/gene_gos.list', 'localhost', self.b2g_user, self.b2g_password)
-        go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
+        # go_cmd2 = '{} {} {}'.format(self.python_path, self.go_split, self.work_dir + '/go_detail.xls')
         go_annot_cmd = self.add_command('go_annot_cmd', go_cmd1).run()
         self.wait(go_annot_cmd)
         if go_annot_cmd.return_code == 0:
             self.logger.info("go_annot_cmd运行完成")
-            self.add_command('go_split_cmd', go_cmd2).run()
+            # self.add_command('go_split_cmd', go_cmd2).run()
         else:
             self.set_error("go_annot_cmd运行出错!")
 
@@ -444,7 +444,7 @@ class RefAnnoStatTool(Tool):
                             if os.path.exists(self.output_dir + '/go_stat/gene_{}'.format(f)):
                                 os.remove(self.output_dir + '/go_stat/gene_{}'.format(f))
                             os.link(self.work_dir + '/' + f, self.output_dir + '/go_stat/gene_{}'.format(f))
-                    self.option('gene_go_level_2', self.output_dir + '/go_stat/gene_go2level.xls')
+                    self.option('gene_go_level_2', self.output_dir + '/go_stat/gene_go12level_statistics.xls')
                     # venn_stat
                     go_venn = self.list_num(self.option("gos_list").prop["path"])
                     go_gene_venn = self.list_num(self.option("gene_go_list").prop["path"])
