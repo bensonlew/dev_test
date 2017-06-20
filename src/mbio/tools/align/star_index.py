@@ -55,7 +55,7 @@ class StarIndexAgent(Agent):
         self._cpu = 4
         if self.option("ref_genome") == "customer_mode":
             if self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 512:
-                self._memory = '10G'
+                self._memory = '15G'
             elif self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 1024:
                 self._memory = '30G'
             else:

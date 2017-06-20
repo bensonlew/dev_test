@@ -1132,12 +1132,13 @@ class RefrnaWorkflow(Workflow):
 
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc
-        qc_stat = self.qc_stat_after.output_dir
+        qc_stat = self.qc_stat_before.output_dir
         fq_type = self.option("fq_type").lower()
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="before")
         quality_stat_after = self.qc_stat_after.output_dir + "/qualityStat"
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
         self.api_qc.add_gragh_info(quality_stat_before, "before")
+        qc_stat = self.qc_stat_after.output_dir
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="after")
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
