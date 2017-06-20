@@ -260,7 +260,7 @@ class Gff3File(File):
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
-            os.remove(bed)
+            # os.remove(bed)
             raise FileError("运行出错")
         return True
     
