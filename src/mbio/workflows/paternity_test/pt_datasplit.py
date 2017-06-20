@@ -51,6 +51,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.done_wq = ''
 		self.done_ws = ''
 		self.done_data_split = ''
+		self.ws_single = ''
 
 	def check_options(self):
 		'''
@@ -70,8 +71,12 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split.set_options({
 			"message_table": self.option('message_table'),
 			"data_dir": self.option('data_dir'),
+			'ws_single': self.ws_single,
 		})
-		self.data_split.on('end', self.run_merge_fastq_wq)
+		if self.ws_single == 'false':
+			self.data_split.on('end', self.run_merge_fastq_wq)
+		else:
+			self.data_split.on('end', self.run_merge_fastq_ws)
 		self.data_split.run()
 
 	def db_customer(self):
@@ -84,6 +89,7 @@ class PtDatasplitWorkflow(Workflow):
 			self.logger.info("pt家系表导入完成")
 		self.logger.info("导入样本类型信息")
 		db_customer.add_sample_type(self.option('message_table').prop['path'])
+		self.judge_sample_type(self.option('message_table').prop['path'])  # 判断是否全部是ws的样本
 		if self.option("customer_table").is_set:
 			self.logger.info("开始导入nipt家系表")
 			self.api_nipt = self.api.nipt_analysis
@@ -91,7 +97,21 @@ class PtDatasplitWorkflow(Workflow):
 			self.api_nipt.nipt_customer(file)
 			self.logger.info("nipt家系表导入完成")
 
-	def run_merge_fastq_wq(self):
+	def judge_sample_type(self, file_path):
+		n = 0
+		with open(file_path, 'r') as f:
+			for line in f:
+				line = line.strip().split('\t')
+				if re.match('WQ(.+)', line[3]):
+					n += 1
+				else:
+					continue
+		if n == 0:
+			self.ws_single = 'true'
+		else:
+			self.ws_single = 'false'
+
+	def get_sample(self):
 		self.data_dir = self.data_split.output_dir + "/MED"
 		sample_name = os.listdir(self.data_dir)
 		for j in sample_name:
@@ -107,6 +127,24 @@ class PtDatasplitWorkflow(Workflow):
 			raise Exception('没有亲子鉴定的样本无法进行该分析')
 		if len(self.sample_name_ws) == 0 and self.option("customer_table").is_set:
 			raise Exception('没有产前筛查的样本无法进行该分析')
+
+	def run_merge_fastq_wq(self):
+		self.get_sample()
+		# self.data_dir = self.data_split.output_dir + "/MED"
+		# sample_name = os.listdir(self.data_dir)
+		# for j in sample_name:
+		# 	p = re.match('Sample_WQ([0-9].*)-(.*)', j)
+		# 	q = re.match('Sample_WS(.*)', j)
+		# 	if p:
+		# 		self.sample_name_wq.append(j)
+		# 	elif q:
+		# 		self.sample_name_ws.append(j)
+		# 	else:
+		# 		self.sample_name_un.append(j)
+		# if len(self.sample_name_wq) == 0 and self.option("family_table").is_set:
+		# 	raise Exception('没有亲子鉴定的样本无法进行该分析')
+		# if len(self.sample_name_ws) == 0 and self.option("customer_table").is_set:
+		# 	raise Exception('没有产前筛查的样本无法进行该分析')
 		n = 0
 		self.tools = []
 		self.wq_dir = os.path.join(self.output_dir, "wq_dir")
@@ -139,6 +177,7 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_merge_fastq_ws(self):
+		self.get_sample()
 		if self.option("family_table").is_set:
 			self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
 		n = 0
@@ -240,6 +279,7 @@ class PtDatasplitWorkflow(Workflow):
 				"bs": 1,
 				"ref_group": 2,
 				"update_info": update_info,
+				"single": self.ws_single,
 			}
 		}
 		WC().add_task(data)
