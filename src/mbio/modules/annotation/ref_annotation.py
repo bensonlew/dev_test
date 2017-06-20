@@ -260,10 +260,13 @@ class RefAnnotationModule(Module):
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
             if 'kegg' in self.anno_database:
-                self.option('gene_kegg_table').set_path(obj.option('gene_kegg_anno_table').prop['path'])
+                # self.option('gene_kegg_table').set_path(obj.option('gene_kegg_anno_table').prop['path'])
+                self.option('gene_kegg_table', self.output_dir + '/anno_stat/kegg_stat/gene_kegg_table.xls')
             if 'go' in self.anno_database:
-                self.option('gene_go_list').set_path(obj.option('gene_go_list').prop['path'])
-                self.option('gene_go_level_2').set_path(obj.option('gene_go_level_2').prop['path'])
+                # self.option('gene_go_list').set_path(obj.option('gene_go_list').prop['path'])
+                # self.option('gene_go_level_2').set_path(obj.option('gene_go_level_2').prop['path'])
+                self.option('gene_go_list', self.output_dir + '/anno_stat/go_stat/gene_gos.list')
+                self.option('gene_go_level_2', self.output_dir + '/anno_stat/go_stat/gene_go12level_statistics.xls')
         elif event['data'] == 'anno_query':
             if os.path.exists(self.output_dir + "/all_annotation.xls"):
                 os.remove(self.output_dir + "/all_annotation.xls")
