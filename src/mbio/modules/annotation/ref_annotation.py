@@ -291,24 +291,25 @@ class RefAnnotationModule(Module):
                 os.link(oldfiles[i], newfiles[i])
             else:
                 new1 = os.path.join(newdir, os.path.basename(oldfiles[i]))
-                if not os.path.exists(new1):
-                    os.mkdir(new1)
-                for f in os.listdir(oldfiles[i]):
-                    old = os.path.join(oldfiles[i], f)
-                    new2 = os.path.join(new1, f)
-                    if os.path.isfile(old):
-                        if os.path.exists(new2):
-                            os.remove(new2)
-                        os.link(old, new2)
-                    else:
-                        if not os.path.exists(new2):
-                            os.mkdir(new2)
-                        for f in os.listdir(old):
-                            old1 = os.path.join(old, f)
-                            new3 = os.path.join(new2, f)
-                            if os.path.exists(new3):
-                                os.remove(new3)
-                            os.link(old1, new3)
+                os.system("mv {} {}".format(oldfiles[i], new1))
+                # if not os.path.exists(new1):
+                #     os.mkdir(new1)
+                # for f in os.listdir(oldfiles[i]):
+                #     old = os.path.join(oldfiles[i], f)
+                #     new2 = os.path.join(new1, f)
+                #     if os.path.isfile(old):
+                #         if os.path.exists(new2):
+                #             os.remove(new2)
+                #         os.link(old, new2)
+                #     else:
+                #         if not os.path.exists(new2):
+                #             os.mkdir(new2)
+                #         for f in os.listdir(old):
+                #             old1 = os.path.join(old, f)
+                #             new3 = os.path.join(new2, f)
+                #             if os.path.exists(new3):
+                #                 os.remove(new3)
+                #             os.link(old1, new3)
 
     def end(self):
         repaths = [

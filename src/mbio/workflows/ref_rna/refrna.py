@@ -1489,7 +1489,19 @@ class RefrnaWorkflow(Workflow):
         api_ppinetwork = self.api.ppinetwork
         if self.transet_id == []:
             return
-        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(self.transet_id[0]), self.option("combine_score"), "trans", self.taxon_id)
+        geneset_id = None
+        file_name = self.network_trans.option("diff_exp_gene").prop["path"]
+        name = os.path.split(os.path.basename(file_name))[0]
+        if name.startswith("network_"):
+            name = name.split("network_")[1]
+            for key in self.trans_gs_id_name.keys():
+                if self.trans_gs_id_name[key] == name:
+                    geneset_id = key
+                    break
+        if not geneset_id:
+            self.logger.info("没找到对应的基因集")
+            return
+        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(geneset_id), self.option("combine_score"), "trans", self.taxon_id)
         self.ppi_id = str(self.ppi_id)
         all_nodes_path = self.network_trans.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
         interaction_path = self.network_trans.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
@@ -1502,7 +1514,7 @@ class RefrnaWorkflow(Workflow):
         api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
         api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
         api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
-        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
+        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path,file3_path=all_nodes_path,table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
         api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.ppi_id)  # 中心信息
         api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
         # self.ppi_id = api_ppinetwork.add_ppi_main_id(str(self.geneset_id[0]), self.option("combine_score"), "gene", self.taxon_id)
