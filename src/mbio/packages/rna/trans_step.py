@@ -47,8 +47,11 @@ def step_count(fasta_file, fasta_to_txt, group_num, step, stat_out):
         amount_group.sort()
         for i in element_set:
             num_statistics = amount_group.count(i)
-            if i < (group_num-1):
-                area_line = str(i * step) + "~" + str((i+1) * step) + "\t" + str(num_statistics) + "\n"
+            if str(i) == '0':
+                area_line = str(i * step) + "~" + str((i + 1) * step) + "\t" + str(num_statistics) + "\n"
+                w.write(area_line)
+            elif i < (group_num-1):
+                area_line = str(i * step + 1) + "~" + str((i+1) * step) + "\t" + str(num_statistics) + "\n"
                 w.write(area_line)
             else:
                 area_line = ">" + str(i * step) + "\t" + str(num_statistics) + "\n"
@@ -213,7 +216,7 @@ def class_code_count(gtf_file, code_num_trans):
                                         str(cls_txpt_set_dic[cls]['count']))
         fw.write(newline)
     fw.close()
-if __name__ == '__main__':
+# if __name__ == '__main__':
 #     merged_gtf = '/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_cufflinks/Assembly/output/Cuffmerge/merged.gtf'
 #     old_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
 #     new_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
@@ -222,13 +225,16 @@ if __name__ == '__main__':
 #     output3 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/3.txt"
 #     output4 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/4.txt"
 #     class_code_count(merged_gtf, output1)
-    merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged1.gtf"
-    output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/1.txt"
-    output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/2.txt"
-    output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\3.txt"
-    output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\4.txt"
-    gene_trans_exon(merged_gtf, "stringtie", output3, output4)
+#     merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged1.gtf"
+#     output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/1.txt"
+#     output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/2.txt"
+#     output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\3.txt"
+#     output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\4.txt"
+#     gene_trans_exon(merged_gtf, "stringtie", output3, output4)
     # gene_trans_exon(merged_gtf, output1, output2)
     # gtf_file = "O:\\Users\\zhaoyue.wang\\Desktop\\old_trans.gtf.trans"
     # gtf_files = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/old_trans.gtf.trans"
     # count_trans_or_exons(gtf_files, 5, output1, output2)
+# fa_file = 'O:\\Users\\zhaoyue.wang\\Desktop\\merged.fa'
+# txt_file = 'O:\\Users\\zhaoyue.wang\\Desktop\\old_genes.gtf.trans'
+# step_count(fa_file, txt_file, 10, 200, "O:\\Users\\zhaoyue.wang\\Desktop\\trans_count_stat_200.txt")
