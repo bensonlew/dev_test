@@ -128,19 +128,39 @@ class PipeSubmitTool(Tool):
             self.count_ends += 1
         if not ana.instant:
             self.logger.info('投递任务投递成功:{} 任务参数检查获取结果: {}'.format(ana.api, ana._params_check_end))
-        self.update_mongo_ends_count(ana)
+        # self.update_mongo_ends_count(ana)
         if ana.instant:
             self.count_instant_running -= 1
             self.logger.info("当前运行中的即时任务数为: {}".format(
                 self.count_instant_running))
         else:
             self.count_submit_running -= 1
-            self.logger.info("当前运行中的投递任务数为: {}".format(
-                self.count_submit_running))
+            self.logger.info("当前运行中的投递任务数为: {}, which analysis:{}".format(
+                self.count_submit_running, ana._params['submit_location']))
         self.logger.info("END COUNT: {}".format(self.count_ends))
+
+        if not ana.success and self.count_ends == self.all_count:
+            self.final_end(self.all_count)
+
         if self.count_ends == self.all_count:
             self.all_end.set()
         pass
+
+    def final_end(self, all_count):
+        """
+        用于最后一个分析因为参数不合适，计算失败, 不投递出去计算，这样导致进度条更新不了
+        :return:
+        """
+        self.logger.info("all_count:{}".format(all_count))
+        for i in xrange(100):
+            ends_counts = self.db['sg_pipe_detail'].find({'pipe_batch_id': ObjectId(self.option('pipe_id')),
+                                                          'status': {'$in': ['end', "failed"]}}).count()
+            self.logger.info("第{}次查询ends_count值: {}".format(i + 1, ends_counts))
+            if ends_counts == all_count - 1:
+                self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                             {'$set': {"ends_count": ends_counts}}, upsert=True)
+                break
+            gevent.sleep(10)
 
     def get_params(self, config_name):
         """
@@ -355,7 +375,7 @@ class PipeSubmitTool(Tool):
 
     def update_all_count(self):
         self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
-                                                     {'$set': {"all_count": self.all_count}})
+                                                     {'$set': {"all_count": self.all_count - 1}})
 
     def run(self):
         super(PipeSubmitTool, self).run()
@@ -467,7 +487,7 @@ class Submit(object):
         # if not self.instant:
         if self._params['submit_location'] != "otu_statistic":
             self.bind_object.logger.info("submit_location: %s" % (self._params['submit_location']))
-            wait_time = self.pipe_count * (self.bind_object.sub_analysis_len + 15) + random.randint(0, self.bind_object.sub_analysis_len * 2)
+            wait_time = self.pipe_count * (self.bind_object.sub_analysis_len + 15) + random.randint(0, self.bind_object.sub_analysis_len * 3)
             self.bind_object.logger.info("等待时间%s" % (wait_time))
             gevent.sleep(wait_time)
 
