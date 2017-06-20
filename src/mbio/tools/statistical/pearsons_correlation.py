@@ -75,6 +75,30 @@ class PearsonsCorrelationAgent(Agent):
         if self.option("top_species") != 0:
             if self.option("top_species") < 2:
                 raise OptionError('至少选择两个物种')
+        if self.option('envtable').is_set:  # add by zhouxuan 20170612
+            env_table = self.option('envtable').prop['path']
+            sample_e = []
+            with open(env_table, 'r') as e:
+                for line in e:
+                    line = line.strip('\n').split('\t')
+                    if line[0] != '#SampleID':
+                        sample_e.append(line[0])
+                        for i in range(1, len(line)):
+                            if float(line[i]):
+                                continue
+                            else:
+                                raise OptionError('环境因子表中存在分类型环境因子')
+            otu_path = self.option("otutable").prop['path']
+            with open(otu_path, 'r') as o:
+                line = o.readline()
+                line = line.strip('\n').split('\t')
+                sample_o = line[1:]
+            for i in sample_e:
+                if i in sample_o:
+                    continue
+                else:
+                    raise OptionError('环境因子表中的样本和otu表中的样本不一致')
+
 
     def set_resource(self):
         """

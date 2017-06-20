@@ -33,7 +33,7 @@ class PatchDcBackupWorkflow(Workflow):
 			{"name": "batch_id", "type": "string"},
 			{"name": "update_info", "type": "string"},
 			{"name": "member_id", "type": "string"},
-			{"name":"direct_get_path", "type":"bool"}
+			{"name":"direct_get_path", "type":"string"}
 
 		]
 		self.add_option(options)
@@ -85,7 +85,13 @@ class PatchDcBackupWorkflow(Workflow):
 				file_type.append(type)
 		n = 0
 		for i in file:
-			if not api_read_tab.tab_exist(i):
+			x = api_read_tab.tab_exist(i)
+			if x:
+				if self.option('direct_get_path') == 'True':
+					self.logger.info('{}样本已存在于数据库'.format(i))
+				elif self.option('direct_get_path') == 'False':
+					raise Exception('请确认{}样本是否重名'.format(i))
+			else:
 				fastq2mongo = self.add_module("paternity_test.fastq2mongo_dc")
 				self.step.add_steps('fastq2mongo{}'.format(n))
 				fastq2mongo.set_options({
@@ -104,11 +110,7 @@ class PatchDcBackupWorkflow(Workflow):
 				fastq2mongo.on('end', self.finish_update, 'fastq2mongo{}'.format(n))
 				self.tools.append(fastq2mongo)
 				n += 1
-			else:
-				if self.option('direct_get_path') == True:
-					self.logger.info('{}样本已存在于数据库'.format(i))
-				elif self.option('direct_get_path') == False:
-					raise Exception('请确认{}样本是否重名'.format(i))
+
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output, 'fastq2mongo')
 
@@ -147,20 +149,20 @@ class PatchDcBackupWorkflow(Workflow):
 		self.preg =[]
 		self.mother = []
 		for p in range(len(self.family_id)):
-			temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
-			num = int(temp.group(1))
-			self.num_list = range(num - self.option('dedup_num'), num + self.option('dedup_num') + 1)
+			# temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
+			# num = int(temp.group(1))
+			# self.num_list = range(num - self.option('dedup_num'), num + self.option('dedup_num') + 1)
 			name_list = []
 			api_read_tab.export_tab_file(self.family_id[p][1], self.output_dir)
 			api_read_tab.export_tab_file(self.family_id[p][2], self.output_dir)
 
-			for m in self.num_list:
-				x = api_read_tab.dedup_sample(m)
-				if len(x):  # 如果库中能取到前后的样本
-					for k in range(len(x)):
-						api_read_tab.export_tab_file(x[k], self.output_dir)
-						if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
-							name_list.append(x[k])
+
+			x = api_read_tab.dedup_sample()
+			if len(x):  # 如果库中能取到前后的样本
+				for k in range(len(x)):
+					api_read_tab.export_tab_file(x[k], self.output_dir)
+					if x[k] != self.family_id[p][0] and x[k] != self.family_id[p][0] + '1':
+						name_list.append(x[k])
 			if name_list == []:
 				pass
 			else:
@@ -233,12 +235,12 @@ class PatchDcBackupWorkflow(Workflow):
 			self.mom_sample = rdata.split('_')[1]
 			self.preg_sample = rdata.split('_')[2]
 
-		self.logger.info(self.father_sample)
-		self.logger.info(self.father)
-		self.logger.info(self.mom_sample)
-		self.logger.info(self.mother)
-		self.logger.info(self.preg_sample)
-		self.logger.info(self.preg)
+		# self.logger.info(self.father_sample)
+		# self.logger.info(self.father)
+		# self.logger.info(self.mom_sample)
+		# self.logger.info(self.mother)
+		# self.logger.info(self.preg_sample)
+		# self.logger.info(self.preg)
 
 		if self.father_sample in self.father:
 			q = self.father.index(self.father_sample)
@@ -292,7 +294,6 @@ class PatchDcBackupWorkflow(Workflow):
 
 		x = len(self.tool) - 1
 
-		self.logger.info(self.tool)
 		if self.list_2D(self.tool):
 			if len(self.tool[x]) > 1:
 				self.on_rely(self.tool[x], self.end)
@@ -302,7 +303,6 @@ class PatchDcBackupWorkflow(Workflow):
 			for tool in self.tool:
 				for tool_i in tool:
 					tool_i.run()
-		self.logger.info(self.tool)
 
 	def list_2D(self, name):
 		for m in name:

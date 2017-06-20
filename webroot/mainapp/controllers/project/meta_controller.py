@@ -3,6 +3,7 @@
 import web
 import random
 import json
+import time
 from ..core.basic import Basic
 from mainapp.libs.input_check import meta_check
 from mainapp.models.mongo.meta import Meta
@@ -64,15 +65,15 @@ class MetaController(object):
     @meta_check
     def POST(self):
         workflow_client = Basic(data=self.sheet_data, instant=self.instant)
-        run_info = workflow_client.run()
-        print "打印出run_info：", run_info
-        if run_info:
+        try:
+            run_info = workflow_client.run()
+            print "打印出run_info：", run_info
             run_info['info'] = filter_error_info(run_info['info'])
             self._return_msg = workflow_client.return_msg
             return run_info
-        else:
+        except Exception:
             self.roll_back()
-            return {"success": False, "info": "任务投递出错,请重新尝试！"}
+            return {"success": False, "info": "由于分析比较多,任务投递失败,请重新尝试！"}
 
     def roll_back(self):
         """
@@ -143,6 +144,7 @@ class MetaController(object):
         一键化分析特殊处理
         """
         data = web.input()
+        # print "data", data
         for i in ["batch_id"]:
             if not hasattr(data, i):
                 return
@@ -156,10 +158,11 @@ class MetaController(object):
         # update_info["meta_pipe_detail_id"] = data.meta_pipe_detail_id
         update_info["batch_id"] = data.batch_id
         self._sheet_data['options']["update_info"] = json.dumps(update_info)
-        if self._sheet_data['name'].strip().split(".")[-1] not in ["otu_subsample", "estimators"]:
-            # print "test", self._sheet_data['name'].strip().split(".")[-1]
-            self._instant = False
-            self._sheet_data["instant"] = False
+        # if self._sheet_data['name'].strip().split(".")[-1] not in ["otu_subsample"]:
+        #     self._instant = False
+        #     self._sheet_data["instant"] = False
+        self._instant = False
+        self._sheet_data["instant"] = False
         self._sheet_data["batch"] = True
 
     def get_new_id(self, task_id, otu_id=None):
@@ -169,6 +172,8 @@ class MetaController(object):
         if otu_id:
             new_id = "{}_{}_{}".format(task_id, otu_id[-4:], random.randint(1, 10000))
         else:
+            # ids = str(time.time()).strip().split(".")
+            # new_id = "{}_{}_{}".format(task_id, ids[0][5:], ids[1])  #改成时间来命名workflow id
             new_id = "{}_{}_{}".format(task_id, random.randint(1000, 10000), random.randint(1, 10000))
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(new_id)

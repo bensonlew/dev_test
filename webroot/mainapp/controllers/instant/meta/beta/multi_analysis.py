@@ -10,6 +10,7 @@ import types
 from mainapp.models.mongo.meta import Meta
 import datetime
 from mainapp.controllers.project.meta_controller import MetaController
+from bson import SON
 
 
 class MultiAnalysis(MetaController):
@@ -41,7 +42,7 @@ class MultiAnalysis(MetaController):
             'task_type': data.task_type,
             'group_id': data.group_id,
             'group_detail': group_detail
-            }
+        }
         env_id = None
         env_labs = ''
         dist_method = ''
@@ -149,7 +150,7 @@ class MultiAnalysis(MetaController):
             'group_id': data.group_id,
             'group_detail': data.group_detail,
             'params': json.dumps(params_json, sort_keys=True, separators=(',', ':')),
-            }
+        }
         to_file = ['meta.export_otu_table_by_detail(otu_file)']
         mongo_data.append(('env_id', env_id))
         if env_id:
@@ -158,21 +159,20 @@ class MultiAnalysis(MetaController):
             options['env_file'] = data.env_id
             options['env_id'] = data.env_id
         mongo_data.append(('params', json.dumps(params_json, sort_keys=True, separators=(',', ':'))))
-        main_table_id = meta.insert_main_table('sg_beta_multi_analysis', mongo_data)
+        # main_table_id = meta.insert_main_table('sg_beta_multi_analysis', mongo_data)
+        main_table_id = meta.insert_none_table('sg_beta_multi_analysis')
         update_info = {str(main_table_id): 'sg_beta_multi_analysis'}
         options['update_info'] = json.dumps(update_info)
         options['main_id'] = str(main_table_id)
         if data.analysis_type == 'plsda':
             to_file.append('meta.export_group_table_by_detail(group_file)')
             options['group_file'] = data.group_id
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name.strip().split("_")[0] + '/' + main_table_name,
-                            module_type=task_type, to_file=to_file) # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
+        options['main_table_data'] = SON(mongo_data)
+        self.set_sheet_data(name=task_name, options=options,
+                            main_table_name=main_table_name.strip().split("_")[0] + '/' + main_table_name,
+                            module_type=task_type, to_file=to_file)
         task_info = super(MultiAnalysis, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
-                }}
+        task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         return json.dumps(task_info)
 
     def check_objectid(self, in_id):
