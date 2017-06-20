@@ -1036,9 +1036,9 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.new_blast_kegg.output_dir, 'new_keggblast')
         self.move2outputdir(self.new_blast_string.output_dir, 'new_stringblast')
         self.move2outputdir(self.new_blast_nr.output_dir, 'new_nrblast')
-        self.move2outputdir(self.blast_kegg.output_dir, 'keggblast')
-        self.move2outputdir(self.blast_string.output_dir, 'stringblast')
-        self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
+        # self.move2outputdir(self.blast_kegg.output_dir, 'keggblast')
+        # self.move2outputdir(self.blast_string.output_dir, 'stringblast')
+        # self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
         self.move2outputdir(self.new_blast_swissprot.output_dir, 'new_swissprotblast')
         self.move2outputdir(self.pfam.output_dir, 'pfam')
         if self.as_on:
