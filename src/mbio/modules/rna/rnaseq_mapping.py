@@ -216,7 +216,7 @@ class RnaseqMappingModule(Module):
         if not os.path.exists(self.output_dir + "/stat"):
             os.mkdir(self.output_dir + "/stat")
         stat_dir = self.output_dir + "/stat"
-        if event["date"] == "tophat":
+        if event["data"] == "tophat":
             for tool in self.tools:
                 tophat_dir = tool.work_dir + "/tophat_out"
                 stat_file = os.path.join(tophat_dir, "align_summary.txt")
