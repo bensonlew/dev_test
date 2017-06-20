@@ -62,9 +62,8 @@ class PtDatasplitWorkflow(Workflow):
 		if not self.option("data_dir"):
 			raise OptionError("缺少拆分需要的下机数据")
 		if not self.option("family_table"):
-			raise OptionError("缺少亲子鉴定家系信息表，后续不进行亲子鉴定分析")
-		if not self.option("customer_table"):
-			self.logger.info("缺少产前筛查家系信息表，后续不进行亲子鉴定分析")
+			if not self.option("customer_table"):
+				raise OptionError("缺少家系表不进行任何分析")
 		return True
 
 	def run_data_split(self):
@@ -76,19 +75,21 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split.run()
 
 	def db_customer(self):
-		self.logger.info("开始导入pt家系表")
 		db_customer = self.api.pt_customer
-		db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		                            customer_file=self.option('family_table').prop['path'])
-		self.logger.info("pt家系表导入完成")
+		if self.option("family_table").is_set:
+			self.logger.info("开始导入pt家系表")
+			db_customer = self.api.pt_customer
+			db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
+		                                customer_file=self.option('family_table').prop['path'])
+			self.logger.info("pt家系表导入完成")
 		self.logger.info("导入样本类型信息")
 		db_customer.add_sample_type(self.option('message_table').prop['path'])
-
-		self.logger.info("开始导入nipt家系表")
-		self.api_nipt = self.api.nipt_analysis
-		file = self.option('customer_table').prop['path']
-		self.api_nipt.nipt_customer(file)
-		self.logger.info("nipt家系表导入完成")
+		if self.option("customer_table").is_set:
+			self.logger.info("开始导入nipt家系表")
+			self.api_nipt = self.api.nipt_analysis
+			file = self.option('customer_table').prop['path']
+			self.api_nipt.nipt_customer(file)
+			self.logger.info("nipt家系表导入完成")
 
 	def run_merge_fastq_wq(self):
 		self.data_dir = self.data_split.output_dir + "/MED"
@@ -102,6 +103,10 @@ class PtDatasplitWorkflow(Workflow):
 				self.sample_name_ws.append(j)
 			else:
 				self.sample_name_un.append(j)
+		if len(self.sample_name_wq) == 0 and self.option("family_table").is_set:
+			raise Exception('没有亲子鉴定的样本无法进行该分析')
+		if len(self.sample_name_ws) == 0 and self.option("customer_table").is_set:
+			raise Exception('没有产前筛查的样本无法进行该分析')
 		n = 0
 		self.tools = []
 		self.wq_dir = os.path.join(self.output_dir, "wq_dir")
@@ -134,7 +139,8 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_merge_fastq_ws(self):
-		self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
+		if self.option("family_table").is_set:
+			self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
 		n = 0
 		self.tools = []
 		self.ws_dir = os.path.join(self.output_dir, "ws_dir")
@@ -239,7 +245,6 @@ class PtDatasplitWorkflow(Workflow):
 		WC().add_task(data)
 		self.done_ws = "true"
 
-
 	def _update_status_api(self):
 		name = self.option('data_dir').split(":")[0]
 		if name == "sanger" or name == "i-sanger":
@@ -248,10 +253,10 @@ class PtDatasplitWorkflow(Workflow):
 			return 'pt.med_report_tupdate'
 
 	def run_merge_fastq_un(self):
-		if self.option("customer_table"):
+		if self.option("customer_table").is_set:
 			self.logger.info("启动产前筛查流程")
 			self.run_ws_wf()  # 进行nipt分析
-		if self.done_wq != "true":
+		if self.done_wq != "true" and self.option("family_table").is_set:
 			self.run_wq_wf()
 		n = 0
 		self.tools = []
@@ -323,13 +328,13 @@ class PtDatasplitWorkflow(Workflow):
 
 	def end(self):
 		self.logger.info("医学流程数据拆分结束")
-		if self.done_data_split == "true":
+		if self.done_data_split == "true":  # true表示这是第一次进行拆分
 			self.logger.info("开始导入拆分结果路径")
 			db_customer = self.api.pt_customer
 			db_customer.add_data_dir(self.option('data_dir').split(":")[1], self.wq_dir, self.ws_dir, self.un_dir)
-		if self.done_wq != "true":
+		if self.done_wq != "true" and self.option('family_table').is_set:
 			self.run_wq_wf()
-		if self.option('customer_table') and self.done_ws != "true":
+		if self.option('customer_table').is_set and self.done_ws != "true":
 			self.run_ws_wf()
 		super(PtDatasplitWorkflow, self).end()
 
