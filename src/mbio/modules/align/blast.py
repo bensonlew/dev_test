@@ -115,7 +115,7 @@ class BlastModule(Module):
         }
         for f in os.listdir(self.splitfasta.output_dir):
             opts['query'] = os.path.join(self.splitfasta.output_dir, f)
-            blast_tool = self.add_tool('align.ncbi.blast')
+            blast_tool = self.add_tool('align.blast')
             blast_tool.set_options(opts)
             blast_tool.run()
             self.blast_tools.append(blast_tool)
