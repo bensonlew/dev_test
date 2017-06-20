@@ -24,7 +24,8 @@ class NiptWorkflow(Workflow):
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
 			{"name": "ref_group", "type": "int", "default": 2},
-			{"name": "update_info", "type": "string"}
+			{"name": "update_info", "type": "string"},
+			{"name": "single", "type": "string", "default": "false"}
 
 		]
 		self.add_option(options)
@@ -66,7 +67,8 @@ class NiptWorkflow(Workflow):
 					"fastq_path": self.option("fastq_path"),
 					"bw": self.option('bw'),
 					'bs': self.option('bs'),
-					'ref_group': self.option('ref_group')
+					'ref_group': self.option('ref_group'),
+					"single": self.option("single")
 				}
 				)
 				step = getattr(self.step, 'nipt_analysis{}'.format(n))
