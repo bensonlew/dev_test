@@ -15,7 +15,7 @@ from mbio.packages.ref_rna.express.set_strand import set_strand
 #from mbio.packages.ref_rna.express.gene_list_file_change import *
 from mbio.packages.ref_rna.express.single_sample import *
 from mbio.packages.ref_rna.express.cmp_ref_cls_relation import *
-from mbio.packages.denovo_rna.express.express_distribution import distribution
+from mbio.packages.ref_rna.express.express_distribution import distribution
 import shutil
 
 class ExpressModule(Module):
