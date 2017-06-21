@@ -148,6 +148,7 @@ class NiptAnalysis(Base):
                 status_index = row_data.index(u'\u6807\u672c\u72b6\u6001\u5f02\u5e38')  # 标本状态异常
                 age_index = row_data.index(u'\u5e74\u9f84')  # 年龄
                 type_index = row_data.index(u'\u6807\u672c\u7c7b\u578b')  # 样本类型
+                ws_number_index = row_data.index(u'\u6807\u672c\u7f29\u5199') #样本缩写
             else:
                 para_list = []
                 report_num = row_data[report_num_index]
@@ -196,7 +197,7 @@ class NiptAnalysis(Base):
                 doctor = row_data[doctor_index]
                 para_list.append(doctor)
                 tel = row_data[tel_index]
-                para_list.append(str(tel))
+                para_list.append(tel)
                 status = row_data[status_index]
                 para_list.append(status)
 
@@ -215,14 +216,15 @@ class NiptAnalysis(Base):
                 para_list.append(str(age))
                 sample_type = row_data[type_index]
                 para_list.append(sample_type)
+                ws_number = row_data[ws_number_index]
+                para_list.append(ws_number)
 
+                #插入表格
                 collection = self.database['sg_customer']
-                if para_list[11] == 'Nf':
-                    tel = para_list[11]
-                elif para_list[11] == '/':
-                    tel = para_list[11]
+                if type(para_list[11]) == float:
+                    tel = int(para_list[11])
                 else:
-                    tel = int(float(para_list[11]))
+                    tel = para_list[11]
 
                 if collection.find_one({"report_num": para_list[0]}):
                     continue
@@ -245,6 +247,7 @@ class NiptAnalysis(Base):
                         "gestation_week": para_list[14],
                         "age": para_list[15],
                         "sample_type": para_list[16],
+                        "sample_id" : para_list[17]
                     }
                     insert.append(insert_data)
         if insert == []:
@@ -338,7 +341,7 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("更新交互表成功")
 
 
-    def add_fastqc(self,file):
+    def add_fastqc(self,file,path):
         collection = self.database['sg_sample_fastqc']
         insert_data = {}
 
@@ -346,10 +349,10 @@ class NiptAnalysis(Base):
         sample_id = file_name.split('.')[0]
 
         insert_data['sample_id'] = sample_id
-        if re.search(r'.*.map.valid_fastqc.html$', file):
-            insert_data['fastqc_link'] = file
+        if re.search(r'.*.map.valid_fastqc.html$', file_name):
+            insert_data['fastqc_link'] = path + '/' + file_name
         else:
-            insert_data['fastqc_link'] = file
+            insert_data['fastqc_link'] = path + '/' + file_name
         try:
             collection.insert_one(insert_data)
         except Exception as e:
