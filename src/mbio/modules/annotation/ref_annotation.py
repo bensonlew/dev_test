@@ -198,7 +198,16 @@ class RefAnnotationModule(Module):
             opts['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
         if self.option('kos_list_upload').is_set:
             opts['kegg_table'] = self.kegg_upload.option('kegg_table').prop['path']
-        opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        # if self.option('blast_string_xml').is_set:
+        #     opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        # elif self.option('blast_string_table').is_set:
+        #     opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        # else:
+        #     opts['cog_list'] = None
+        if 'cog' in self.anno_database:
+            opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        else:
+            opts['cog_list'] = None
         self.anno_query.set_options(opts)
         self.anno_query.on('start', self.set_step, {'start': self.step.anno_query})
         self.anno_query.on('end', self.set_step, {'end': self.step.anno_query})
