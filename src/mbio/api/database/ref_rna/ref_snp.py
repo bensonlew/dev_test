@@ -5,7 +5,7 @@ from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 from bson.objectid import ObjectId
 # from cStringIO import StringIO
-# import bson.binary
+from collections import Counter
 import datetime
 import glob
 
@@ -50,26 +50,28 @@ class RefSnp(Base):
         indel_pos_stat = {}
         all_depth_stat = {}
         all_freq_stat = {}
-        depth_list = ["0-30", "30-100", "100-200", "200-300", "300-400", "400-500", "500-"]
-        freq_list = ["0-20%", "20%-40%", "40%-60%", "60%-80%", "80%-100%"]
+        depth_list = ["<30", "30-100", "100-200", "200-300", "300-400", "400-500", ">500"]
         graph_data_list = []
         chroms = set()
         data_list = []
         sample_names = ["CL1", "CL2", "CL5", "HFL3", "HFL4", "HFL6", "HGL1", "HGL3", "HGL4"]
+        sample_old_index = []
+        sample_old_gene = []
         for s in sample_names:
             snp_type_stat[s] = {}
             snp_pos_stat[s] = {}
             indel_pos_stat[s] = {}
-            all_freq_stat[s] = [0, 0, 0, 0, 0]
-            # all_depth_stat[s] = depth_stat
+            all_freq_stat[s] = [0]
             all_depth_stat[s] = [0, 0, 0, 0, 0, 0, 0]
+            sample_old_index.append(-1)
+            sample_old_gene.append('')
         with open(snp_anno, "r") as f:
             sample_names = f.readline().strip().split("\t")[10:]
             # print f.next()
             for line in f:
                 line = line.strip().split("\t")
                 sample_infos = line[10:]
-                # print sample_infos
+                new_gene_name = line[6]
                 chroms.add(line[0])
                 snp_type = line[3] + "/" + line[4]
                 data = {
@@ -98,8 +100,9 @@ class RefSnp(Base):
                         single_and_all = rate.split("/")[1] + "/" + line[7]
                         mut_rate = round(int(rate.split("/")[0])/int(rate.split("/")[1]), 4)
                         # 统计各样本的突变频率数目
-                        all_freq_stat[s] = self.get_stat_dict(mut_rate, all_freq_stat[s])
-                        # print mut_rate
+                        if line[5] == "exonic":
+                            sample_old_index[n], all_freq_stat[s] = self.gene_num_stat(new_gene_name, sample_old_gene[n], sample_old_index[n], all_freq_stat[s])
+                            sample_old_gene[n] = new_gene_name
                         #  统计各样本的SNP类型数目
                         if not '-' in snp_type and len(snp_type) == 3:
                             snp_type_stat[s] = self.type_stat(snp_type, snp_type_stat[s])
@@ -123,18 +126,28 @@ class RefSnp(Base):
                 "specimen_name": s,
                 "snp_pos_stat": snp_pos_stat[s],
                 "indel_pos_stat": indel_pos_stat[s],
-                "type_stat": snp_type_stat[s],
-                "depth_stat": dict(zip(depth_list, all_depth_stat[s])),
-                "freq_stat": dict(zip(freq_list, all_freq_stat[s]))
+                # "type_stat": snp_type_stat[s],
+                # "depth_stat": dict(zip(depth_list, all_depth_stat[s])),
+                # "freq_stat": dict(zip(freq_list, all_freq_stat[s]))
             }
             graph_data_list.append(graph_data)
             snp_types = snp_type_stat[s].keys()
             distributions = snp_pos_stat[s].keys()
+
+        new_freq_stat = freq_stat(all_freq_stat)
+        depth_data = self.get_stat_data(sample_names, depth_list, all_depth_stat, snp_id, "depth")
+        freq_data = self.get_stat_data(sample_names, [1, 2, 3, 4, ">5"], new_freq_stat, snp_id, "freq")
+        type_data = self.get_stat_data(sample_names, snp_types, snp_type_stat, snp_id, "snp_type")
+
         try:
             collection = self.db["sg_snp_detail"]
             collection.insert_many(data_list)
             graph_collection = self.db["sg_snp_graphic"]
             graph_collection.insert_many(graph_data_list)
+            stat_collection = self.db["sg_snp_stat"]
+            stat_collection.insert_many(depth_data)
+            stat_collection.insert_many(freq_data)
+            stat_collection.insert_many(type_data)
             main_collection = self.db["sg_snp"]
             main_collection.update({"_id": ObjectId(snp_id)}, {"$set": {"snp_types": snp_types, "specimen": sample_names, "distributions": distributions, "chroms": list(chroms)}})
         except Exception, e:
@@ -182,3 +195,43 @@ class RefSnp(Base):
         else:
             target_dict[dict_key] = 1
         return target_dict
+
+    def get_stat_data(self, sample_names, range_list, value_dict, snp_id, stat_type):
+        stat_data = []
+        for n, ds in enumerate(range_list):
+            data = {
+                "snp_id": snp_id,
+                "range_key" : ds,
+                "stat_type": stat_type
+            }
+            for s in sample_names:
+                if type(value_dict[s]) is list:
+                    data["{}_value".format(s)] = value_dict[s][n]
+                else:
+                    data["{}_value".format(s)] = value_dict[s][ds]
+            stat_data.append(data)
+        # print stat_data
+        return stat_data
+
+    def gene_num_stat(self, new_gene_name, old_gene_name, old_index, new_list):
+        if new_gene_name == old_gene_name:
+            new_list[old_index] += 1
+        else:
+            new_list.append(1)
+            old_index += 1
+        return old_index, new_list
+
+    def freq_stat(self, all_freq_stat):
+        for a_s in all_freq_stat:
+            c = Counter(all_freq_stat[a_s])
+            values = c.values()
+            keys = c.keys()
+            new_d = {">5": 0}
+            for n, s in enumerate(keys):
+                # print s
+                if s < 6:
+                    new_d[s] = values[n]
+                else:
+                    new_d[">5"] += values[n]
+            all_freq_stat[a_s] = new_d
+        return all_freq_stat
