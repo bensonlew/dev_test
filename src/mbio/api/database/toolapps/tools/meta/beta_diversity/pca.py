@@ -45,15 +45,27 @@ class Pca(Base):
         with open(fp) as f:
             columns = f.readline().strip().split('\t')
             insert_data = []
-            table_id = self.db['table'].insert_one(SON(
-                project_sn=self.bind_object.sheet.project_sn,
-                task_id=self.bind_object.id,
-                name=name,
-                attrs=columns,
-                desc=desc,
-                status='end',
-                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            )).inserted_id
+            if fp == self.output_dir + '/pca_importance.xls':
+                table_id = self.db['table'].insert_one(SON(
+                    project_sn=self.bind_object.sheet.project_sn,
+                    task_id=self.bind_object.id,
+                    name=name,
+                    attrs=columns,
+                    desc=desc,
+                    status='end',
+                    created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    type="pca_im",
+                )).inserted_id
+            else:
+                table_id = self.db['table'].insert_one(SON(
+                    project_sn=self.bind_object.sheet.project_sn,
+                    task_id=self.bind_object.id,
+                    name=name,
+                    attrs=columns,
+                    desc=desc,
+                    status='end',
+                    created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                )).inserted_id
             for line in f:
                 line_split = line.strip().split('\t')
                 data = dict(zip(columns, line_split))
