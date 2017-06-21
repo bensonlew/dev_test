@@ -104,21 +104,15 @@ class Bam2tabTool(Tool):
 
         Bam2tab_cmd = self.cmd_path + " %s %s %s %s" % (self.option("sample_id"), self.option("bam_dir"),
                                                      self.option("ref_fasta").prop["path"], self.option("targets_bedfile").prop['path'])
-        print Bam2tab_cmd
         self.logger.info(Bam2tab_cmd)
         self.logger.info("开始运行cmd")
         cmd = self.add_command("cmd", Bam2tab_cmd).run()
         self.wait(cmd)
 
-        if cmd.return_code == 'None':
-            self.logger.info("返回码问题，重新运行cmd")
-            cmd = self.add_command("cmd", Bam2tab_cmd).run()
-            self.wait(cmd)
-
         if cmd.return_code == 0:
             self.logger.info("运行Bam2tab成功")
         else:
-            raise Exception("运行Bam2tab出错")
+            raise Exception("运行转bam文件出错")
 
     def set_output(self):
         """
@@ -154,6 +148,7 @@ class Bam2tabTool(Tool):
                     api.add_pt_tab(tab_path, self.option('batch_id'))
                     api.add_sg_pt_tab_detail(tab_path)
                 else:
+                    self.set_error('样本{}重名，请检查！'.format(tab_name))
                     raise Exception('可能样本重名，请检查！')
             elif n:
                 tab_path = self.output_dir + '/' + i
@@ -162,6 +157,7 @@ class Bam2tabTool(Tool):
                     api.sample_qc(tab_path, tab_name)
                     api.sample_qc_addition(tab_name)
                 else:
+                    self.set_error('样本{}重名，请检查！'.format(tab_name))
                     raise Exception('可能样本重名，请检查！')
 
 

@@ -128,19 +128,39 @@ class PipeSubmitTool(Tool):
             self.count_ends += 1
         if not ana.instant:
             self.logger.info('投递任务投递成功:{} 任务参数检查获取结果: {}'.format(ana.api, ana._params_check_end))
-        self.update_mongo_ends_count(ana)
+        # self.update_mongo_ends_count(ana)
         if ana.instant:
             self.count_instant_running -= 1
             self.logger.info("当前运行中的即时任务数为: {}".format(
                 self.count_instant_running))
         else:
             self.count_submit_running -= 1
-            self.logger.info("当前运行中的投递任务数为: {}".format(
-                self.count_submit_running))
+            self.logger.info("当前运行中的投递任务数为: {}, which analysis:{}".format(
+                self.count_submit_running, ana._params['submit_location']))
         self.logger.info("END COUNT: {}".format(self.count_ends))
+
+        if not ana.success and self.count_ends == self.all_count:
+            self.final_end(self.all_count)
+
         if self.count_ends == self.all_count:
             self.all_end.set()
         pass
+
+    def final_end(self, all_count):
+        """
+        用于最后一个分析因为参数不合适，计算失败, 不投递出去计算，这样导致进度条更新不了
+        :return:
+        """
+        self.logger.info("all_count:{}".format(all_count))
+        for i in xrange(100):
+            ends_counts = self.db['sg_pipe_detail'].find({'pipe_batch_id': ObjectId(self.option('pipe_id')),
+                                                          'status': {'$in': ['end', "failed"]}}).count()
+            self.logger.info("第{}次查询ends_count值: {}".format(i + 1, ends_counts))
+            if ends_counts == all_count - 1:
+                self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
+                                                             {'$set': {"ends_count": ends_counts}}, upsert=True)
+                break
+            gevent.sleep(10)
 
     def get_params(self, config_name):
         """
@@ -189,7 +209,7 @@ class PipeSubmitTool(Tool):
             'task_type': 'reportTask',
             'size': self.web_data['size']
         }
-        return '/meta/otu_subsample', True, 'sg_otu', params
+        return '/meta/otu_subsample', False, 'sg_otu', params
 
     def signature(self):
         timestamp = str(int(time.time()))
@@ -260,7 +280,7 @@ class PipeSubmitTool(Tool):
             "alpha_rarefaction_curve": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "freq", "submit_location", "task_type"], "collection_name": "sg_alpha_rarefaction_curve"},
             "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_network"},
             "roc_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "top_n_id", "method_type", "submit_location"], "collection_name": "sg_roc"},
-            "alpha_diversity_index": {"instant": True, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
+            "alpha_diversity_index": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
             "alpha_ttest": {"instant": False, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
             "beta_multi_analysis_plsda": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["analysis_type", "task_type", "submit_location"], "collection_name": "sg_beta_multi_analysis"},
             "beta_sample_distance_hcluster_tree": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["distance_algorithm", "hcluster_method", "task_type", "submit_location"], "collection_name": "sg_newick_tree"},
@@ -331,7 +351,7 @@ class PipeSubmitTool(Tool):
                         continue
                     waits = [pipe[i]
                              for i in self.analysis_params[analysis]["waits"]]
-                    submit.start(waits, timeout=6000)
+                    submit.start(waits, timeout=15000)
                 self.all[level][group_info["group_id"]] = pipe
                 self.all_count += (len(pipe) - 1)
                 pipe_count += 1
@@ -339,7 +359,7 @@ class PipeSubmitTool(Tool):
             lefse_flag = True
         self.all_count += 1  # otu subsample 任务
         self.update_all_count()
-        otu_subsample.start([], timeout=6000)
+        otu_subsample.start([], timeout=8000)
         self.all_end = AsyncResult()
         try:
             self.logger.info("所有任务计数: {}".format(self.all_count))
@@ -355,7 +375,7 @@ class PipeSubmitTool(Tool):
 
     def update_all_count(self):
         self.db['sg_pipe_batch'].find_one_and_update({'_id': ObjectId(self.option('pipe_id'))},
-                                                     {'$set': {"all_count": self.all_count}})
+                                                     {'$set': {"all_count": self.all_count - 1}})
 
     def run(self):
         super(PipeSubmitTool, self).run()
@@ -416,7 +436,7 @@ class Submit(object):
                 "没有通过主表ID: {} 在workflowid2analysisid找到任务ID信息".format(self.main_table_id))
             raise Exception("没有找到任务ID信息")
 
-    def start(self, waits, timeout=6000):
+    def start(self, waits, timeout=10000):
         self.waits = waits
         gevent.spawn(self._submit, waits, timeout=timeout)
 
@@ -464,8 +484,10 @@ class Submit(object):
         """
         投递接口
         """
-        if not self.instant:
-            wait_time = self.pipe_count * self.bind_object.sub_analysis_len + random.randint(0, self.bind_object.sub_analysis_len)
+        # if not self.instant:
+        if self._params['submit_location'] != "otu_statistic":
+            self.bind_object.logger.info("submit_location: %s" % (self._params['submit_location']))
+            wait_time = self.pipe_count * (self.bind_object.sub_analysis_len + 15) + random.randint(0, self.bind_object.sub_analysis_len * 3)
             self.bind_object.logger.info("等待时间%s" % (wait_time))
             gevent.sleep(wait_time)
 
@@ -717,15 +739,39 @@ class BetaSampleDistanceHclusterTree(Submit):
 
 
 class SubmitOtuSubsample(Submit):
+    # def set_out_params(self):
+    #     self.out_params['otu_id'] = self.result["content"]['ids']['id']
     def set_out_params(self):
-        self.out_params['otu_id'] = self.result["content"]['ids']['id']
+        for i in xrange(1000):
+            mongo_result = self.db['sg_otu'].find_one({"_id": ObjectId(self.result["content"]['ids']['id'])})["status"]
+            self.bind_object.logger.info("第{}次查询抽平结果表！ new_otu_id:{}, status:{}".format
+                                         (i + 1, self.result["content"]['ids']['id'], mongo_result))
+            if mongo_result == "end":
+                self.out_params['otu_id'] = self.result["content"]['ids']['id']
+                break
+            elif mongo_result == "failed":
+                self.success = False
+                break
+            gevent.sleep(15)
 
 
 class AlphaDiversityIndex(Submit):
 
+    # def set_out_params(self):new_
+    #     self.out_params['alpha_diversity_id'] = self.result[
+    #         "content"]['ids']['id']
     def set_out_params(self):
-        self.out_params['alpha_diversity_id'] = self.result[
-            "content"]['ids']['id']
+        for i in xrange(1000):
+            mongo_result = self.db['sg_alpha_diversity'].find_one({"_id": ObjectId(self.result["content"]['ids']['id'])})["status"]
+            self.bind_object.logger.info("第{}次查询多样性指数！ alpha_diversity_id:{}, status:{}".format
+                                         (i + 1, self.result["content"]['ids']['id'], mongo_result))
+            if mongo_result == "end":
+                self.out_params['alpha_diversity_id'] = self.result["content"]['ids']['id']
+                break
+            elif mongo_result == "failed":
+                self.success = False
+                break
+            gevent.sleep(15)
 
     def waits_params_get(self):
         self._params['otu_id'] = self.waits[0].out_params['otu_id']
@@ -737,7 +783,7 @@ class AlphaTtest(Submit):
     def waits_params_get(self):
         self._params['alpha_diversity_id'] = self.waits[0].out_params['alpha_diversity_id']
         self._params['otu_id'] = self.waits[1].out_params['otu_id']
-        del self._params['level_id']
+        del self._params['level_id']  # 如果要差异检验也是按照不同分类水平来的话就不要删除level_id
         return self._params
 
 

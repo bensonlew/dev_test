@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 from biocluster.config import Config
 import re
 from Bio.KEGG.KGML import KGML_parser
-from Bio.Graphics.KGML_vis import KGMLCanvas
+from Bio.Graphics.KGML_vis_t import KGMLCanvas
 from reportlab.lib import colors
 import collections
 from itertools import islice

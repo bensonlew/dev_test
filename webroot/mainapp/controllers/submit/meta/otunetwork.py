@@ -8,6 +8,7 @@ from mainapp.models.mongo.meta import Meta
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import *
 from bson import ObjectId
+from bson import SON
 
 
 class Otunetwork(MetaController):
@@ -16,15 +17,15 @@ class Otunetwork(MetaController):
 
     def POST(self):
         data = web.input()
-        # params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'add_Algorithm']
+        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'add_Algorithm']
         params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!!" % param}
                 return json.dumps(info)
-        # if str(data.add_Algorithm) not in ["sum", "average", "middle"]:
-        #     info = {"success": False, "info": "样本合并的方法{}，是不合法的！".format(data.add_Algorithm)}
-        #     return json.dumps(info)
+        if str(data.add_Algorithm) not in ["sum", "average", "middle", '']:
+            info = {"success": False, "info": "样本合并的方法{}，是不合法的！".format(data.add_Algorithm)}
+            return json.dumps(info)
         if int(data.level_id) not in range(1, 10):
             info = {"success": False, "info": "level{}不在规定范围内!".format(data.level_id)}
             return json.dumps(info)
@@ -55,7 +56,7 @@ class Otunetwork(MetaController):
             'group_id': data.group_id,
             'group_detail': group_detail_sort(data.group_detail),
             'submit_location': data.submit_location,
-            # 'add_Algorithm': data.add_Algorithm,
+            'add_Algorithm': data.add_Algorithm,
             'task_type': data.task_type
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
@@ -75,7 +76,8 @@ class Otunetwork(MetaController):
             ('params', params),
             ('name', main_table_name)
         ]
-        main_table_id = Meta().insert_main_table('sg_network', mongo_data)
+        # main_table_id = Meta().insert_main_table('sg_network', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_network')  #这里只插入一个空表，没有真实数据
         update_info = {str(main_table_id): 'sg_network'}
         options = {
             "otutable": data.otu_id,
@@ -84,19 +86,18 @@ class Otunetwork(MetaController):
             "update_info": json.dumps(update_info),
             "group_id": data.group_id,
             "level": int(data.level_id),
-            # "add_Algorithm": data.add_Algorithm,
-            "network_id": str(main_table_id)
+            "add_Algorithm": data.add_Algorithm,
+            "network_id": str(main_table_id),
+            'main_table_data': SON(mongo_data)
         }
         to_file = ["meta.export_otu_table_by_detail(otutable)", "meta.export_group_table_by_detail(grouptable)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name="OTUnetwork/" + main_table_name,
                             module_type=task_type, to_file=to_file)  # modified by hongdongxuan 20170322 在main_table_name前面加上文件输出的文件夹名
         task_info = super(Otunetwork, self).POST()
         # print "+++++..."
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
-            }
-        }
-        # print task_info
+        if task_info['success']:
+            task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        else:
+            pass
+        print task_info
         return json.dumps(task_info)

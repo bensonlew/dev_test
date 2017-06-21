@@ -198,7 +198,16 @@ class RefAnnotationModule(Module):
             opts['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
         if self.option('kos_list_upload').is_set:
             opts['kegg_table'] = self.kegg_upload.option('kegg_table').prop['path']
-        opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        # if self.option('blast_string_xml').is_set:
+        #     opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        # elif self.option('blast_string_table').is_set:
+        #     opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        # else:
+        #     opts['cog_list'] = None
+        if 'cog' in self.anno_database:
+            opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
+        else:
+            opts['cog_list'] = None
         self.anno_query.set_options(opts)
         self.anno_query.on('start', self.set_step, {'start': self.step.anno_query})
         self.anno_query.on('end', self.set_step, {'end': self.step.anno_query})
@@ -260,10 +269,13 @@ class RefAnnotationModule(Module):
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
             if 'kegg' in self.anno_database:
-                self.option('gene_kegg_table').set_path(obj.option('gene_kegg_anno_table').prop['path'])
+                # self.option('gene_kegg_table').set_path(obj.option('gene_kegg_anno_table').prop['path'])
+                self.option('gene_kegg_table', self.output_dir + '/anno_stat/kegg_stat/gene_kegg_table.xls')
             if 'go' in self.anno_database:
-                self.option('gene_go_list').set_path(obj.option('gene_go_list').prop['path'])
-                self.option('gene_go_level_2').set_path(obj.option('gene_go_level_2').prop['path'])
+                # self.option('gene_go_list').set_path(obj.option('gene_go_list').prop['path'])
+                # self.option('gene_go_level_2').set_path(obj.option('gene_go_level_2').prop['path'])
+                self.option('gene_go_list', self.output_dir + '/anno_stat/go_stat/gene_gos.list')
+                self.option('gene_go_level_2', self.output_dir + '/anno_stat/go_stat/gene_go12level_statistics.xls')
         elif event['data'] == 'anno_query':
             if os.path.exists(self.output_dir + "/all_annotation.xls"):
                 os.remove(self.output_dir + "/all_annotation.xls")
@@ -291,24 +303,25 @@ class RefAnnotationModule(Module):
                 os.link(oldfiles[i], newfiles[i])
             else:
                 new1 = os.path.join(newdir, os.path.basename(oldfiles[i]))
-                if not os.path.exists(new1):
-                    os.mkdir(new1)
-                for f in os.listdir(oldfiles[i]):
-                    old = os.path.join(oldfiles[i], f)
-                    new2 = os.path.join(new1, f)
-                    if os.path.isfile(old):
-                        if os.path.exists(new2):
-                            os.remove(new2)
-                        os.link(old, new2)
-                    else:
-                        if not os.path.exists(new2):
-                            os.mkdir(new2)
-                        for f in os.listdir(old):
-                            old1 = os.path.join(old, f)
-                            new3 = os.path.join(new2, f)
-                            if os.path.exists(new3):
-                                os.remove(new3)
-                            os.link(old1, new3)
+                os.system("mv {} {}".format(oldfiles[i], new1))
+                # if not os.path.exists(new1):
+                #     os.mkdir(new1)
+                # for f in os.listdir(oldfiles[i]):
+                #     old = os.path.join(oldfiles[i], f)
+                #     new2 = os.path.join(new1, f)
+                #     if os.path.isfile(old):
+                #         if os.path.exists(new2):
+                #             os.remove(new2)
+                #         os.link(old, new2)
+                #     else:
+                #         if not os.path.exists(new2):
+                #             os.mkdir(new2)
+                #         for f in os.listdir(old):
+                #             old1 = os.path.join(old, f)
+                #             new3 = os.path.join(new2, f)
+                #             if os.path.exists(new3):
+                #                 os.remove(new3)
+                #             os.link(old1, new3)
 
     def end(self):
         repaths = [

@@ -17,11 +17,11 @@ class Ppinetwork(Base):
     @report_check
     def add_ppi_main_id(self, geneset_id, combine_score, gene_type, species):
         params_dict = dict()
-        params_dict["combine_score"] = combine_score,
-        params_dict["gene_type"] = gene_type,
-        params_dict["geneset_id"] = geneset_id,
-        params_dict["species"] = species,
-        params_dict["submit_location"] = "ppinetwork",
+        params_dict["combine_score"] = combine_score
+        params_dict["gene_type"] = gene_type
+        params_dict["geneset_id"] = geneset_id
+        params_dict["species"] = species
+        params_dict["submit_location"] = "ppinetwork"
         params_dict["task_type"] = "workflow"
         data = {
             "project_sn": self.bind_object.sheet.project_sn,
@@ -31,7 +31,8 @@ class Ppinetwork(Base):
             "geneset_id": geneset_id,
             "desc": "",
             "created_ts": datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            "params": json.dumps(params_dict, sort_keys=True, separators=(',', ':'))
+            "params": json.dumps(params_dict, sort_keys=True, separators=(',', ':')),
+            "gene_type": gene_type
         }
         col = self.db["sg_ppinetwork"]
         main_id = col.insert_one(data).inserted_id

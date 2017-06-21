@@ -37,8 +37,8 @@ class RefAnnoQueryAgent(Agent):
         self.step.update()
 
     def check_options(self):
-        if not self.option("cog_list").is_set:
-            raise OptionError('缺少输入文件:cog_list')
+        # if not self.option("cog_list").is_set:
+        #     raise OptionError('缺少输入文件:cog_list')
         if not self.option("gos_list").is_set:
             raise OptionError('缺少输入文件:gos_list')
         if not self.option("kegg_table").is_set:
@@ -74,7 +74,6 @@ class RefAnnoQueryTool(Tool):
         outpath = self.work_dir + "/all_annotation.xls"
         gtf_path = self.option("gtf_path").prop["path"]
         length_path = self.option("length_path").prop["path"]
-        cog_list = self.option("cog_list").prop["path"]
         kegg_table = self.option("kegg_table").prop["path"]
         gos_list = self.option("gos_list").prop["path"]
         if self.option("blast_nr_table").is_set:
@@ -89,6 +88,10 @@ class RefAnnoQueryTool(Tool):
             pfam_domain = self.option("pfam_domain").prop["path"]
         else:
             pfam_domain = None
+        if self.option("cog_list").is_set:
+            cog_list = self.option("cog_list").prop["path"]
+        else:
+            cog_list = None
         cmd = "{} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.query_path, outpath, gtf_path, cog_list, kegg_table, gos_list, blast_nr_table, blast_swissprot_table, pfam_domain, length_path)
         self.logger.info("开始运行注释查询脚本")
         self.logger.info(cmd)

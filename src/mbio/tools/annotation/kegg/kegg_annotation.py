@@ -84,7 +84,7 @@ class KeggAnnotationTool(Tool):
             taxonomy = None
         blast_xml = self.option('blastout').prop['path']
         kegg_table = self.output_dir + '/kegg_table.xls'
-        pidpath = self.work_dir + '/pid.txt'
+        pidpath = self.output_dir + '/pid.txt'
         pathwaydir = self.output_dir + '/pathways'
         image_magick = self.image_magick
         pathway_table = self.output_dir + '/pathway_table.xls'

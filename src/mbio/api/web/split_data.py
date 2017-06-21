@@ -12,5 +12,3 @@ class SplitData(Log):
         self._url = "http://172.16.6.15:8080/api/split/receive_pipeline"
         # self._url = "http://172.16.6.96/html/code.php"
         self._post_data = self.post_data
-
-
