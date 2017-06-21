@@ -17,7 +17,8 @@ class GenomeStructureAgent(Agent):
         options = [
             {"name": "in_fasta", "type": "infile", "format": "sequence.fasta"},
             {"name": "in_gff", "type": "infile", "format": "gene_structure.gff3"},
-            {"name": "in_gtf", "type": "infile", "format":"gene_structure.gtf"}
+            {"name": "in_gtf", "type": "infile", "format":"gene_structure.gtf"},
+            {"name": "ref_genome", "type": "string", "default": ""}
         ]
         self.add_option(options)
         self.step.add_steps("genome_structure")
@@ -44,9 +45,10 @@ class GenomeStructureAgent(Agent):
 class GenomeStructureTool(Tool):
     def __init__(self, config):
         super(GenomeStructureTool, self).__init__(config)
-        self.seqkit_path = ""
+        self.seqkit_path = self.config.SOFTWARE_DIR + "/bioinfo/seq"
         self.bedtools = self.config.SOFTWARE_DIR + "/bioinfo/rna/bedtools2-master/bin/bedtools"
-        self.scripts = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/tabletools_add.pl"
+        self.scripts = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts"
+        self.bioawk_path = self.config.SOFTWARE_DIR + "/bioinfo/seq/bioawk"
 
     def cmd1(self):
         cmd = "less %s | grep \"^#\" -v | awk -F '\\t' " \
@@ -56,20 +58,27 @@ class GenomeStructureTool(Tool):
               "else if($2 ~ /pseudogene/){Pse[$1]++}}END{for(i in Gene) " \
               "{print i,Gene[i],Pod[i],Rna[i],Pse[i]}}'  |sort -k1,1 | " \
               "awk -F '\\t' -vOFS='\\t' 'BEGIN{print \"Chr\",\"Gene\",\"ProteinCoding\",\"OtherRNA\"," \
-              "\"Pseudogene\"}1' > %s/gene.content.tab.xls" % (self.option("gff").prop["path"], self.work_dir)
-        self.logger.info(cmd)
-        subprocess.check_output(cmd)
+              "\"Pseudogene\"}1' > %s/gene.content.tab.xls" % (self.option("in_gff").prop["path"], self.output_dir)
+        os.system(cmd)
 
     def cmd2(self):
         cmd = "%s/seqkit fx2tab -n -i -g -l  %s" \
-              " | awk  -vOFS='\\t' 'BEGIN{print \"Chr\",\"Size(Mb)\",\"GC%\"}{print $1,int($2/10000+0.5)/100,$3}' " \
-              "| %s/tabletools_add.pl -i %s/gene.content.tab.xls -t - -n 1 > %s/gene.stat.xls" % \
-              (self.seqkit_path, self.option("in_fasta").prop["path"], self.scripts, self.work_dir, self.work_dir)
+              " | awk  -vOFS='\\t' 'BEGIN{print \"Chr\",\"Size(Mb)\",\"GC\"}{print $1,int($2/10000+0.5)/100,$3}' " \
+              "| perl %s/tabletools_add.pl -i %s/gene.content.tab.xls -t - -n 1 > %s/gene.stat.xls" % \
+              (self.seqkit_path, self.option("in_fasta").prop["path"], self.scripts, self.output_dir, self.output_dir)
         self.logger.info(cmd)
-        subprocess.check_output(cmd)
+        os.system(cmd)
+
+    def cmd3(self):
+        cmd = "%s/bioawk  -c fastx 'BEGIN{print \"Ref seq\tLength\tGC\"};{print $name\"\\t\"length($seq)\"\\t\"gc($seq)*100}' %s > %s/gene.stat.xls" % (self.bioawk_path, self.option("in_fasta").prop["path"], self.output_dir)
+        self.logger.info(cmd)
+        os.system(cmd)
 
     def run(self):
         super(GenomeStructureTool, self).run()
-        self.cmd1()
-        self.cmd2()
+        if self.option("ref_genome") != "customer_mode":
+            self.cmd1()
+            self.cmd2()
+        else:
+            self.cmd3()
         self.end()

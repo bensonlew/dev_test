@@ -1036,9 +1036,9 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.new_blast_kegg.output_dir, 'new_keggblast')
         self.move2outputdir(self.new_blast_string.output_dir, 'new_stringblast')
         self.move2outputdir(self.new_blast_nr.output_dir, 'new_nrblast')
-        self.move2outputdir(self.blast_kegg.output_dir, 'keggblast')
-        self.move2outputdir(self.blast_string.output_dir, 'stringblast')
-        self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
+        # self.move2outputdir(self.blast_kegg.output_dir, 'keggblast')
+        # self.move2outputdir(self.blast_string.output_dir, 'stringblast')
+        # self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
         self.move2outputdir(self.new_blast_swissprot.output_dir, 'new_swissprotblast')
         self.move2outputdir(self.pfam.output_dir, 'pfam')
         if self.as_on:
@@ -1132,12 +1132,13 @@ class RefrnaWorkflow(Workflow):
 
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc
-        qc_stat = self.qc_stat_after.output_dir
+        qc_stat = self.qc_stat_before.output_dir
         fq_type = self.option("fq_type").lower()
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="before")
         quality_stat_after = self.qc_stat_after.output_dir + "/qualityStat"
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
         self.api_qc.add_gragh_info(quality_stat_before, "before")
+        qc_stat = self.qc_stat_after.output_dir
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="after")
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处

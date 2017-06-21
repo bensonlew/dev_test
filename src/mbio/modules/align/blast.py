@@ -35,7 +35,7 @@ class BlastModule(Module):
             # 当输出格式为非5，6时，只产生文件不作为outfile
         ]
         self.add_option(options)
-        self.catblast = self.add_tool("align.ncbi.cat_blastout")
+        self.catblast = self.add_tool("align.cat_blastout")
         self.splitfasta = self.add_tool("sequence.split_fasta")
         self.step.add_steps('blast', 'split_fasta', 'cat_blastout')
         self.blast_tools = []
@@ -115,7 +115,7 @@ class BlastModule(Module):
         }
         for f in os.listdir(self.splitfasta.output_dir):
             opts['query'] = os.path.join(self.splitfasta.output_dir, f)
-            blast_tool = self.add_tool('align.ncbi.blast')
+            blast_tool = self.add_tool('align.blast')
             blast_tool.set_options(opts)
             blast_tool.run()
             self.blast_tools.append(blast_tool)
