@@ -161,6 +161,7 @@ class UpdateStatus(Log):
         else:
 
             # self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
+            self.logger.info("pipe_batch_id: {}, status: {}, desc:{}".format(batch_id, status, desc))
             self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)},
                                                                {"$set": {'status': status, "desc": desc}})
             end_counts = self.mongodb['sg_pipe_detail'].find({'pipe_batch_id': batch_id,
