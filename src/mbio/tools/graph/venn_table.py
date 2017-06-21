@@ -48,6 +48,11 @@ class VennTableAgent(Agent):
             raise OptionError("请选择正确的分类水平")
         if not self.option("group_table").is_set:
             raise OptionError("参数group_table不能为空")
+        with open(self.option("group_table").prop['path']) as f:   # add by wzy 20170621
+            first_line = f.readline()
+            line_split = first_line.strip().split("\t")
+            if len(line_split) > 2:
+                raise OptionError("分组文件只能有一个分组方案，请去除其他分组方案")
 
     def set_resource(self):
         """
