@@ -85,14 +85,14 @@ class Hcluster(Base):
                 raise Exception("导入tree信息出错:%s" % e)
             else:
                 self.bind_object.logger.info("导入tree信息成功!")
-            reverse_ids = SON([(str(n), m) for m, n in specimen_ids_dict.iteritems()])  # add by zhouxuan 20170508
-            self.db['specimen_group'].insert_one(SON(data=[('project_sn', self.bind_object.sheet.project_sn),
-                                                           ('task_id', self.bind_object.id),
-                                                           ('visual_type', ['hcluster']),
-                                                           ('visual_id', [hcluster_id]),
-                                                           ('name', 'ALL'),
-                                                           ('category_names', ['ALL']),
-                                                           ('specimen', [reverse_ids])]))
+            # reverse_ids = SON([(str(n), m) for m, n in specimen_ids_dict.iteritems()])  # add by zhouxuan 20170508
+            # self.db['specimen_group'].insert_one(SON(data=[('project_sn', self.bind_object.sheet.project_sn),
+            #                                                ('task_id', self.bind_object.id),
+            #                                                ('visual_type', ['hcluster']),
+            #                                                ('visual_id', [hcluster_id]),
+            #                                                ('name', 'ALL'),
+            #                                                ('category_names', ['ALL']),
+            #                                                ('specimen', [reverse_ids])]))
         return hcluster_id
 
     def insert_specimens(self, specimen_names):  # add by zhouxuan 20170508

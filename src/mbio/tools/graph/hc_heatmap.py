@@ -115,6 +115,7 @@ class HcHeatmapTool(Tool):
         plot-hcluster_tree_app.pl,输出画图所需的树文件
         """
 		os.system('dos2unix -c Mac {}'.format(self.option('data_table').prop['path']))  # 转换输入文件
+		# os.system('dos2unix {}'.format(self.option('data_table').prop['path']))  # 转换输入文件
 		if self.option("col_number") == "" and self.option("row_number") == "":
 			self.new_data = self.option('data_table').prop['path']
 		else:
