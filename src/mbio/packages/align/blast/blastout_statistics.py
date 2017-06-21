@@ -34,7 +34,7 @@ def blastout_statistics(blast_table, evalue_path, similarity_path):
             else:
                 count_similar[4] += 1
         e.write("evlaue_interval\tnum_hits\n")
-        e.write('0\t{}\n0 1e-30\t{}\n1e-30 1e-20\t{}\n1e-20 1e-10\t{}\n1e-10 1e-5\t{}\n1e-5 inf\t{}\n'.format(count_evalue[0], count_evalue[1], count_evalue[2], count_evalue[3], count_evalue[4], count_evalue[5]))
+        e.write('0\t{}\n0 1e-30\t{}\n1e-30 1e-20\t{}\n1e-20 1e-10\t{}\n1e-10 1e-5\t{}\n>1e-5\t{}\n'.format(count_evalue[0], count_evalue[1], count_evalue[2], count_evalue[3], count_evalue[4], count_evalue[5]))
         s.write('similarity_interval\tnum_hits\n')
         for i in range(len(count_similar)):
             s.write('{}%-{}%\t{}\n'.format(i * 20, (i + 1) * 20, count_similar[i]))
