@@ -176,7 +176,10 @@ def export_all_list(data, option_name, dir_path, bind_obj=None):
     with open(all_list, "wb") as f:
         for result in results:
             gene_id = result['seq_id']
-            f.write(gene_id + "\n")
+            is_new = "ref"
+            if result['is_new']:
+                is_new = "new"
+            f.write(gene_id + "\t" + is_new + "\n")
     return all_list
 
 

@@ -51,8 +51,9 @@ class RefSnp(Base):
         all_depth_stat = {}
         all_freq_stat = {}
         depth_list = ["<30", "30-100", "100-200", "200-300", "300-400", "400-500", ">500"]
-        graph_data_list = []
+        # graph_data_list = []
         chroms = set()
+        distributions = set()
         data_list = []
         sample_names = ["CL1", "CL2", "CL5", "HFL3", "HFL4", "HFL6", "HGL1", "HGL3", "HGL4"]
         sample_old_index = []
@@ -73,6 +74,7 @@ class RefSnp(Base):
                 sample_infos = line[10:]
                 new_gene_name = line[6]
                 chroms.add(line[0])
+                distributions.add(line[5])
                 snp_type = line[3] + "/" + line[4]
                 data = {
                     "snp_id": snp_id,
@@ -118,38 +120,28 @@ class RefSnp(Base):
                     all_depth_stat[s] = self.get_depth_stat(depth_num, all_depth_stat[s])
                 data_list.append(data)
                 # #统计reads深度
-        snp_types = []
-        distributions = []
-        for s in sample_names:
-            graph_data = {
-                "snp_id": snp_id,
-                "specimen_name": s,
-                "snp_pos_stat": snp_pos_stat[s],
-                "indel_pos_stat": indel_pos_stat[s],
-                # "type_stat": snp_type_stat[s],
-                # "depth_stat": dict(zip(depth_list, all_depth_stat[s])),
-                # "freq_stat": dict(zip(freq_list, all_freq_stat[s]))
-            }
-            graph_data_list.append(graph_data)
-            snp_types = snp_type_stat[s].keys()
-            distributions = snp_pos_stat[s].keys()
+        snp_types = ["A/G", "A/C", "C/T", "G/A", "G/C", "C/A", "A/T", "C/G", "G/T", "T/C", "T/A", "T/G"]
 
-        new_freq_stat = freq_stat(all_freq_stat)
-        depth_data = self.get_stat_data(sample_names, depth_list, all_depth_stat, snp_id, "depth")
-        freq_data = self.get_stat_data(sample_names, [1, 2, 3, 4, ">5"], new_freq_stat, snp_id, "freq")
-        type_data = self.get_stat_data(sample_names, snp_types, snp_type_stat, snp_id, "snp_type")
+        new_freq_stat = self.freq_stat(all_freq_stat)
+        depth_data = self.get_stat_data(sample_names, depth_list, all_depth_stat, snp_id, "depth_stat")
+        freq_data = self.get_stat_data(sample_names, [1, 2, 3, 4, ">5"], new_freq_stat, snp_id, "freq_stat")
+        type_data = self.get_stat_data(sample_names, snp_types, snp_type_stat, snp_id, "type_stat")
+        snp_pos_data = self.get_stat_data(sample_names, list(distributions), snp_pos_stat, snp_id, "snp_distribution")
+        indel_pos_data = self.get_stat_data(sample_names, list(distributions), indel_pos_stat, snp_id, "indel_distribution")
 
         try:
             collection = self.db["sg_snp_detail"]
             collection.insert_many(data_list)
-            graph_collection = self.db["sg_snp_graphic"]
-            graph_collection.insert_many(graph_data_list)
+            # graph_collection = self.db["sg_snp_graphic"]
+            # graph_collection.insert_many(graph_data_list)
             stat_collection = self.db["sg_snp_stat"]
             stat_collection.insert_many(depth_data)
             stat_collection.insert_many(freq_data)
             stat_collection.insert_many(type_data)
+            stat_collection.insert_many(snp_pos_data)
+            stat_collection.insert_many(indel_pos_data)
             main_collection = self.db["sg_snp"]
-            main_collection.update({"_id": ObjectId(snp_id)}, {"$set": {"snp_types": snp_types, "specimen": sample_names, "distributions": distributions, "chroms": list(chroms)}})
+            main_collection.update({"_id": ObjectId(snp_id)}, {"$set": {"snp_types": snp_types, "specimen": sample_names, "distributions": list(distributions), "chroms": list(chroms)}})
         except Exception, e:
             print("导入SNP统计信息出错:%s" % e)
         else:
@@ -201,14 +193,14 @@ class RefSnp(Base):
         for n, ds in enumerate(range_list):
             data = {
                 "snp_id": snp_id,
-                "range_key" : ds,
+                "range_key": ds,
                 "stat_type": stat_type
             }
             for s in sample_names:
                 if type(value_dict[s]) is list:
-                    data["{}_value".format(s)] = value_dict[s][n]
+                    data["{}".format(s)] = value_dict[s][n]
                 else:
-                    data["{}_value".format(s)] = value_dict[s][ds]
+                    data["{}".format(s)] = value_dict[s][ds]
             stat_data.append(data)
         # print stat_data
         return stat_data
