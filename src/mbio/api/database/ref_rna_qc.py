@@ -159,6 +159,28 @@ class RefRnaQc(Base):
 
     @report_check
     def add_specimen_group(self, file):
+        """
+        group_list: group_list为一个字典, 字典的键为分组名称，值为分组中所带样本名
+        specimen_names: 数组形式，数组中的每一项为一个字典，与分组相对应，字典的键为样本id，值为样本名
+                ex:[
+            {
+                "59473300a4e1af65bfaf2d76" : "CL1",
+                "59473300a4e1af65bfaf2d77" : "CL2",
+                "59473300a4e1af65bfaf2d74" : "HFL3",
+                "59473300a4e1af65bfaf2d75" : "CL5"
+            },
+            {
+                "59473300a4e1af65bfaf2d6f" : "HGL4",
+                "59473300a4e1af65bfaf2d72" : "HFL6",
+                "59473300a4e1af65bfaf2d73" : "HFL4",
+                "59473300a4e1af65bfaf2d70" : "HGL3",
+                "59473300a4e1af65bfaf2d71" : "HGL1"
+            }
+        ]
+        group_sorted: 数组形式， 数组中的每一项为一个分组: ["A", "B"]
+        :param file: group_table文件
+        :return:
+        """
         spname_spid = self.get_spname_spid()
         group_list = dict()
         with open(file, "r") as f:
@@ -191,6 +213,21 @@ class RefRnaQc(Base):
         group_id = col.insert_one(data).inserted_id
         self.bind_object.logger.info("导入样本分组信息成功")
         return group_id, spcecimen_names, group_sorted
+
+    @report_check
+    def add_bam_path(self, dir_path):
+        """
+
+        :param dir_path:传入的rnaseq_mapping的output_dir
+        :return:
+        """
+        spname_spid = self.get_spname_spid()
+        col = self.db["sg_specimen"]
+        for spname in spname_spid:
+            sp_id = str(spname_spid[spname])
+            bam_path = dir_path + "/bam/" + spname + ".bam"
+            insert_data = {"bam_path": bam_path}
+            col.find_one_and_update({"task_id": sp_id}, {"$set": insert_data})
 
     @report_check
     def add_control_group(self,file, group_id):
