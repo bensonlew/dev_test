@@ -190,7 +190,8 @@ class PtDatasplitWorkflow(Workflow):
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": self.data_dir,
-				"result_dir": self.ws_dir
+				"result_dir": self.ws_dir,
+				"ws_single": self.ws_single,
 			})
 			self.tools.append(merge_fastq)
 			n += 1

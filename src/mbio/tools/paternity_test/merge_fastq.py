@@ -21,7 +21,8 @@ class MergeFastqAgent(Agent):
 		options = [
 			{"name": "sample_dir_name", "type": "string"},
 			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"},
-			{"name": "result_dir", "type": "string"}
+			{"name": "result_dir", "type": "string"},
+			{"name": "ws_single", "type": "string", "default": "fasle"},
 		]
 		self.add_option(options)
 		self.step.add_steps("merge_fastq")
@@ -30,9 +31,6 @@ class MergeFastqAgent(Agent):
 		self.r1_path = ''
 		self.r2_path = ''
 		self.new_name = ''
-		# self.sample = self.option("sample_dir_name").split(",")
-
-
 
 	def stepstart(self):
 		self.step.merge_fastq.start()
@@ -82,9 +80,6 @@ class MergeFastqTool(Tool):
 		:return:
 		"""
 		super(MergeFastqTool, self).run()
-		# self.logger.info(self.option("sample_dir_name"))
-		# self.sample = self.option("sample_dir_name").split(",")
-		# for i in self.sample:
 		self.run_mf()
 		self.set_output()
 		self.end()
@@ -111,17 +106,14 @@ class MergeFastqTool(Tool):
 			new_file_path = os.path.join(file_path, q)
 			r1_path.append(new_file_path)
 		os.system('zcat {} {} {} {} >> {}'.format(r1_path[0], r1_path[1], r1_path[2], r1_path[3], self.r1_path))
-		r2_path = []
-		for l in r2_list:
-			new_file_path_2 = os.path.join(file_path, l)
-			r2_path.append(new_file_path_2)
-		os.system('zcat {} {} {} {} >> {}'.format(r2_path[0], r2_path[1], r2_path[2], r2_path[3], self.r2_path))
+		if self.option("ws_single") == 'false':
+			r2_path = []
+			for l in r2_list:
+				new_file_path_2 = os.path.join(file_path, l)
+				r2_path.append(new_file_path_2)
+			os.system('zcat {} {} {} {} >> {}'.format(r2_path[0], r2_path[1], r2_path[2], r2_path[3], self.r2_path))
+			os.system('gzip {}'.format(self.r2_path))
 		os.system('gzip {}'.format(self.r1_path))
-		os.system('gzip {}'.format(self.r2_path))
-		# gz_r1_file_path = self.r1_path + ".gz"
-		# gz_r2_file_path = self.r2_path + ".gz"
-		# os.link(gz_r1_file_path, self.option("result_dir") + '/' + self.new_name + "_R1.fastq.gz")
-		# os.link(gz_r2_file_path, self.option("result_dir") + '/' + self.new_name + "_R2.fastq.gz")
 
 	def set_output(self):
 		"""
@@ -136,9 +128,10 @@ class MergeFastqTool(Tool):
 		else:
 			self.set_error("no {}_R1_fastq.gz file".format(self.new_name))
 			raise Exception("no {}_R1_fastq.gz file".format(self.new_name))
-		if os.path.exists(gz_r2_file_path):
-			os.link(gz_r2_file_path, self.output_dir + '/' + self.new_name + "_R2.fastq.gz")
-			os.link(gz_r2_file_path, self.option("result_dir") + '/' + self.new_name + "_R2.fastq.gz")
-		else:
-			self.set_error("no {}_R2_fastq.gz file".format(self.new_name))
-			raise Exception("no {}_R2_fastq.gz file".format(self.new_name))
+		if self.option("ws_single") == 'false':
+			if os.path.exists(gz_r2_file_path):
+				os.link(gz_r2_file_path, self.output_dir + '/' + self.new_name + "_R2.fastq.gz")
+				os.link(gz_r2_file_path, self.option("result_dir") + '/' + self.new_name + "_R2.fastq.gz")
+			else:
+				self.set_error("no {}_R2_fastq.gz file".format(self.new_name))
+				raise Exception("no {}_R2_fastq.gz file".format(self.new_name))
