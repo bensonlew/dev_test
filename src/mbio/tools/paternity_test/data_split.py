@@ -77,8 +77,8 @@ class DataSplitTool(Tool):
 		super(DataSplitTool, self).__init__(config)
 		self._version = "v1.0"
 		self.script_path = "bioinfo/medical/bcl2fastq-2.17/bin/bcl2fastq"
-		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
-		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
 
 	def run(self):
 		"""

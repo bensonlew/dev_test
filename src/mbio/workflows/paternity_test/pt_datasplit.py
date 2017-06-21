@@ -280,6 +280,7 @@ class PtDatasplitWorkflow(Workflow):
 				"ref_group": 2,
 				"update_info": update_info,
 				"single": self.ws_single,
+				'sanger_type': self.option('data_dir').split(":")[0],
 			}
 		}
 		WC().add_task(data)
