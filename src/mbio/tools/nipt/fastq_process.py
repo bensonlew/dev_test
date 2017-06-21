@@ -15,14 +15,18 @@ class FastqProcessAgent(Agent):
     """
     产筛的生信shell部分功能
     处理fastq，得到bed2文件
-    version v1.0
-    author: moli.zhou
+
+    参数run_whole为false时，可将shell流程拆分为各个命令跑，可查看中间文件，但效率有所降低
+    参数single控制，下机数据是否为单端数据，true时为单端，是单端数据，运行单端流程
     """
     def __init__(self, parent):
         super(FastqProcessAgent, self).__init__(parent)
         options = [#输入的参数
             {"name": "sample_id", "type": "string"},
-            {"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"}
+            {"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
+            {"name": "run_whole","type":"string","default":"true"},
+            {"name":"single", "type": "string","default":"false"}
+
         ]
         self.add_option(options)
         self.step.add_steps("fastq2bed")
@@ -55,7 +59,7 @@ class FastqProcessAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '50G'
+        self._memory = '100G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -89,6 +93,7 @@ class FastqProcessTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/samblaster-0.1.22/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/cutadapt-1.10-py27_0/bin')
         
         self.ref1 = self.config.SOFTWARE_DIR + '/database/human/hg38.chromosomal_assembly/ref.fa'
         self.ref = self.config.SOFTWARE_DIR + '/database/human/hg38_nipt/nchr.fa'
@@ -231,7 +236,35 @@ class FastqProcessTool(Tool):
         if cmd.return_code == 0:
             self.logger.info("bed文件生成成功")
         else:
-            raise Exception("bed文件生成出错") 
+            raise Exception("bed文件生成出错")
+
+    def run_continually(self):
+        cmd = '{}nipt_script.sh {} {} {} {} {} {} {} {}'\
+            .format(self.script_path, self.option('sample_id'),self.work_dir,
+                    self.java_path,self.picard_path,self.ref,self.ref1,self.bed_ref,
+                    self.option("fastq_path").prop['path'])
+        self.logger.info(cmd)
+        cmd = self.add_command("total_cmd", cmd).run()
+        self.wait(cmd)
+
+        if cmd.return_code == 0:
+            self.logger.info("shell部分运行成功")
+        else:
+            raise Exception("shell部分运行出错")
+
+    def run_single(self):
+        cmd = '{}nipt_script_single.sh {} {} {} {} {} {} {} {}' \
+            .format(self.script_path, self.option('sample_id'), self.work_dir,
+                    self.java_path, self.picard_path, self.ref, self.ref1, self.bed_ref,
+                    self.option("fastq_path").prop['path'])
+        self.logger.info(cmd)
+        cmd = self.add_command("single_cmd", cmd).run()
+        self.wait(cmd)
+
+        if cmd.return_code == 0:
+            self.logger.info("single-shell部分运行成功")
+        else:
+            raise Exception("single-shell部分运行出错")
 
     def set_output(self):
         """
@@ -254,6 +287,11 @@ class FastqProcessTool(Tool):
 
     def run(self):
         super(FastqProcessTool, self).run()
-        self.run_tf()
+        if self.option('run_whole') == 'true' and self.option('single') == 'false':
+            self.run_continually()
+        elif self.option('run_whole') == 'true' and self.option('single') == 'true':
+            self.run_single()
+        else:
+            self.run_tf()
         self.set_output()
         self.end()

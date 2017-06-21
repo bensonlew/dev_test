@@ -17,7 +17,8 @@ class NiptAnalysisModule(Module):
 			{"name": "sample_id", "type": "string"},
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
-			{"name": "ref_group", "type": "int", "default": 2}
+			{"name": "ref_group", "type": "int", "default": 2},
+			{"name": "single", "type": "string", "default": "false"}
 		]
 		self.add_option(options)
 		self.fastq2bed = self.add_tool("nipt.fastq_process")
@@ -42,7 +43,8 @@ class NiptAnalysisModule(Module):
 	def fastq2bed_run(self):
 		self.fastq2bed.set_options({
 			"sample_id": self.option('sample_id'),
-			"fastq_path": self.option("fastq_path")
+			"fastq_path": self.option("fastq_path"),
+			"single":self.option("single")
 		}
 		)
 
