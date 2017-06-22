@@ -74,14 +74,10 @@ class RefAnnoQueryTool(Tool):
         length_path = self.option("length_path")
         kegg_table = self.option("kegg_table")
         gos_list = self.option("gos_list")
-        if self.option("blast_nr_table"):
-            blast_nr_table = self.option("blast_nr_table")
-        if self.option("blast_swissprot_table"):
-            blast_swissprot_table = self.option("blast_swissprot_table")
-        if self.option("pfam_domain"):
-            pfam_domain = self.option("pfam_domain")
-        if self.option("cog_list"):
-            cog_list = self.option("cog_list")
+        blast_nr_table = self.option("blast_nr_table")
+        blast_swissprot_table = self.option("blast_swissprot_table")
+        pfam_domain = self.option("pfam_domain")
+        cog_list = self.option("cog_list")
         cmd = "{} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.query_path, outpath, gtf_path, cog_list, kegg_table, gos_list, blast_nr_table, blast_swissprot_table, pfam_domain, length_path)
         self.logger.info("开始运行注释查询脚本")
         self.logger.info(cmd)
