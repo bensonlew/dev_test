@@ -14,14 +14,14 @@ class RefAnnoQueryAgent(Agent):
     def __init__(self, parent):
         super(RefAnnoQueryAgent, self).__init__(parent)
         options = [
-            {"name": "cog_list", "type": "infile", "format": "annotation.cog.cog_list"},
-            {"name": "gos_list", "type": "infile", "format": "annotation.go.go_list"},
-            {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},
-            {"name": "blast_nr_table", "type": "infile", "format": "align.blast.blast_table"},
-            {"name": "blast_swissprot_table", "type": "infile", "format": "align.blast.blast_table"},
-            {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
-            {"name": "length_path", "type": "infile", "format": "annotation.cog.cog_list"},  # 注释转录本序列的长度
-            {"name": "gtf_path", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新转录本gtf文件
+            {"name": "cog_list", "type": "string", "default": None},
+            {"name": "gos_list", "type": "string", "default": None},
+            {"name": "kegg_table", "type": "string", "default": None},
+            {"name": "blast_nr_table", "type": "string", "default": None},
+            {"name": "blast_swissprot_table", "type": "string", "default": None},
+            {"name": "pfam_domain", "type": "string", "default": None},
+            {"name": "length_path", "type": "string"},  # 注释转录本序列的长度
+            {"name": "gtf_path", "type": "string"},  # 参考基因组gtf文件/新转录本gtf文件
         ]
         self.add_option(options)
         self.step.add_steps("ref_anno_query")
@@ -37,15 +37,13 @@ class RefAnnoQueryAgent(Agent):
         self.step.update()
 
     def check_options(self):
-        # if not self.option("cog_list").is_set:
-        #     raise OptionError('缺少输入文件:cog_list')
-        if not self.option("gos_list").is_set:
+        if not self.option("gos_list"):
             raise OptionError('缺少输入文件:gos_list')
-        if not self.option("kegg_table").is_set:
+        if not self.option("kegg_table"):
             raise OptionError('缺少输入文件:kegg_table')
-        if not self.option("length_path").is_set:
+        if not self.option("length_path"):
             raise OptionError('缺少输入文件:length_path')
-        if not self.option("gtf_path").is_set:
+        if not self.option("gtf_path"):
             raise OptionError('缺少输入文件:gtf_path')
 
     def set_resource(self):
@@ -72,26 +70,18 @@ class RefAnnoQueryTool(Tool):
 
     def run_query(self):
         outpath = self.work_dir + "/all_annotation.xls"
-        gtf_path = self.option("gtf_path").prop["path"]
-        length_path = self.option("length_path").prop["path"]
-        kegg_table = self.option("kegg_table").prop["path"]
-        gos_list = self.option("gos_list").prop["path"]
-        if self.option("blast_nr_table").is_set:
-            blast_nr_table = self.option("blast_nr_table").prop["path"]
-        else:
-            blast_nr_table = None
-        if self.option("blast_swissprot_table").is_set:
-            blast_swissprot_table = self.option("blast_swissprot_table").prop["path"]
-        else:
-            blast_swissprot_table = None
-        if self.option("pfam_domain").is_set:
-            pfam_domain = self.option("pfam_domain").prop["path"]
-        else:
-            pfam_domain = None
-        if self.option("cog_list").is_set:
-            cog_list = self.option("cog_list").prop["path"]
-        else:
-            cog_list = None
+        gtf_path = self.option("gtf_path")
+        length_path = self.option("length_path")
+        kegg_table = self.option("kegg_table")
+        gos_list = self.option("gos_list")
+        if self.option("blast_nr_table"):
+            blast_nr_table = self.option("blast_nr_table")
+        if self.option("blast_swissprot_table"):
+            blast_swissprot_table = self.option("blast_swissprot_table")
+        if self.option("pfam_domain"):
+            pfam_domain = self.option("pfam_domain")
+        if self.option("cog_list"):
+            cog_list = self.option("cog_list")
         cmd = "{} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.query_path, outpath, gtf_path, cog_list, kegg_table, gos_list, blast_nr_table, blast_swissprot_table, pfam_domain, length_path)
         self.logger.info("开始运行注释查询脚本")
         self.logger.info(cmd)
