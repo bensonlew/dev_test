@@ -11,13 +11,13 @@ class HcHeatmapAgent(Agent):
 	"""
 	小工具聚类heatmap图：实现任意二维数据的热图并含有行和列的聚类树
 	auther: xuan.zhou
-	last_modified: 20170508
+	last_modified: 201706022 数据表格式修改
 	使用脚本实现聚类树
 	"""
 	def __init__(self, parent):
 		super(HcHeatmapAgent, self).__init__(parent)
 		options = [
-			{"name": "data_table", "type": "infile", "format": "meta.otu.otu_table"},  # 数据表
+			{"name": "data_table", "type": "infile", "format": "toolapps.table"},  # 数据表
 			{"name": "row_method", "type": "string", "default": "no"},  # 行聚类方式,为no时不聚类
 			{"name": "col_method", "type": "string", "default": "no"},  # 列聚类方式,为no时不聚类
 			{"name": "col_number", "type": "string", "default": "10"},  # 列数
@@ -78,6 +78,7 @@ class HcHeatmapTool(Tool):
 		self.app_path = 'bioinfo/statistical/scripts/plot-hcluster_tree_app.pl'
 		#self.app_path = self.config.SOFTWARE_DIR + '/bioinfo/statistical/scripts/plot-hcluster_tree_app.pl'
 		self._version = 1.0
+		self.new_table = self.option('data_table').prop['new_table']
 
 	def get_new_data(self, old_path, new_path, col_number, row_number, t):
 		"""
@@ -114,13 +115,15 @@ class HcHeatmapTool(Tool):
 		"""
         plot-hcluster_tree_app.pl,输出画图所需的树文件
         """
-		os.system('dos2unix -c Mac {}'.format(self.option('data_table').prop['path']))  # 转换输入文件
+		# os.system('dos2unix -c Mac {}'.format(self.option('data_table').prop['path']))  # 转换输入文件
 		# os.system('dos2unix {}'.format(self.option('data_table').prop['path']))  # 转换输入文件
 		if self.option("col_number") == "" and self.option("row_number") == "":
-			self.new_data = self.option('data_table').prop['path']
+			# self.new_data = self.option('data_table').prop['path']
+			self.new_data = self.new_table
 		else:
 			self.new_data = os.path.join(self.work_dir, "new_data.xls")
-			self.get_new_data(old_path=self.option('data_table').prop['path'], new_path=self.new_data,
+			# self.get_new_data(old_path=self.option('data_table').prop['path'], new_path=self.new_data,
+			self.get_new_data(old_path=self.new_table, new_path=self.new_data,
 			                  col_number=self.option("col_number"), row_number=self.option("row_number"),
 			                  t=self.option('data_T'))
 		if self.option('row_method') == 'no' and self.option('col_method') == 'no':
