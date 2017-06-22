@@ -43,6 +43,7 @@ class AnnoUploadModule(Module):
             }
             self.go.set_options(opts_go)
             self.go.run()
+
         if "kegg" in self.option("database"):
             opts_kegg = {
                 "kos_list_upload": self.option("in_kegg")

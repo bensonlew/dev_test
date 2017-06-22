@@ -15,6 +15,9 @@ class Sanger(Log):
         self._url = "http://api.sanger.com/task/add_task_log"
         self._post_data = "%s&%s" % (self.get_sig(), self.post_data)
 
+    def update(self):
+        self.send()
+
     # @property
     # def post_data(self):
     #     my_content = self.data["content"]

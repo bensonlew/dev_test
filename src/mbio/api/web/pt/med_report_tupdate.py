@@ -14,11 +14,11 @@ class MedReportTupdate(UpdateStatus):
         super(MedReportTupdate, self).__init__(data)
         self._client = "client03"
         self._key = "hM4uZcGs9d"
-        self._url = "http://api.tsg.com/task/add_file"
+        self._url = "http://api.tsanger.com/task/add_file"
         self.database = self._mongo_client[self.config.MONGODB+'_paternity_test']
         
-    def update(self, web_api=False):
-        super(MedReportTupdate, self).update(web_api=False)
+    def update(self):
+        pass
 
     def update_status(self):
         status = self.data["sync_task_log"]["task"]["status"]

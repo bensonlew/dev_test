@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
-from biocluster.config import Config
 from .med_report_tupdate import MedReportTupdate
 
 

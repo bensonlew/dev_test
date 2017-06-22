@@ -48,23 +48,9 @@ class UpdateStatus(Log):
         data['sync_task_log'] = json.dumps(content, cls=CJsonEncoder)
         return urllib.urlencode(data)
 
-    def update(self, web_api=True):
-        self.logger.info("开始执行update_status")
-        try:
-            self.update_status()
-        except Exception, e:
-            exstr = traceback.format_exc()
-            print exstr
-            print e
-            sys.stdout.flush()
-            self.logger.info("执行update_status出错")
-        self.logger.info("执行update_status结束")
-        if web_api and 'files' in self.data['sync_task_log'].keys() or 'dirs' in self.data['sync_task_log'].keys():
-            self.logger.info("执行post")
-            super(UpdateStatus, self).update(save=False)
-            self.logger.info("执行post结束")
-        self.set_end()
-        self.model.save()
+    def update(self):
+        if 'files' in self.data['sync_task_log'].keys() or 'dirs' in self.data['sync_task_log'].keys():
+            self.send()
 
     def update_status(self):
         status = self.data["sync_task_log"]["task"]["status"]
