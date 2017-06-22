@@ -508,9 +508,10 @@ class RefRnaQc(Base):
                 values_new = values[:4]
                 values_new.append(sum(values[4:]))
                 # print values_new
-                for n,dis in enumerate(distributions):
-                    # print n
-                    data[dis] = values_new[n]
+                total = sum(values_new)
+                for n, dis in enumerate(distributions):
+                    # data[dis] = values_new[n]
+                    data[dis] = str(values_new[n]) + "(" + str(float("%0.4f" % (values_new[n] / total)) * 100) + "%)"
                 print data
                 data_list.append(data)
             # print data_list
@@ -618,7 +619,7 @@ class RefRnaQc(Base):
             # print "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
             data["mapping_reads"] = str(map_reads) + "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
             data["multiple_mapped"] = str(multiple) + "(" + str(float("%0.4f" % ( multiple/total_reads)) * 100) + "%" + ")"
-            data["uniq_mapped"] = str(total_reads - multiple) + "(" + str(float("%0.4f" % ( (total_reads - multiple)/total_reads)) * 100) + "%" + ")"
+            data["uniq_mapped"] = str(total_reads - multiple) + "(" + str(float("%0.4f" % ((total_reads - multiple)/total_reads)) * 100) + "%" + ")"
             # print data
             data_list.append(data)
             f.close()
