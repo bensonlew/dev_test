@@ -19,6 +19,7 @@ class ParallelAnnoModule(Module):
             {"name": "kegg_align_dir", "type": "infile", "format": "align.blast.blast_xml_dir"},
             {"name": "string_align_dir", "type": "infile", "format": "align.blast.blast_xml_dir"},
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
+            {"name": "length_file", "type": "infile", "format": "annotation.cog.cog_list"},  # 注释转录本序列的长度
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},
             {"name": "upper_limit", "type": "int", "default": 10},  # xml被拆为10份
             {"name": "out_cog", "type": "outfile", "format": "align.blast.blast_table"},
@@ -71,6 +72,7 @@ class ParallelAnnoModule(Module):
                 "blast_nr_xml": lst[0],  # "blast_string_xml": lst[1]
                 "blast_kegg_xml": lst[2],
                 "gene_file": self.option("gene_file"),
+                "length_file": self.option("length_file"),
                 "ref_genome_gtf": self.option("ref_genome_gtf"),
                 'go_annot': True,
                 'nr_annot': True
@@ -91,9 +93,18 @@ class ParallelAnnoModule(Module):
             "blastout": self.option("string_align_dir")
         }
         self.cat_cog.set_options(opts)
-        self.cat_cog.on("end", self.cat_output)
+        self.cat_cog.on("end", self.xml2table)
         self.cat_cog.run()
-    
+
+    def xml2table(self):
+        self.xml2table = self.add_tool("align.xml2table")
+        opts = {
+            "blastout": self.cat_cog.option("blast_result").prop["path"]
+        }
+        self.xml2table.set_options(opts)
+        self.xml2table.on("end", self.cat_output)
+        self.xml2table.run()
+
     def cat_output(self):
         for mod in self.anno_list:
             transcript_kegg_path = mod.kegg_annot.output_dir + "/kegg_table.xls"
@@ -106,10 +117,11 @@ class ParallelAnnoModule(Module):
             self.add2kegg_table(gene_kegg_path, self.output_dir + "/kegg.list", "gene")
             self.add2go_table(transcript_go_path, self.output_dir + "/go.list", "transcript")
             self.add2go_table(gene_go_path, self.output_dir + "/go.list", "gene")
-        xml = BlastXmlFile()
-        xml.set_path(self.cat_cog.option("blast_result").prop["path"])
-        xml.convert2table(self.output_dir + "/cog.list")
-        self.option("out_cog").set_path(self.output_dir + "/cog.list")
+        # xml = BlastXmlFile()
+        # xml.set_path(self.cat_cog.option("blast_result").prop["path"])
+        # xml.convert2table(self.output_dir + "/cog.list")
+        # self.option("out_cog").set_path(self.output_dir + "/cog.list")
+        self.option("out_cog").set_path(self.xml2table.option("blast_table").prop["path"])
         self.option("out_kegg").set_path(self.output_dir + "/kegg.list")
         self.option("out_go").set_path(self.output_dir + "/go.list")
         self.end()
@@ -159,4 +171,3 @@ class ParallelAnnoModule(Module):
                 string = t_id + "\t" + type_ + "\t" + ko_id + "\n"
                 file.write(string)
         file.close()
-

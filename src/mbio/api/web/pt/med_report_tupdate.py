@@ -31,7 +31,7 @@ class MedReportTupdate(UpdateStatus):
 
         if not self.update_info:
             return
-        for obj_id, collection_name in json.loads(self.update_info).items():
+        for obj_id, collection_name in self.update_info.items():
             obj_id = ObjectId(obj_id)
             collection = self.database[collection_name]
             if status != "start":

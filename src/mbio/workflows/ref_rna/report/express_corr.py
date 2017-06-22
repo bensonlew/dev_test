@@ -37,7 +37,7 @@ class ExpressCorrWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         if self.option("corr_pca") == "corr":
-            self.corr = self.add_tool('denovo_rna.mapping.correlation')
+            self.corr = self.add_tool('statistical.correlation')
         if self.option("corr_pca") == "pca":
             self.pca = self.add_tool('meta.beta_diversity.pca')
         

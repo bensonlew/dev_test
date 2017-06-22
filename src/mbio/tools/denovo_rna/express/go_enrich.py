@@ -102,6 +102,7 @@ class GoEnrichTool(Tool):
         try:
             self.logger.info('run_draw_go_graph')
             go_pvalue = self.get_go_pvalue_dict()
+            self.logger.info(go_pvalue)
             if go_pvalue:
                 draw_GO(go_pvalue, out=self.out_go_graph)
             self.end()

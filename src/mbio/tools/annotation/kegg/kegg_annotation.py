@@ -45,7 +45,7 @@ class KeggAnnotationAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '5G'
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -66,12 +66,15 @@ class KeggAnnotationTool(Tool):
     def __init__(self, config):
         super(KeggAnnotationTool, self).__init__(config)
         self._version = "2.0"
+        self.python = "program/Python/bin/python"
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
-        self.image_magick = self.config.SOFTWARE_DIR + "//program/ImageMagick/bin/convert"
+        self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation.py"
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run(self):
         super(KeggAnnotationTool, self).run()
         self.kegg_annotation()
+        self.end()
 
     def kegg_annotation(self):
         self.logger.info("运行kegg注释脚本")
@@ -79,16 +82,19 @@ class KeggAnnotationTool(Tool):
             taxonomy = self.taxonomy_path
         else:
             taxonomy = None
-        try:
-            kegg_anno = self.load_package('annotation.kegg_annotation')()
-            kegg_anno.pathSearch(blast_xml=self.option('blastout').prop['path'], kegg_table=self.output_dir + '/kegg_table.xls', taxonomy=taxonomy)
-            kegg_anno.pathTable(kegg_table=self.output_dir + '/kegg_table.xls', pathway_path=self.output_dir + '/pathway_table.xls', pidpath=self.work_dir + '/pid.txt')
-            kegg_anno.getPic(pidpath=self.work_dir + '/pid.txt', pathwaydir=self.output_dir + '/pathways', image_magick=self.image_magick)
-            kegg_anno.keggLayer(pathway_table=self.output_dir + '/pathway_table.xls', layerfile=self.output_dir + '/kegg_layer.xls', taxonomyfile=self.output_dir + '/kegg_taxonomy.xls')
-            self.logger.info("运行成功完成！")
-            self.option('kegg_table', self.output_dir + '/kegg_table.xls')
-            self.end()
-        except:
-            import traceback
-            self.logger.info('error:{}'.format(traceback.format_exc()))
-            self.set_error("运行kegg脚本出错！")
+        blast_xml = self.option('blastout').prop['path']
+        kegg_table = self.output_dir + '/kegg_table.xls'
+        pidpath = self.work_dir + '/pid.txt'
+        pathwaydir = self.output_dir + '/pathways'
+        image_magick = self.image_magick
+        pathway_table = self.output_dir + '/pathway_table.xls'
+        layerfile = self.output_dir + '/kegg_layer.xls'
+        taxonomyfile = self.output_dir + '/kegg_taxonomy.xls'
+        cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, blast_xml, None, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        command = self.add_command("kegg_anno", cmd).run()
+        self.wait()
+        if command.return_code == 0:
+            self.logger.info("运行kegg注释脚本完成")
+        else:
+            self.set_error("运行kegg注释脚本出错")
+        self.option('kegg_table', self.output_dir + '/kegg_table.xls')

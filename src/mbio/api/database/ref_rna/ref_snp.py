@@ -7,12 +7,7 @@ from bson.objectid import ObjectId
 # from cStringIO import StringIO
 # import bson.binary
 import datetime
-# import pandas
-# import numpy
-import json
 import glob
-import re
-import os
 
 
 class RefSnp(Base):
@@ -49,109 +44,95 @@ class RefSnp(Base):
         :param snp_id: SNP主表的ID
         :return:
         """
-        snp_files = glob.glob("{}/*".format(snp_anno))
+        snp_anno = glob.glob('{}/*'.format(snp_anno))[0]
+        snp_type_stat = {}
+        snp_pos_stat = {}
+        indel_pos_stat = {}
+        all_depth_stat = {}
+        all_freq_stat = {}
+        depth_list = ["0-30", "30-100", "100-200", "200-300", "300-400", "400-500", "500-"]
+        freq_list = ["0-20%", "20%-40%", "40%-60%", "60%-80%", "80%-100%"]
         graph_data_list = []
-        snp_types = []
-        sample_names = []
         chroms = set()
+        data_list = []
+        sample_names = ["CL1", "CL2", "CL5", "HFL3", "HFL4", "HFL6", "HGL1", "HGL3", "HGL4"]
+        for s in sample_names:
+            snp_type_stat[s] = {}
+            snp_pos_stat[s] = {}
+            indel_pos_stat[s] = {}
+            all_freq_stat[s] = [0, 0, 0, 0, 0]
+            # all_depth_stat[s] = depth_stat
+            all_depth_stat[s] = [0, 0, 0, 0, 0, 0, 0]
+        with open(snp_anno, "r") as f:
+            sample_names = f.readline().strip().split("\t")[10:]
+            # print f.next()
+            for line in f:
+                line = line.strip().split("\t")
+                sample_infos = line[10:]
+                # print sample_infos
+                chroms.add(line[0])
+                snp_type = line[3] + "/" + line[4]
+                data = {
+                    "snp_id": snp_id,
+                    "type": "snp" if len(line[3]) + len(line[4]) == 2 and "-" not in snp_type else "indel",
+                    "chrom": line[0],
+                    "start": line[1],
+                    "end": line[2],
+                    "ref": line[3],
+                    "alt": line[4],
+                    "reads_num": int(line[7]),
+                    # "mut_rate": 0.33,
+                    "anno": line[5],
+                    "gene": line[6],
+                    "mut_type": line[8],
+                    "mut_info": line[9],
+                    "snp_type": snp_type
+                }
+                for n, s in enumerate(sample_names):
+                    rate = sample_infos[n]
+                    # print sample_infos[n]
+                    mut_rate = 0
+                    depth_num = -1
+                    single_and_all = '.'
+                    if rate != './.' and rate != '0/0':
+                        single_and_all = rate.split("/")[1] + "/" + line[7]
+                        mut_rate = round(int(rate.split("/")[0])/int(rate.split("/")[1]), 4)
+                        # 统计各样本的突变频率数目
+                        all_freq_stat[s] = self.get_stat_dict(mut_rate, all_freq_stat[s])
+                        # print mut_rate
+                        #  统计各样本的SNP类型数目
+                        if not '-' in snp_type and len(snp_type) == 3:
+                            snp_type_stat[s] = self.type_stat(snp_type, snp_type_stat[s])
+                        depth_num = int(rate.split("/")[1])
+
+                        # 统计SNP/Indel位置信息
+                        if data["type"] == "snp":
+                            snp_pos_stat[s] = self.type_stat(data["anno"], snp_pos_stat[s])
+                        else:
+                            indel_pos_stat[s] = self.type_stat(data["anno"], indel_pos_stat[s])
+                    data[s + "_mut_rate"] = mut_rate
+                    data[s + "_reads_rate"] = single_and_all
+                    all_depth_stat[s] = self.get_depth_stat(depth_num, all_depth_stat[s])
+                data_list.append(data)
+                # #统计reads深度
+        snp_types = []
         distributions = []
-        print snp_files
-        for sf in snp_files:
-            data_list = []
-            with open(sf, "r") as f:
-                snp_type_stat = {}
-                snp_pos_stat = {}
-                indel_pos_stat = {}
-                depth_stat = {"<30": 0, "30-100": 0, "100-200": 0, "200-300": 0, "300-400": 0, "400-500": 0, ">500": 0}
-                f.readline()
-                # print f.next().split("\t")
-                sample_name = os.path.basename(sf).split(".")[0]
-                sample_names.append(sample_name)
-                print sample_name
-                for line in f:
-                    # print len(line)
-                    line = line.strip().split("\t")
-                    snp_type = line[3] + "/" + line[4]
-                    data = {
-                        "snp_id": snp_id,
-                        "specimen_name": sample_name,
-                        "type": "snp" if len(line[3]) + len(line[4]) == 2 and "-" not in snp_type else "indel",
-                        "chrom": line[0],
-                        "start": line[1],
-                        "end": line[2],
-                        "ref": line[3],
-                        "alt": line[4],
-                        "reads_num": int(line[5]),
-                        "mut_rate": 0.33,
-                        "anno": line[6],
-                        "gene": line[7],
-                        "mut_type": line[8],
-                        "mut_info": line[9],
-                        "snp_type": snp_type
-                    }
-                    chroms.add(line[0])
-                    data_list.append(data)
-                    if "-" not in snp_type and len(snp_type) < 4:
-                        if snp_type in snp_type_stat:
-                            snp_type_stat[snp_type] += 1
-                        else:
-                            snp_type_stat[snp_type] = 1
-                    # 统计reads深度
-                    depth_num = int(line[5])
-                    if depth_num < 31:
-                        depth_stat["<30"] += 1
-                    elif 30 < depth_num < 101:
-                        depth_stat["30-100"] += 1
-                    elif 100 < depth_num < 201:
-                        depth_stat["100-200"] += 1
-                    elif 200 < depth_num < 301:
-                        depth_stat["200-300"] += 1
-                    elif 300 < depth_num < 401:
-                        depth_stat["300-400"] += 1
-                    elif 400 < depth_num < 501:
-                        depth_stat["400-500"] += 1
-                    else:
-                        depth_stat[">500"] += 1
-                    # 统计SNP位置信息/区域分布
-                    if data["type"] == "snp":
-                        if data["anno"] in snp_pos_stat:
-                            snp_pos_stat[data["anno"]] += 1
-                        else:
-                            snp_pos_stat[data["anno"]] = 1
-                    else:
-                        if data["anno"] in indel_pos_stat:
-                            indel_pos_stat[data["anno"]] += 1
-                        else:
-                            indel_pos_stat[data["anno"]] = 1
-            import time
-            time.sleep(20)
+        for s in sample_names:
             graph_data = {
                 "snp_id": snp_id,
-                "specimen_name": sample_name,
-                "snp_pos_stat": snp_pos_stat,
-                "indel_pos_stat": indel_pos_stat,
-                "type_stat": snp_type_stat,
-                # "depth_stat": depth_stat,
-                "freq_stat": {}
+                "specimen_name": s,
+                "snp_pos_stat": snp_pos_stat[s],
+                "indel_pos_stat": indel_pos_stat[s],
+                "type_stat": snp_type_stat[s],
+                "depth_stat": dict(zip(depth_list, all_depth_stat[s])),
+                "freq_stat": dict(zip(freq_list, all_freq_stat[s]))
             }
-            snp_types = snp_type_stat.keys()
-            print snp_type_stat
-            try:
-                collection = self.db["sg_snp_detail"]
-                collection.insert_many(data_list)
-            except Exception, e:
-                print("导入snp结果统计信息出错:%s" % e)
-            else:
-                print("导入snp结果统计信息成功")
             graph_data_list.append(graph_data)
-            # print depth_stat
-            # print
-            # print indel_pos_stat
-        # print graph_data_list
-            distributions = snp_pos_stat.keys()
+            snp_types = snp_type_stat[s].keys()
+            distributions = snp_pos_stat[s].keys()
         try:
-            # collection = conn["sg_snp_detail"]
-            # collection.insert_many(data_list)
+            collection = self.db["sg_snp_detail"]
+            collection.insert_many(data_list)
             graph_collection = self.db["sg_snp_graphic"]
             graph_collection.insert_many(graph_data_list)
             main_collection = self.db["sg_snp"]
@@ -160,3 +141,44 @@ class RefSnp(Base):
             print("导入SNP统计信息出错:%s" % e)
         else:
             print("导入SNP统计信息出错")
+
+    def get_depth_stat(self, depth_num, target_list):
+        if depth_num == -1:
+            pass
+        else:
+            if depth_num < 31:
+                target_list[0] += 1
+            elif 30 < depth_num < 101:
+                target_list[1] += 1
+            elif 100 < depth_num < 201:
+                target_list[2] += 1
+            elif 200 < depth_num < 301:
+                target_list[3] += 1
+            elif 300 < depth_num < 401:
+                target_list[4] += 1
+            elif 400 < depth_num < 501:
+                target_list[5] += 1
+            else:
+                target_list[6] += 1
+        # print target_dict
+        return target_list
+
+    def get_stat_dict(self, value, target_dict):
+        if value < 0.21:
+            target_dict[0] += 1
+        elif 0.2 < value < 0.41:
+            target_dict[1] += 1
+        elif 0.4 < value < 0.61:
+            target_dict[2] += 1
+        elif 0.6 < value < 0.81:
+            target_dict[3] += 1
+        else:
+            target_dict[4] += 1
+        return target_dict
+
+    def type_stat(self, dict_key, target_dict):
+        if dict_key in target_dict:
+            target_dict[dict_key] += 1
+        else:
+            target_dict[dict_key] = 1
+        return target_dict

@@ -31,11 +31,11 @@ class RefAnnotation(Base):
             raise Exception("新序列注释统计文件和venn图文件夹不存在")
         blast_id = self.add_annotation_blast(name=None, params=params, stat_id=stat_id)
         blast_path = new_anno_path + "/anno_stat/blast"
-        if os.apth.exists(blast_path):
+        if os.path.exists(blast_path):
             for db in ["nr", "swissprot"]:
-                blast_path = blast_path + '/blast_' + db + '.xls'
-                gene_blast_path = blast_path + '/gene_blast_' + db + '.xls'
-                self.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="transcript", database=db, blast_path=blast_path)
+                trans_blast_path = blast_path + "/" + db + '.xls'
+                gene_blast_path = blast_path + '/gene_' + db + '.xls'
+                self.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="transcript", database=db, blast_path=trans_blast_path)
                 self.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="gene", database=db, blast_path=gene_blast_path)
         else:
             raise Exception("没有blast的结果文件夹")
@@ -48,17 +48,19 @@ class RefAnnotation(Base):
             gene_similar_path = nr_path + "/gene_nr_similar.xls"
             self.add_annotation_nr_pie(nr_id=nr_id, evalue_path=evalue_path, similar_path=similar_path, seq_type="new", anno_type="transcript")
             self.add_annotation_nr_pie(nr_id=nr_id, evalue_path=gene_evalue_path, similar_path=gene_similar_path, seq_type="new", anno_type="gene")
-        raise Exception("新序列NR注释结果文件不存在")
+        else:
+            raise Exception("新序列NR注释结果文件不存在")
         swissprot_id = self.add_annotation_swissprot(name=None, params=params, stat_id=stat_id)
         swissprot_path = new_anno_path + "/anno_stat/blast_swissprot_statistics"
-        if os.apth.exists(swissprot_path):
+        if os.path.exists(swissprot_path):
             evalue_path = swissprot_path + "/swissprot_evalue.xls"
             similar_path = swissprot_path + "/swissprot_similar.xls"
             gene_evalue_path = swissprot_path + "/gene_swissprot_evalue.xls"
             gene_similar_path = swissprot_path + "/gene_swissprot_similar.xls"
             self.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=evalue_path, similar_path=similar_path, seq_type="new", anno_type="transcript")
             self.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=gene_evalue_path, similar_path=gene_similar_path, seq_type="new", anno_type="gene")
-        raise Exception("新序列Swiss-Prot注释结果文件不存在")
+        else:
+            raise Exception("新序列Swiss-Prot注释结果文件不存在")
         pfam_id = self.add_annotation_pfam(name=None, params=params, stat_id=stat_id)
         gene_pfam_path = new_anno_path + "/anno_stat/pfam_stat/gene_pfam_domain"
         if os.path.exists(pfam_path) and os.path.exists(gene_pfam_path):
@@ -70,12 +72,12 @@ class RefAnnotation(Base):
             raise Exception("pfam注释结果文件不存在")
         ref_stat_path = ref_anno_path + "/anno_stat/all_annotation_statistics.xls"
         ref_venn_path = ref_anno_path + "/anno_stat/venn"
-        if oa.path.exists(ref_stat_path) and os.path.exists(ref_venn_path):
+        if os.path.exists(ref_stat_path) and os.path.exists(ref_venn_path):
             stat_id = self.add_annotation_stat(name=None, params=params, seq_type="ref" , database="cog,go,kegg")
             self.add_annotation_stat_detail(stat_id=stat_id, stat_path=ref_stat_path, venn_path=ref_venn_path)
         else:
             raise Exception("已知序列注释统计文件和venn图文件夹不存在")
-        query_id = self.add_annotation_query(name=None, params=params)
+        query_id = self.add_annotation_query(name=None, params=params, stat_id=stat_id)
         query_path = ref_anno_path + "/anno_stat/all_annotation.xls"
         if os.path.exists(query_path):
             self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
@@ -106,19 +108,21 @@ class RefAnnotation(Base):
 
         def add_go(go_id, go_path, gene_go_path, seq_type):
             if os.path.exists(go_path) and os.path.exists(gene_go_path):
-                for i in range(2, 5):
-                    level = go_path + "/go{}level.xls".format(i)
-                    gene_level = gene_go_path + "/gene_go{}level.xls".format{i}
-                    self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=i, level_path=level)
-                    self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=i, level_path=gene_level)
+                # for i in range(2, 5):
+                #     level = go_path + "/go{}level.xls".format(i)
+                #     gene_level = gene_go_path + "/gene_go{}level.xls".format(i)
+                #     self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=i, level_path=level)
+                #     self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=i, level_path=gene_level)
                 stat_level2 = go_path + "/go12level_statistics.xls"
                 stat_level3 = go_path + "/go123level_statistics.xls"
-                stat_level4 = go_path + "/go124level_statistics.xls"
+                stat_level4 = go_path + "/go1234level_statistics.xls"
                 gene_stat_level2 = gene_go_path + "/gene_go12level_statistics.xls"
                 gene_stat_level3 = gene_go_path + "/gene_go123level_statistics.xls"
                 gene_stat_level4 = gene_go_path + "/gene_go1234level_statistics.xls"
                 gos_path = go_path + "/query_gos.list"
                 gene_gos_path = gene_go_path + "/gene_gos.list"
+                self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, level_path=stat_level2)
+                self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=2, level_path=gene_stat_level2)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, go_path=stat_level2)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=3, go_path=stat_level3)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=4, go_path=stat_level4)
@@ -138,15 +142,15 @@ class RefAnnotation(Base):
         add_go(go_id=go_id, go_path=go_path, gene_go_path=gene_go_path, seq_type="new")
 
         def add_kegg(kegg_id, kegg_path, gene_kegg_path, seq_type):
-            if os.apth.exists(kegg_path) and os.path.exists(gene_kegg_path):
+            if os.path.exists(kegg_path) and os.path.exists(gene_kegg_path):
                 layer_path = kegg_path + "/kegg_layer.xls"
                 pathway_path = kegg_path + "/pathway_table.xls"
                 png_path = kegg_path + "/pathways"
                 table_path = kegg_path + "/kegg_table.xls"
                 gene_layer_path = gene_kegg_path + "/gene_kegg_layer.xls"
                 gene_pathway_path = gene_kegg_path + "/gene_pathway_table.xls"
-                gene_kegg_path = gene_kegg_path + "/gene_kegg_table.xls"
                 gene_png_path = gene_kegg_path + "/gene_pathway"
+                gene_table_path = gene_kegg_path + "/gene_kegg_table.xls"
                 self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", categories_path=layer_path)
                 self.add_annotation_kegg_categories(kegg_id=kegg_id, seq_type=seq_type, anno_type="gene", categories_path=gene_layer_path)
                 self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type=seq_type, anno_type="transcript", level_path=pathway_path, png_dir=png_path)
@@ -363,60 +367,76 @@ class RefAnnotation(Base):
         data_list = []
         with open(blast_path, 'r') as f:
             lines = f.readlines()
-            best, filte = [], []
-            for i in range(0, len(lines)):
-                line = lines[i].strip().split("\t")
-                hit = line[10]
-                query = line[5]
-                index = i
-                for j in range(i+1, len(lines)):
-                    second = lines[j].strip().split("\t")
-                    second_hit = second[10]
-                    second_query = second[5]
-                    if query == second_query:
-                        if second_hit != hit:
-                            index = j
-                            break
+            flag, hit = None, None
+            for line in lines[1:]:
+                line = line.strip().split('\t')
+                query_name = line[5]
+                hit_name = line[10]
+                if flag == query_name:
+                    if hit == hit_name:
+                        pass
                     else:
-                        index = j
-                        break
-                best.append(index)
-            for x in best:
-                if x not in filte:
-                    filte.append(x)
-            for i in filte:
-                line = lines[i].strip().split('\t')
-                data = [
-                    ('blast_id', blast_id),
-                    ('seq_type', seq_type),
-                    ('anno_type', anno_type),
-                    ('database', database),
-                    ('score', float(line[0])),
-                    ('e_value', float(line[1])),
-                    ('hsp_len', int(line[2])),
-                    ('identity_rate', round(float(line[3]), 4)),
-                    ('similarity_rate', round(float(line[4]), 4)),
-                    ('query_id', line[5]),
-                    ('q_len', int(line[6])),
-                    ('q_begin', line[7]),
-                    ('q_end', line[8]),
-                    ('q_frame', line[9]),
-                    ('hit_name', line[10]),
-                    ('hit_len', int(line[11])),
-                    ('hsp_begin', line[12]),
-                    ('hsp_end', line[13]),
-                    ('hsp_frame', line[14]),
-                    ('description', line[15])
-                ]
-                data = SON(data)
-                data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_blast_detail']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入注释统计信息：%s出错!" % (blast_path))
-        else:
-            self.bind_object.logger.info("导入注释统计信息：%s成功!" % (blast_path))
+                        flag = query_name
+                        hit = hit_name
+                        data = {
+                            'blast_id': blast_id,
+                            'seq_type': seq_type,
+                            'anno_type': anno_type,
+                            'database': database,
+                            'score': float(line[0]),
+                            'e_value': float(line[1]),
+                            'hsp_len': int(line[2]),
+                            'identity_rate': round(float(line[3]), 4),
+                            'similarity_rate': round(float(line[4]), 4),
+                            'query_id': line[5],
+                            'q_len': int(line[6]),
+                            'q_begin': line[7],
+                            'q_end': line[8],
+                            'q_frame': line[9],
+                            'hit_name': line[10],
+                            'hit_len': int(line[11]),
+                            'hsp_begin': line[12],
+                            'hsp_end': line[13],
+                            'hsp_frame': line[14],
+                            'description': line[15]
+                        }
+                        collection = self.db['sg_annotation_blast_detail']
+                        collection.insert_one(data).inserted_id
+                else:
+                    flag = query_name
+                    hit = hit_name
+                    data = {
+                        'blast_id': blast_id,
+                        'seq_type': seq_type,
+                        'anno_type': anno_type,
+                        'database': database,
+                        'score': float(line[0]),
+                        'e_value': float(line[1]),
+                        'hsp_len': int(line[2]),
+                        'identity_rate': round(float(line[3]), 4),
+                        'similarity_rate': round(float(line[4]), 4),
+                        'query_id': line[5],
+                        'q_len': int(line[6]),
+                        'q_begin': line[7],
+                        'q_end': line[8],
+                        'q_frame': line[9],
+                        'hit_name': line[10],
+                        'hit_len': int(line[11]),
+                        'hsp_begin': line[12],
+                        'hsp_end': line[13],
+                        'hsp_frame': line[14],
+                        'description': line[15]
+                    }
+                    collection = self.db['sg_annotation_blast_detail']
+                    collection.insert_one(data).inserted_id
+        self.bind_object.logger.info("导入blast信息：%s成功!" % (blast_path))
+        # try:
+        #     collection = self.db['sg_annotation_blast_detail']
+        #     collection.insert_many(data_list)
+        # except Exception, e:
+        #     raise Exception("导入blast信息：%s出错!" % (blast_path))
+        # else:
+        #     self.bind_object.logger.info("导入blast信息：%s成功!" % (blast_path))
 
     @report_check
     def add_annotation_nr(self, name=None, params=None, stat_id=None):
@@ -628,9 +648,9 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_pfam_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            self.logger.info.error("导入pfam注释信息:%s失败！" % pfam_path)
+            self.bind_object.logger.info("导入pfam注释信息:%s失败！" % pfam_path)
         else:
-            self.logger.info.info("导入pfam注释信息:%s成功" % pfam_path)
+            self.bind_object.logger.info("导入pfam注释信息:%s成功" % pfam_path)
 
     @report_check
     def add_annotation_pfam_bar(self, pfam_id, pfam_path, seq_type, anno_type):
@@ -667,9 +687,9 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_pfam_bar']
             collection.insert_many(data_list)
         except Exception, e:
-            raise Exception("导入pfam注释信息:%失败！" % pfam_path)
+            raise Exception("导入pfam注释信息:%s失败！" % pfam_path)
         else:
-            self.bind_object.logger.info("导入pfam注释信息:%成功！" % pfam_path)
+            self.bind_object.logger.info("导入pfam注释信息:%s成功！" % pfam_path)
 
     @report_check
     def add_annotation_cog(self, name=None, params=None):
@@ -834,8 +854,8 @@ class RefAnnotation(Base):
                     ('goterm', line[0]),
                     ('goterm_2', line[1]),
                     ('goid_2', line[2]),
-                    ('seq_number', int(line[-2])),
-                    ('percent', round(line[-2], 4)),
+                    ('seq_number', int(line[-3])),
+                    ('percent', round(float(line[-2]), 4)),
                     ('seq_list', line[-1])
                 ]
                 if level >= 3:
@@ -969,8 +989,8 @@ class RefAnnotation(Base):
                     ('kegg_id', kegg_id),
                     ('seq_type', seq_type),
                     ('anno_type', anno_type),
-                    ('first_catergory', line[0]),
-                    ('second_catergory', line[1]),
+                    ('first_category', line[0]),
+                    ('second_category', line[1]),
                     ('num', int(line[2])),
                     ('seq_list', line[3]),
                 ]
@@ -1005,7 +1025,8 @@ class RefAnnotation(Base):
                 line = line.strip('\n').split('\t')
                 fs = gridfs.GridFS(self.db)
                 pid = re.sub('path:', '', line[0])
-                pngid = fs.put(open(png_dir + '/' + pid + '.pdf', 'rb'))
+                pdfid = fs.put(open(png_dir + '/' + pid + '.pdf', 'rb'))
+                graph_png_id = fs.put(open(png_dir + '/' + pid + '.png', 'rb'))
                 insert_data = {
                     'kegg_id': kegg_id,
                     'seq_type': seq_type,
@@ -1016,7 +1037,8 @@ class RefAnnotation(Base):
                     'pathway_definition': line[3],
                     'number_of_seqs': int(line[4]),
                     'seq_list': line[5],
-                    'graph_id': pngid,
+                    'graph_id': pdfid,
+                    'graph_png_id': graph_png_id
                 }
                 data_list.append(insert_data)
         try:
@@ -1065,6 +1087,7 @@ class RefAnnotation(Base):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if not isinstance(stat_id, ObjectId):
+            print stat_id
             if isinstance(stat_id, types.StringTypes):
                 stat_id = ObjectId(stat_id)
             else:
@@ -1112,43 +1135,49 @@ class RefAnnotation(Base):
                 except:
                     data.append(('length', None))
                 try:
-                    data.append(('nr_hit_names', line[13]))
-                except:
-                    data.append(('nr_hit_names', None))
-                try:
-                    data.append(('sp_hit_names', line[14]))
-                except:
-                    data.append(('sp_hit_names', None))
-                try:
                     data.append(('cog', line[4]))
+                    data.append(('cog_description', line[7]))
                 except:
                     data.append(('cog', None))
+                    data.append(('cog_description', None))
                 try:
                     data.append(('nog', line[5]))
+                    data.append(('nog_description', line[8]))
                 except:
                     data.append(('nog', None))
+                    data.append(('nog_description', None))
                 try:
-                    data.append(('kog', line[5]))
+                    data.append(('kog', line[6]))
+                    data.append(('kog_description', line[9]))
                 except:
                     data.append(('kog', None))
+                    data.append(('kog_description', None))
                 try:
-                    data.append(('go_ids', line[12]))
-                except:
-                    data.append(('go_ids', None))
-                try:
-                    data.append(('ko_id', line[7]))
-                    data.append(('ko_name', line[8]))
-                    data.append(('pathway_ids', line[9]))
+                    data.append(('ko_id', line[10]))
+                    data.append(('ko_name', line[11]))
                 except:
                     data.append(('ko_id', None))
                     data.append(('ko_name', None))
-                    data.append(('pathway_ids', None))
                 try:
-                    data.append(('pfam_id', line[10]))
-                    data.append(('domain', line[11]))
+                    data.append(('pathways', line[12]))
                 except:
-                    data.append(('pfam_id', None))
-                    data.append(('domain', None))
+                    data.append(('pathways', None))
+                try:
+                    data.append(('pfam', line[13]))
+                except:
+                    data.append(('pfam', None))
+                try:
+                    data.append(('go', line[14]))
+                except:
+                    data.append(('go', None))
+                try:
+                    data.append(('nr', line[15]))
+                except:
+                    data.append(('nr', None))
+                try:
+                    data.append(('swissprot', line[16]))
+                except:
+                    data.append(('swissprot', None))
                 data = SON(data)
                 data_list.append(data)
         try:

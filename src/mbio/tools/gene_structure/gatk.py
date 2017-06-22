@@ -56,7 +56,7 @@ class GatkAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = '200G'
+        self._memory = '40G'
         
     def end(self):
       

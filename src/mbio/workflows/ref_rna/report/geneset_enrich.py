@@ -64,8 +64,10 @@ class GenesetEnrichWorkflow(Workflow):
         api_geneset = self.api.ref_rna_geneset
         output_file = glob.glob("{}/*.xls".format(self.output_dir))
         png_file = glob.glob("{}/*.png".format(self.output_dir))
+        genset_list_path = self.option("genset_list")
+        all_list_path = self.option("all_list")
         if self.option("anno_type") == "kegg":
-            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0])
+            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0], genset_list_path, all_list_path)
         else:
             api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
             if len(png_file) == 1:

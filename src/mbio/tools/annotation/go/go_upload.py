@@ -17,7 +17,8 @@ class GoUploadAgent(Agent):
         super(GoUploadAgent, self).__init__(parent)
         options = [
             {"name": "gos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},
-            {"name": "go2level_out", "type": "outfile", "format": "annotation.go.level2"}
+            {"name": "go2level_out", "type": "outfile", "format": "annotation.go.level2"},
+            {"name": "golist_out", "type": "outfile", "format": "annotation.go.go_list"}
         ]
         self.add_option(options)
         self.step.add_steps('go_annotation')
@@ -54,9 +55,9 @@ class GoUploadAgent(Agent):
             ["./go1234level_statistics.xls", "xls", "Go annotation on 4 levels"],
             ["./go123level_statistics.xls", "xls", "Go annotation on 3 levels"],
             ["./go12level_statistics.xls", "xls", "Go annotation on 2 levels"],
-            ["./go2level.xls", "xls", "Go annotation on level 2"],
-            ["./go3level.xls", "xls", "Go annotation on level 3"],
-            ["./go4level.xls", "xls", "Go annotation on level 4"]
+            # ["./go2level.xls", "xls", "Go annotation on level 2"],
+            # ["./go3level.xls", "xls", "Go annotation on level 3"],
+            # ["./go4level.xls", "xls", "Go annotation on level 4"]
         ])
         super(GoUploadAgent, self).end()
 
@@ -78,6 +79,7 @@ class GoUploadTool(Tool):
 
     def run_annotation(self):
         self.option("gos_list_upload").get_transcript_anno(outdir=self.work_dir + "/query_gos.list")
+        self.option("golist_out", self.work_dir + "/query_gos.list")
         cmd = '%s %s %s %s %s %s' % (self.python, self.goAnnot, self.work_dir + "/query_gos.list", 'localhost', self.b2g_user, self.b2g_password)  # 10.100.203.193
         if os.path.exists(self.output_dir + '/query_gos.list'):
             os.remove(self.output_dir + '/query_gos.list')
@@ -101,7 +103,8 @@ class GoUploadTool(Tool):
                     self.output_dir + '/go12level_statistics.xls')
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
-        self.run_gosplit()
+        # self.run_gosplit()
+        self.end()
 
     def run_gosplit(self):
         cmd = '{} {}'.format(self.python, self.goSplit)

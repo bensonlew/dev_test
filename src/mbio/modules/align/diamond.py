@@ -117,9 +117,12 @@ class DiamondModule(Module):
 
     def set_output(self):
         self.set_step(event={'data': {'end': self.step.cat_blastout}})
-        for root, dirs, files in os.walk(self.output_dir):
-            for names in files:
-                os.remove(os.path.join(root, names))
+        # for root, dirs, files in os.walk(self.output_dir):
+        #     for names in files:
+        #         os.remove(os.path.join(root, names))
+        for file in os.listdir(self.output_dir):
+            file_path = os.path.join(self.output_dir, file)
+            os.remove(file_path)
         if self.option('outfmt') == 6:
             from mbio.files.align.blast.blast_xml import BlastXmlFile
             xml = BlastXmlFile()

@@ -12,21 +12,15 @@ import pymongo
 from biocluster.config import Config
 
 
-# class RefAssembly(object):
-#     def __init__(self):
-#         super(RefAssembly, self).__init__()
-#         self.db = pymongo.MongoClient(host="192.168.10.189", port=27017).tsanger_ref_rna
 class RefAssembly(Base):
     def __init__(self, bind_object):
         super(RefAssembly, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
-    def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None):
+    def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None, Statistics_path=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        # task_id = "tsg_2000"
-        # project_sn = "20000000"
         merged_list = []
         merged_gtf_path = dict()
         merged_gtf_path["gtf"] = merged_path + '/merged.gtf'
@@ -52,6 +46,10 @@ class RefAssembly(Base):
         }
         collection = self.db['sg_transcripts']
         transcript_id = collection.insert_one(insert_data).inserted_id
+        code_files = Statistics_path + '/code_num.txt'
+        self.add_transcripts_step(transcript_id=transcript_id, Statistics_path=Statistics_path)
+        self.add_transcripts_relations(transcript_id=transcript_id, Statistics_path=Statistics_path)
+        self.add_transcripts_seq_type(transcript_id=transcript_id, code_file=code_files)
         return transcript_id
 
     def add_transcripts_step(self, transcript_id, Statistics_path):
@@ -90,12 +88,10 @@ class RefAssembly(Base):
         try:
             collection = self.db['sg_transcripts_step']
             collection.insert_many(data_list)
-        except Exception:
-            # print ("失败")
-            self.bind_object.logger.error("导入步长%s信息失败!" % (Statistics_path))
+        except:
+            raise Exception("导入步长信息失败!")
         else:
-            # print ("成功")
-            self.bind_object.logger.info("导入步长%s信息成功!" % (Statistics_path))
+            self.bind_object.logger.info("导入步长信息成功!")
 
     def add_transcripts_relations(self, transcript_id, Statistics_path):
 
@@ -137,11 +133,9 @@ class RefAssembly(Base):
             collection.insert_many(data_list)
             collection = self.db['sg_transcripts']
             collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'type_of_trans_or_genes': name_list}})
-        except Exception:
-            # print ("失败")
-            self.bind_object.logger.error("导入class_code信息：失败!")
+        except:
+            raise Exception("导入class_code信息：失败!")
         else:
-            # print ("成功")
             self.bind_object.logger.info("导入class_code信息：成功!")
 
     def add_transcripts_seq_type(self, transcript_id, code_file):
@@ -154,6 +148,7 @@ class RefAssembly(Base):
             raise Exception('{}所指定的文件不存在，请检查！'.format(code_file))
         data_list = []
         code_list = []
+        all_code = ['=', 'c', 'j', 'e', 'i', 'o', 'p', 'r', 'u', 'x', 's', '.']
         with open(code_file, "r") as fr:
             for line in fr:
                 new_gene_list = []
@@ -176,17 +171,28 @@ class RefAssembly(Base):
                 ]
                 data = SON(data)
                 data_list.append(data)
+        for code in all_code:
+            if code in code_list:
+                pass
+            else:
+                data = [
+                    ('transcripts_id', transcript_id),
+                    ('class_code', code),
+                    ('num', 0),
+                    ('type', "transcripts"),
+                    ('gene_list', []),
+                ]
+                data = SON(data)
+                data_list.append(data)
         try:
             collection = self.db['sg_transcripts_seq_type']
             collection.insert_many(data_list)
             collection = self.db['sg_transcripts']
             collection.update({'_id': ObjectId(transcript_id)}, {'$set': {'seq_type': code_list}})
-        except Exception:
-            # print ("失败")
-            self.bind_object.logger.error("导入class_code信息：%s失败!" % (code_file))
+        except:
+            raise Exception("导入class_code信息：%s失败!")
         else:
-            # print ("成功")
-            self.bind_object.logger.info("导入class_code信息：%s成功!" % (code_file))
+            self.bind_object.logger.info("导入class_code信息成功!")
 
 if __name__ == "__main__":
 
