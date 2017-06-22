@@ -364,7 +364,7 @@ class RefRnaQc(Base):
                 data = {
                     "saturation_id": rpkm_id,
                     "specimen_name": sample_name,
-                    "categaries": sample_categaries[sample_name],
+                    "categories": sample_categaries[sample_name],
                     "column1": line_list[0],
                     "column2": line_list[1],
                     "column3": line_list[2],
@@ -395,7 +395,7 @@ class RefRnaQc(Base):
                         "column4": "[3.5-15)=" + all_num[3][4:],
                         "column6": ">=60=" + all_num[5][4:],
                         "column1": "[0-0.3)=" + all_num[0][4:],
-                        "column3": "[0.6-3.5)=" + all_num[2][2:],
+                        "column3": "[0.6-3.5)=" + all_num[2][4:],
                         "column2": "[0.3-0.6)=" + all_num[1][4:]
                     }
         return categaries
@@ -508,9 +508,10 @@ class RefRnaQc(Base):
                 values_new = values[:4]
                 values_new.append(sum(values[4:]))
                 # print values_new
-                for n,dis in enumerate(distributions):
-                    # print n
-                    data[dis] = values_new[n]
+                total = sum(values_new)
+                for n, dis in enumerate(distributions):
+                    # data[dis] = values_new[n]
+                    data[dis] = str(values_new[n]) + "(" + str(float("%0.4f" % (values_new[n] / total)) * 100) + "%)"
                 print data
                 data_list.append(data)
             # print data_list
@@ -618,8 +619,48 @@ class RefRnaQc(Base):
             # print "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
             data["mapping_reads"] = str(map_reads) + "(" + str(float("%0.4f" % ( map_reads/total_reads)) * 100) + "%" + ")"
             data["multiple_mapped"] = str(multiple) + "(" + str(float("%0.4f" % ( multiple/total_reads)) * 100) + "%" + ")"
-            data["uniq_mapped"] = str(total_reads - multiple) + "(" + str(float("%0.4f" % ( (total_reads - multiple)/total_reads)) * 100) + "%" + ")"
+            data["uniq_mapped"] = str(total_reads - multiple) + "(" + str(float("%0.4f" % ((total_reads - multiple)/total_reads)) * 100) + "%" + ")"
             # print data
+            data_list.append(data)
+            f.close()
+        try:
+            collection = self.db["sg_specimen_mapping"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            print("导入比对结果统计信息出错:%s" % e)
+        else:
+            print("导入比对结果统计信息成功")
+
+    @report_check
+    def add_hisat_mapping_stat(self, stat_file):
+        files = glob.glob("{}/*".format(stat_file))
+        print files
+        data_list = []
+        for fs in files:
+            specimen_name = os.path.basename(fs).split(".")[0]
+            # print specimen_name
+            f = open(fs, "r")
+            f.readline()
+            total_reads = f.next().split()[0]
+            f.next()
+            unmap_reads = f.next().split()[0]
+            map_reads = int(total_reads) - int(unmap_reads)
+            map_reads = str(map_reads) + "(" + str(float("%0.4f" % (map_reads/int(total_reads))) * 100) + "%" + ")"
+            uniq_info = f.next().split()
+            uniq_mapped = uniq_info[0] + uniq_info[1]
+            multi_info = f.next().split()
+            multi_mapped = multi_info[0] + multi_info[1]
+            print total_reads, map_reads, uniq_mapped, multi_mapped
+            data = {
+                "project_sn": self.bind_object.sheet.project_sn,
+                "task_id": self.bind_object.sheet.id,
+                "type": "genome",
+                "specimen_name": specimen_name,
+                "total_reads": total_reads,
+                "mapping_reads": map_reads,
+                "multiple_mapped": multi_mapped,
+                "uniq_mapped": uniq_mapped
+            }
             data_list.append(data)
             f.close()
         try:
