@@ -191,19 +191,13 @@ class RefAnnotationModule(Module):
         else:
             opts['pfam_domain'] = None
         if self.option("gos_list_upload").is_set:
-            opts['gos_list'] = self.go_upload.option('golist_out')
+            opts['gos_list'] = self.go_upload.option('golist_out').prop['path']
         else:
-            opts['gos_list'] = self.go_annot.option('golist_out')
+            opts['gos_list'] = self.go_annot.option('golist_out').prop['path']
         if self.option('blast_kegg_xml').is_set:
             opts['kegg_table'] = self.kegg_annot.option('kegg_table').prop['path']
         if self.option('kos_list_upload').is_set:
             opts['kegg_table'] = self.kegg_upload.option('kegg_table').prop['path']
-        # if self.option('blast_string_xml').is_set:
-        #     opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
-        # elif self.option('blast_string_table').is_set:
-        #     opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
-        # else:
-        #     opts['cog_list'] = None
         if 'cog' in self.anno_database:
             opts['cog_list'] = self.string_cog.option('cog_list').prop['path']
         else:
@@ -269,13 +263,10 @@ class RefAnnotationModule(Module):
         elif event['data'] == 'anno_stat':
             self.linkdir(obj.output_dir, 'anno_stat')
             if 'kegg' in self.anno_database:
-                # self.option('gene_kegg_table').set_path(obj.option('gene_kegg_anno_table').prop['path'])
-                self.option('gene_kegg_table', self.output_dir + '/anno_stat/kegg_stat/gene_kegg_table.xls')
+                self.option('gene_kegg_table').set_path(self.output_dir + '/anno_stat/kegg_stat/gene_kegg_table.xls')
             if 'go' in self.anno_database:
-                # self.option('gene_go_list').set_path(obj.option('gene_go_list').prop['path'])
-                # self.option('gene_go_level_2').set_path(obj.option('gene_go_level_2').prop['path'])
-                self.option('gene_go_list', self.output_dir + '/anno_stat/go_stat/gene_gos.list')
-                self.option('gene_go_level_2', self.output_dir + '/anno_stat/go_stat/gene_go12level_statistics.xls')
+                self.option('gene_go_list').set_path(self.output_dir + '/anno_stat/go_stat/gene_gos.list')
+                self.option('gene_go_level_2').set_path(self.output_dir + '/anno_stat/go_stat/gene_go12level_statistics.xls')
         elif event['data'] == 'anno_query':
             if os.path.exists(self.output_dir + "/all_annotation.xls"):
                 os.remove(self.output_dir + "/all_annotation.xls")
