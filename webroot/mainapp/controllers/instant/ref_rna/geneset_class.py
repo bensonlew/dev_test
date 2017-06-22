@@ -32,8 +32,6 @@ class GenesetClassAction(RefRnaController):
         print(data.geneset_id)
         geneset_info = {}
         for gd in data.geneset_id.split(","):
-            # print("lllll")
-            # print gd
             geneset_info = self.ref_rna.get_main_info(gd, 'sg_geneset')
             if not geneset_info:
                 info = {"success": False, "info": "geneset不存在，请确认参数是否正确！!"}
@@ -94,5 +92,6 @@ class GenesetClassAction(RefRnaController):
                 'id': str(main_table_id),
                 'name': main_table_name
                 }}
-
+        print("ggggggggxinnnnnnnnnnnnnnnnnn")
+        print(task_info)
         return json.dumps(task_info)

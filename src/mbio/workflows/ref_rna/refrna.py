@@ -155,7 +155,7 @@ class RefrnaWorkflow(Workflow):
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
-        self.step.add_steps("filecheck_ref", "rna_qc", "mapping", "assembly", "new_annotation", "exp", "snp_rna")
+        self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
 
 
     def check_options(self):
@@ -228,8 +228,8 @@ class RefrnaWorkflow(Workflow):
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         self.filecheck.set_options(opts)
-        self.filecheck.on('start', self.set_step, {'start': self.step.filecheck_ref})
-        self.filecheck.on('end', self.set_step, {'end': self.step.filecheck_ref})
+        self.filecheck.on('start', self.set_step, {'start': self.step.filecheck})
+        self.filecheck.on('end', self.set_step, {'end': self.step.filecheck})
         self.filecheck.run()
 
     def run_gs(self):
@@ -651,8 +651,8 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp")
-        mod.on('start', self.set_step, {'start': self.step.exp})
-        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.on('start', self.set_step, {'start': self.step.express})
+        mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
     def run_exp_rsem_alter(self):
@@ -1090,10 +1090,32 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).end()
 
     def test_ore(self):
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_AFTER_END = False
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
         self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
         self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
-        self.run_api_and_set_output()
+        # self.run_api_and_set_output()
+        self.group_id = "59473300a4e1af65bfaf3816"
+        self.control_id = "59473300a4e1af65bfaf3817"
+        self.group_category = ["A", "B"]
+        self.group_detail = [
+        {
+            "59473300a4e1af65bfaf2d76" : "CL1",
+            "59473300a4e1af65bfaf2d77" : "CL2",
+            "59473300a4e1af65bfaf2d74" : "HFL3",
+            "59473300a4e1af65bfaf2d75" : "CL5"
+        },
+        {
+            "59473300a4e1af65bfaf2d6f" : "HGL4",
+            "59473300a4e1af65bfaf2d72" : "HFL6",
+            "59473300a4e1af65bfaf2d73" : "HFL4",
+            "59473300a4e1af65bfaf2d70" : "HGL3",
+            "59473300a4e1af65bfaf2d71" : "HGL1"
+        }
+    ]
+        self.export_as()
+        self.end()
 
     def run_api_and_set_output(self):
         self.set_output_all()
@@ -1146,6 +1168,7 @@ class RefrnaWorkflow(Workflow):
         self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
         self.logger.info(self.group_detail)
         self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
+        self.api_qc.add_bam_path(self.mapping.output_dir)
 
     def export_assembly(self):
         self.api_assembly = self.api.api("ref_rna.ref_assembly")

@@ -36,17 +36,18 @@ class GenesetEnrichWorkflow(Workflow):
         # self.group_spname = dict()
 
     def run(self):
+        background_path = self.get_background_gene()
         if self.option("anno_type") == "kegg":
             options = {
                 "kegg_table": self.option("kegg_table"),
-                "all_list": self.option("all_list"),
+                "all_list": background_path,
                 "diff_list": self.option("genset_list"),
                 "correct": self.option("method")
             }
         else:
             options = {
                 "diff_list": self.option("genset_list"),
-                "all_list": self.option("all_list"),
+                "all_list": background_path,
                 "go_list": self.option("go_list"),
                 # "pval": self.option("pval"),
                 "method": self.option("method"),
@@ -56,6 +57,32 @@ class GenesetEnrichWorkflow(Workflow):
         self.enrich_tool.on('end', self.set_db)
         self.enrich_tool.run()
         super(GenesetEnrichWorkflow, self).run()
+
+    def get_background_gene(self):
+        background_path = self.work_dir + "/background_gene"
+        new_genes = set()
+        ref_genes = set()
+        geneset = set()
+        with open(self.option("genset_list"), "r") as a:
+            for line in a:
+                line = line.strip().split("\t")
+                geneset.add(line[0])
+        with open(self.option("all_list"), "r") as g:
+            for line in g:
+                line = line.strip().split("\t")
+                if line[-1] == "new":
+                    new_genes.add(line[0])
+                else:
+                    ref_genes.add(line[0])
+        self.logger.info(new_genes & geneset)
+        self.logger.info(len(new_genes & geneset))
+        if len(new_genes & geneset) == 0:
+            with open(background_path, "w") as b:
+                for rg in ref_genes:
+                    b.write("{}\n".format(rg))
+            return background_path
+        else:
+            return self.option("all_list")
 
     def set_db(self):
         """

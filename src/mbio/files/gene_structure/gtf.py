@@ -215,6 +215,11 @@ class GtfFile(File):
                 self._txpt_gene[txpt_id] = gene_id
 
     def gtf_patch(self, gtf):
+        """
+        将gffread的输出文件中，只有转录本id，没有gene_id的行，加入gene_id
+        :param gtf: gffread的输出文件
+        :return:
+        """
         gene_list = {}
         with open(gtf, "r") as file:
             for line in file:
