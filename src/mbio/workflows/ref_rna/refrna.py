@@ -155,7 +155,7 @@ class RefrnaWorkflow(Workflow):
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
-        self.step.add_steps("filecheck_ref", "rna_qc", "mapping", "assembly", "new_annotation", "exp", "snp_rna")
+        self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
 
 
     def check_options(self):
@@ -228,8 +228,8 @@ class RefrnaWorkflow(Workflow):
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         self.filecheck.set_options(opts)
-        self.filecheck.on('start', self.set_step, {'start': self.step.filecheck_ref})
-        self.filecheck.on('end', self.set_step, {'end': self.step.filecheck_ref})
+        self.filecheck.on('start', self.set_step, {'start': self.step.filecheck})
+        self.filecheck.on('end', self.set_step, {'end': self.step.filecheck})
         self.filecheck.run()
 
     def run_gs(self):
@@ -651,8 +651,8 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp")
-        mod.on('start', self.set_step, {'start': self.step.exp})
-        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.on('start', self.set_step, {'start': self.step.express})
+        mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
     def run_exp_rsem_alter(self):
