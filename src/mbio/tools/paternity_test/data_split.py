@@ -24,6 +24,7 @@ class DataSplitAgent(Agent):
 		options = [
 			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},
 			{"name": "data_dir", "type": "string"},
+			{"name": "ws_single", "type": "string"},
 			# {"name": "data_dir", "type": "infile", "format": "paternity_test.tab"}
 			# {"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
 		]
@@ -49,6 +50,8 @@ class DataSplitAgent(Agent):
 			raise OptionError("必须输入样本信息表")
 		if not self.option('data_dir'):
 			raise OptionError("必须提供样本序列文件夹")
+		if not self.option('ws_single'):
+			raise OptionError("必须提供是否只有ws单端序列")
 		return True
 
 	def set_resource(self):  # 后续需要测试确认
@@ -74,8 +77,8 @@ class DataSplitTool(Tool):
 		super(DataSplitTool, self).__init__(config)
 		self._version = "v1.0"
 		self.script_path = "bioinfo/medical/bcl2fastq-2.17/bin/bcl2fastq"
-		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
-		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
 
 	def run(self):
 		"""
@@ -126,10 +129,16 @@ class DataSplitTool(Tool):
 		if not os.path.exists(old_data_dir):
 			self.set_error("下机数据文件夹路径不正确，请设置正确的路径。")
 			raise Exception("下机数据文件夹路径不正确，请设置正确的路径。")
-		cmd = "{} -i {}Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
-		      "--ignore-missing-bcl -R {} -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
-			format(self.script_path,old_data_dir,self.output_dir,
-		           new_message_table, old_data_dir)
+		if self.option('ws_single') == 'false':
+			cmd = "{} -i {}Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n,y76 " \
+			      "--ignore-missing-bcl -R {} -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0".\
+				format(self.script_path,old_data_dir,self.output_dir,
+			           new_message_table, old_data_dir)
+		else:
+			cmd = "{} -i {}Data/Intensities/BaseCalls/ -o {} --sample-sheet {} --use-bases-mask  y76,i6n " \
+			      "--ignore-missing-bcl -R {} -r 4 -w 4 -d 2 -p 10 --barcode-mismatches 0". \
+				format(self.script_path, old_data_dir, self.output_dir,
+			           new_message_table, old_data_dir)
 		self.logger.info("start data_split")
 		command = self.add_command("ds_cmd", cmd).run()
 		self.wait(command)

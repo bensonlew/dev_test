@@ -15,14 +15,18 @@ class FastqProcessAgent(Agent):
     """
     产筛的生信shell部分功能
     处理fastq，得到bed2文件
-    version v1.0
-    author: moli.zhou
+
+    参数run_whole为false时，可将shell流程拆分为各个命令跑，可查看中间文件，但效率有所降低
+    参数single控制，下机数据是否为单端数据，true时为单端，是单端数据，运行单端流程
     """
     def __init__(self, parent):
         super(FastqProcessAgent, self).__init__(parent)
         options = [#输入的参数
             {"name": "sample_id", "type": "string"},
-            {"name":"fastq_path","type":"string"}
+            {"name": "fastq_path", "type": "infile", "format": "sequence.fastq_dir"},
+            {"name": "run_whole","type":"string","default":"true"},
+            {"name":"single", "type": "string","default":"false"}
+
         ]
         self.add_option(options)
         self.step.add_steps("fastq2bed")
@@ -55,7 +59,7 @@ class FastqProcessAgent(Agent):
         :return:
         """
         self._cpu = 10
-        self._memory = '20G'
+        self._memory = '100G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -79,6 +83,7 @@ class FastqProcessTool(Tool):
         self.script_path = 'bioinfo/medical/scripts/'
         self.java_path = self.config.SOFTWARE_DIR +'/program/sun_jdk1.8.0/bin/java'
         self.picard_path = self.config.SOFTWARE_DIR +'/bioinfo/medical/picard-tools-2.2.4/picard.jar'
+        self.sam_path = '/bioinfo/align/samtools-1.3.1/samtools'
 
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
@@ -88,22 +93,178 @@ class FastqProcessTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/samblaster-0.1.22/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/cutadapt-1.10-py27_0/bin')
+        
+        self.ref1 = self.config.SOFTWARE_DIR + '/database/human/hg38.chromosomal_assembly/ref.fa'
+        self.ref = self.config.SOFTWARE_DIR + '/database/human/hg38_nipt/nchr.fa'
+        self.bed_ref = self.config.SOFTWARE_DIR+ '/database/human/hg38_nipt/nchr.20k.gmn.bed'
 
     def run_tf(self):
-        # ./nipt-0208-zml.sh WS-170281 /mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38_nipt/nchr.fa /mnt/ilustre/users/sanger-dev/sg-users/xuanhongdong/db/genome/human/hg38.chromosomal_assembly/ref.fa
-        # /mnt/ilustre/users/sanger-dev/sg-users/zhoumoli/nipt/temp /mnt/ilustre/users/sanger-dev/app/program/sun_jdk1.8.0/bin/java /mnt/ilustre/users/sanger-dev/app/bioinfo/medical/picard-tools-2.2.4/picard.jar
-        fq1 = self.option('sample_id') + '_R1.fastq.gz'
-        fq2 = self.option('sample_id') + '_R2.fastq.gz'
-
-        pre_cmd = '{}nipt_fastq_pre.sh {} {}'.format(self.script_path, self.option("fastq_path"), self.option('sample_id'))
+        pre_cmd = '{}nipt_fastq_pre.sh {} {}'.format(self.script_path, self.option("fastq_path").prop['path'], self.option('sample_id'))
         self.logger.info(pre_cmd)
         cmd = self.add_command("pre_cmd", pre_cmd).run()
         self.wait(cmd)
+
         if cmd.return_code == 0:
             self.logger.info("处理接头成功")
         else:
-            self.logger.info("处理接头出错")
+            raise Exception("处理接头出错")
 
+        seq_merge = '{}nipt_merge_align.sh {} {} '.\
+            format(self.script_path,self.option("sample_id"),self.ref1)
+        self.logger.info(seq_merge)
+        cmd = self.add_command("seq_merge",seq_merge).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("seqtk mergepe成功")
+        else:
+            raise Exception("seqtk mergepe出错")
+
+        cut_adapt = '/bioinfo/medical/cutadapt-1.10-py27_0/bin/cutadapt --format fastq --zero-cap -q 1 --trim-n ' \
+                    '--minimum-length 30 --times 7 -a GATCGGAAGAGCACACGTCTGAACTCCAGTCAC -o {}.cut.fastq  {}.cutN.fastq'.\
+            format(self.option("sample_id"),self.option("sample_id"))
+        self.logger.info(cut_adapt)
+        cmd = self.add_command("cut_adapt",cut_adapt).run()
+        self.wait(cmd)
+
+        if cmd.return_code == 0:
+            self.logger.info("cutadapt去接头成功")
+        else:
+            raise Exception("cutadapt去接头出错")
+
+        cut_50 = '{}nipt_cut50.sh {} {}'.format(self.script_path,self.option('sample_id'), self.ref)
+        self.logger.info(cut_50)
+        cmd = self.add_command("cut_50",cut_50).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("cut_50截取成功")
+        else:
+            raise Exception("cut_50截取出错")
+
+        sam_cutbam="{} view -h -@ 10 {}.cut.bam -o {}.temp.cut.sam".format(self.sam_path,self.option('sample_id'),self.option('sample_id'))
+        self.logger.info(sam_cutbam)
+        cmd = self.add_command("sam_cutbam",sam_cutbam).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("sam_cutbam成功")
+        else:
+            raise Exception("sam_cutbam出错") 
+
+
+        file = self.option('sample_id') + '.temp.cut.sam'
+        with open(file,'r') as f:
+            lines = f.readlines()
+        with open(file,'w+') as f_w:
+            for line in lines:
+                if 'XT:A:U' in line or re.search('^@', line):
+                    f_w.write(line)
+                else:
+                    continue
+
+        sam_cut_uniq='{} view -@ 10 -bS {}.temp.cut.sam -o {}.cut.uniq.bam'\
+            .format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
+        self.logger.info(sam_cut_uniq)
+        cmd = self.add_command("sam_cut_uniq",sam_cut_uniq).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("sam_cut_uniq成功")
+        else:
+            raise Exception("sam_cut_uniq出错") 
+
+        sam_sort='{} sort -@ 10 {}.cut.uniq.bam -o {}.cut.uniq.sort.bam'.format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
+        self.logger.info(sam_sort)
+        cmd = self.add_command("sam_sort",sam_sort).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("sam排序成功")
+        else:
+            raise Exception("sam排序出错")
+
+        picard_cmd='/program/sun_jdk1.8.0/bin/java -Xmx10g -Djava.io.tmpdir={} -jar {} MarkDuplicates VALIDATION_STRINGENCY=LENIENT INPUT={}.cut.uniq.sort.bam OUTPUT={}.cut.uniq.sort.md.bam METRICS_FILE={}.cut.uniq.sort.md.metrics'\
+            .format(self.work_dir, self.picard_path,self.option('sample_id'),self.option('sample_id'),self.option('sample_id'))
+        self.logger.info(picard_cmd)
+        cmd = self.add_command("picard_cmd",picard_cmd).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("picard成功")
+        else:
+            raise Exception("picard出错")
+
+        sam_valid = '{} view -F 1024 -@ 10 -bS {}.cut.uniq.sort.md.bam -o {}.valid.bam'\
+            .format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
+        self.logger.info(sam_valid)
+        cmd = self.add_command("sam_valid",sam_valid).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("sam_valid成功")
+        else:
+            raise Exception("sam_valid出错")
+
+        sam_valid_index='{} index {}.valid.bam'.format(self.sam_path, self.option('sample_id'))
+        self.logger.info(sam_valid_index)
+        cmd = self.add_command("sam_valid_index",sam_valid_index).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("sam_valid_index成功")
+        else:
+            raise Exception("sam_valid_index出错")
+
+        sam_map='{} view -bF 4 -@ 10 {}.valid.bam -o {}.map.valid.bam'\
+            .format(self.sam_path, self.option('sample_id'),self.option('sample_id'))
+        self.logger.info(sam_map)
+        cmd = self.add_command("sam_map",sam_map).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("sam_map成功")
+        else:
+            raise Exception("sam_map出错")
+
+        sam_map_index='{} index {}.map.valid.bam'.format(self.sam_path, self.option('sample_id'))
+        self.logger.info(sam_map_index)
+        cmd = self.add_command("re_sam_map_index",sam_map_index).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("sam_map_index成功")
+        else:
+            raise Exception("sam_map_index出错") 
+
+        bed_qc='{}nipt_bed.sh {} {} {} {}'\
+            .format(self.script_path,self.option('sample_id'),self.bed_ref,self.work_dir,self.option("fastq_path").prop['path'])
+        self.logger.info(bed_qc)
+        cmd = self.add_command("bed_qc",bed_qc).run()
+        self.wait(cmd)
+        if cmd.return_code == 0:
+            self.logger.info("bed文件生成成功")
+        else:
+            raise Exception("bed文件生成出错")
+
+    def run_continually(self):
+        cmd = '{}nipt_script.sh {} {} {} {} {} {} {} {}'\
+            .format(self.script_path, self.option('sample_id'),self.work_dir,
+                    self.java_path,self.picard_path,self.ref,self.ref1,self.bed_ref,
+                    self.option("fastq_path").prop['path'])
+        self.logger.info(cmd)
+        cmd = self.add_command("total_cmd", cmd).run()
+        self.wait(cmd)
+
+        if cmd.return_code == 0:
+            self.logger.info("shell部分运行成功")
+        else:
+            raise Exception("shell部分运行出错")
+
+    def run_single(self):
+        cmd = '{}nipt_script_single.sh {} {} {} {} {} {} {} {}' \
+            .format(self.script_path, self.option('sample_id'), self.work_dir,
+                    self.java_path, self.picard_path, self.ref, self.ref1, self.bed_ref,
+                    self.option("fastq_path").prop['path'])
+        self.logger.info(cmd)
+        cmd = self.add_command("single_cmd", cmd).run()
+        self.wait(cmd)
+
+        if cmd.return_code == 0:
+            self.logger.info("single-shell部分运行成功")
+        else:
+            raise Exception("single-shell部分运行出错")
 
     def set_output(self):
         """
@@ -115,9 +276,22 @@ class FastqProcessTool(Tool):
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
         results = os.listdir(self.work_dir)
+        for f in results:
+            if re.search(r'.*map.valid.bam$', f):
+                os.link(self.work_dir +'/'+ f, self.output_dir + '/' + f)
+            elif re.search(r'.*qc$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+            elif re.search(r'.*bed.2$', f):
+                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+        self.logger.info('设置文件夹路径成功')
 
     def run(self):
         super(FastqProcessTool, self).run()
-        self.run_tf()
+        if self.option('run_whole') == 'true' and self.option('single') == 'false':
+            self.run_continually()
+        elif self.option('run_whole') == 'true' and self.option('single') == 'true':
+            self.run_single()
+        else:
+            self.run_tf()
         self.set_output()
         self.end()
