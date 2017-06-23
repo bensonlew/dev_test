@@ -25,7 +25,7 @@ class HclusterAgent(Agent):
             #    "format": "meta.beta_diversity.newick_tree"},
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "method", "type": "string", "default": "euclidean"},
-            {"name": "trans", "type": "string", "default": "col"}
+            {"name": "trans", "type": "string", "default": "column"}
         ]
         self.add_option(options)
         self.step.add_steps('hcluster')
@@ -54,7 +54,7 @@ class HclusterAgent(Agent):
             return self.option('otu_table').prop['path']
         if self.option('method') not in ['euclidean', 'maximum', 'manhattan', 'canberra', 'binary', 'minkowski']:
             raise OptionError('错误的距离方式：%s' % self.option('method'))
-        if self.option('trans') not in ['col', 'row']:
+        if self.option('trans') not in ['column', 'row']:  # modify by zhouxuan
             raise OptionError('错误的距离方式：%s' % self.option('trans'))
         if self.option('linkage') not in ['average', 'single', 'complete']:
             raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
@@ -99,7 +99,13 @@ class HclusterTool(Tool):
         real_dis_matrix = self.work_dir + '/distance_matrix.temp'
         self.newname_dict = self.change_sample_name(quotes=False, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
-        cmd += ' -i %s -o %s -m %s -l %s -trans %s -m_1 %s ' %(real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option("trans"), self.option('linkage'))
+        if self.option('trans') != 'column':
+            cmd += ' -i %s -o %s -m %s -l %s -trans %s -m_1 %s ' %\
+                   (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'),
+                    self.option("trans"), self.option('linkage'))
+        else:
+            cmd += ' -i %s -o %s -m %s -l %s -trans col -m_1 %s ' % \
+                   (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option('linkage'))
         self.logger.info('运行plot-hcluster_tree.pl程序计算Hcluster')
         self.logger.info(cmd)
         try:
