@@ -16,6 +16,7 @@ class TableFile(File):
     def __init__(self):
         super(TableFile, self).__init__()
         self.unicode = False
+        self.col_number = 0
         # 写一些需要用到的数据的定义
 
     def get_info(self):
@@ -29,6 +30,7 @@ class TableFile(File):
                 raise FileError('文件编码格式不符合要求')
             self.set_property("new_table", self.get_newtable(code_dic['encoding']))
             self.check_info(self.get_newtable(code_dic['encoding']))  # 判断是否符合数据表格的要求
+            self.set_property('sample_num', self.col_number)
         else:
             raise FileError("文件路径不正确，请设置正确的文件路径!")
 
@@ -82,11 +84,11 @@ class TableFile(File):
                         new.write(('\t').join(line_c) + '\n')
             return new_file_path
 
-    @staticmethod
-    def check_info(file_path):
+    # @staticmethod
+    def check_info(self, file_path):
         with open(file_path, 'r') as f:
             first_line = f.readline().strip('\n').split('\t')
-            col_number = len(first_line)
+            self.col_number = len(first_line)
             for i in first_line:
                 if i.isdigit():
                     raise FileError('列名中不能存在数字')
@@ -94,7 +96,7 @@ class TableFile(File):
                     continue
             for line in f:
                 content = line.strip('\n').split('\t')
-                if len(content) != col_number:
+                if len(content) != self.col_number:
                     raise FileError('该表格行列信息不全——{}'.format(content))
                 if content[0].isdigit():
                     raise FileError('行名中不能存在数字')
