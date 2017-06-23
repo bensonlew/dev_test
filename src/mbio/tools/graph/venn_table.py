@@ -18,8 +18,8 @@ class VennTableAgent(Agent):
     def __init__(self, parent):
         super(VennTableAgent, self).__init__(parent)
         options = [
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir,denovo_rna.express.express_matrix"},
-            {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表格
+            {"name": "otu_table", "type": "infile", "format": "toolapps.table, meta.otu.otu_table,meta.otu.tax_summary_dir,denovo_rna.express.express_matrix"},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table, meta.otu.group_table"},  # 输入的group表格
             # {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"},  # 输入的Venn表格
             {"name": "level", "type": "string", "default": "otu"}  # 物种水平
         ]
@@ -48,6 +48,15 @@ class VennTableAgent(Agent):
             raise OptionError("请选择正确的分类水平")
         if not self.option("group_table").is_set:
             raise OptionError("参数group_table不能为空")
+        if self.option("group_table").format == 'meta.otu.otu_table':    # add by wzy 2017.6.23
+            group_file = self.option("group_table").prop['path']
+        elif self.option("group_table").format == 'toolapps.group_table':
+            group_file = self.option("group_table").prop['new_table']
+        with open(group_file) as f:   # add by wzy 20170621
+            first_line = f.readline()
+            line_split = first_line.strip().split("\t")
+            if len(line_split) > 2:
+                raise OptionError("分组文件只能有一个分组方案，请去除其他分组方案")
 
     def set_resource(self):
         """
@@ -79,17 +88,25 @@ class VennTableTool(Tool):
         """
         调用脚本venn_table.py,输出venn表格
         """
-        os.system('dos2unix -c Mac {}'.format(self.option('otu_table').prop['path']))  # add by wzy 20170609
-        os.system('dos2unix -c Mac {}'.format(self.option('group_table').prop['path']))
-        otu_table = self.option("otu_table").prop['path']
-        if self.option("otu_table").format is "meta.otu.tax_summary_dir":
+        if self.option("group_table").format == 'meta.otu.otu_table':   # add by wzy 2017.6.23
+            group_file = self.option("group_table").prop['path']
+        elif self.option("group_table").format == 'toolapps.group_table':
+            group_file = self.option("group_table").prop['new_table']
+        if self.option("otu_table").format == 'toolapps.table':
+            otu_table = self.option("otu_table").prop['new_table']
+        elif self.option("otu_table").format is "meta.otu.tax_summary_dir":
             otu_table = self.option("otu_table").get_table(self.option("level"))
+        else:
+            otu_table = self.option("otu_table").prop['path']
+        os.system('dos2unix -c Mac {}'.format(otu_table))  # add by wzy 20170609
+        os.system('dos2unix -c Mac {}'.format(group_file))
+
         num_lines = sum(1 for line in open(otu_table))
         if num_lines < 11:
             self.set_error("输入文件的行数小于10个！请更换输入文件！")
             raise Exception("输入文件的行数小于10个！请更换输入文件！")
         if len(self.option("group_table").prop['group_scheme']) == 1:
-            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table,self.option("group_table").prop['path'])
+            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table, group_file)
         # add by qiuping, for denovo_rna venn, 20160728
         else:
             self.option('group_table').sub_group(self.work_dir + '/venn_group', self.option("group_table").prop['group_scheme'][0])
@@ -109,7 +126,7 @@ class VennTableTool(Tool):
             self.set_error("运行venn_table运行出错!")
             raise Exception("运行venn_table运行出错，请检查输入的otu表和group表是否正确")
         # 统计各组所有otu/物种名 add by qindanhua
-        venn_graph(otu_table, self.option("group_table").prop['path'], "venn_graph.xls")
+        venn_graph(otu_table, group_file, "venn_graph.xls")
         self.set_output()
 
     def set_output(self):
