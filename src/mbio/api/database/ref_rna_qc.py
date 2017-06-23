@@ -217,7 +217,7 @@ class RefRnaQc(Base):
     @report_check
     def add_bam_path(self, dir_path):
         """
-
+        将bam文件的路径插入sg_specimen表中，供可变剪切使用
         :param dir_path:传入的rnaseq_mapping的output_dir
         :return:
         """

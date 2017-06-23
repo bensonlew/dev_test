@@ -129,6 +129,12 @@ class RefAnnotation(Base):
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="gene", level=2, go_path=gene_stat_level2)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="gene", level=3, go_path=gene_stat_level3)
                 self.add_annotation_go_detail(go_id=go_id, seq_type=seq_type, anno_type="gene", level=4, go_path=gene_stat_level4)
+                self.add_annotation_go_graph(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=2, go_path=stat_level2)
+                self.add_annotation_go_graph(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=3, go_path=stat_level3)
+                self.add_annotation_go_graph(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=4, go_path=stat_level4)
+                self.add_annotation_go_graph(go_id=go_id, seq_type=seq_type, anno_type="gene", level=2, go_path=gene_stat_level2)
+                self.add_annotation_go_graph(go_id=go_id, seq_type=seq_type, anno_type="gene", level=3, go_path=gene_stat_level3)
+                self.add_annotation_go_graph(go_id=go_id, seq_type=seq_type, anno_type="gene", level=4, go_path=gene_stat_level4)
                 self.add_annotation_go_list(go_id=go_id, seq_type=seq_type, anno_type="transcript", gos_path=gos_path)
                 self.add_annotation_go_list(go_id=go_id, seq_type=seq_type, anno_type="gene", gos_path=gene_gos_path)
             else:
@@ -873,6 +879,79 @@ class RefAnnotation(Base):
             raise Exception("导入go注释信息：%s出错!" % (go_path))
         else:
             self.bind_object.logger.info("导入go注释信息：%s成功!" % (go_path))
+
+    @report_check
+    def add_annotation_go_graph(self, go_id, seq_type, anno_type, level, go_path):
+        """
+        go_path: go1234level_statistics.xls/go123level_statistics.xls/go12level_statistics.xls
+        """
+        if not isinstance(go_id, ObjectId):
+            if isinstance(go_id, types.StringTypes):
+                go_id = ObjectId(go_id)
+            else:
+                raise Exception('go_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(go_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(go_path))
+        data_list = list()
+        with open(go_path, 'r') as f:
+            lines = f.readlines()
+            term = {}
+            term_list = []
+            for i in range(1, len(lines)):
+                line = lines[i].strip().split('\t')
+                if level == 2:
+                    term_type = line[0]
+                    go_term = line[1]
+                    if go_term not in term:
+                        term[go_term] = []
+                        term[go_term].append(i)
+                    else:
+                        term[go_term].append(i)
+                if level == 3:
+                    term_type = line[0]
+                    go_term = line[3]
+                    if go_term not in term:
+                        term[go_term] = []
+                        term[go_term].append(i)
+                    else:
+                        term[go_term].append(i)
+                if level == 4:
+                    term_type = line[0]
+                    go_term = line[5]
+                    if go_term not in term:
+                        term[go_term] = []
+                        term[go_term].append(i)
+                    else:
+                        term[go_term].append(i)
+        with open(go_path, 'r') as f:
+            lines = f.readlines()
+            for item in term:
+                seq_list = []
+                for j in term[item]:
+                    line = lines[j].strip().split("\t")
+                    term_type = line[0]
+                    for seq in line[-1].split(";"):
+                        if seq not in seq_list:
+                            seq_list.append(seq)
+                data = [
+                    ('go_id', go_id),
+                    ('seq_type', seq_type),
+                    ('anno_type', anno_type),
+                    ('level', level),
+                    ('term_type', term_type),
+                    ('go_term', item),
+                    ('seq_number', len(seq_list)),
+                    ('seq_list', seq_list)
+                ]
+                data = SON(data)
+                data_list.append(data)
+        try:
+            collection = self.db['sg_annotation_go_graph']
+            collection.insert_many(data_list)
+        except Exception, e:
+            raise Exception("导入go注释画图信息出错：%s" % (go_path))
+        else:
+            self.bind_object.logger.info("导入go注释画图信息成功：%s" % (go_path))
 
     @report_check
     def add_annotation_go_level(self, go_id, seq_type, anno_type, level, level_path):

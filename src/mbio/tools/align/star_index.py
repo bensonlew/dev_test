@@ -55,13 +55,13 @@ class StarIndexAgent(Agent):
         self._cpu = 4
         if self.option("ref_genome") == "customer_mode":
             if self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 512:
-                self._memory = '15G'
+                self._memory = '20G'
             elif self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 1024:
-                self._memory = '30G'
+                self._memory = '40G'
             else:
-                self._memory = '60G'
+                self._memory = '100G'
         else:
-            self._memory = '60G'   # 设置资源大小
+            self._memory = '100G'   # 设置资源大小
 
     def end(self):
         super(StarIndexAgent, self).end()    # 继承超类的end方法
@@ -80,13 +80,13 @@ class StarIndexTool(Tool):
         """
         if self.option("ref_genome") == "customer_mode":
             if self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 512:
-                ram = str(10 * 1024 * 1024 * 1024)
+                ram = str(20 * 1024 * 1024 * 1024)
             elif self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 1024:
-                ram = str(30 * 1024 * 1024 * 1024)
+                ram = str(40 * 1024 * 1024 * 1024)
             else:
-                ram = str(60 * 1024 * 1024 * 1024)
+                ram = str(100 * 1024 * 1024 * 1024)
         else:
-            ram = str(60 * 1024 * 1024 * 1024)
+            ram = str(100 * 1024 * 1024 * 1024)
         cmd = "{}STAR --runMode genomeGenerate --limitGenomeGenerateRAM {} --genomeDir {} --genomeFastaFiles {} --runThreadN 10".format(self.star_path, ram, genomeDir, ref_fa)
         self.logger.info("使用star建立参考基因组索引")
         command = self.add_command("star_index1", cmd)
@@ -95,7 +95,7 @@ class StarIndexTool(Tool):
         if command.return_code == 0:
             self.logger.info("成功构建参考序列索引index1！")
         else:
-            ram = str(60 * 1024 * 1024 * 1024)
+            ram = str(100 * 1024 * 1024 * 1024)
             cmd = "{}STAR --runMode genomeGenerate --limitGenomeGenerateRAM {} --genomeDir {} --genomeFastaFiles {} --runThreadN 10".format(self.star_path, ram, genomeDir, ref_fa)
             # command.rerun()
             command = self.add_command("star_index1", cmd)
@@ -126,6 +126,7 @@ class StarIndexTool(Tool):
             with open(ref_genome_json, "r") as f:
                 ref_dict = json.loads(f.read())
                 ref_fa = ref_dict[self.option("ref_genome")]["ref_genome"]
+                # 在此添加基因组文件夹，如果存在有基因组文件夹，那么我们不进行建立索引的操作
                 genomeDir_path1 = os.path.join(self.work_dir, "ref_star_index1")
             if not os.path.exists(genomeDir_path1):
                 os.mkdir(genomeDir_path1)
