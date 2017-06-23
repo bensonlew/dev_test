@@ -1089,6 +1089,35 @@ class RefrnaWorkflow(Workflow):
     def end(self):
         super(RefrnaWorkflow, self).end()
 
+    def test_mus(self):
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8327/FilecheckRef/Oryza_sativa.IRGSP-1.0.32.gff3.gtf")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8327/HiseqQc/output/sickle_dir")
+        self.qc.on("end", self.run_qc_stat, "after")
+        self.qc.on('end', self.run_mapping)
+        self.qc.on("end", self.run_star_mapping)
+        self.qc.on("end", self.run_seq_abs)
+        # self.seq_abs.on("end", self.run_test_annotation)
+        self.mapping.on('end', self.run_assembly)
+        self.mapping.on('end', self.run_map_assess)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
+        if self.taxon_id != "":
+            self.exp.on("end", self.run_network_trans)
+            self.final_tools.append(self.network_trans)
+        self.on_rely(self.final_tools, self.run_api_and_set_output)
+        self.assembly.on("end", self.run_exp_rsem_default)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.start_listener()
+        self.fire("start")
+        self.qc.start_listener()
+        self.qc.fire("end")
+        self.rpc_server.run()
+
+
+    def run_test_annotation(self):
+        pass
+
+
     def test_ore(self):
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
@@ -1113,8 +1142,9 @@ class RefrnaWorkflow(Workflow):
             "59473300a4e1af65bfaf2d70" : "HGL3",
             "59473300a4e1af65bfaf2d71" : "HGL1"
         }
-    ]
-        self.export_as()
+        ]
+        self.export_genome_info()
+        #self.export_as()
         self.end()
 
     def run_api_and_set_output(self):
@@ -1124,6 +1154,7 @@ class RefrnaWorkflow(Workflow):
         task_info = self.api.api('task_info.ref')
         task_info.add_task_info()
         self.export_qc()
+        self.export_genome_info()
         self.export_annotation()
         self.export_assembly()
         self.export_snp()
@@ -1151,6 +1182,11 @@ class RefrnaWorkflow(Workflow):
                     self.export_ppi()
         self.export_as()
         self.end()
+
+    def export_genome_info(self):
+        self.api_gi = self.api.genome_info
+        species_name = self.option("ref_genome")
+        self.api_gi.add_genome_info(species_name, output_dir=self.gs.output_dir, major=True)
 
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc

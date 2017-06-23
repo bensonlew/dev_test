@@ -23,7 +23,7 @@ class GenomeInfo(Base):
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         main_collection = self.db['sg_species_information']
-        main_id = main_collection.insert_one(main_insert_data)
+        main_id = main_collection.insert_one(main_insert_data).inserted_id
         if major:
             self.add_genome_info_detail(output_dir=output_dir, inserted_id=main_id)
 
@@ -31,7 +31,7 @@ class GenomeInfo(Base):
     def add_genome_info_detail(self, output_dir, inserted_id):
         insert_data_list = []
         if len(os.listdir(output_dir)) == 2:
-            with open("gene.stat.xls", "r") as fr:
+            with open("{}/gene.stat.xls".format(output_dir), "r") as fr:
                 fr.readline()
                 for line in fr:
                     tmp = line.strip().split("\t")
