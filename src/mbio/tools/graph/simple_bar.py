@@ -19,7 +19,7 @@ class SimpleBarAgent(Agent):
     def __init__(self, parent):
         super(SimpleBarAgent, self).__init__(parent)
         options = [
-            {"name": "input_table", "type": "infile", "format": "meta.otu.otu_table"},  # 输入的表格，矩阵
+            {"name": "input_table", "type": "infile", "format": "toolapps.table"},  # 输入的表格，矩阵
             {"name": "method", "type": "string", "default": "row"},  # 样本名的方向，默认样本在行row,column
             {"name": "combined_value", "type": "string", "default": "0.01"}  # 合并小于此值的属性
         ]
@@ -72,11 +72,11 @@ class SimpleBarTool(Tool):
         """
         输入的文件统一处理成标准格式的文件,第一列为样本名
         """
-        os.system('dos2unix -c Mac {}'.format(self.option('input_table').prop['path']))
+        os.system('dos2unix -c Mac {}'.format(self.option('input_table').prop['new_table']))
         fianl_txt = self.work_dir + "/matrix_table.xls"
         if self.option("method") == "row":
             dic = defaultdict(list)
-            with open(self.option("input_table").prop["path"], "r") as r, open(fianl_txt, "w+")as fw:
+            with open(self.option("input_table").prop["new_table"], "r") as r, open(fianl_txt, "w+")as fw:
                 lines = r.readlines()
                 lines = [line for line in lines if (line != "\r\n") and (line != "\n")]
                 lines = [line for line in lines if not re.search(r"^(\s*\t+?)\s*\t*\n*", line)]
@@ -97,7 +97,7 @@ class SimpleBarTool(Tool):
                         new_line = new_line + '\t' + value
                     fw.write(new_line + "\n")
         if self.option("method") == "column":
-            with open(self.option("input_table").prop["path"], "r") as r, open(fianl_txt, "w+")as fw:
+            with open(self.option("input_table").prop["new_table"], "r") as r, open(fianl_txt, "w+")as fw:
                 lines = r.readlines()
                 lines = [line for line in lines if (line != "\r\n") and (line != "\n")]
                 lines = [line for line in lines if not re.search(r"^(\s*\t+?)\s*\t*\n*", line)]
