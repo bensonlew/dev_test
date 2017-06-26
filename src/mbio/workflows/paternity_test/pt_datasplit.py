@@ -263,6 +263,10 @@ class PtDatasplitWorkflow(Workflow):
 		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
 		update_info = {str(main_table_id): 'sg_analysis_status'}
 		update_info = json.dumps(update_info)
+		if self.done_data_split == "true":
+			nipt_value = "False"
+		else:
+			nipt_value = "True"
 		data = {
 			'stage_id': 0,
 			'UPDATE_STATUS_API': self._update_status_api(),
@@ -282,6 +286,7 @@ class PtDatasplitWorkflow(Workflow):
 				"update_info": update_info,
 				"single": self.ws_single,
 				'sanger_type': self.option('data_dir').split(":")[0],
+				"direct_get_path": nipt_value,
 			}
 		}
 		WC().add_task(data)
