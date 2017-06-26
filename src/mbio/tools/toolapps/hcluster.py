@@ -19,10 +19,7 @@ class HclusterAgent(Agent):
     def __init__(self, parent):
         super(HclusterAgent, self).__init__(parent)
         options = [
-            {"name": "otu_table", "type": "infile",
-                "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            #{"name": "newicktree", "type": "outfile",
-            #    "format": "meta.beta_diversity.newick_tree"},
+            {"name": "otu_table", "type": "infile", "format": "toolapps.table"},  # modify by zhouxuan 20170623
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "method", "type": "string", "default": "euclidean"},
             {"name": "trans", "type": "string", "default": "column"}
@@ -48,10 +45,10 @@ class HclusterAgent(Agent):
         #    raise OptionError('必须提供输入距离矩阵表')
         #else:
         #    self.option('dis_matrix').check()
-        if self.option('otu_table').format == "meta.otu.tax_summary_dir":
-            return self.option('otu_table').get_table(self.option('level'))
-        else:
-            return self.option('otu_table').prop['path']
+        # if self.option('otu_table').format == "meta.otu.tax_summary_dir":
+        #     return self.option('otu_table').prop[''].get_table(self.option('level'))
+        # else:
+        #     return self.option('otu_table').prop['path']
         if self.option('method') not in ['euclidean', 'maximum', 'manhattan', 'canberra', 'binary', 'minkowski']:
             raise OptionError('错误的距离方式：%s' % self.option('method'))
         if self.option('trans') not in ['column', 'row']:  # modify by zhouxuan
@@ -95,7 +92,7 @@ class HclusterTool(Tool):
         """
         运行plot-hcluster_tree.pl
         """
-        os.system('dos2unix -c Mac {}'.format(self.option('otu_table').prop['path']))  # 转换输入文件 zhouxuan 20170609
+        # os.system('dos2unix -c Mac {}'.format(self.option('otu_table').prop['new_table']))  # 转换输入文件 zhouxuan 20170609
         real_dis_matrix = self.work_dir + '/distance_matrix.temp'
         self.newname_dict = self.change_sample_name(quotes=False, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
@@ -129,7 +126,7 @@ class HclusterTool(Tool):
         if os.path.exists(linkfile):
             os.remove(linkfile)
         os.link(filename + '.temp', linkfile)
-        os.link(self.option('otu_table').prop['path'], os.path.join(self.output_dir, "data_table"))
+        os.link(self.option('otu_table').prop['new_table'], os.path.join(self.output_dir, "data_table"))
         self.end()
 
     def change_sample_name(self, quotes=False, new_path=None):
@@ -138,7 +135,7 @@ class HclusterTool(Tool):
         """
         if not new_path:
             new_path = self.work_dir + '/distance_matrix.temp'
-        old_matrix = open(self.option('otu_table').path, 'rb')
+        old_matrix = open(self.option('otu_table').prop['new_table'], 'rb')
         name_dict = {}
         new_matrix = open(new_path, 'wb')
         frist_line = old_matrix.readline().rstrip().split('\t')[1:]

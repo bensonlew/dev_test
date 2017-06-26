@@ -20,7 +20,8 @@ class PcaAgent(Agent):
     def __init__(self, parent):
         super(PcaAgent, self).__init__(parent)
         options = [
-            {"name": "otutable", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "otutable", "type": "infile",
+             "format": "meta.otu.otu_table, meta.otu.tax_summary_dir, toolapps.table"},  # modify by zhouxuan 20170623
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "eigenvalue", "type": "string", "default": "row"},  # column
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
@@ -143,6 +144,8 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
             otu_path = self.option('otutable').get_table(self.option('level'))
+        elif self.option('otutable').format == "toolapps.table":  # add by zhouxuan 20170623
+            otu_path = self.option('otutable').prop['new_table']
         else:
             otu_path = self.option('otutable').prop['path']
         # otu表对象没有样本列表属性
