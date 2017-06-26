@@ -409,10 +409,22 @@ class NiptAnalysis(Base):
                         insert['result'] = 'abnormal'
                 elif line[1] == '13':
                     insert['chr_13'] = line[2]
+                    if -3 <= float(line[2]) <= 3:
+                        insert['13_result'] = 'low'
+                    else:
+                        insert['13_result'] = 'high'
                 elif line[1] == '18':
                     insert['chr_18'] = line[2]
+                    if -3 <= float(line[2]) <= 3:
+                        insert['18_result'] = 'low'
+                    else:
+                        insert['18_result'] = 'high'
                 elif line[1] == '21':
                     insert['chr_21'] = line[2]
+                    if -3 <= float(line[2]) <= 3:
+                        insert['21_result'] = 'low'
+                    else:
+                        insert['21_result'] = 'high'
         try:
             collection.insert_one(insert)
             collection_main.update({'_id':main_id}, {'$set':{'result':insert['result']}})
