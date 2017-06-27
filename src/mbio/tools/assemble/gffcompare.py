@@ -18,7 +18,7 @@ class GffcompareAgent(Agent):
     def __init__(self, parent):
         super(GffcompareAgent, self).__init__(parent)
         options = [
-            {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 拼接合并之后的转录本文件
+            {"name": "merged_gtf", "type": "string", "default": ""},  # 拼接合并之后的转录本文件
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
             {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},
         ]
@@ -90,7 +90,7 @@ class GffcompareTool(Tool):
         运行gffcompare软件进行新转录本预测
         """
         cmd = self.gffcompare_path + 'gffcompare  {} -o {}cuffcmp -r {} '.format(
-            self.option('merged_gtf').prop['path'], self.work_dir+"/", self.option('ref_gtf').prop['path'])
+            self.option('merged_gtf'), self.work_dir+"/", self.option('ref_gtf').prop['path'])
         self.logger.info('运行gffcompare软件，进行比较')
         command = self.add_command("gffcompare_cmd", cmd).run()
         self.wait(command)

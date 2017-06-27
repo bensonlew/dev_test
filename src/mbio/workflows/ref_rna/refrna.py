@@ -272,6 +272,11 @@ class RefrnaWorkflow(Workflow):
         method = event["data"]
         self.blast_modules = []
         self.gene_list = self.seq_abs.option('gene_file')
+        if int(self.seq_abs.option('query').prop['seq_number']) == 0:
+            self.logger.info('.......blast_lines:0')
+            self.new_annotation.start_listener()
+            self.new_annotation.fire("end")
+            return
         blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10 + 1
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
@@ -1090,10 +1095,13 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).end()
 
     def test_mus(self):
-        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8327/FilecheckRef/Oryza_sativa.IRGSP-1.0.32.gff3.gtf")
-        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8327/HiseqQc/output/sickle_dir")
-        self.qc.on("end", self.run_qc_stat, "after")
-        self.qc.on('end', self.run_mapping)
+        self.logger.info("{}".format(self.option("ref_genome_custom").prop["path"]))
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/HiseqQc/output/sickle_dir")
+        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf.bed")
+        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170626/Refrna_mouse_4/RnaseqMapping/output/bam")
+        # self.qc.on("end", self.run_qc_stat, "after")
+        # self.qc.on('end', self.run_mapping)
         self.qc.on("end", self.run_star_mapping)
         self.qc.on("end", self.run_seq_abs)
         # self.seq_abs.on("end", self.run_test_annotation)
@@ -1111,12 +1119,12 @@ class RefrnaWorkflow(Workflow):
         self.fire("start")
         self.qc.start_listener()
         self.qc.fire("end")
+        self.mapping.start_listener()
+        self.mapping.fire("end")
         self.rpc_server.run()
-
 
     def run_test_annotation(self):
         pass
-
 
     def test_ore(self):
         self.IMPORT_REPORT_DATA = True

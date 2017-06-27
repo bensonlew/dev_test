@@ -98,7 +98,18 @@ class SjWorkflow(Workflow):
         self.star_index.run()
 
     def set_output(self):
-
+        base_path = os.path.split(self.ref_genome)[0]
+        index_path = os.path.join(base_path, "ref_star_index1")
+        if not os.path.exists(index_path):
+            os.mkdir(base_path + "/ref_star_index1")
+        else:
+            for file in os.listdir(base_path + "/ref_star_index1/"):
+                file_path = os.path.join(base_path + "/ref_star_index1/", file)
+                os.remove(file_path)
+        for file in os.listdir(self.work_dir + "/ref_star_index1"):
+            file_path = os.path.join(self.work_dir + "/ref_star_index1", file)
+            os.link(file_path, base_path + "/ref_star_index1/")
+        self.end()
 
     def run(self):
         self.file_check.on("end", self.run_star_index)
