@@ -45,6 +45,8 @@ class UpdateStatus(Log):
             content['files'] = self.data["sync_task_log"]["files"]
         if 'dirs' in self.data['sync_task_log'].keys():
             content['dirs'] = self.data['sync_task_log']['dirs']
+        # if 'base_path' in self.data['sync_task_log'].keys():
+        #     content['base_path'] = self.data['sync_task_log']['base_path']
         data['sync_task_log'] = json.dumps(content, cls=CJsonEncoder)
         return urllib.urlencode(data)
 
@@ -147,6 +149,7 @@ class UpdateStatus(Log):
         else:
 
             # self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
+            self.logger.info("pipe_batch_id: {}, status: {}, desc:{}".format(batch_id, status, desc))
             self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)},
                                                                {"$set": {'status': status, "desc": desc}})
             end_counts = self.mongodb['sg_pipe_detail'].find({'pipe_batch_id': batch_id,
@@ -154,7 +157,9 @@ class UpdateStatus(Log):
             self.logger.info("查询end_counts个数:{}".format(end_counts))  # 测试完成后删除
             # 多样性指数失败，则T检验失败，但是t检验失败后没有插表，这里通过判断多样性指数失败个数来间接判断t检验
             diversity_end_counts = self.mongodb['sg_pipe_detail'].find({'pipe_batch_id': batch_id,
-                                                                        "submit_location": "alpha_diversity_index",
+                                                                        "submit_location":
+                                                                            {'$in': ["alpha_diversity_index",
+                                                                                     "otu_pan_core"]},
                                                                         'status': "failed"}).count()
             self.logger.info("查询diversity_end_counts个数:{}".format(diversity_end_counts))  # 测试完成后删除
             update_counts = end_counts + diversity_end_counts
