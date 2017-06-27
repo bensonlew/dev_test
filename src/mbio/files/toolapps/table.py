@@ -90,18 +90,18 @@ class TableFile(File):
             first_line = f.readline().strip('\n').split('\t')
             f1 = set(first_line)
             if len(f1) != len(first_line):
-                raise FileError('列名不能重复')
+                raise FileError('列名不能重复_{}'.format(first_line))
             self.col_number = len(first_line)
             for i in first_line:
                 if i.isdigit():
-                    raise FileError('列名中不能存在数字')
+                    raise FileError('列名中不能存在数字_{}'.format(i))
                 else:
                     continue
             row_name = []
             for line in f:
                 content = line.strip('\n').split('\t')
                 if content[0] in row_name:
-                    raise FileError('行名不能重复')
+                    raise FileError('行名不能重复_{}'.format(content[0]))
                 else:
                     row_name.append(content[0])
                 if len(content) != self.col_number:
