@@ -209,8 +209,16 @@ class Terms(dict):
 def get_color(values, steps=1000):
     all_red_colors = list(Color.range_to(Color('white'), Color('red'), steps - 1))
     all_blue_colors = list(Color.range_to(Color('blue'), Color('white'), steps - 1))
+    print("vvvvvvvvvvalusssssss")
     print(values)
-    values = [-log10(i) for i in values]
+    new_values = []
+    for i in values:
+        if i == 0:
+            new_values.append(100)
+        elif i == 1.0:
+            new_values.append(1)
+        else:
+            new_values.append(-log10(i))
     red_range = linspace(1.3, 10, steps)
     blue_range = linspace(0, 1.3, steps)
 
@@ -227,7 +235,8 @@ def get_color(values, steps=1000):
             else:
                 return get_range(value, min_i, index, target)
     colors = []
-    for i in values:
+
+    for i in new_values:
         if i > 10:
             colors.append(all_red_colors[-1])
         elif i < 0:
@@ -238,6 +247,8 @@ def get_color(values, steps=1000):
             colors.append(all_red_colors[get_range(i, 0, steps - 1, red_range)])
         else:
             raise Exception('未知异常')
+    print("cccccccccolorss")
+    print [i.hex for i in colors]
     return [i.hex for i in colors]
 
 
