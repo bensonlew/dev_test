@@ -18,7 +18,7 @@ class Otunetwork(MetaController):
     def POST(self):
         data = web.input()
         params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id', 'add_Algorithm']
-        params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id']
+        # params_name = ['otu_id', 'level_id', 'submit_location', 'group_detail', 'group_id']
         for param in params_name:
             if not hasattr(data, param):
                 info = {"success": False, "info": "缺少%s参数!!" % param}
