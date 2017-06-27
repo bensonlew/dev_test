@@ -35,6 +35,7 @@ class TableFile(File):
             raise FileError("文件路径不正确，请设置正确的文件路径!")
 
     def get_newtable(self, encoding):
+        dos2unix_path = Config().SOFTWARE_DIR + 'bioinfo/hd2u-1.0.0/bin/dos2unix'
         dir_path = Config().WORK_DIR + '/tmp/convert_table'
         if os.path.exists(dir_path):
             pass
@@ -46,9 +47,11 @@ class TableFile(File):
             with open(self.prop['path'], 'r') as old:
                 line = old.readlines()
             if len(line) == 1:
-                os.system('dos2unix -c Mac {}'.format(self.prop['path']))  # 转换输入文件
+                # os.system('dos2unix -c Mac {}'.format(self.prop['path']))  # 转换输入文件
+                os.system('{} -c Mac {}'.format(dos2unix_path, self.prop['path']))  # 转换输入文件
             else:
-                os.system('dos2unix {}'.format(self.prop['path']))  # 转换输入文件
+                os.system('{} {}'.format(dos2unix_path, self.prop['path']))  # 转换输入文件
+                # os.system('dos2unix {}'.format(self.prop['path']))  # 转换输入文件
             with open(self.prop['path'], 'r') as old:
                 first_line = old.readline().strip("\n").split("\t")
             if len(first_line) > 1:
