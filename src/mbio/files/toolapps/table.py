@@ -7,7 +7,7 @@ import os
 import codecs
 import chardet
 import random
-
+import re
 
 class TableFile(File):
     """
@@ -91,6 +91,11 @@ class TableFile(File):
             f1 = set(first_line)
             if len(f1) != len(first_line):
                 raise FileError('列名不能重复_{}'.format(first_line))
+            for m in first_line[1:]:
+                if re.match('^[a-zA-Z0-9_]+$', m):
+                    continue
+                else:
+                    raise FileError('列名中只能含数字/字母/下划线_{}'.format(m))
             self.col_number = len(first_line)
             for i in first_line:
                 if i.isdigit():
@@ -104,6 +109,10 @@ class TableFile(File):
                     raise FileError('行名不能重复_{}'.format(content[0]))
                 else:
                     row_name.append(content[0])
+                    if re.match('^[a-zA-Z0-9_]+$', content[0]):
+                        pass
+                    else:
+                        raise FileError('列名中只能含数字/字母/下划线_{}'.format(content[0]))
                 if len(content) != self.col_number:
                     raise FileError('该表格行列信息不全——{}'.format(content))
                 if content[0].isdigit():
