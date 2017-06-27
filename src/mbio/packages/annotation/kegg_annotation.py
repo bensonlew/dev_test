@@ -202,33 +202,36 @@ class KeggAnnotation(object):
                         png_id = result['pathway_ko_png']
                         k.write(fs.get(kgml_id).read())
                         p.write(fs.get(png_id).read())
-                p_kgml = KGML_parser.read(open("pathway.kgml"))
-                p_kgml.image = png_path
-                for ortholog in p_kgml.orthologs:
-                    for g in ortholog.graphics:
-                        g.bgcolor = colors.Color(alpha=0)
-                for ko in koid:
-                    for degree in p_kgml.entries.values():
-                        if re.search(ko, degree.name):
-                            l.append(degree.id)
-                    for n in l:
-                        for graphic in p_kgml.entries[n].graphics:
-                            graphic.fgcolor = '#CC0000'
-                canvas = KGMLCanvas(p_kgml, import_imagemap=True, label_compounds=True,
-                                    label_orthologs=False, label_reaction_entries=False,
-                                    label_maps=False, show_maps=False, draw_relations=False, show_orthologs=True,
-                                    show_compounds=False, show_genes=False,
-                                    show_reaction_entries=False)
-                pdf = pathwaydir + '/' + pid + '.pdf'
-                png = pathwaydir + '/' + pid + '.png'
-                canvas.draw(pdf)
-                if image_magick:
-                    cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
-                    try:
-                        subprocess.check_output(cmd, shell=True)
-                    except subprocess.CalledProcessError:
-                        print '图片格式pdf转png出错'
-
+                try:
+                    p_kgml = KGML_parser.read(open("pathway.kgml"))
+                    p_kgml.image = png_path
+                    # for ortholog in p_kgml.orthologs:
+                    #     for g in ortholog.graphics:
+                    #         g.bgcolor = colors.Color(alpha=0)
+                    for ko in koid:
+                        for degree in p_kgml.entries.values():
+                            if re.search(ko, degree.name):
+                                l.append(degree.id)
+                        for n in l:
+                            for graphic in p_kgml.entries[n].graphics:
+                                graphic.fgcolor = '#CC0000'
+                    # canvas = KGMLCanvas(p_kgml, import_imagemap=True, label_compounds=True,
+                    #                     label_orthologs=False, label_reaction_entries=False,
+                    #                     label_maps=False, show_maps=False, draw_relations=False, show_orthologs=True,
+                    #                     show_compounds=False, show_genes=False,
+                    #                     show_reaction_entries=False)
+                    canvas = KGMLCanvas(p_kgml, import_imagemap=True)
+                    pdf = pathwaydir + '/' + pid + '.pdf'
+                    canvas.draw(pdf)
+                    if image_magick:
+                        png = pathwaydir + '/' + pid + '.png'
+                        cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + pdf + ' ' + png
+                        try:
+                            subprocess.check_output(cmd, shell=True)
+                        except subprocess.CalledProcessError:
+                            print '图片格式pdf转png出错'
+                except:
+                    print "没有找到{}对应的通路图".format(pid)
         print "getPic finished!!!"
 
     def keggLayer(self, pathway_table, layerfile, taxonomyfile):
