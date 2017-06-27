@@ -27,7 +27,8 @@ class NiptWorkflow(Workflow):
 			{"name": "ref_group", "type": "int", "default": 2},
 			{"name": "update_info", "type": "string"},
 			{"name": "single", "type": "string", "default": "false"},
-			{"name": "sanger_type", "type":"string"} #判断sanger or tsanger
+			{"name": "sanger_type", "type":"string"}, #判断sanger or tsanger
+			{"name": "direct_get_path", "type": "string"}
 
 		]
 		self.add_option(options)
@@ -61,27 +62,40 @@ class NiptWorkflow(Workflow):
 		for i in os.listdir(self.option('fastq_path').prop['path']):
 			m = re.match('(.*)_R1.fastq.gz', i)
 			if m:
-				self.sample_id.append(m.group(1))
-				nipt_analysis = self.add_module("nipt.nipt_analysis")
-				self.step.add_steps('nipt_analysis{}'.format(n))
-				nipt_analysis.set_options({
-					"sample_id": m.group(1),
-					"fastq_path": self.option("fastq_path"),
-					"bw": self.option('bw'),
-					'bs': self.option('bs'),
-					'ref_group': self.option('ref_group'),
-					"single": self.option("single")
-				}
-				)
-				step = getattr(self.step, 'nipt_analysis{}'.format(n))
-				step.start()
-				nipt_analysis.on('end', self.finish_update, 'nipt_analysis{}'.format(n))
-				self.tools.append(nipt_analysis)
-				n += 1
+				check = self.api_nipt.check_exist_bed(m.group(1))
+				if self.option('direct_get_path'):
+					if check:
+						self.logger.info('样本{}已存在于数据库中'.format(m.group(1)))
+					else:
+						self.sample_id.append(m.group(1))
+						self.logger.info('将样本{}添加到待分析队列'.format(m.group(1)))
+				else:
+					if check:
+						raise Exception('请检查样本{}是否重名'.format(m.group(1)))
+					else:
+						self.sample_id.append(m.group(1))
+						self.logger.info('将样本{}添加到待分析队列'.format(m.group(1)))
 
-		for name in self.sample_id:
-			self.main_id = self.api_nipt.add_main(self.option('member_id'), name, self.option('batch_id'))
-			self.api_nipt.add_interaction(self.main_id, self.option('bw'), self.option('bs'), self.option('ref_group'),name)
+		for sample in self.sample_id:
+			nipt_analysis = self.add_module("nipt.nipt_analysis")
+			self.step.add_steps('nipt_analysis{}'.format(n))
+			nipt_analysis.set_options({
+				"sample_id": sample,
+				"fastq_path": self.option("fastq_path"),
+				"bw": self.option('bw'),
+				'bs': self.option('bs'),
+				'ref_group': self.option('ref_group'),
+				"single": self.option("single")
+			}
+			)
+			step = getattr(self.step, 'nipt_analysis{}'.format(n))
+			step.start()
+			nipt_analysis.on('end', self.finish_update, 'nipt_analysis{}'.format(n))
+			self.tools.append(nipt_analysis)
+			n += 1
+
+			self.main_id = self.api_nipt.add_main(self.option('member_id'), sample, self.option('batch_id'))
+			self.api_nipt.add_interaction(self.main_id, self.option('bw'), self.option('bs'), self.option('ref_group'),sample)
 
 		for j in range(len(self.tools)):
 			self.tools[j].on('end', self.set_output,'nipt_analysis')
@@ -166,7 +180,7 @@ class NiptWorkflow(Workflow):
 					sanger_path = Config().get_netdata_config(self.option('sanger_type'))
 					path = sanger_path[self.option('sanger_type')+ "_path"] + "/rerewrweset/nipt_fastqc"
 					os.link(self.output_dir + '/' + i, path + '/' + i)
-					self.api_nipt.add_fastqc(self.output_dir + '/' + i, path)  # fastqc入库
+					self.api_nipt.add_fastqc(self.output_dir + '/' + i)  # fastqc入库
 				elif i == name + '_result.txt':
 					self.api_nipt.report_result(interaction_id, self.output_dir + '/' + i)
 
