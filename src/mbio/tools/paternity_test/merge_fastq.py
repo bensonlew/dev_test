@@ -22,7 +22,7 @@ class MergeFastqAgent(Agent):
 			{"name": "sample_dir_name", "type": "string"},
 			{"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"},
 			{"name": "result_dir", "type": "string"},
-			{"name": "ws_single", "type": "string", "default": "fasle"},
+			{"name": "ws_single", "type": "string", "default": "false"},
 		]
 		self.add_option(options)
 		self.step.add_steps("merge_fastq")
