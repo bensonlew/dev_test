@@ -87,13 +87,14 @@ class FastqProcessTool(Tool):
 
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/FastQc')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/bwa-0.7.15/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/FastQc')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/samblaster-0.1.22/bin')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.4')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/samblaster-0.1.24')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/cutadapt-1.10-py27_0/bin')
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/mnt/ilustre/users/sanger/app/program/Python/bin')#正式机的cutadapt
         
         self.ref1 = self.config.SOFTWARE_DIR + '/database/human/hg38.chromosomal_assembly/ref.fa'
         self.ref = self.config.SOFTWARE_DIR + '/database/human/hg38_nipt/nchr.fa'
