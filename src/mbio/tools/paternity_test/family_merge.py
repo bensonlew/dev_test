@@ -91,10 +91,10 @@ class FamilyMergeTool(Tool):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}".\
+        tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {} {}".\
             format(self.R_path,self.script_path,self.option("dad_tab").prop['path'],
                    self.option("mom_tab").prop['path'],self.option("preg_tab").prop['path'],
-                   self.option("err_min"),self.option("ref_point").prop['path'])
+                   self.option("err_min"),self.option("ref_point").prop['path'], self.work_dir)
         self.logger.info(tab2family_cmd)
         self.logger.info("开始运行家系合并")
         cmd = self.add_command("tab2family_cmd", tab2family_cmd).run()
