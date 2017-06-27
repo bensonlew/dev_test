@@ -93,10 +93,10 @@ class DedupAnalysisTool(Tool):
         n = 0
         for dad_tab in dad_list:
 
-            tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}". \
+            tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {} {}". \
                 format(self.R_path, self.script_path, dad_tab,
                     self.option("mom_tab").prop['path'], self.option("preg_tab").prop['path'],
-                    self.option("err_min"), self.option("ref_point").prop['path'])
+                    self.option("err_min"), self.option("ref_point").prop['path'],self.output_dir)
             self.logger.info(tab2family_cmd)
             self.logger.info("开始运行家系合并")
             cmd = self.add_command("tab2family_cmd_{}".format(n), tab2family_cmd).run()
@@ -117,8 +117,8 @@ class DedupAnalysisTool(Tool):
 
             tab_name = dad_name + '_' +mom_name+'_'+preg_name+'_family_joined_tab.Rdata'
             if os.path.exists(tab_name):
-                analysis_cmd = "{}Rscript {}data_analysis.R {}".\
-                    format(self.R_path,self.script_path,tab_name)
+                analysis_cmd = "{}Rscript {}data_analysis.R {} {}".\
+                    format(self.R_path,self.script_path,tab_name, self.output_dir)
                 self.logger.info(analysis_cmd)
                 self.logger.info("开始运行家系的分析")
                 cmd = self.add_command("analysis_cmd_{}".format(n), analysis_cmd).run()
@@ -142,16 +142,16 @@ class DedupAnalysisTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
-        results = os.listdir(self.work_dir)
-        for f in results:
-            if re.search(r'.*family_analysis\.Rdata$', f):
-                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-            elif re.search(r'.*family_analysis\.txt$', f):
-                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-            elif re.search(r'.*family_joined_tab\.Rdata$', f):
-                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
-            elif re.search(r'.*family_joined_tab\.txt$', f):
-                os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+        # results = os.listdir(self.work_dir)
+        # for f in results:
+        #     if re.search(r'.*family_analysis\.Rdata$', f):
+        #         os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+        #     elif re.search(r'.*family_analysis\.txt$', f):
+        #         os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+        #     elif re.search(r'.*family_joined_tab\.Rdata$', f):
+        #         os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
+        #     elif re.search(r'.*family_joined_tab\.txt$', f):
+        #         os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
         self.logger.info('设置文件夹路径成功')
 
     def run(self):
