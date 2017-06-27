@@ -193,16 +193,17 @@ class RefRnaGeneset(Base):
             print("导入go富集信息：%s成功!" % (go_enrich_dir))
 
     @report_check
-    def update_directed_graph(self, go_enrich_id, go_graph_dir):
+    def update_directed_graph(self, go_enrich_id, go_graph_png, go_graph_pdf):
         collection = self.db['sg_geneset_go_enrich']
         fs = gridfs.GridFS(self.db)
-        gra = fs.put(open(go_graph_dir, 'rb'))
+        gra = fs.put(open(go_graph_png, 'rb'))
+        gra_pdf = fs.put(open(go_graph_pdf, 'rb'))
         try:
-            collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {'go_directed_graph': gra}})
+            collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {'go_directed_graph': gra, "graph_pdf": gra_pdf}})
         except Exception, e:
-            print("导入%s信息出错：%s" % (go_graph_dir, e))
+            print("导入%s信息出错：%s" % (go_graph_png, e))
         else:
-            print("导入%s信息成功！" % (go_graph_dir))
+            print("导入%s信息成功！" % (go_graph_png))
 
     @report_check
     def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table, geneset_list_path, all_list_path):
