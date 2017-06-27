@@ -120,6 +120,14 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("导入%s信息到sg_nipt_bed成功!" % file_path)
         return True
 
+    def check_exist_bed(self,sample_id):
+        collection = self.database_ref["sg_bed"]
+        if collection.find_one({"sample_id": sample_id}):
+            return True
+        else:
+            return False
+
+
     def nipt_customer(self, file):
         bk = xlrd.open_workbook(file)
         sh = bk.sheet_by_name(u'\u65e0\u521b\u4ea7\u7b5b')
@@ -312,11 +320,12 @@ class NiptAnalysis(Base):
         params['bw'] = bw
         params['bs'] = bs
         params['ref_group'] = ref_group
+        params['main_id'] = str(main_id)
         new_params = param_pack(params)
         name = 'bw-' + str(bw) + '_bs-' + str(bs)+'_ref-'+str(ref_group)
         insert_data ={
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            'main_id':main_id,
+            'main_id': main_id,
             'params':new_params,
             'name': name,
             "sample_id":sample_id,
@@ -341,18 +350,23 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("更新交互表成功")
 
 
-    def add_fastqc(self,file,path):
+    def add_fastqc(self,file):
         collection = self.database['sg_sample_fastqc']
         insert_data = {}
 
         file_name = file.split('/')[-1]
-        sample_id = file_name.split('.')[0]
 
-        insert_data['sample_id'] = sample_id
         if re.search(r'.*.map.valid_fastqc.html$', file_name):
-            insert_data['fastqc_link'] = path + '/' + file_name
+            insert_data['fastqc_link'] = file_name
+            sample_id = file_name.split('.')[0]
+            insert_data['sample_id'] = sample_id
+            insert_data['display_name'] = "map.valid"
         else:
-            insert_data['fastqc_link'] = path + '/' + file_name
+            insert_data['fastqc_link'] = file_name
+            sample_id = file_name.split('.')[0]
+            temp = sample_id.split('_')[0]
+            insert_data['sample_id'] = temp
+            insert_data['display_name'] = "fastq.gz"
         try:
             collection.insert_one(insert_data)
         except Exception as e:
@@ -360,7 +374,7 @@ class NiptAnalysis(Base):
         else:
             self.bind_object.logger.info("插入fastqc表成功")
 
-    def add_qc(self,file):
+    def add_qc(self,file,file_gc):
         collection = self.database['sg_sample_qc']
         insert = {}
         file_name =file.split('/')[-1]
@@ -380,7 +394,13 @@ class NiptAnalysis(Base):
                     insert["valid_reads"] = line[1]
                 elif re.search('.*properly_paired$', line[0]):
                     insert["properly_paired"] = line[1]
-            
+
+        insert['mapping_ratio'] = insert["n_map"] / insert["num"]
+        with open(file_gc,'rb') as gc:
+            for line in f:
+                line = line.strip()
+                line = line.split('\t')
+                insert['GC'] = line[1]
         try:
             collection.insert_one(insert)
         except Exception as e:
@@ -403,28 +423,44 @@ class NiptAnalysis(Base):
                 line = line.split('\t')
                 if line[1] == 'total_zz':
                     insert['sample_id'] = line[0]
-                    if -3 <= float(line[2]) <= 3:
+                    if -3 < float(line[2]) < 3:
                         insert['result'] = 'normal'
                     else:
                         insert['result'] = 'abnormal'
                 elif line[1] == '13':
                     insert['chr_13'] = line[2]
-                    if -3 <= float(line[2]) <= 3:
+                    if -3 < float(line[2]) < 3:
                         insert['13_result'] = 'low'
-                    else:
+                        insert['13_desc'] = ''
+                    elif float(line[2]) <= -3:
                         insert['13_result'] = 'high'
+                        insert['13_desc'] = '13染色体异常' #染色体异常
+                    elif float(line[2]) >= 3:
+                        insert['13_result'] = 'high'
+                        insert['13_desc'] = '患13染色体三体综合征'
+
                 elif line[1] == '18':
                     insert['chr_18'] = line[2]
-                    if -3 <= float(line[2]) <= 3:
+                    if -3 < float(line[2]) < 3:
                         insert['18_result'] = 'low'
-                    else:
+                        insert['18_desc'] = ''
+                    elif float(line[2]) <= -3:
                         insert['18_result'] = 'high'
+                        insert['18_desc'] = '18染色体异常'  # 染色体异常
+                    elif float(line[2]) >= 3:
+                        insert['18_result'] = 'high'
+                        insert['18_desc'] = '患18染色体三体综合征'
                 elif line[1] == '21':
                     insert['chr_21'] = line[2]
-                    if -3 <= float(line[2]) <= 3:
+                    if -3 < float(line[2]) < 3:
                         insert['21_result'] = 'low'
-                    else:
+                        insert['21_desc'] = ''
+                    elif float(line[2]) <= -3:
                         insert['21_result'] = 'high'
+                        insert['21_desc'] = '21染色体异常'  # 染色体异常
+                    elif float(line[2]) >= 3:
+                        insert['21_result'] = 'high'
+                        insert['21_desc'] = '患21染色体三体综合征'
         try:
             collection.insert_one(insert)
             collection_main.update({'_id':main_id}, {'$set':{'result':insert['result']}})
