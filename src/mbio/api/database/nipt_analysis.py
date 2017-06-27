@@ -395,9 +395,9 @@ class NiptAnalysis(Base):
                 elif re.search('.*properly_paired$', line[0]):
                     insert["properly_paired"] = line[1]
 
-        insert['mapping_ratio'] = insert["n_map"] / insert["num"]
+        insert['mapping_ratio'] = float(insert["n_map"]) / float(insert["num"])
         with open(file_gc,'rb') as gc:
-            for line in f:
+            for line in gc:
                 line = line.strip()
                 line = line.split('\t')
                 insert['GC'] = line[1]
