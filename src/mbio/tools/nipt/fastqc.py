@@ -146,8 +146,10 @@ class FastqcTool(Tool):
 		for f in results:
 			if re.search(r'.*html$', f):
 				os.link(self.work_dir + '/temp/' + f, self.output_dir + '/' + f)
-			elif re.search(r'.*gc$', f):
-				os.link(self.work_dir +'/'+ f, self.output_dir + '/' + f)
+		results_gc = os.listdir(self.work_dir)
+		for fgc in results_gc:
+			if re.search(r'.*gc$', fgc):
+				os.link(self.work_dir +'/'+ fgc, self.output_dir + '/' + fgc)
 
 		self.logger.info('设置文件夹路径成功')
 
