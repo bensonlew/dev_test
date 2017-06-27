@@ -236,8 +236,8 @@ class RefAnnotation(Base):
                             gene_venn_list = f.readline().strip('\n')
                             for line in f:
                                 gene_venn_list += ',{}'.format(line.strip('\n'))
-                        data.append(("gene_list", venn_list))
-                        data.append(("transcript_list", gene_venn_list))
+                        data.append(("gene_list", gene_venn_list))
+                        data.append(("transcript_list", venn_list))
                     else:
                         raise Exception("{}对应的venn.txt文件不存在".format(line[0]))
                 data = SON(data)
