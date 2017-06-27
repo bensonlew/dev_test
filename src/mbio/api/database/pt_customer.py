@@ -29,7 +29,6 @@ class PtCustomer(Base):
         insert = []  # 获取各行数据
         for i in range(0, nrows):
             row_data = sh.row_values(i)
-            print row_data
             if i == 0:
                 contrast_num_index = row_data.index(u'\u68c0\u6848\u6d41\u6c34\u53f7')  # 流水号
                 ask_person_index = row_data.index(u'\u59d4\u6258\u65b9')  # 委托方

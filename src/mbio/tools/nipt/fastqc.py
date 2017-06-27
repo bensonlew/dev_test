@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = "moli.zhou"
 # last_modify:20170511
+import zipfile
 
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -78,6 +79,7 @@ class FastqcTool(Tool):
 		super(FastqcTool, self).__init__(config)
 		self._version = '1.0.1'
 
+		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin')
 		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
 		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
@@ -91,13 +93,6 @@ class FastqcTool(Tool):
 		self.wait(cmd)
 		if cmd.return_code == 0:
 			self.logger.info("gz_fastqc质控成功")
-		elif cmd.return_code == None:
-			rerun_cmd = self.add_command("re_gz_fastqc", gz_fastqc).rerun()
-			self.wait()
-			if rerun_cmd.return_code == 0:
-				self.logger.info("gz_fastqc质控成功")
-			else:
-				raise Exception("gz_fastqc质控再次运行出错")
 		else:
 			raise Exception("gz_fastqc质控出错")
 
@@ -105,19 +100,38 @@ class FastqcTool(Tool):
 			format(self.work_dir+'/temp',self.option('bam_file').prop['path'])
 		self.logger.info(bam_fastqc)
 		cmd = self.add_command("bam_fastqc", bam_fastqc).run()
-		self.wait()
+		self.wait(cmd)
 		if cmd.return_code == 0:
 			self.logger.info("bam_fastqc质控成功")
-		elif cmd.return_code == None:
-			rerun_cmd = self.add_command("re_bam_fastqc", bam_fastqc).rerun()
-			self.wait()
-			if rerun_cmd.return_code == 0:
-				self.logger.info("bam_fastqc质控成功")
-			else:
-				raise Exception("bam_fastqc质控再次运行出错")
 		else:
 			raise Exception("bam_fastqc质控出错")
 
+		# unzip = 'unzip {}.map.valid_fastqc.zip'.format(self.work_dir+'/temp/' + self.option('sample_id'))
+		# self.logger.info(unzip)
+		# cmd = self.add_command("unzip", unzip).run()
+		# self.wait(cmd)
+		# if cmd.return_code == 0:
+		# 	self.logger.info("解压成功")
+		# else:
+		# 	raise Exception("解压出错")
+
+		file_zip = self.work_dir+'/temp/' + self.option('sample_id') + '.map.valid_fastqc.zip'
+		file_dir = self.work_dir
+		fz = zipfile.ZipFile(file_zip, 'r')
+		for f in fz.namelist():
+			fz.extract(f, file_dir)
+
+		file = '{}.map.valid_fastqc/fastqc_data.txt'.format(self.work_dir+'/' + self.option('sample_id'))
+		with open(file, 'r+') as f:
+			for line in f:
+				line = line.strip()
+				line = line.split('\t')
+				if line[0] == '%GC':
+					with open('{}.gc'.format(self.option('sample_id')),'w+') as gc:
+						gc.write(line[0]+'\t'+line[1]+'\n')
+						gc.close()
+
+					break
 
 	def set_output(self):
 		"""
@@ -132,6 +146,9 @@ class FastqcTool(Tool):
 		for f in results:
 			if re.search(r'.*html$', f):
 				os.link(self.work_dir + '/temp/' + f, self.output_dir + '/' + f)
+			elif re.search(r'.*gc$', f):
+				os.link(self.work_dir +'/'+ f, self.output_dir + '/' + f)
+
 		self.logger.info('设置文件夹路径成功')
 
 	def run(self):
