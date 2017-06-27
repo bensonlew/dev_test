@@ -121,15 +121,15 @@ class FastqcTool(Tool):
 		for f in fz.namelist():
 			fz.extract(f, file_dir)
 
-		file = '{}.map.valid_fastqc/fastqc_data.txt'.format(self.work_dir+'/temp/' + self.option('sample_id'))
+		file = '{}.map.valid_fastqc/fastqc_data.txt'.format(self.work_dir+'/' + self.option('sample_id'))
 		with open(file, 'r+') as f:
 			for line in f:
 				line = line.strip()
 				line = line.split('\t')
 				if line[0] == '%GC':
 					with open('{}.gc'.format(self.option('sample_id')),'w+') as gc:
-						qc.write(line[0]+'\t'+line[1]+'\n')
-						qc.close()
+						gc.write(line[0]+'\t'+line[1]+'\n')
+						gc.close()
 
 					break
 
