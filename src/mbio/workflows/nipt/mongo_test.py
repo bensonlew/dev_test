@@ -9,6 +9,7 @@ from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 import os
 import re
+from biocluster.config import Config
 
 from bson import ObjectId
 
@@ -27,7 +28,10 @@ class MongoTestWorkflow(Workflow):
 			{'name': 'member_id','type':'string'},
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
-			{"name": "ref_group", "type": "int", "default": 2}
+			{"name": "ref_group", "type": "int", "default": 2},
+			{"name": "update_info", "type": "string"},
+			{"name": "single", "type": "string", "default": "false"},
+			{"name": "sanger_type", "type": "string"}  # 判断sanger or tsanger
 
 		]
 		self.add_option(options)
@@ -136,24 +140,43 @@ class MongoTestWorkflow(Workflow):
 				os.link(oldfiles[i], newfiles[i])
 
 	def mongo(self):
-		output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170616/Nipt_20170616_154029/output'
-		main_id = ObjectId("59438b75a4e1af3f04d8e9cb")
-		interaction_id = ObjectId("59438b75a4e1af3f04d8e9cc")
-		name = 'WS170300106'
+		output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170621/Nipt_20170621_125337/output'
+		main_id = ObjectId("5949fac9a4e1af1962b2ca9c")
+		interaction_id = ObjectId("5949fac9a4e1af1962b2ca9d")
+		name = 'WS17060113'
 		for i in os.listdir(output_dir):
-				if re.search(name + '.*bed.2$', i):
-					self.api_nipt.add_bed_file(output_dir + '/'+ i)
-				elif re.search(name +'.*qc$', i):
-					self.api_nipt.add_qc(output_dir + '/' + i)
-				elif re.search(name +'.*_z.xls$', i):
-					self.api_nipt.add_z_result(output_dir + '/' + i,interaction_id)
-				elif re.search(name +'.*_zz.xls$', i):
-					self.api_nipt.add_zz_result(output_dir + '/' + i, interaction_id)
-					self.api_nipt.update_main(main_id, output_dir + '/' + i) #更新zz值到主表中去
-				elif re.search(name +'.*_fastqc.html$', i):
-					self.api_nipt.add_fastqc(output_dir + '/' + i)  # fastqc入库
-				elif re.search(name +'.*_result.txt$', i):
-					self.api_nipt.report_result(interaction_id, output_dir + '/' + i)
+			print i
+				# if re.search(name + '.*bed.2$', i):
+				# 	self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
+				# elif re.search(name +'.*qc$', i):
+				# 	self.api_nipt.add_qc(self.output_dir + '/' + i)
+				# elif re.search(name +'.*_z.xls$', i):
+				# 	self.api_nipt.add_z_result(self.output_dir + '/' + i,interaction_id)
+				# elif re.search(name +'.*_zz.xls$', i):
+				# 	self.api_nipt.add_zz_result(self.output_dir + '/' + i, interaction_id)
+				# 	self.api_nipt.update_main(main_id, self.output_dir + '/' + i) #更新zz值到主表中去
+				# elif re.search(name +'.*_fastqc.html$', i):
+				# 	self.api_nipt.add_fastqc(self.output_dir + '/' + i)  # fastqc入库
+				# elif re.search(name +'.*_result.txt$', i):
+				# 	self.api_nipt.report_result(interaction_id, self.output_dir + '/' + i)
+			if i == name + '.bed.2':
+				print
+				self.api_nipt.add_bed_file(output_dir + '/'+ i)
+			elif i == name + '.qc':
+				self.api_nipt.add_qc(output_dir + '/' + i)
+			elif i == name + '_z.xls':
+				self.api_nipt.add_z_result(output_dir + '/' + i,interaction_id)
+			elif i == name + '_zz.xls':
+				self.api_nipt.add_zz_result(output_dir + '/' + i, interaction_id)
+				self.api_nipt.update_main(main_id, output_dir + '/' + i) #更新zz值到主表中去
+			elif re.search(name +'.*_fastqc.html$', i):
+				sanger_type = Config().get_netdata_config(self.option('sanger_type'))
+				path = sanger_type[self.option('sanger_type')+ "_path"] + "/rerewrweset/nipt_fastqc"
+				os.link(output_dir + '/' + i, path + '/' + i)
+				self.api_nipt.add_fastqc(output_dir + '/' + i, path)  # fastqc入库
+			elif i == name + '_result.txt':
+				self.api_nipt.report_result(interaction_id, output_dir + '/' + i)
+
 		self.api_nipt.update_interaction(main_id)
 
 	def run(self):
