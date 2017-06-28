@@ -125,8 +125,11 @@ class SimpleBarTool(Tool):
             for key in dic_origin.keys():
                 percent_list = []
                 for percent_value in dic_origin[key]:
-                    per = "%10f" % (percent_value / sum(dic_origin[key]))
-                    percent_list.append(float(per))
+                    if sum(dic_origin[key]) == 0:
+                        self.set_error("{}对应的这组信息全为0，不能画图，请剔除，再做分析".format(key))
+                    else:
+                        per = "%10f" % (percent_value / sum(dic_origin[key]))
+                        percent_list.append(float(per))
                 dic_percent[key] = percent_list
             # print dic_percent  # 百分比列表产生
             dic_compare = defaultdict(list)

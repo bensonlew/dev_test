@@ -97,14 +97,22 @@ class GroupTableFile(TableFile):
     def check_info(file_path):
         with open(file_path, 'r') as f:
             first_line = f.readline().strip('\n').split('\t')
+            f1 = set(first_line)
+            if len(f1) != len(first_line):
+                raise FileError('列名不能重复_{}'.format(first_line))
             col_number = len(first_line)
             for i in first_line:
                 if i.isdigit():
                     raise FileError('列名中不能存在数字——{}'.format(i))
                 else:
                     continue
+            row_name = []
             for line in f:
                 content = line.strip('\n').split('\t')
+                if content[0] in row_name:
+                    raise FileError('行名不能重复_{}'.format(content[0]))
+                else:
+                    row_name.append(content[0])
                 if len(content) != col_number:
                     raise FileError('该表格行列信息不全——{}'.format(content))
                 for i in content:

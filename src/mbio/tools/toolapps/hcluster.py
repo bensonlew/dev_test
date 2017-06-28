@@ -96,10 +96,9 @@ class HclusterTool(Tool):
         real_dis_matrix = self.work_dir + '/distance_matrix.temp'
         self.newname_dict = self.change_sample_name(quotes=False, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
-        if self.option('trans') != 'column':
-            cmd += ' -i %s -o %s -m %s -l %s -trans %s -m_1 %s ' %\
-                   (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'),
-                    self.option("trans"), self.option('linkage'))
+        if self.option('trans') == 'column':  # 修改行列取值的实际方式，为了和小工具pca保持一致
+            cmd += ' -i %s -o %s -m %s -l %s -trans row -m_1 %s ' %\
+                   (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option('linkage'))
         else:
             cmd += ' -i %s -o %s -m %s -l %s -trans col -m_1 %s ' % \
                    (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option('linkage'))
