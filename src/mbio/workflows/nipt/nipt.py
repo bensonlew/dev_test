@@ -154,23 +154,10 @@ class NiptWorkflow(Workflow):
 		for name in self.sample_id:
 			main_id, interaction_id = self.api_nipt.get_id(name)
 			for i in os.listdir(self.output_dir):
-				# if re.search(name + '.*bed.2$', i):
-				# 	self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
-				# elif re.search(name +'.*qc$', i):
-				# 	self.api_nipt.add_qc(self.output_dir + '/' + i)
-				# elif re.search(name +'.*_z.xls$', i):
-				# 	self.api_nipt.add_z_result(self.output_dir + '/' + i,interaction_id)
-				# elif re.search(name +'.*_zz.xls$', i):
-				# 	self.api_nipt.add_zz_result(self.output_dir + '/' + i, interaction_id)
-				# 	self.api_nipt.update_main(main_id, self.output_dir + '/' + i) #更新zz值到主表中去
-				# elif re.search(name +'.*_fastqc.html$', i):
-				# 	self.api_nipt.add_fastqc(self.output_dir + '/' + i)  # fastqc入库
-				# elif re.search(name +'.*_result.txt$', i):
-				# 	self.api_nipt.report_result(interaction_id, self.output_dir + '/' + i)
 				if i == name + '.bed.2':
 					self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
-				elif i == name + '.qc':
-					self.api_nipt.add_qc(self.output_dir + '/' + i)
+				# elif i == name + '.qc':
+				# 	self.api_nipt.add_qc(self.output_dir + '/' + i)
 				elif i == name + '_z.xls':
 					self.api_nipt.add_z_result(self.output_dir + '/' + i,interaction_id)
 				elif i == name + '_zz.xls':
@@ -183,5 +170,6 @@ class NiptWorkflow(Workflow):
 					self.api_nipt.add_fastqc(self.output_dir + '/' + i)  # fastqc入库
 				elif i == name + '_result.txt':
 					self.api_nipt.report_result(interaction_id, self.output_dir + '/' + i)
+			self.api_nipt.add_qc(self.output_dir + '/' + name + '.qc', self.output_dir + '/' + name + '.gc')
 
 			self.api_nipt.update_interaction(main_id)
