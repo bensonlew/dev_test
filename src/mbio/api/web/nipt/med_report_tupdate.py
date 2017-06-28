@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'hongdong.xuan'
-import json
-import datetime
 from bson.objectid import ObjectId
-from biocluster.config import Config
 from biocluster.core.function import filter_error_info
-# from mbio.api.web.meta.update_status import UpdateStatus
 from ..meta.update_status import UpdateStatus
 
 
@@ -15,12 +11,11 @@ class MedReportTupdate(UpdateStatus):
         super(MedReportTupdate, self).__init__(data)
         self._client = "client03"
         self._key = "hM4uZcGs9d"
-        self._url = "http://api.tsg.com/task/add_file"
-        # self._mongo_client = self._config.mongo_client
+        self._url = "http://api.tsanger.com/task/add_file"
         self.database = self._mongo_client[self.config.MONGODB + '_nipt']
 
-    def update(self, web_api=False):
-        super(MedReportTupdate, self).update(web_api=False)
+    def update(self):
+        pass
 
     def update_status(self):
         status = self.data["sync_task_log"]["task"]["status"]
