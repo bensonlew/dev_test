@@ -13,7 +13,7 @@ from bson import ObjectId
 
 class SgPaternityTest(Base):
     '''
-    将前端需要调用的结果文件导入mongo数据库，之结果保存的tsanger collection
+    将亲子鉴定的结果内容存入数据库中
     '''
     def __init__(self, bind_object):
         super(SgPaternityTest, self).__init__(bind_object)
@@ -23,6 +23,15 @@ class SgPaternityTest(Base):
 
     @report_check
     def add_sg_father(self,dad,mom,preg,batch_id,member_id):
+        '''
+        添加father主表，一个批次有多少个样本就有多少个主表
+        :param dad:父本id
+        :param mom:母本id
+        :param preg:胎儿id
+        :param batch_id:批次表的_id
+        :param member_id:前端传入的用户id
+        :return:返回值为主表的_id
+        '''
         temp_d = re.search("WQ([0-9]*)-F.*",dad)
         temp_m = re.search(".*-(M.*)", mom)
         temp_s = re.search(".*-(S.*)",preg)
@@ -49,6 +58,12 @@ class SgPaternityTest(Base):
         return father_id
 
     def add_father_result(self,father_id,pt_father_id, dad_id):
+        '''
+        将最终的分析匹配结果和交互表id添加到主表当中去，方便网页展示时取数据以及筛选数据
+        :param father_id:father主表的_id
+        :param pt_father_id:pt_father交互表的_id
+        :param dad_id:父本id
+        '''
         collection_result = self.database['sg_pt_father_analysis']
         collection = self.database['sg_father']
         case = collection.find_one({"_id":father_id})
@@ -67,6 +82,9 @@ class SgPaternityTest(Base):
             self.bind_object.logger.info("更新father主表结果成功")
 
     def update_infoshow(self, pt_father_id,mom,preg):
+        '''
+        如果分析结果有问题，如样本深度不够等等。即在结果表中标记qc字段为不合格
+        '''
         collection_result = self.database['sg_pt_father_result_info']
         insert={
             "pt_father_id":pt_father_id,
@@ -83,6 +101,9 @@ class SgPaternityTest(Base):
             self.bind_object.logger.info("更新有问题的母子信息表成功")
 
     def add_father_qc(self, father_id, pt_father_id):
+        '''
+        将分析出的样本qc值加入到主表中，方便页面展示
+        '''
         collection_result = self.database['sg_pt_father_result_info']
         collection = self.database['sg_father']
 
@@ -97,6 +118,10 @@ class SgPaternityTest(Base):
             self.bind_object.logger.info("更新father主表家系质控成功")
 
     def update_sg_pt_father(self, pt_father_id):
+        '''
+        流程结束时更新交互主表的状态
+
+        '''
         try:
             collection = self.database['sg_pt_father']
             collection.update({"_id": pt_father_id}, {'$set': {"status": "end"}})
@@ -110,6 +135,10 @@ class SgPaternityTest(Base):
     # "status": "end",
     # @report_check
     def add_pt_father(self, father_id, err_min, dedup):
+        '''
+        增加交互主表。第一次运行时自动添加一个（即主表生成时，交互主表也生成）。后在交互页面投递任务时，
+        每一个任务对应一个交互主表。每一个主表可能对应不同的交互主表（视交互次数而定，但至少对应一个）
+        '''
         params = dict()
         params['err_min'] = err_min
         params['dedup'] = dedup
@@ -135,6 +164,10 @@ class SgPaternityTest(Base):
 
     @report_check
     def add_sg_ref_file(self,father_id, ref_fasta,targets_bedfile,ref_point,fastq_path):
+        '''
+        参考文件的记录
+
+        '''
         insert_data={
             "father_id": father_id,
             "ref_fasta": ref_fasta,
@@ -153,6 +186,9 @@ class SgPaternityTest(Base):
 
     @report_check
     def add_sg_pt_father_detail(self,file_path,pt_father_id):
+        '''
+        调试表的导入
+        '''
         sg_pt_family_detail = list()
         with open(file_path, 'r') as f:
             for line in f:
@@ -242,6 +278,9 @@ class SgPaternityTest(Base):
 
     @report_check
     def add_pt_father_figure(self, file_dir,pt_father_id):
+        '''
+        导入结果图片
+        '''
         fs = gridfs.GridFS(self.database)
         family_fig = fs.put(open(file_dir + '_family.png', 'r'))
         figure1 = fs.put(open(file_dir + '_fig1.png', 'r'))
@@ -266,6 +305,9 @@ class SgPaternityTest(Base):
 
     @report_check
     def add_analysis_tab(self, file_path,pt_father_id):
+        '''
+        结果信息存入表格，包括测试位点数，有效率无效率等等
+        '''
         sg_pt_family_detail = list()
         with open(file_path, 'r') as f:
             for line in f:
@@ -304,6 +346,9 @@ class SgPaternityTest(Base):
 
     @report_check
     def add_info_detail(self, file_path,pt_father_id):
+        '''
+        基本信息存入数据库，包括母本胎儿是否匹配，胎儿信号比例等等
+        '''
         sg_pt_family_detail = list()
         with open(file_path, 'r') as f:
             for line in f:
@@ -339,6 +384,9 @@ class SgPaternityTest(Base):
 
     # @report_check
     def add_test_pos(self, file_path, pt_father_id):
+        '''
+        测试位点信息导入数据库
+        '''
         sg_pt_family_detail = list()
         with open(file_path, 'r') as f:
             for line in f:
@@ -366,6 +414,9 @@ class SgPaternityTest(Base):
                 self.bind_object.logger.info("导入位点信息表格成功")
 
     def has_problem(self,pt_father_id,dad_id):
+        '''
+        如果在分析家系时，有样本质检不过关，此时不绘制结果图，匹配结果字段做异常标记
+        '''
         collection = self.database['sg_pt_father_analysis']
         if collection.find_one({'dad_id':dad_id}):
             collection.find_one_and_update({"pt_father_id":pt_father_id,'dad_id':dad_id},{"$set":{"result":'MARK'}})
