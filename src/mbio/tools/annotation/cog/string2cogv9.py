@@ -39,14 +39,14 @@ class String2cogv9Agent(Agent):
     def check_options(self):
         if not self.option("blastout").is_set and not self.option("string_table").is_set:
             raise OptionError("必须提供比对到string库的xm文件或table文件")
-        if self.option("blastout").is_set:
-            document = ET.parse(self.option("blastout").prop['path'])
-            root = document.getroot()
-            db = root.find('BlastOutput_db')
-            if db.text.endswith('string'):
-                pass
-            else:
-                raise OptionError("BLAST比对数据库不支持")
+        # if self.option("blastout").is_set:
+        #     document = ET.parse(self.option("blastout").prop['path'])
+        #     root = document.getroot()
+        #     db = root.find('BlastOutput_db')
+        #     if db.text.endswith('string'):
+        #         pass
+        #     else:
+        #         raise OptionError("BLAST比对数据库不支持")
 
     def set_resource(self):
         self._cpu = 10
