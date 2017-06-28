@@ -34,7 +34,7 @@ class SimpleBar(Base):
         """
         导入simple_bar图相关信息
         """
-
+        self.bind_object.logger.info("开始柱形图导表")
         all_file = os.listdir(self.output_dir)
         for fr in all_file:
             if fr.endswith("matrix_bar.xls"):
@@ -75,6 +75,7 @@ class SimpleBar(Base):
         """
         导入表格相关信息
         """
+        self.bind_object.logger.info("开始表格导表")
         value_table = self.insert_table(self.output_dir + '/final_value.xls', '柱形图数据表', '柱形图数据表格')
         return [value_table]
 
@@ -101,6 +102,7 @@ class SimpleBar(Base):
                 data['table_id'] = table_id
                 insert_data.append(data)
             self.db['table_detail'].insert_many(insert_data)
+
         return table_id
 
     def check(self):
