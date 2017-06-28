@@ -15,7 +15,7 @@ class MedReportTupdate(UpdateStatus):
         self._client = "client03"
         self._key = "hM4uZcGs9d"
         self._url = "http://api.tsanger.com/task/add_file"
-        self.database = self._mongo_client[self.config.MONGODB+'_paternity_test']
+        self.database = self._mongo_client[self.config.MONGODB + '_paternity_test']
         
     def update(self):
         pass
