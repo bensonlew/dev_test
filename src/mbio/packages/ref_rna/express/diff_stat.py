@@ -2,9 +2,11 @@
 # -*- coding: utf-8 -*-
 # __author__ = "qiuping"
 # last_modify:20161101
+
 from collections import defaultdict
 import math
 from math import log
+
 
 class Express(object):
     def __init__(self):
@@ -72,13 +74,12 @@ class DiffStat(object):
         for sam in samples:
             sum_count += count_dict[sam]
             sum_fpkm += fpkm_dict[sam]
-        #mean_count = float(sum_count) / len(samples)
-        mean_count = float(sum_count)  #modify by khl 20170629
+        mean_count = float(sum_count) / len(samples)
         mean_fpkm = float(sum_fpkm) / len(samples)
         return round(mean_count, 3), round(mean_fpkm, 3)
 
     def diff_stat(self, express_info, edgr_result, control, other, output, group_info=None, regulate=True, diff_ci=0.05,
-                  fc=2, diff_fdr_ci=0.05,pvalue_padjust="padjust"):
+                  fc=2, diff_fdr_ci=0.05, pvalue_padjust="padjust"):
         """
         express_info:字典，键为基因名，值为Express对象
         edgr_result:edgr分析得到的结果文件
@@ -93,6 +94,7 @@ class DiffStat(object):
         """
         with open(edgr_result, 'rb') as r, open('%s/%s_vs_%s_edgr_stat.xls' % (output, control, other), 'wb') as w:
             import math
+            edgr_gene_list = []
             from math import log
             r.readline()
             count_ = []
@@ -107,36 +109,40 @@ class DiffStat(object):
                 for ss in samples_:
                     count_.append("{}_count".format(ss))
                     fpkm_.append("{}_fpkm".format(ss))
-                head = "seq_id\t%s\t%s\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % ("\t".join(count_), "\t".join(fpkm_), control, other, control, other,control,other,control,other)
+                head = "seq_id\t%s\t%s\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
+                "\t".join(count_), "\t".join(fpkm_), control, other, control, other, control, other, control, other)
             else:
-                head = "seq_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (control, other, control, other,control,other,control,other)
+                head = "seq_id\t%s_count\t%s_count\t%s_fpkm\t%s_fpkm\t%s_log2_fpkm\t%s_log2_fpkm\t%s_log2_count\t%s_log2_count\tlog2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi\n" % (
+                control, other, control, other, control, other, control, other)
             w.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')
                 gene = line[0]
+                if gene not in edgr_gene_list:
+                    edgr_gene_list.append(gene)
                 pvalue = float(line[-2])
-                
+
                 fdr = float(line[-1])
                 counts = express_info[gene].counts
                 fpkms = express_info[gene].fpkms
                 if group_info:
                     # con_sams = group_info[control]
                     # oth_sams = group_info[other]
-                    control_count,control_fpkm = self.get_mean(con_sams, counts, fpkms)
-                    other_count,other_fpkm = self.get_mean(oth_sams, counts, fpkms)
-                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
-                    control_count_log2 = log(control_count+0.1)/float(log(2))
-                    other_fpkm_log2 = log(other_fpkm+0.1)/log(2)
-                    other_count_log2 = log(other_count+0.1)/float(log(2))
+                    control_count, control_fpkm = self.get_mean(con_sams, counts, fpkms)
+                    other_count, other_fpkm = self.get_mean(oth_sams, counts, fpkms)
+                    control_fpkm_log2 = log(control_fpkm + 0.1) / float(log(2))
+                    control_count_log2 = log(control_count + 0.1) / float(log(2))
+                    other_fpkm_log2 = log(other_fpkm + 0.1) / log(2)
+                    other_count_log2 = log(other_count + 0.1) / float(log(2))
                 else:
                     control_count = express_info[gene].counts[control]
                     control_fpkm = express_info[gene].fpkms[control]
                     other_count = express_info[gene].counts[other]
                     other_fpkm = express_info[gene].fpkms[other]
-                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
-                    control_count_log2 = log(control_count+0.1)/float(log(2))
-                    other_fpkm_log2 = log(other_fpkm+0.1)/float(log(2))
-                    other_count_log2 = log(other_count+0.1)/float(log(2))
+                    control_fpkm_log2 = log(control_fpkm + 0.1) / float(log(2))
+                    control_count_log2 = log(control_count + 0.1) / float(log(2))
+                    other_fpkm_log2 = log(other_fpkm + 0.1) / float(log(2))
+                    other_count_log2 = log(other_count + 0.1) / float(log(2))
                 # lfc = (other_fpkm + 0.1) / (control_fpkm + 0.1)
                 # logfc = round(math.log(lfc, 2), 3)
                 """
@@ -150,8 +156,8 @@ class DiffStat(object):
                 from math import pow
                 ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
 
-                fc = float((other_fpkm+0.1)/(control_fpkm+0.1))
-                logfc=float(log(fc)/log(2))
+                fc = float((other_fpkm + 0.1) / (control_fpkm + 0.1))
+                logfc = float(log(fc) / log(2))
 
                 # logfc = float(line[-4])
                 if logfc > 0:
@@ -160,35 +166,39 @@ class DiffStat(object):
                     reg = 'down'
                 else:
                     reg = 'no change'
-                def check_fc(fc,pvalue,pvalue_filter,fc_filter=None):
-                        if fc_filter and fc_filter != 0:
-                            if float(fc_filter)>=1:
-                                if float(pow(2,float(fc))) > float(fc_filter) or float(pow(2,float(fc))) <= (float(1)/float(fc_filter)):
-                                   if pvalue <= float(pvalue_filter):
-                                      sig = 'yes'
-                                   else:
-                                      sig = 'no'
+
+                def check_fc(fc, pvalue, pvalue_filter, fc_filter=None):
+                    if fc_filter and fc_filter != 0:
+                        if float(fc_filter) >= 1:
+                            if float(pow(2, float(fc))) > float(fc_filter) or float(pow(2, float(fc))) <= (
+                                float(1) / float(fc_filter)):
+                                if pvalue <= float(pvalue_filter):
+                                    sig = 'yes'
                                 else:
-                                    sig='no'
-                            if float(fc_filter)<1:
-                                if float(pow(2,float(fc))) < float(fc_filter) or float(pow(2,float(fc))) >= (float(1)/float(fc_filter)):
-                                   if pvalue <= float(pvalue_filter):
-                                       sig = 'yes'
-                                   else:
-                                       sig = 'no'
-                                else:
-                                    sig='no'
-                            return sig
-                        else:
-                            if pvalue <= float(pvalue_filter):
-                                sig='yes'
+                                    sig = 'no'
                             else:
-                                sig='no'
-                            return sig
+                                sig = 'no'
+                        if float(fc_filter) < 1:
+                            if float(pow(2, float(fc))) < float(fc_filter) or float(pow(2, float(fc))) >= (
+                                float(1) / float(fc_filter)):
+                                if pvalue <= float(pvalue_filter):
+                                    sig = 'yes'
+                                else:
+                                    sig = 'no'
+                            else:
+                                sig = 'no'
+                        return sig
+                    else:
+                        if pvalue <= float(pvalue_filter):
+                            sig = 'yes'
+                        else:
+                            sig = 'no'
+                        return sig
+
                 if pvalue_padjust == 'pvalue':
-                    sig =  check_fc(fc=logfc,pvalue=pvalue,pvalue_filter=diff_ci,fc_filter=fc)
+                    sig = check_fc(fc=logfc, pvalue=pvalue, pvalue_filter=diff_ci, fc_filter=fc)
                 if pvalue_padjust == 'padjust':
-                    sig = check_fc(fc=logfc,pvalue = fdr,pvalue_filter=diff_fdr_ci,fc_filter=fc)
+                    sig = check_fc(fc=logfc, pvalue=fdr, pvalue_filter=diff_fdr_ci, fc_filter=fc)
 
                 """
                 if pvalue < diff_ci and fdr < diff_fdr_ci:
@@ -204,12 +214,64 @@ class DiffStat(object):
                         fpkm_.append("{}_fpkm".format(ss))
                         count_data.append(str(counts[ss]))
                         fpkm_data.append(str(fpkms[ss]))
-                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, "\t".join(count_data),"\t".join(fpkm_data),control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2,other_fpkm_log2,control_count_log2,other_count_log2,'%0.4g' %logfc,'%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-                    
-                else: 
-                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (gene, control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2,other_fpkm_log2,control_count_log2,other_count_log2,'%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-                    
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
+                    gene, "\t".join(count_data), "\t".join(fpkm_data), control_count, other_count, control_fpkm,
+                    other_fpkm, control_fpkm_log2, other_fpkm_log2, control_count_log2, other_count_log2,
+                    '%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
 
+                else:
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
+                    gene, control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2, other_fpkm_log2,
+                    control_count_log2, other_count_log2, '%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg,
+                    ncbi))
+
+            edgr_gene_list=set(edgr_gene_list)  # add by khl 20170623  根据count表 补齐被差异软件过滤掉的部分基因
+            count_gene_list = set(express_info.keys())
+            # diff_edgr_count = []
+            # for i in count_gene_list:
+            #     if i not in edgr_gene_list and i not in diff_edgr_count:
+            #         diff_edgr_count.append(i)
+            diff_edgr_count = count_gene_list.difference(edgr_gene_list)
+            print 'edgr含有的基因数目为{}'.format(str(len(edgr_gene_list)))
+            print 'count表含有的基因数目为{}'.format(str(len(count_gene_list)))
+            print 'diff_edgr_count还有的基因数目为{}'.format(str(len(diff_edgr_count)))
+            for gene in diff_edgr_count:
+                ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
+                if group_info:
+                    counts = express_info[gene].counts
+                    fpkms = express_info[gene].fpkms
+                    # con_sams = group_info[control]
+                    # oth_sams = group_info[other]
+                    control_count, control_fpkm = self.get_mean(con_sams, counts, fpkms)
+                    other_count, other_fpkm = self.get_mean(oth_sams, counts, fpkms)
+                    control_fpkm_log2 = log(control_fpkm + 0.1) / float(log(2))
+                    control_count_log2 = log(control_count + 0.1) / float(log(2))
+                    other_fpkm_log2 = log(other_fpkm + 0.1) / log(2)
+                    other_count_log2 = log(other_count + 0.1) / float(log(2))
+                    count_data = []
+                    fpkm_data = []
+                    for ss in samples_:
+                        count_.append("{}_count".format(ss))
+                        fpkm_.append("{}_fpkm".format(ss))
+                        count_data.append(str(counts[ss]))
+                        fpkm_data.append(str(fpkms[ss]))
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
+                        gene, "\t".join(count_data), "\t".join(fpkm_data), control_count, other_count, control_fpkm,
+                        other_fpkm, control_fpkm_log2, other_fpkm_log2, control_count_log2, other_count_log2,
+                        '%0.4g' % (0.00), '%0.4g' % (1.00), '%0.4g' % (1.00), 'no', 'no change', ncbi))
+                else:
+                    control_count = express_info[gene].counts[control]
+                    control_fpkm = express_info[gene].fpkms[control]
+                    other_count = express_info[gene].counts[other]
+                    other_fpkm = express_info[gene].fpkms[other]
+                    control_fpkm_log2 = log(control_fpkm + 0.1) / float(log(2))
+                    control_count_log2 = log(control_count + 0.1) / float(log(2))
+                    other_fpkm_log2 = log(other_fpkm + 0.1) / float(log(2))
+                    other_count_log2 = log(other_count + 0.1) / float(log(2))
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
+                        gene, control_count, other_count, control_fpkm, other_fpkm, control_fpkm_log2,
+                        other_fpkm_log2,control_count_log2, other_count_log2, '%0.4g' % (0.00), '%0.4g' % (1.00), '%0.4g' % (1.00), 'no',
+                        'no change',ncbi))
 if __name__ == "__main__":
     pass
     """
@@ -226,5 +288,12 @@ if __name__ == "__main__":
     # # print a.express_info
     # a.diff_stat(express_info=a.express_info, edgr_result='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/DiffExp/edger_result/genes.counts.matrix.E18_1_vs_E18_2.edgeR.DE_results', control='E18_1', other='E18_2', output='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/', group_info=None, regulate=True, diff_ci=0.05)
     """
-
+    a=DiffStat()
+    path = "/mnt/ilustre/users/sanger-dev/workspace/20170623/DiffExpress_tsg_2000_5989_3531/"
+    a.get_express_info(path + "express_file_count.matrix",path +"express_file_fpkm.matrix")
+    group_info = {"HGD":["HGL1","HGL3","HGL4"],"HFD":['HFL3', 'HFL4', 'HFL6'],"CD":["CL1","CL2","CL5"]}
+    output = "/mnt/ilustre/users/sanger-dev/workspace/20170623/DiffExpress_tsg_2000_5989_3531/total"
+    edgr_result = "/mnt/ilustre/users/sanger-dev/workspace/20170623/DiffExpress_tsg_2000_5989_3531/DiffExp1/edger_result/express_file_count.matrix.CD_vs_HFD.edgeR.DE_results"
+    a.diff_stat(express_info = a.express_info, edgr_result = edgr_result,control = "CD",other="HFD",output=output,
+                group_info=group_info,regulate=True,diff_ci=0.05,diff_fdr_ci=0.05)
 
