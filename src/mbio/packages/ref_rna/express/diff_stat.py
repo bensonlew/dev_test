@@ -72,7 +72,8 @@ class DiffStat(object):
         for sam in samples:
             sum_count += count_dict[sam]
             sum_fpkm += fpkm_dict[sam]
-        mean_count = float(sum_count) / len(samples)
+        #mean_count = float(sum_count) / len(samples)
+        mean_count = float(sum_count)  #modify by khl 20170629
         mean_fpkm = float(sum_fpkm) / len(samples)
         return round(mean_count, 3), round(mean_fpkm, 3)
 
