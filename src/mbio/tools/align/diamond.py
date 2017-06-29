@@ -25,7 +25,8 @@ class DiamondAgent(Agent):
             {"name": "blast", "type": "string", "default": "blastp"},  # 设定diamond程序有blastp，blastx
             {"name": "reference", "type": "infile", "format": "sequence.fasta"},  # 参考序列  选择customer时启用
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
-            {"name": "num_threads", "type": "int", "default": 10}  # cpu数
+            {"name": "num_threads", "type": "int", "default": 10},  # cpu数
+            {"name": "sensitive", "type": "int", "default": 2}
             ]
         self.add_option(options)
         self.step.add_steps('diamond')
@@ -48,7 +49,8 @@ class DiamondAgent(Agent):
             raise OptionError('query_type查询序列的类型为nucl(核酸)或者prot(蛋白):{}'.format(self.option('query_type')))
         if not 1 > self.option('evalue') >= 0:
             raise OptionError('E-value值设定必须为[0-1)之间：{}'.format(self.option('evalue')))
-
+        if not 0 <= self.option("sensitive") <= 2:
+            raise OptionError('敏感度设定必须为[0-2]之间：{}'.format(self.option('evalue')))
         return True
 
     def set_resource(self):
@@ -109,6 +111,10 @@ class DiamondTool(Tool):
         cmd += " {} -q {} -d {} -o {} -e {} -f {} -p {}".format(
             self.blast_type, self.option("query").prop['path'], db, outputfile,
             self.option("evalue"), outfmt, self.option("num_threads"))
+        if self.option("sensitive") == 1:
+            cmd += " --sensitive"
+        elif self.option("sensitive") == 2:
+            cmd += " --more-sensitive"
         self.logger.info("开始运行blast")
         blast_command = self.add_command("diamond", cmd)
         blast_command.run()
