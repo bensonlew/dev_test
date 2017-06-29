@@ -15,6 +15,8 @@ class ResultInfoAgent(Agent):
     """
     亲子鉴定的结果输出
     包含家系图，存入报告的图、胎儿浓度等
+    包含脚本：plot.R、convert2png.sh
+    如果结果中有样本有问题（如测序深度过低）的，就不生成结果图片，后续判断为异常家系
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21

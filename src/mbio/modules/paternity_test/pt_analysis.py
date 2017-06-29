@@ -8,6 +8,10 @@ from biocluster.core.exceptions import OptionError
 
 
 class PtAnalysisModule(Module):
+    '''
+    做亲子鉴定的分析。
+    包含tool：family_merge、family_analysis
+    '''
     def __init__(self, work_id):
         super(PtAnalysisModule, self).__init__(work_id)
         self.step.add_steps('family_merge', 'family_analysis')

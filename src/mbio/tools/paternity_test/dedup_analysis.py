@@ -13,8 +13,9 @@ import os
 
 class DedupAnalysisAgent(Agent):
     """
-    合并家族之后的一系列分析
-    包括父权值、有效率、无效率、错配率等等
+    查重操作。
+    一个家系对应一个去重tool，输入的父本是需要查重的父本的list列表。
+    包括脚本：family_joined.R、data_analysis.R
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21

@@ -13,6 +13,7 @@ class FamilyMergeAgent(Agent):
     """
     tab2family
     将已知的tab文件合并转化为整个家系在一起的表格
+    包含family_joined.R
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21

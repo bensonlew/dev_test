@@ -9,6 +9,12 @@ from biocluster.core.exceptions import OptionError
 
 
 class Fastq2mongoDcModule(Module):
+	'''
+	将fastq转成tab文件，并存入mongo数据库中。
+	包含tool：family2bam.py、bam2tab.py和family2tab_dc.py
+	杂捕流程——运行family2bam.py、bam2tab.py
+	多重流程——运行family2tab_dc.py
+	'''
 	def __init__(self, work_id):
 		super(Fastq2mongoDcModule, self).__init__(work_id)
 		self.step.add_steps('fastq2bam', 'bam2tab','fastq2tab')
@@ -19,7 +25,7 @@ class Fastq2mongoDcModule(Module):
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
 			{"name": "targets_bedfile", "type": "infile","format":"paternity_test.rda"},  # 位点信息
 			{"name":"batch_id", "type": "string"},
-			{"name":"type","type":"string","default":'pt'}
+			{"name":"type","type":"string","default":'pt'} #不同的实验流程，目前有pt和dcpt两种
 		]
 		self.add_option(options)
 		self.fastq2bam = self.add_tool("paternity_test.family2bam")

@@ -9,7 +9,7 @@ from bson import ObjectId
 
 class TabFile(Base):
     '''
-    将生成的tab文件导入mongo之ref的数据库中
+    【亲子鉴定】将生成的tab文件导入mongo之ref的数据库中，主要涉及参考库的操作
     '''
     def __init__(self, bind_object):
         super(TabFile, self).__init__(bind_object)
@@ -22,6 +22,14 @@ class TabFile(Base):
 
     # @report_check
     def add_pt_tab(self,sample,batch_id):
+        '''
+        将一批次的样本名、批次表导入库中
+        母本和胎儿的analysised字段标记为None，父本标记为no，在做完分析后父本状态改为yes。
+        后续按照父本为no，母本和胎儿都有tab的条件来筛选有效家系
+        遇到母本胎儿重送样的情况，重新更新父本为no，以便能抓到重送样后的家系分析。
+        :param sample:样本名称
+        :param batch_id:批次表的_id
+        '''
         if "-F" in sample:
             analysised = "no"
         else:
@@ -57,6 +65,11 @@ class TabFile(Base):
                 self.bind_object.logger.info("导入tab主表成功")
 
     def update_pt_tab(self,sample):
+        '''
+        分析完后，更新tab主表中的analysised字段为yes
+        :param sample:样本名
+        :return:
+        '''
         try:
             collection = self.database['sg_pt_ref_main']
             collection.update({"sample_id": sample}, {'$set':{"analysised": "yes"}})
@@ -68,6 +81,11 @@ class TabFile(Base):
 
     # @report_check
     def add_sg_pt_tab_detail(self,file_path):
+        '''
+        导入样本的tab文件
+        :param file_path:tab文件
+        :return:
+        '''
         sg_pt_tab_detail = list()
 
         with open(file_path, 'r') as f:
@@ -95,6 +113,11 @@ class TabFile(Base):
 
     # @report_check
     def tab_exist(self, sample):
+        '''
+        检测样本是否已经做过fastq转tab的流程
+        :param sample:
+        :return:
+        '''
         self.bind_object.logger.info('开始检测tab表格')
         collection = self.database['sg_pt_ref']
         result = collection.find_one({'sample_id': sample})
@@ -105,6 +128,11 @@ class TabFile(Base):
         return result
 
     def qc_exist(self, sample):
+        '''
+        检测qc表中是否有该样本的qc文件
+        :param sample:
+        :return:
+        '''
         self.bind_object.logger.info('开始检测qc表格')
         collection = self.database['sg_pt_qc']
         result = collection.find_one({'sample_id': sample})
@@ -116,6 +144,12 @@ class TabFile(Base):
 
 
     def export_tab_file(self, sample, dir):
+        '''
+        导出tab file，在查重步骤时可以用到
+        :param sample:
+        :param dir:
+        :return:
+        '''
         collection = self.database['sg_pt_ref']
         sample_tab = sample + '.tab'
         file = os.path.join(dir, sample_tab)
@@ -144,6 +178,10 @@ class TabFile(Base):
 
 
     def dedup_sample(self):
+        '''
+        获取查重的父本样本list
+        :return:
+        '''
         collection = self.database['sg_pt_ref_main']
         # param = "WQ{}-F".format(num) + '.*'
         sample = []
@@ -154,6 +192,11 @@ class TabFile(Base):
         return sample_new
 
     def dedup_sample_report(self,num):
+        '''
+        在交互页面用的查重，可以选择某样本前后多少的父本进行查重
+        :param num:
+        :return:
+        '''
         collection = self.database['sg_pt_ref_main']
         param = "WQ{}-F".format(num) + '.*'
         sample = []
@@ -164,6 +207,12 @@ class TabFile(Base):
         return sample_new
 
     def sample_qc(self, file, sample_id):
+        '''
+        按照质控标准，一方面导入qc文件，一方面做判断来看该样本是否满足质控条件
+        :param file:
+        :param sample_id:
+        :return:
+        '''
         qc_detail = list()
         with open(file,'r') as f:
             for line in f:
@@ -234,6 +283,11 @@ class TabFile(Base):
                 self.bind_object.logger.info("导入qc表格成功")
 
     def sample_qc_addition(self,sample_id):
+        '''
+        格外的qc文件，主要是杂捕中会考察
+        :param sample_id:
+        :return:
+        '''
         collection = self.database['sg_pt_qc']
         insert = []
 
@@ -292,6 +346,10 @@ class TabFile(Base):
 
 
     def family_unanalysised(self):
+        '''
+        挑选出符合条件的家系（胎儿和母本存在，父本标记还未分析过）
+        :return:
+        '''
         family_id = []
         collection = self.database['sg_pt_ref_main']
         sample = collection.find({"analysised":'no'})
@@ -335,6 +393,11 @@ class TabFile(Base):
         return family_id
 
     def type(self,sample_id):
+        '''
+        确认实验类型，是pt or dcpt
+        :param sample_id:
+        :return:
+        '''
         collection = self.database['sg_pt_ref_main']
         sample = collection.find_one({"sample_id": sample_id})
         if not sample:
@@ -342,6 +405,12 @@ class TabFile(Base):
         return sample['type']
 
     def sample_qc_dc(self, file, sample_id):
+        '''
+        多重实验的qc文件入库（不同于杂捕的质控要求）
+        :param file:
+        :param sample_id:
+        :return:
+        '''
         qc_detail = list()
         with open(file,'r') as f:
             for line in f:
