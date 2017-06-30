@@ -609,17 +609,17 @@ class ExpressModule(Module):
                     return True
             class_code = check_class_code()
             rsem_path = self.output_dir + "/rsem"
-            old_rsem_path = self.output_dir + "/oldrsem"
-            if not os.path.exists(old_rsem_path):
-                os.mkdir(old_rsem_path)
+            # old_rsem_path = self.output_dir + "/oldrsem"
+            # if not os.path.exists(old_rsem_path):
+            #     os.mkdir(old_rsem_path)
             ss = 0
             for files in os.listdir(obj.output_dir):
                 files_path = os.path.join(obj.output_dir, files)
                 new_files_path = os.path.join(self.output_dir+"/rsem",files)
                 os.link(files_path, new_files_path)
-            for f in os.listdir(obj.work_dir+"/"+"oldrsem"):
-                os.link(obj.work_dir+"/"+"oldrsem/"+f, old_rsem_path+"/"+f)
-                self.logger.info("设置gene count 和 fpkm 输出结果成功！")
+            # for f in os.listdir(obj.work_dir+"/"+"oldrsem"):
+            #     os.link(obj.work_dir+"/"+"oldrsem/"+f, old_rsem_path+"/"+f)
+            #     self.logger.info("设置gene count 和 fpkm 输出结果成功！")
             self.rsem_genes_count = self.output_dir+'/rsem/genes.counts.matrix'
             self.rsem_transcripts_count = self.output_dir + '/rsem/transcripts.counts.matrix'
             self.rsem_genes_count_ref = obj.work_dir + '/ref_rsem/genes.counts.matrix'
@@ -641,7 +641,7 @@ class ExpressModule(Module):
                                ref_trans_count_path=self.rsem_transcripts_count_ref,
                                ref_genes_fpkm_path=self.rsem_genes_fpkm_ref,
                                ref_trans_fpkm_path=self.rsem_transcript_fpkm_ref, ref_all=True)
-            self.mergersem1_run()
+            # self.mergersem1_run()
         elif event['data'] == 'mergersem1':
             self.logger.info("开始设置mergersem1分析!")
             if not os.path.exists(self.output_dir+"/rsem1"):
