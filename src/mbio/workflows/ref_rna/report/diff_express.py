@@ -171,7 +171,7 @@ class DiffExpressWorkflow(Workflow):
         """
         保存结果表保存到mongo数据库中
         """
-        api_diff_exp = self.api.refrna_express1
+        api_diff_exp = self.api.refrna_express
         diff_files = os.listdir(self.diff_exp.output_dir)
         diff_files_ref = os.listdir(self.diff_exp_ref.output_dir)
 
