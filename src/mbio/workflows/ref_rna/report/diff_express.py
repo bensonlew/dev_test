@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zhangpeng'
+# modify by khl
 
 """有参转录组表达差异分析"""
 
@@ -33,7 +34,7 @@ class DiffExpressWorkflow(Workflow):
             {"name": "control_file", "type": "string"},
             {"name": "class_code", "type":"string"},
             {"name": "diff_express_id", "type": "string"},
-            {"name": "diff_method", "type": "string","default":"edgeR"},
+            {"name": "diff_method", "type": "string","default":"DESeq2"},
             {"name": "type","type": "string"},
             {"name":"log","type":"string"},
             {"name":"express_level","type":"string"},#对应fpkm/tpm
@@ -170,7 +171,7 @@ class DiffExpressWorkflow(Workflow):
         """
         保存结果表保存到mongo数据库中
         """
-        api_diff_exp = self.api.refrna_express1
+        api_diff_exp = self.api.refrna_express
         diff_files = os.listdir(self.diff_exp.output_dir)
         diff_files_ref = os.listdir(self.diff_exp_ref.output_dir)
 
@@ -233,7 +234,8 @@ class DiffExpressWorkflow(Workflow):
                             diff_stat_path=self.diff_exp.output_dir + '/' + f, workflow=False,class_code = self.option("class_code"),query_type = self.option("type"),pvalue_padjust=self.option("pvalue_padjust"))
         """添加summary表"""
         if os.path.exists(self.diff_exp.output_dir + '/merge.xls'):
-            api_diff_exp.add_diff_summary_detail(diff_express_id=self.option('diff_express_id'),count_path =self.diff_exp.output_dir + '/merge.xls',ref_all='all')
+            api_diff_exp.add_diff_summary_detail(diff_express_id=self.option('diff_express_id'),count_path =self.diff_exp.output_dir + '/merge.xls',ref_all='all',query_type=self.option('type'),
+                                                 class_code=self.option('class_code'),workflow=False)
         else:
             raise Exception("此次ref+new差异分析没有生成summary表！")
 
@@ -259,7 +261,8 @@ class DiffExpressWorkflow(Workflow):
                                                      pvalue_padjust=self.option("pvalue_padjust"))
         """添加summary表"""
         if os.path.exists(self.diff_exp_ref.output_dir + "/merge.xls"):
-            api_diff_exp.add_diff_summary_detail(diff_express_id=self.option('diff_express_id'), count_path=self.diff_exp_ref.output_dir + "/merge.xls",                                      ref_all='ref')
+            api_diff_exp.add_diff_summary_detail(diff_express_id=self.option('diff_express_id'), count_path=self.diff_exp_ref.output_dir + "/merge.xls",ref_all='ref',
+                                                 query_type=self.option('type'), class_code=self.option('class_code'),workflow=False)
         else:
             raise Exception("此次ref差异分析没有生成summary表！")
         """更新主表信息"""
@@ -277,11 +280,18 @@ class DiffExpressWorkflow(Workflow):
         
         collection = client[db_name]['sg_express_diff']
         """方便前端取数据, 生成compare_column_specimen"""
-        print "compare_column"
-        print compare_column
+
         print "compare_column_specimen"
         print compare_column_specimen
 
+        tmp_compare_column = []
+        for col in compare_column:
+            if col not in tmp_compare_column:
+                tmp_compare_column.append(col)
+
+        print "compare_column"
+        print compare_column
+        
         if self.option("group_id_id") != "all":
             new_compare_column_specimen = {}
             for keys1 in compare_column:
@@ -299,9 +309,11 @@ class DiffExpressWorkflow(Workflow):
             group_detal_dict = json.loads(self.option("group_detail"))
             for group,samples in group_detal_dict.items():
                 group_detail[group]=samples
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': compare_column, 'specimen': self.samples,'compare_column_specimen':new_compare_column_specimen}})
+
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'group_detail': group_detail, 'compare_column': tmp_compare_column, 'specimen': self.samples,'compare_column_specimen':new_compare_column_specimen}})
         else:
-            collection.update({'_id': ObjectId(table_id)}, {'$set': {'compare_column': compare_column, 'specimen': self.samples}})
+
+            collection.update({'_id': ObjectId(table_id)}, {'$set': {'compare_column': tmp_compare_column, 'specimen': self.samples}})
 
     def run(self):
         self.on_rely([self.diff_exp, self.diff_exp_ref], self.end)

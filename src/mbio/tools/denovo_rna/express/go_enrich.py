@@ -102,7 +102,9 @@ class GoEnrichTool(Tool):
         try:
             self.logger.info('run_draw_go_graph')
             go_pvalue = self.get_go_pvalue_dict()
+            self.logger.info('rrrrrrrrrrrrrrrrun_draw_go_graph')
             self.logger.info(go_pvalue)
+            self.logger.info('run_draw_go_graphhhhhhhhhhhhhhhhh')
             if go_pvalue:
                 draw_GO(go_pvalue, out=self.out_go_graph)
             self.end()
@@ -117,9 +119,11 @@ class GoEnrichTool(Tool):
             for line in f:
                 line_sp = line.split('\t')
                 p_bonferroni = float(line_sp[9])
-                if p_bonferroni < 0.05:
-                    go2pvalue[line_sp[0]] = p_bonferroni
-        return go2pvalue
+                go2pvalue[line_sp[0]] = p_bonferroni
+        tar = sorted(go2pvalue.items(), key=lambda e:e[1], reverse=True)
+        new_go2pvalue = dict(tar[-10:])
+        self.logger.info(new_go2pvalue)
+        return new_go2pvalue
 
     def run(self):
         super(GoEnrichTool, self).run()

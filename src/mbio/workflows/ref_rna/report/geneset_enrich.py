@@ -75,14 +75,17 @@ class GenesetEnrichWorkflow(Workflow):
                 else:
                     ref_genes.add(line[0])
         self.logger.info(new_genes & geneset)
-        self.logger.info(len(new_genes & geneset))
+        self.logger.info(len(new_genes & ref_genes))
         if len(new_genes & geneset) == 0:
             with open(background_path, "w") as b:
                 for rg in ref_genes:
                     b.write("{}\n".format(rg))
-            return background_path
         else:
-            return self.option("all_list")
+            print "lllllllllllsssssss"
+            with open(background_path, "w") as b:
+                for rg in (ref_genes | new_genes):
+                    b.write("{}\n".format(rg))
+        return background_path
 
     def set_db(self):
         """
@@ -90,15 +93,19 @@ class GenesetEnrichWorkflow(Workflow):
         """
         api_geneset = self.api.ref_rna_geneset
         output_file = glob.glob("{}/*.xls".format(self.output_dir))
-        png_file = glob.glob("{}/*.png".format(self.output_dir))
+        # png_file = glob.glob("{}/*.png".format(self.output_dir))
+        # go_png = self.output_dir + "/go_lineage.png"
+        # go_pdf = self.output_dir + "/go_lineage.pdf"
+        go_adjust_png = self.output_dir + "/adjust_lineage.png"
+        go_adjust_pdf = self.output_dir + "/adjust_lineage.pdf"
         genset_list_path = self.option("genset_list")
         all_list_path = self.option("all_list")
         if self.option("anno_type") == "kegg":
             api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0], genset_list_path, all_list_path)
         else:
             api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
-            if len(png_file) == 1:
-                api_geneset.update_directed_graph(self.option("main_table_id"), png_file[0])
+            # if len(png_file) == 1:
+            api_geneset.update_directed_graph(self.option("main_table_id"), go_adjust_png, go_adjust_pdf)
         self.end()
 
     def end(self):

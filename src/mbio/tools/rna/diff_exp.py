@@ -31,7 +31,7 @@ class DiffExpAgent(Agent):
             {"name": "edger_group", "type": "infile", "format": "sample.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "sample.control_table"},  # 对照组文件，格式同分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
-            {"name": "method", "type": "string", "default": "edgeR"}, # 选择计算的软件
+            {"name": "method", "type": "string", "default": "DESeq2"}, # 选择计算的软件
             {"name": "gname", "type": "string", "default": "none"},  # 分组方案名称
             {"name": "fc", "type": "float", "default": 2}, #log底数
             {"name": "diff_fdr_ci", "type": "float", "default": 0.05}, #fdr的选择
@@ -309,7 +309,7 @@ class DiffExpTool(Tool):
         except subprocess.CalledProcessError:
             self.logger.info('生成失败')
             self.set_error('R运行生成error')
-            raise "运行R脚本失败"
+            raise Exception("运行R脚本失败")
 
     def set_output(self):
         """

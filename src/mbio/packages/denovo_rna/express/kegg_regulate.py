@@ -39,6 +39,7 @@ class KeggRegulate(object):
         regulate_dict：gene调控信息:{'up': [gene1,gene2], 'down': [gene1,gene2]}
         """
         colors_w = ['red', 'yellow', 'blue', "green", 'purple', 'pink']
+        same_color = "orange"
         new_path_ko = {}
         with open(output, 'wb') as w:
             # w.write('Pathway_id\tKo_ids\tup_numbers\tdown_numbers\tup_genes\tdown_genes\n')
@@ -74,15 +75,16 @@ class KeggRegulate(object):
                     count += len(write_dict[gn])
                 if count > 0:
                     w.write('{}\t{}\t'.format(path, ";".join(ko_ids)))
+                    set_color = {}
                     for n, gn in enumerate(write_dict):
                         geneko = write_dict[gn]
                         w.write("{}\t{}\t".format(len(write_dict[gn]), ";".join(write_dict[gn])))
                         for gk in geneko:
                             gko = gk.split('(')[-1][:-1]
-                            # print gko
-                            color_gk = '/' + gko + '%09' + colors_w[n]
-                            link += color_gk
-                            # print link
+                            set_color[gko] = same_color if gko in set_color else colors_w[n]
+                    for k in set_color:
+                        color_gk = '/' + k + '%09' + set_color[k]
+                        link += color_gk
                         # print link
                     w.write('{}'.format(link))
                     w.write("\n")
@@ -97,6 +99,7 @@ class KeggRegulate(object):
             regulate_dict：ko调控信息:{'up': [ko1,ko2], 'up_down': [ko1,ko2],'down': [ko1,ko2]}
             """
             colors_l = ['#CC0000', '#EEEE00', '#388E3C', "#EE6AA7", '#9B30FF', '#7B68EE']
+            same_colors = "#FF9800"
             for path in path_ko:
                 koid = path_ko[path]
                 l = {}
@@ -116,10 +119,14 @@ class KeggRegulate(object):
                     if not regulate_dict == None:
                         for theid in l:
                             for graphic in pathway.entries[theid].graphics:
-                                # modified by qindanhua 20170602 适应基因集的修改，输入的字典名称根据基因集名臣变化，不限制于上下调基因
+                                # modified by qindanhua 20170602 适应基因集的修改，输入的字典名称根据基因集名称变化，不限制于上下调基因
+                                same_count = 0
                                 for n, gs in enumerate(regulate_dict):
                                     if l[theid] in regulate_dict[gs]:
+                                        same_count += 1
                                         graphic.fgcolor = colors_l[n]
+                                if same_count > 1:
+                                    graphic.fgcolor = same_colors
                     canvas = KGMLCanvas(pathway, import_imagemap=True, label_compounds=True,
                                     label_orthologs=False, label_reaction_entries=False,
                                     label_maps=False, show_maps=False, draw_relations=False, show_orthologs=True,

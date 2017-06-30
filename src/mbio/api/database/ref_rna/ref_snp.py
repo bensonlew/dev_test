@@ -50,24 +50,25 @@ class RefSnp(Base):
         indel_pos_stat = {}
         all_depth_stat = {}
         all_freq_stat = {}
-        depth_list = ["<30", "30-100", "100-200", "200-300", "300-400", "400-500", ">500"]
+        depth_list = ["<=30", "31-100", "101-200", "201-300", "301-400", "401-500", ">500"]
         # graph_data_list = []
         chroms = set()
         distributions = set()
         data_list = []
-        sample_names = ["CL1", "CL2", "CL5", "HFL3", "HFL4", "HFL6", "HGL1", "HGL3", "HGL4"]
+        sample_names = []
         sample_old_index = []
         sample_old_gene = []
-        for s in sample_names:
-            snp_type_stat[s] = {}
-            snp_pos_stat[s] = {}
-            indel_pos_stat[s] = {}
-            all_freq_stat[s] = [0]
-            all_depth_stat[s] = [0, 0, 0, 0, 0, 0, 0]
-            sample_old_index.append(-1)
-            sample_old_gene.append('')
+
         with open(snp_anno, "r") as f:
             sample_names = f.readline().strip().split("\t")[10:]
+            for s in sample_names:
+                snp_type_stat[s] = {}
+                snp_pos_stat[s] = {}
+                indel_pos_stat[s] = {}
+                all_freq_stat[s] = [0]
+                all_depth_stat[s] = [0, 0, 0, 0, 0, 0, 0]
+                sample_old_index.append(-1)
+                sample_old_gene.append('')
             # print f.next()
             for line in f:
                 line = line.strip().split("\t")
@@ -167,19 +168,6 @@ class RefSnp(Base):
                 target_list[6] += 1
         # print target_dict
         return target_list
-
-    def get_stat_dict(self, value, target_dict):
-        if value < 0.21:
-            target_dict[0] += 1
-        elif 0.2 < value < 0.41:
-            target_dict[1] += 1
-        elif 0.4 < value < 0.61:
-            target_dict[2] += 1
-        elif 0.6 < value < 0.81:
-            target_dict[3] += 1
-        else:
-            target_dict[4] += 1
-        return target_dict
 
     def type_stat(self, dict_key, target_dict):
         if dict_key in target_dict:

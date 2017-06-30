@@ -39,7 +39,7 @@ class GenomeStructureAgent(Agent):
 
     def set_resource(self):
         self._cpu = 4
-        self._memory = "4G"
+        self._memory = "6G"
 
 
 class GenomeStructureTool(Tool):
