@@ -140,57 +140,20 @@ class RefRnaGeneset(Base):
                     ('gene_list', line[-1]),
                     ('gene_str', line[-1].split(";"))
                 ]
-                # if float(line[8]):
-                #     m = re.match(r"(.+)/(.+)", line[5])
-                #     pop_count = int(m.group(1))
-                #     line[6] = float(line[6])
-                #     line[7] = int(line[7])
-                #     line[8] = int(line[8])
-                #     line[9] = float(line[9])
-                #     line[10] = float(line[10])
-                #     line[11] = float(line[11])
-                #     line[12] = float(line[12])
-                #     data = [
-                #         ('go_enrich_id', go_enrich_id),
-                #         ('go_id', line[0]),
-                #         ('go_type', line[1]),
-                #         ('enrichment', line[2]),
-                #         ('discription', line[3]),
-                #         ('ratio_in_study', line[4]),
-                #         ('ratio_in_pop', line[5]),
-                #         ('p_uncorrected', line[6]),
-                #         ('depth', line[7]),
-                #         ('study_count', line[8]),
-                #         ('pop_count', pop_count),
-                #         ('gene_list', line[13]),
-                #     ]
-                #     try:
-                #         data += [('p_bonferroni', line[9])]
-                #     except:
-                #         data += [('p_bonferroni', '')]
-                #     try:
-                #         data += [('p_sidak', line[10])]
-                #     except:
-                #         data += [('p_sidak', '')]
-                #     try:
-                #         data += [('p_holm', line[11])]
-                #     except:
-                #         data += [('p_holm', '')]
-                #     try:
-                #         data += [('p_fdr', line[12])]
-                #     except:
-                #         data += [('p_fdr', '')]
                 data = SON(data)
                 data_list.append(data)
-        try:
-            collection = self.db['sg_geneset_go_enrich_detail']
-            collection.insert_many(data_list)
-            # main_collection = self.db['sg_geneset_go_enrich']
-            # main_collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {"status": "end"}})
-        except Exception, e:
-            print("导入go富集信息：%s出错:%s" % (go_enrich_dir, e))
+        if data_list:
+            try:
+                collection = self.db['sg_geneset_go_enrich_detail']
+                collection.insert_many(data_list)
+                # main_collection = self.db['sg_geneset_go_enrich']
+                # main_collection.update({"_id": ObjectId(go_enrich_id)}, {"$set": {"status": "end"}})
+            except Exception, e:
+                print("导入go富集信息：%s出错:%s" % (go_enrich_dir, e))
+            else:
+                print("导入go富集信息：%s成功!" % (go_enrich_dir))
         else:
-            print("导入go富集信息：%s成功!" % (go_enrich_dir))
+            raise Exception('GO富集没有结果')
 
     @report_check
     def update_directed_graph(self, go_enrich_id, go_graph_png, go_graph_pdf):
@@ -255,7 +218,8 @@ class RefRnaGeneset(Base):
             else:
                 coll = self.db['sg_geneset_kegg_enrich']
                 coll.update({'_id': enrich_id}, {'$set': {'desc': 'no_result'}})
-                self.bind_object.logger.info("kegg富集统计表没结果：" % kegg_enrich_table)
+                # self.bind_object.logger.info("kegg富集统计表没结果：" % kegg_enrich_table)
+                raise Exception("kegg富集统计表没结果")
 
     @report_check
     def add_go_regulate_detail(self, go_regulate_dir, go_regulate_id):
@@ -302,18 +266,18 @@ class RefRnaGeneset(Base):
                     else:
                         data["{}_percent_str".format(dk)] = 0
                 data_list.append(data)
-            try:
-                collection = self.db['sg_geneset_go_class_detail']
-                main_collection = self.db['sg_geneset_go_class']
-                collection.insert_many(data_list)
-                main_collection.update({"_id": ObjectId(go_regulate_id)}, {"$set": {"table_columns": list(geneset_name)}})
-                self.bind_object.logger.info("llllllll")
-                self.bind_object.logger.info(geneset_name)
-                self.bind_object.logger.info(ObjectId(go_regulate_id))
-            except Exception, e:
-                self.bind_object.logger.info("导入go调控信息：%s出错:%s" % (go_regulate_dir, e))
-            else:
-                self.bind_object.logger.info("导入go调控信息：%s成功!" % (go_regulate_dir))
+        try:
+            collection = self.db['sg_geneset_go_class_detail']
+            main_collection = self.db['sg_geneset_go_class']
+            collection.insert_many(data_list)
+            main_collection.update({"_id": ObjectId(go_regulate_id)}, {"$set": {"table_columns": list(geneset_name)}})
+            self.bind_object.logger.info("llllllll")
+            self.bind_object.logger.info(geneset_name)
+            self.bind_object.logger.info(ObjectId(go_regulate_id))
+        except Exception, e:
+            self.bind_object.logger.info("导入go调控信息：%s出错:%s" % (go_regulate_dir, e))
+        else:
+            self.bind_object.logger.info("导入go调控信息：%s成功!" % (go_regulate_dir))
 
     @report_check
     def add_kegg_regulate_pathway(self, pathway_dir, regulate_id):
@@ -403,7 +367,7 @@ class RefRnaGeneset(Base):
                 }
                 # print path_def[line[0]]
                 for n, gn in enumerate(genesets_name):
-                    gene_list = re.findall(r"(.*?)\(.*?\);", line[3+2*n])
+                    gene_list = re.findall(r"(.*?)\(.*?\)", line[3+2*n])
                     insert_data["{}_geneko".format(gn)] = line[3+2*n]
                     insert_data["{}_numbers".format(gn)] = line[2+2*n]
                     insert_data["{}_genes".format(gn)] = gene_list

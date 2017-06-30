@@ -50,7 +50,7 @@ class RefSnp(Base):
         indel_pos_stat = {}
         all_depth_stat = {}
         all_freq_stat = {}
-        depth_list = ["<30", "30-100", "100-200", "200-300", "300-400", "400-500", ">500"]
+        depth_list = ["<=30", "31-100", "101-200", "201-300", "301-400", "401-500", ">500"]
         # graph_data_list = []
         chroms = set()
         distributions = set()
@@ -167,19 +167,6 @@ class RefSnp(Base):
                 target_list[6] += 1
         # print target_dict
         return target_list
-
-    def get_stat_dict(self, value, target_dict):
-        if value < 0.21:
-            target_dict[0] += 1
-        elif 0.2 < value < 0.41:
-            target_dict[1] += 1
-        elif 0.4 < value < 0.61:
-            target_dict[2] += 1
-        elif 0.6 < value < 0.81:
-            target_dict[3] += 1
-        else:
-            target_dict[4] += 1
-        return target_dict
 
     def type_stat(self, dict_key, target_dict):
         if dict_key in target_dict:
