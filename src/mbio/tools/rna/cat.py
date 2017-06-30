@@ -57,7 +57,7 @@ class CatTool(Tool):
         super(CatTool, self).__init__(config)
 
     def cat(self):
-        cmd = "cat {} {} > all.file".format(self.option("file1"), self.option("file2"))
+        cmd = "cat {} {} > ref_new.gtf".format(self.option("file1"), self.option("file2"))
         os.system(cmd)
     
     def run(self):
