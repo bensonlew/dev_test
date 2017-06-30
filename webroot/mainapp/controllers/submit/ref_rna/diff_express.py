@@ -54,12 +54,11 @@ class DiffExpressAction(RefRnaController):
         my_param['type'] = data.type
         my_param['task_type']= task_type
         my_param['submit_location'] = data.submit_location
-        
+
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
         express_params=json.loads(express_info["params"])
-        
         express_method = express_params["express_method"]
         value_type = express_params["type"]
         
@@ -74,7 +73,7 @@ class DiffExpressAction(RefRnaController):
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'end'),
+                ('status', 'start'),
                 ('desc',"表达量差异主表"),
                 ('name', main_table_name),
                 ("value_type",value_type),
@@ -123,10 +122,12 @@ class DiffExpressAction(RefRnaController):
                 "log":"None",
                 "express_level":express_level,
                 "pvalue_padjust":data.pvalue_padjust,
-                "pvalue":data.pvalue
+                "pvalue":data.pvalue,
+                "class_code_type":"express_diff"
                 # "group_id": data.group_id,
                 # "group_detail":data.group_detail,
             }
+            # options 中的type参数在差异分析的流程中已写死，传给export_class_code函数
             to_file = ["ref_rna.export_express_matrix_level(express_file)",  "ref_rna.export_control_file(control_file)", "ref_rna.export_class_code(class_code)"]
             if data.group_id != 'all':
                 options.update({
@@ -148,12 +149,12 @@ class DiffExpressAction(RefRnaController):
         """
         检查网页端传进来的参数是否正确
         """
-        params_name = ['express_id', 'fc', 'group_detail', 'group_id', 'control_id', \
+        params_name = ['express_id', 'fc','group_detail', 'group_id', 'control_id', \
                         'submit_location','pvalue_padjust','pvalue','diff_method','type']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
-                success.append("缺少参数!")
+                success.append("缺少参数{}!".format(names))
         for ids in [data.express_id, data.group_id, data.control_id]:
             ids = str(ids)
             if not isinstance(ids, ObjectId) and not isinstance(ids, types.StringTypes):

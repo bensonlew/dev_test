@@ -155,19 +155,19 @@ class HiseqQcModule(Module):
 
     def sickle_pe_run(self, event):
         obj = event["bind_object"]
-        seqprep_l = ""
-        seqprep_r = ""
-        for f in os.listdir(obj.output_dir):
-            if "seqprep_l" in f:
-                seqprep_l = os.path.join(obj.output_dir, f)
-            if "seqprep_r" in f:
-                seqprep_r = os.path.join(obj.output_dir, f)
+        # seqprep_l = ""
+        # seqprep_r = ""
+        # for f in os.listdir(obj.output_dir):
+        #     if "seqprep_l" in f:
+        #         seqprep_l = os.path.join(obj.output_dir, f)
+        #     if "seqprep_r" in f:
+        #         seqprep_r = os.path.join(obj.output_dir, f)
         sickle = self.add_tool('sequence.sickle')
         self.step.add_steps('sickle_{}'.format(self.end_times))
         sickle.set_options({
             "fq_type": self.option("fq_type"),
-            "fastq_l": seqprep_l,
-            "fastq_r": seqprep_r,
+            "fastq_l": obj.option("seqprep_l"),  # modified by shijin on 20170623，减少阻塞
+            "fastq_r": obj.option("seqprep_r"),
             "quality": self.option("quality_q"),
             "length": self.option("length_q")
         })
