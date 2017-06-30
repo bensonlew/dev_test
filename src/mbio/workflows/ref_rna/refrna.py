@@ -1097,40 +1097,76 @@ class RefrnaWorkflow(Workflow):
     def test_mus(self):
         self.logger.info("{}".format(self.option("ref_genome_custom").prop["path"]))
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf")
-        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/HiseqQc/output/sickle_dir")
-        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf.bed")
-        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170626/Refrna_mouse_4/RnaseqMapping/output/bam")
-        self.exp.option("network_diff_list", "/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/Express/output/diff/trans_diff/network_X1_vs_Z1")
-        self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
-        self.assembly.option("new_gene_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_genes.gtf")
+        # self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/HiseqQc/output/sickle_dir")
+        # self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf.bed")
+        #self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170626/Refrna_mouse_4/RnaseqMapping/output/bam")
+        # self.exp.option("network_diff_list", "/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/Express/output/diff/trans_diff/network_X1_vs_Z1")
+        # self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
+        # self.assembly.option("new_gene_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_genes.gtf")
         # self.qc.on("end", self.run_qc_stat, "after")
         # self.qc.on('end', self.run_mapping)
         # self.qc.on("end", self.run_star_mapping)
-        self.qc.on("end", self.run_seq_abs)
-        # self.seq_abs.on("end", self.run_test_annotation)
-        # self.mapping.on('end', self.run_assembly)
-        # self.mapping.on('end', self.run_map_assess)
-        self.assembly.on("end", self.run_new_transcripts_abs)
-        self.assembly.on("end", self.run_new_gene_abs)
+        # self.qc.on("end", self.run_seq_abs)
+        # # self.seq_abs.on("end", self.run_test_annotation)
+        # # self.mapping.on('end', self.run_assembly)
+        # # self.mapping.on('end', self.run_map_assess)
+        # self.assembly.on("end", self.run_new_transcripts_abs)
+        # self.assembly.on("end", self.run_new_gene_abs)
+        # if self.taxon_id != "":
+        #     self.exp.on("end", self.run_network_trans)
+        #     self.final_tools.append(self.network_trans)
+        # self.on_rely(self.final_tools, self.run_api_and_set_output)
+        # # self.assembly.on("end", self.run_exp_rsem_default)
+        # self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
+        # self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        # self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        # self.start_listener()
+        # self.fire("start")
+        # self.qc.start_listener()
+        # self.qc.fire("end")
+        # self.mapping.start_listener()
+        # self.mapping.fire("end")
+        # self.assembly.start_listener()
+        # self.assembly.fire("end")
+        # self.exp.start_listener()
+        # self.exp.fire("end")
+        # self.rpc_server.run()
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_AFTER_END = False
+        task_info = self.api.api('task_info.ref')
+        task_info.add_task_info()
+        self.export_qc()
+        # self.export_genome_info()
+        self.export_annotation()
+        self.export_assembly()
+        self.export_snp()
+        self.export_map_assess()
+        self.export_exp_rsem_default()
+        self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
+        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        self.export_gene_set()
+        self.export_diff_gene()
+        self.export_diff_trans()
+        self.export_ref_diff_gene()
+        self.export_ref_diff_trans()
+        # self.export_gene_detail()
+        self.export_ref_gene_set()
+        self.export_cor()
+        self.export_pca()
+        self.export_cluster_gene()
+        self.export_cluster_trans()
+        self.export_go_regulate()
+        self.export_kegg_regulate()
+        self.export_go_enrich()
+        self.export_kegg_enrich()
+        self.export_cog_class()
         if self.taxon_id != "":
-            self.exp.on("end", self.run_network_trans)
-            self.final_tools.append(self.network_trans)
-        self.on_rely(self.final_tools, self.run_api_and_set_output)
-        # self.assembly.on("end", self.run_exp_rsem_default)
-        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
-        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
-        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        self.start_listener()
-        self.fire("start")
-        self.qc.start_listener()
-        self.qc.fire("end")
-        self.mapping.start_listener()
-        self.mapping.fire("end")
-        self.assembly.start_listener()
-        self.assembly.fire("end")
-        self.exp.start_listener()
-        self.exp.fire("end")
-        self.rpc_server.run()
+            with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
+                ft.readline()
+                content = ft.read()
+                if content:
+                    self.export_ppi()
+        self.export_as()
 
     def run_test_annotation(self):
         pass
@@ -1182,8 +1218,8 @@ class RefrnaWorkflow(Workflow):
         self.export_gene_set()
         self.export_diff_gene()
         self.export_diff_trans()
-        # self.export_ref_diff_gene()
-        # self.export_ref_diff_trans()
+        self.export_ref_diff_gene()
+        self.export_ref_diff_trans()
         # self.export_gene_detail()
         self.export_ref_gene_set()
         self.export_cor()
@@ -1498,7 +1534,7 @@ class RefrnaWorkflow(Workflow):
                                                         is_duplicate=self.option("is_duplicate"),
                                                         query_type="transcript", major=True,
                                                         group_id=params["group_id"], workflow=True)
-         self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='all',query_type='transcript',
+        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='all',query_type='transcript',
                                             class_code=class_code,workflow=True)
 
     def export_diff_gene(self):
@@ -1537,7 +1573,7 @@ class RefrnaWorkflow(Workflow):
         self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='all',query_type='gene',
                                             class_code=class_code,workflow=True)
 
-    def export_diff_ref_trans(self):
+    def export_ref_diff_trans(self):
         path = self.exp.output_dir + "/ref_diff/trans_ref_diff"
         exp_path = self.exp.output_dir + "/rsem"
         with open(exp_path + "/transcripts.counts.matrix", 'r+') as f1:
