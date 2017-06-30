@@ -327,7 +327,7 @@ class DiffAnalysisModule(Module):
         files = os.listdir(self.option('diff_list_dir').prop['path'])
         for f in files:
             opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
-            self.cog_class = self.add_tool("annotation.cog_class")
+            self.cog_class = self.add_tool("annotation.cog.cog_class")
             self.cog_class.set_options(opts)
             self.cog_class_tool.append(self.cog_class)
         if len(self.cog_class_tool) == 1:

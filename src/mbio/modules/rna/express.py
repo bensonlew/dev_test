@@ -57,7 +57,8 @@ class ExpressModule(Module):
             {"name": "genes_diff_fpkm","type":"outfile","format":"rna.express_matrix"}, #差异基因的fpkm表
             {"name": "diff_list_dir", "type": "outfile", "format": "rna.diff_stat_dir"},
             {"name": "trans_diff_fpkm", "type": "outfile", "format": "rna.express_matrix"},  # 差异转录本的fpkm表
-            {"name":  "fc", "type":"float","default":2} #设置fc的值
+            {"name":  "fc", "type":"float","default":2}, #设置fc的值
+            {"name":"network_diff_list","type":"outfile","format":"rna.ppi"}, #为生成蛋白调控网络的diff_list文件
         ]
         self.add_option(options)
     
