@@ -55,19 +55,20 @@ class RefSnp(Base):
         chroms = set()
         distributions = set()
         data_list = []
-        sample_names = ["CL1", "CL2", "CL5", "HFL3", "HFL4", "HFL6", "HGL1", "HGL3", "HGL4"]
+        sample_names = []
         sample_old_index = []
         sample_old_gene = []
-        for s in sample_names:
-            snp_type_stat[s] = {}
-            snp_pos_stat[s] = {}
-            indel_pos_stat[s] = {}
-            all_freq_stat[s] = [0]
-            all_depth_stat[s] = [0, 0, 0, 0, 0, 0, 0]
-            sample_old_index.append(-1)
-            sample_old_gene.append('')
+
         with open(snp_anno, "r") as f:
             sample_names = f.readline().strip().split("\t")[10:]
+            for s in sample_names:
+                snp_type_stat[s] = {}
+                snp_pos_stat[s] = {}
+                indel_pos_stat[s] = {}
+                all_freq_stat[s] = [0]
+                all_depth_stat[s] = [0, 0, 0, 0, 0, 0, 0]
+                sample_old_index.append(-1)
+                sample_old_gene.append('')
             # print f.next()
             for line in f:
                 line = line.strip().split("\t")
