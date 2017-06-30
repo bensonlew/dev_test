@@ -94,7 +94,7 @@ class TableFile(File):
     # @staticmethod
     def check_info(self, file_path):
         with open(file_path, 'r') as f:
-            first_line = f.readline().strip('\n').split('\t')
+            first_line = f.readline().strip('\r\n').split('\t')
             f1 = set(first_line)
             if len(f1) != len(first_line):
                 raise FileError('列名不能重复_{}'.format(first_line))
@@ -111,7 +111,7 @@ class TableFile(File):
                     continue
             row_name = []
             for line in f:
-                content = line.strip('\n').split('\t')
+                content = line.strip('\r\n').split('\t')
                 if content[0] in row_name:
                     raise FileError('行名不能重复_{}'.format(content[0]))
                 else:
@@ -134,3 +134,9 @@ class TableFile(File):
         if super(TableFile, self).check():
             self.get_info()
             return True
+
+
+if __name__ == "__main__":
+    a = TableFile()
+    a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/zhouxuan/otu_table_Tab_zx_1498725491.txt")
+    a.check()
