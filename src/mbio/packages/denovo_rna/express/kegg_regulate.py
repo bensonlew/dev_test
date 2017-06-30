@@ -119,7 +119,7 @@ class KeggRegulate(object):
                     if not regulate_dict == None:
                         for theid in l:
                             for graphic in pathway.entries[theid].graphics:
-                                # modified by qindanhua 20170602 适应基因集的修改，输入的字典名称根据基因集名臣变化，不限制于上下调基因
+                                # modified by qindanhua 20170602 适应基因集的修改，输入的字典名称根据基因集名称变化，不限制于上下调基因
                                 same_count = 0
                                 for n, gs in enumerate(regulate_dict):
                                     if l[theid] in regulate_dict[gs]:
