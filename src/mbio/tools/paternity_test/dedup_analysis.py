@@ -3,6 +3,8 @@
 # __author__ = "moli.zhou"
 #last_modify:20161121
 import re
+
+import shutil
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -11,8 +13,9 @@ import os
 
 class DedupAnalysisAgent(Agent):
     """
-    合并家族之后的一系列分析
-    包括父权值、有效率、无效率、错配率等等
+    查重操作。
+    一个家系对应一个去重tool，输入的父本是需要查重的父本的list列表。
+    包括脚本：family_joined.R、data_analysis.R
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21
@@ -90,13 +93,21 @@ class DedupAnalysisTool(Tool):
 
     def run_tf(self):
         dad_list = self.option('dad_list').split(',')
+        if not os.path.isdir(self.work_dir + '/result'):
+            os.mkdir(self.work_dir + '/result')
         n = 0
         for dad_tab in dad_list:
+            dad = re.match(".*(WQ[0-9]*-F.*)\.tab", dad_tab)
+            dad_name = dad.group(1)
+            mom = re.match(".*(WQ[0-9]*-M.*)\.tab", self.option("mom_tab").prop['path'])
+            mom_name = mom.group(1)
+            preg = re.match(".*(WQ[0-9]*-S.*)\.tab", self.option("preg_tab").prop['path'])
+            preg_name = preg.group(1)
 
             tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {} {}". \
                 format(self.R_path, self.script_path, dad_tab,
                     self.option("mom_tab").prop['path'], self.option("preg_tab").prop['path'],
-                    self.option("err_min"), self.option("ref_point").prop['path'],self.output_dir)
+                    self.option("err_min"), self.option("ref_point").prop['path'],self.work_dir + '/result')
             self.logger.info(tab2family_cmd)
             self.logger.info("开始运行家系合并")
             cmd = self.add_command("tab2family_cmd_{}".format(n), tab2family_cmd).run()
@@ -108,17 +119,10 @@ class DedupAnalysisTool(Tool):
                 self.set_error('运行家系{}合并出错'.format(dad_tab))
                 raise Exception("运行家系合并出错")
 
-            dad = re.match(".*(WQ[0-9]*-F.*)\.tab",dad_tab)
-            dad_name = dad.group(1)
-            mom = re.match(".*(WQ[0-9]*-M.*)\.tab",self.option("mom_tab").prop['path'])
-            mom_name = mom.group(1)
-            preg = re.match(".*(WQ[0-9]*-S.*)\.tab", self.option("preg_tab").prop['path'])
-            preg_name = preg.group(1)
-
             tab_name = dad_name + '_' +mom_name+'_'+preg_name+'_family_joined_tab.Rdata'
-            if os.path.exists(tab_name):
+            if os.path.exists(self.work_dir + '/result/' + tab_name):
                 analysis_cmd = "{}Rscript {}data_analysis.R {} {}".\
-                    format(self.R_path,self.script_path,tab_name, self.output_dir)
+                    format(self.R_path,self.script_path,self.work_dir + '/result/' + tab_name, self.work_dir + '/result')
                 self.logger.info(analysis_cmd)
                 self.logger.info("开始运行家系的分析")
                 cmd = self.add_command("analysis_cmd_{}".format(n), analysis_cmd).run()
@@ -142,8 +146,10 @@ class DedupAnalysisTool(Tool):
             for names in files:
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
-        # results = os.listdir(self.work_dir)
-        # for f in results:
+        # os.link(self.work_dir + '/result',self.output_dir)
+        results = os.listdir(self.work_dir + '/result')
+        for f in results:
+            os.link(self.work_dir + '/result/' + f, self.output_dir + '/' +f)
         #     if re.search(r'.*family_analysis\.Rdata$', f):
         #         os.link(self.work_dir + '/' + f, self.output_dir + '/' + f)
         #     elif re.search(r'.*family_analysis\.txt$', f):

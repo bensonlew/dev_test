@@ -13,6 +13,7 @@ class FamilyAnalysisAgent(Agent):
     """
     合并家族之后的一系列分析
     包括父权值、有效率、无效率、错配率等等
+    包含data_analysis.R
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21
