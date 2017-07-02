@@ -33,31 +33,6 @@ class RefrnaGeneDetail(Base):
     #     self._db_name = Config().MONGODB + '_ref_rna'
     #     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
 
-    # def add_class_code(self, assembly_method, name=None, major=False, class_code_path=None, species=None):
-    #     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-    #     task_id = self.bind_object.sheet.id
-    #     project_sn = self.bind_object.sheet.project_sn
-    #     data = [
-    #         ('task_id', task_id),
-    #         ('project_sn', project_sn),
-    #         ('assembly_method', assembly_method),
-    #         ('desc', 'class_code信息'),
-    #         ('created_ts', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
-    #         ('status', 'end'),
-    #         ('name', name if name else 'Classcode_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")))
-    #     ]
-    #     try:
-    #         collection = db["sg_express_class_code"]
-    #         _id = collection.insert_one(SON(data)).inserted_id
-    #         if major:
-    #             if os.path.exists(class_code_path):
-    #                 self.add_class_code_detail(class_code_path, _id, species=species)
-    #     except Exception, e:
-    #         print("导入class_code表出错:%s" % e)
-    #     else:
-    #         print("导入class_code表成功！")
-    #         return _id
-
     # @report_check
     def add_express_diff_class_code_detail(self, class_code, class_code_id, species=None):
         if not isinstance(class_code_id, ObjectId):
@@ -140,50 +115,7 @@ class RefrnaGeneDetail(Base):
         if not biomart:
             print "没有生成biomart信息"
         print "biomart共统计出{}行信息".format(str(ss))
-        # end = time.time()
-        # duration = end - start
-        # m, s = divmod(duration, 60)
-        # h, m = divmod(m, 60)
-        # print('整个程序运行的时间为{}h:{}m:{}s'.format(h, m, s))
         return biomart
-
-    # def entrez_id(entrez_path):
-    #     start = time.time()
-    #     entrez = dict()
-    #     ss=0
-    #     ll=0
-    #     with open(entrez_path,'r+') as f1:
-    #         f1.readline()
-    #         for lines in f1:
-    #             ll+=1
-    #             line = lines.strip().split("\t")
-    #             ensembl_gene_id = line[2]
-    #             entrez_gene_id  = line[3]
-    #             ensembl_trans_id = line[4]
-    #             entrez_pep_id = line[5]
-    #             if ensembl_gene_id not in entrez.keys():
-    #                 ss += 1
-    #                 entrez[ensembl_gene_id] = {}
-    #                 entrez[ensembl_gene_id] = {"entrez_gene_id":[entrez_gene_id],'ensembl_trans_id':[ensembl_trans_id], "entrez_pep_id":[entrez_pep_id]}
-    #             else:
-    #                 if ensembl_trans_id in entrez[ensembl_gene_id]['ensembl_trans_id'] and entrez_pep_id in entrez[ensembl_gene_id]['entrez_pep_id']:
-    #                     continue
-    #                 else:
-    #                     entrez[ensembl_gene_id]['entrez_gene_id'].append(entrez_gene_id)
-    #                     entrez[ensembl_gene_id]['ensembl_trans_id'].append(ensembl_trans_id)
-    #                     entrez[ensembl_gene_id]['entrez_pep_id'].append(entrez_pep_id)
-    #             if ll%1000 == 0:
-    #                 print ll
-    #                 # print ("同一个gene_id对应的trans_id{} 含有的pep_id为{}".format(",".join(entrez[ensembl_gene_id]['ensembl_trans_id']),",".join(entrez[ensembl_gene_id]['entrez_pep_id'])))
-    #         if not entrez:
-    #             print "没有提取entrez_gene_id信息"
-    #         print 'entrez共统计出{}个unique的基因信息'.format(str(ss))
-    #         end = time.time()
-    #         duration = end - start
-    #         m, s = divmod(duration, 60)
-    #         h, m = divmod(m, 60)
-    #         print('整个entrez_id提取的程序运行的时间为{}h:{}m:{}s'.format(h, m, s))
-    #         return entrez
 
     def entrez_id(self,entrez_path,entrez_db_path):
         """此函数暂时没有用到"""
@@ -249,38 +181,6 @@ class RefrnaGeneDetail(Base):
             else:
                 print ("导入entrez_id表成功！")
 
-    # def get_cds_seq(cds_path):
-    #     """提取cds和pep序列信息函数用的是同一个函数,导入长度信息(暂时未添加)"""
-    #     start = time.time()
-    #     cds = dict()
-    #     j = 0
-    #     with open(cds_path, 'r+') as f1:
-    #         for lines in f1:
-    #             line = lines.strip()
-    #             if re.search(r'>', line):
-    #                 j += 1
-    #                 cds_m = re.search(r'\>(\w+\.\w+).\w+.+gene:(\w+)', line)
-    #                 if cds_m:
-    #                     if j > 1:
-    #                         cds[gene_id][cds_id] = cds_sequence
-    #                     cds_id = cds_m.group(1)
-    #                     gene_id = cds_m.group(2)
-    #                     if gene_id not in cds.keys():
-    #                         cds[gene_id] = {}
-    #                     cds_sequence = ''
-    #             else:
-    #                 cds_sequence += line
-    #         cds[gene_id][cds_id] = cds_sequence
-    #     if not cds:
-    #         print '提取cds序列信息为空'
-    #     print "共统计出{}行信息".format(str(j))
-    #     end = time.time()
-    #     duration = end - start
-    #     m, s = divmod(duration, 60)
-    #     h, m = divmod(m, 60)
-    #     print('整个程序运行的时间为{}h:{}m:{}s'.format(h, m, s))
-    #     return cds
-
     def get_cds_seq(self,cds_path):
         """转录本的cds信息已经提取出来了"""
         start = time.time()
@@ -297,38 +197,21 @@ class RefrnaGeneDetail(Base):
                         if j > 1:
                             if trans_id not in trans.keys():
                                 trans[trans_id]={"name":cds_id,"sequence":cds_sequence,"sequence_length":len(cds_sequence)}
-                            # else:
-                            #     trans[trans_id].append({"name":cds_id,"sequence":cds_sequence,"sequence_length":len(cds_sequence)})
                         cds_id = cds_m.group(1)
                         trans_id = trans_m.group(1)
-                        # trans_id = cds_id.split(".")[0]
-                        # gene_id = cds_m.group(2)
-                        # if trans_id not in trans.keys():
-                        #     trans[trans_id] =
                         cds_sequence = ''
                 else:
                     cds_sequence += line
             if trans_id not in trans.keys():
                 trans[trans_id] = {"name":cds_id,"sequence":cds_sequence,"sequence_length":len(cds_sequence)}
-            # else:
-            #     trans[trans_id].append({"name":cds_id,"sequence":cds_sequence,"sequence_length":len(cds_sequence)})
         if not trans:
             print '提取cds序列信息为空'
         print "共统计出{}行信息".format(str(j))
-        # for keys1,values1 in trans.items():
-        #     if len(values1)==1:
-        #         trans[keys1]=values1[0]
         end = time.time()
         duration = end - start
         m, s = divmod(duration, 60)
         h, m = divmod(m, 60)
         print('cds提取运行的时间为{}h:{}m:{}s'.format(h, m, s))
-        # for keys1,values1 in trans.items():
-        #     length=len(values1)
-        #     if length >1:
-        #         print keys1
-        #         print values1
-        #         raise Exception("{}含有多个cds序列{}".format(keys1,values1))
         return trans
 
     def get_pep_seq(self,pep_path):
@@ -343,41 +226,25 @@ class RefrnaGeneDetail(Base):
                     if j > 1:
                         if trans_id not in trans.keys():
                             trans[trans_id] = {"name":pep_id, "sequence":pep_sequence, "sequence_length":len(pep_sequence)}
-                        # else:
-                        #     trans[trans_id].append({"name":pep_id, "sequence":pep_sequence, "sequence_length":len(pep_sequence)})
                     pep_m = re.search(r'\>(\w+\.\w+)', line)
                     if pep_m:
                         pep_id = pep_m.group(1)
                     trans_m = re.search(r'transcript:(\w+)',line)
                     if trans_m:
                         trans_id = trans_m.group(1)
-                    # if trans_id not in trans.keys():
-                    #     trans[trans_id] = {}
                     pep_sequence = ''
                 else:
                     pep_sequence += line
             if trans_id not in trans.keys():
                 trans[trans_id] = {"name":pep_id, "sequence":pep_sequence, "sequence_length":len(pep_sequence)}
-            # else:
-            #     trans[trans_id].append({"name":pep_id, "sequence":pep_sequence, "sequence_length":len(pep_sequence)})
         if not trans:
             print '提取cds序列信息为空'
         print "共统计出{}行信息".format(str(j))
-        # for keys1,values1 in trans.items():
-        #     if len(values1)==1:
-        #         trans[keys1]=values1[0]
         end = time.time()
         duration = end - start
         m, s = divmod(duration, 60)
         h, m = divmod(m, 60)
         print('pep提取运行的时间为{}h:{}m:{}s'.format(h, m, s))
-        # print trans
-        # for keys1,values1 in trans.items():
-        #     length = len(values1)
-        #     if length >1:
-        #         print keys1
-        #         print values1
-        #         raise Exception("{}含有多个pep序列{}".format(keys1, values1))
         return trans
 
     def query_entrezid(self,ensem_gene_id=None):
@@ -519,10 +386,13 @@ class RefrnaGeneDetail(Base):
                         # raise Exception("{}既不属于新基因也不在biomart中".format(line[1]))
                     if line[1] in gene_sequence.keys():
                         gene_seq = gene_sequence[line[1]]
-                        gene_len = int(end)-int(start)
+                        gene_len = int(end) - int(start)
+                    elif line[3] in gene_sequence.keys():
+                        gene_seq = gene_sequence[line[3]]
+                        gene_len = int(end) - int(start)
                     else:
                         gene_seq = '-'
-                        gene_len = int(end)-int(start)
+                        gene_len = int(end) - int(start)
                     data =[
                         ("type","gene_detail"),
                         ("class_code_id",class_code_id),
@@ -702,67 +572,7 @@ class RefrnaGeneDetail(Base):
         m, s = divmod(duration, 60)
         h, m = divmod(m, 60)
         print('{}序列提取运行的时间为{}h:{}m:{}s'.format(_type,h, m, s))
-        # if _type == 'gene':
-        #     if 'MSTRG.15024' in seq.keys():
-        #         print seq['MSTRG.15024']
-        #     else:
-        #         print 'MSTRG.15024序列信息并没有提取'
         return seq
-    # def add_class_code_detail(class_code, class_code_id, transcript_path=None,gene_path=None,species=None):
-    #     if not isinstance(class_code_id, ObjectId):
-    #         if isinstance(class_code_id, types.StringTypes):
-    #             express_id = ObjectId(class_code_id)
-    #         else:
-    #             raise Exception('class_code_id必须为ObjectId对象或其对应的字符串！')
-    #     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-    #     data_list = []
-    #     trans_sequence = get_transcript_seq(transcript_path=transcript_path)
-    #     gene_sequence = get_transcript_seq(transcript_path=gene_path,_type="gene")
-    #     with open(class_code, 'r+') as f1:
-    #         f1.readline()
-    #         for lines in f1:
-    #             line = lines.strip().split("\t")
-    #             data = [
-    #                 ('assembly_trans_id', line[0]),
-    #                 ('assembly_gene_id', line[1]),
-    #                 ('class_code', line[2]),
-    #                 ('ref_trans_id', line[3]),
-    #                 ('ref_gene_id', line[4]),
-    #                 ('gene_name', line[5]),
-    #                 ('class_code_id', ObjectId(class_code_id)),
-    #                 ("chr",line[6]),
-    #                 ("strand",line[7]),
-    #                 ("start",int(line[8])),
-    #                 ("end",int(line[9]))
-    #             ]
-    #             if line[0] in trans_sequence.keys():
-    #                 length = len(trans_sequence[line[0]])
-    #                 data+=[
-    #                     ("trans_sequence",trans_sequence[line[0]]),
-    #                     ("trans_length",length)
-    #                 ]
-    #             if line[1] in gene_sequence.keys():
-    #                 length = len(gene_sequence[line[1]])
-    #                 data += [
-    #                     ("gene_sequence",gene_sequence[line[1]]),
-    #                     ("gene_length",length)
-    #                 ]
-    #             data += [
-    #                 ("gene_ncbi", "https://www.ncbi.nlm.nih.gov/gquery/?term={}".format(line[1])),
-    #                 ("tran_ncbi", "https://www.ncbi.nlm.nih.gov/gquery/?term={}".format(line[0])),
-    #                 ("gene_ensembl", "http://www.ensembl.org/{}/Gene/Summary?g={}".format(species, line[1])),
-    #                 ("tran_ensembl", "http://www.ensembl.org/{}/Transcript/Summary?t={}".format(species, line[0]))
-    #             ]
-    #             data = SON(data)
-    #             data_list.append(data)
-    #     try:
-    #         collection = db["sg_express_class_code_detail"]
-    #         collection.insert_many(data_list)
-    #     except Exception, e:
-    #         print("导入%s表出错:%s" % (class_code, e))
-    #     else:
-    #         print("导入%s表成功！" % (class_code))
-
 
 if __name__ == "__main__":
     # biomart_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/biomart/finish/Ensembl_Genes_89/oniloticus_gene_ensembl_gene.txt"
