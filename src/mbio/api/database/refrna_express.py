@@ -105,13 +105,16 @@ class RefrnaExpress(Base):
         if params:
             params["submit_location"] = "express_rsem"
         value_type = params["type"]
+        if 'express_method' not in params.keys():
+            raise Exception("请在params中设置express_method参数!")
+        express_method = params['express_method']
         print "value_type"
         print value_type
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'ExpressStat_' + str(
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}".format(value_type),
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}_{}".format(express_method,value_type),
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
@@ -291,11 +294,14 @@ class RefrnaExpress(Base):
         value_type = params["type"]  # fpkm或者是tpm
         if params:
             params["submit_location"] = "express_feature"
+        if 'express_method' not in params.keys():
+            raise Exception("请在params中设置express_method参数!")
+        express_method = params['express_method']
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
             'name': name if name else 'ExpressStat_' + str(
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}".format(value_type),
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}_{}".format(express_method, value_type),
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (
@@ -520,12 +526,12 @@ class RefrnaExpress(Base):
                     if sequence_id in class_code_info.keys():
                         _class_code = str(class_code_info[sequence_id]["class_code"])
                         if query_type == 'gene':
-                            if _class_code != "=":
+                            if _class_code == "u":
                                 _class = True
                             else:
                                 _class = False
                         if query_type == 'transcript':
-                            if _class_code != 'u':
+                            if _class_code == '=':
                                 _class = False
                             else:
                                 _class = True
@@ -1159,7 +1165,7 @@ if __name__ == "__main__":
     print 'end!'
 
     ####################################################################################################################################
-    ######################-------------gene set 导表
+    ######################-------------gene set 导表 ref_new的参数有两种选择  ref和refandnew
     ####################################################################################################################################
     a = RefrnaExpress()
     group_id = '5955f5e1edcb253a204f8988'
