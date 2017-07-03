@@ -78,9 +78,21 @@ def venn_table(otu_table, group_table, R_path):
             venn_matrix[i,2] <- length(sets[[i]])
             venn_matrix[i,3] <- paste(sets[[i]],collapse =",")
         }
+
         # write sets to file
         otuset <- "venn_table.%(otu_table)s.%(group_table)s.xls"
         write.table(sets_table,otuset,sep = "\\t",eol="\\n",row.names=FALSE,col.names=FALSE,quote=FALSE)
+
+        # add new_table by khl
+        new_table <- "new_venn_table.%(otu_table)s.xls"
+        new_matrix = matrix(,length(lst),2)
+        for(i in 1:length(lst)){
+                new_matrix[i,1] = names(lst)[i]
+                new_matrix[i,2] = paste(lst[[i]],collapse=",")
+        }
+        colnames(new_matrix)= c("#group_name","species_name")
+        write.table(new_matrix,new_table,sep = "\t",eol = "\n",row.names=FALSE,col.names=TRUE,quote=FALSE)
+        
         """ % my_dict
         f.write(r_str + "\n")
 
