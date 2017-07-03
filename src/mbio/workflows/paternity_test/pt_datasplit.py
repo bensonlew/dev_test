@@ -118,8 +118,8 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_dir = self.data_split.output_dir + "/MED"
 		sample_name = os.listdir(self.data_dir)
 		for j in sample_name:
-			p = re.match('Sample_WQ([0-9].*)-(.*)', j)
-			q = re.match('Sample_WS(.*)', j)
+			p = re.match('Sample_WQ([0-9]{8})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
+			q = re.match('Sample_WS([0-9]{8})(.*)', j)
 			if p:
 				self.sample_name_wq.append(j)
 			elif q:
