@@ -31,9 +31,9 @@ def get_dic_from_merged_gtf(merged_file):
                 #         '{} of combined gtf file has logical problem: class code 为U得情况有nearest_ref的值 '.format(line))
                 # if ref_txpt_id_m:
                 #     ref_txpt_id = ref_txpt_id_m.group(1)
-            else:
-                raise Exception(
-                    'line: {} in annotate gtf {} has no valid internal txpt id or class code'.format(line.strip(),merged_file))
+            #else:
+            #    raise Exception(
+            #        'line: {} in annotate gtf {} has no valid internal txpt id or class code'.format(line.strip(),merged_file))
             d[assembly_txpt_id] = {'assembly_txpt_id': assembly_txpt_id, 'cls': cls,
                                    'assembly_gene_id': assembly_gene_id}
     return d
