@@ -156,10 +156,10 @@ class DiffStat(object):
                 from math import pow
                 ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
 
-                fc = float((other_fpkm + 0.1) / (control_fpkm + 0.1))
-                logfc = float(log(fc) / log(2))
+                #fc = float((other_fpkm + 0.1) / (control_fpkm + 0.1))
+                #logfc = float(log(fc) / log(2))
 
-                # logfc = float(line[-4])
+                logfc = float(line[-4])
                 if logfc > 0:
                     reg = 'up'
                 elif logfc < 0:
