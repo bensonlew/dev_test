@@ -569,6 +569,7 @@ class RefrnaExpress(Base):
                     ]
                 for i in range(len(samples)):
                     if float(fpkm[i]) < (1e-02) or float(fpkm[i]) > (1e+06):
+                        data += [('{}'.format(samples[i]), float(fpkm[i]))]
                         continue
                     else:
                         log2_fpkm = math.log(float(fpkm[i])) / math.log(2)
