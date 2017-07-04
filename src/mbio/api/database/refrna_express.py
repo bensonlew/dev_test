@@ -451,12 +451,15 @@ class RefrnaExpress(Base):
                 ]
                 fpkm_data = line[1:]
                 for i in range(len(fpkm_data)):
-                    data_log2 = log(float(fpkm_data[i]) + 1) / log(2)
-                    data_log10 = log(float(fpkm_data[i]) + 1) / log(10)
-                    insert_data += [
-                        ('{}_log2'.format(group_name[i]), float(data_log2)),
-                        ('{}_log10'.format(group_name[i]), float(data_log10))
-                    ]
+                    if fpkm_data[i] <1e-02 or fpkm_data[i] > 1e+06:
+                        continue
+                    else:
+                        data_log2 = log(float(fpkm_data[i]) + 1) / log(2)
+                        data_log10 = log(float(fpkm_data[i]) + 1) / log(10)
+                        insert_data += [
+                            ('{}_log2'.format(group_name[i]), float(data_log2)),
+                            ('{}_log10'.format(group_name[i]), float(data_log10))
+                        ]
                 insert_data = SON(insert_data)
                 data_list.append(insert_data)
         try:
