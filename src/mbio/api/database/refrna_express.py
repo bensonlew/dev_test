@@ -565,12 +565,15 @@ class RefrnaExpress(Base):
                         ("is_new", _class)
                     ]
                 for i in range(len(samples)):
-                    log2_fpkm = math.log(float(fpkm[i]) + 1) / math.log(2)
-                    log10_fpkm = math.log(float(fpkm[i]) + 1) / math.log(10)
-                    data += [('{}'.format(samples[i]), float(fpkm[i]))]
-                    if float(log2_fpkm) >= min_log2 and float(log2_fpkm) <= max_log2:
+                    if float(fpkm[i]) < (1e-02) or float(fpkm[i]) > (1e+06):
+                        continue
+                    else:
+                        log2_fpkm = math.log(float(fpkm[i])) / math.log(2)
+                        log10_fpkm = math.log(float(fpkm[i])) / math.log(10)
+                        data += [('{}'.format(samples[i]), float(fpkm[i]))]
+                        # if float(log2_fpkm) >= min_log2 and float(log2_fpkm) <= max_log2:
                         data += [('{}_log2'.format(samples[i]), float(log2_fpkm))]
-                    if float(log10_fpkm) >= min_log10 and float(log10_fpkm) <= max_log10:
+                        # if float(log10_fpkm) >= min_log10 and float(log10_fpkm) <= max_log10:
                         data += [('{}_log10'.format(samples[i]), float(log10_fpkm))]
                         # data += [
                         #     ('{}'.format(samples[i]), float(fpkm[i])),
