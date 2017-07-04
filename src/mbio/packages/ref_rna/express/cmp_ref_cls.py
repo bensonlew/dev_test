@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = fiona
+# modify by khl
 # time: 2017/3/30 14:50
 
 import re, os, Bio, argparse, sys, fileinput, urllib2, subprocess
