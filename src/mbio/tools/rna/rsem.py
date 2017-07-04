@@ -9,7 +9,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
-from mbio.packages.ref_rna.express.single_sample1 import *
+from mbio.packages.ref_rna.express.single_sample import *
 from mbio.files.sequence.fastq import FastqFile
 import shutil
 import os
