@@ -102,8 +102,7 @@ class RmatsRerunAction(RefRnaController):
         my_param['control_id'] = data.control_id
         my_param['gname'] = group_doc['group_name']
         my_param['cut_off'] = data.cut_off
-        
-        
+
         my_param['submit_location'] = data.submit_location
         my_param['task_type'] = task_type
         splicing_info = RefRna().get_main_info(ObjectId(data.splicing_id), 'sg_splicing_rmats')

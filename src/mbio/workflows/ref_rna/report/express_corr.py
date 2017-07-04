@@ -124,7 +124,7 @@ class ExpressCorrWorkflow(Workflow):
             pca_file = os.path.join(pca_path, 'pca_importance.xls')
             pca_rotation = os.path.join(pca_path, 'pca_rotation.xls')
             site_file = os.path.join(pca_path, 'pca_sites.xls')
-            api_corr.add_pca(pca_file=pca_file, correlation_id=inserted_id)
+            #api_corr.add_pca(pca_file=pca_file, correlation_id=inserted_id)
             #api_corr.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation',
             #                         correlation_id=inserted_id)
             api_corr.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_rotation', correlation_id=inserted_id)

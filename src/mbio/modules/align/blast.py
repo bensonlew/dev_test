@@ -35,7 +35,7 @@ class BlastModule(Module):
             # 当输出格式为非5，6时，只产生文件不作为outfile
         ]
         self.add_option(options)
-        self.catblast = self.add_tool("align.ncbi.cat_blastout")
+        self.catblast = self.add_tool("align.cat_blastout")
         self.splitfasta = self.add_tool("sequence.split_fasta")
         self.step.add_steps('blast', 'split_fasta', 'cat_blastout')
         self.blast_tools = []
@@ -115,12 +115,16 @@ class BlastModule(Module):
         }
         for f in os.listdir(self.splitfasta.output_dir):
             opts['query'] = os.path.join(self.splitfasta.output_dir, f)
-            blast_tool = self.add_tool('align.ncbi.blast')
+            blast_tool = self.add_tool('align.blast')
             blast_tool.set_options(opts)
-            blast_tool.run()
+            # blast_tool.run()
             self.blast_tools.append(blast_tool)
-        self.on_rely(self.blast_tools, self.run_catblastout)
-        # self.on_rely(self.blast_tools, self.set_step, {'end': self.step.blast})  # on_rely相同的依赖列表不能绑定多个函数
+        if len(self.blast_tools) == 1:
+            self.blast_tools[0].on("end", self.run_catblastout)
+        else:
+            self.on_rely(self.blast_tools, self.run_catblastout)
+        for tool in self.blast_tools:
+            tool.run()
 
     def run_catblastout(self):
         self.set_step(event={'data': {'end': self.step.blast}})

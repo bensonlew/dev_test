@@ -22,7 +22,7 @@ class NewTranscriptsAgent(Agent):
             {"name": "tmap", "type": "infile", "format": "assembly.tmap"},  # compare后的tmap文件
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考序列的注释文件
-            {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 拼接后的注释文件
+            {"name": "merged_gtf", "type": "string"},  # 输入文件，拼接后的注释文件
             {"name": "new_trans_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新转录本注释文件
             {"name": "new_genes_gtf", "type": "outfile", "format": "gene_structure.gtf"},  # 新基因gtf文件
             {"name": "new_trans_fa", "type": "outfile", "format": "sequence.fasta"},  # 新转录本注释文件
@@ -112,7 +112,7 @@ class NewTranscriptsTool(Tool):
         运行perl脚本，将class_code为“=”全部替换掉
         """
         merged_gtf = self.work_dir + '/add_code_merged.gtf'
-        merged_add_code(self.option('merged_gtf').prop['path'], self.option('tmap').prop['path'], merged_gtf)
+        merged_add_code(self.option('merged_gtf'), self.option('tmap').prop['path'], merged_gtf)
         cmd = self.perl_path + self.change_id_path + " -i %s -compare %s -ref %s -o %schange_id_merged.gtf" % (
             merged_gtf, self.option('tmap').prop['path'], self.option('ref_gtf').prop['path'], self.work_dir + "/")
         self.logger.info('运行perl，转换id')

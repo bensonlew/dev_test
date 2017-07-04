@@ -72,12 +72,12 @@ class ExpressPcaAction(RefRnaController):
                 "corr_pca": "pca",
                 "type": "gene",
                 "update_info": json.dumps(update_info),
-                "express_level":express_level
+                "express_level":express_level,
             }
             
             to_file = ["ref_rna.export_express_matrix_level(express_file)", "ref_rna.export_group_table_by_detail(group_id)"]
-            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,\
-                task_id = express_info['task_id'], project_sn = express_info['project_sn'],\
+            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+                task_id = express_info['task_id'], project_sn = express_info['project_sn'],
                 params = my_param, to_file = to_file)
             task_info = super(ExpressPcaAction,self).POST()
 
