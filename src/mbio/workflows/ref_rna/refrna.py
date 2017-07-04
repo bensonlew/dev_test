@@ -80,7 +80,7 @@ class RefrnaWorkflow(Workflow):
             # 表达量分析手段: Htseq, Featurecount, Kallisto, RSEM
             {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算
 
-            {"name": "diff_method", "type": "string", "default": "edgeR"},
+            {"name": "diff_method", "type": "string", "default": "DESeq2"},
             # 差异表达分析方法
             {"name": "diff_fdr_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "fc", "type": "float", "default": 2},
@@ -152,10 +152,10 @@ class RefrnaWorkflow(Workflow):
                 self.gff = self.option('genome_structure_file').prop["path"]
         else:
             self.gff = self.json_dict[self.option("ref_genome")]["gff"]
-        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans]
+        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
-        self.step.add_steps("filecheck_ref", "rna_qc", "mapping", "assembly", "new_annotation", "exp", "snp_rna")
+        self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
 
 
     def check_options(self):
@@ -228,8 +228,8 @@ class RefrnaWorkflow(Workflow):
         if self.option('group_table').is_set:
             opts.update({'group_table': self.option('group_table')})
         self.filecheck.set_options(opts)
-        self.filecheck.on('start', self.set_step, {'start': self.step.filecheck_ref})
-        self.filecheck.on('end', self.set_step, {'end': self.step.filecheck_ref})
+        self.filecheck.on('start', self.set_step, {'start': self.step.filecheck})
+        self.filecheck.on('end', self.set_step, {'end': self.step.filecheck})
         self.filecheck.run()
 
     def run_gs(self):
@@ -272,6 +272,11 @@ class RefrnaWorkflow(Workflow):
         method = event["data"]
         self.blast_modules = []
         self.gene_list = self.seq_abs.option('gene_file')
+        if int(self.seq_abs.option('query').prop['seq_number']) == 0:
+            self.logger.info('.......blast_lines:0')
+            self.new_annotation.start_listener()
+            self.new_annotation.fire("end")
+            return
         blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10 + 1
         self.logger.info('.......blast_lines:%s' % blast_lines)
         blast_opts = {
@@ -634,10 +639,9 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("change_id_gtf"),
-            "cmp_gtf": self.assembly.option("cuff_gtf"),
+            "new_gtf": self.assembly.option("new_transcripts_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("change_id_fa"),
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -651,8 +655,8 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp")
-        mod.on('start', self.set_step, {'start': self.step.exp})
-        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.on('start', self.set_step, {'start': self.step.express})
+        mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
     def run_exp_rsem_alter(self):
@@ -694,10 +698,9 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("change_id_gtf"),
-            "cmp_gtf": self.assembly.option("cuff_gtf"),
+            "new_gtf": self.assembly.option("new_transcripts_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("change_id_fa"),
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -716,7 +719,7 @@ class RefrnaWorkflow(Workflow):
         mod.run()
 
     def run_network_trans(self):
-        with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
+        with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
             ft.readline()
             content = ft.read()
         if not content:
@@ -725,7 +728,7 @@ class RefrnaWorkflow(Workflow):
             self.network_trans.fire("end")
         else:
             opts = {
-                "diff_exp_gene": self.exp.output_dir + "/diff/trans_diff/network_diff_list",
+                "diff_exp_gene": self.exp.option("network_diff_list"),
                 "species": int(self.taxon_id),
                 "combine_score": self.option("combine_score")
             }
@@ -1028,7 +1031,7 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.exp.output_dir, 'express')
         self.move2outputdir(self.exp_fc.output_dir, 'express_fc_all')
         self.move2outputdir(self.exp_diff_gene.output_dir, 'express_diff_gene')
-        self.move2outputdir(self.exp_diff.output_dir, 'express_diff_trans')
+        self.move2outputdir(self.exp_diff_trans.output_dir, 'express_diff_trans')
         self.move2outputdir(self.snp_rna.output_dir, 'snp_rna')
         self.move2outputdir(self.network_trans.output_dir, 'network_analysis')
         self.move2outputdir(self.annotation.output_dir, 'annotation')
@@ -1036,11 +1039,11 @@ class RefrnaWorkflow(Workflow):
         self.move2outputdir(self.new_blast_kegg.output_dir, 'new_keggblast')
         self.move2outputdir(self.new_blast_string.output_dir, 'new_stringblast')
         self.move2outputdir(self.new_blast_nr.output_dir, 'new_nrblast')
-        self.move2outputdir(self.blast_kegg.output_dir, 'keggblast')
-        self.move2outputdir(self.blast_string.output_dir, 'stringblast')
-        self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
+        # self.move2outputdir(self.blast_kegg.output_dir, 'keggblast')
+        # self.move2outputdir(self.blast_string.output_dir, 'stringblast')
+        # self.move2outputdir(self.blast_nr.output_dir, 'nrblast')
         self.move2outputdir(self.new_blast_swissprot.output_dir, 'new_swissprotblast')
-        self.move2outputdir(self.snp_rna.output_dir, 'pfam')
+        self.move2outputdir(self.pfam.output_dir, 'pfam')
         if self.as_on:
             self.move2outputdir(self.altersplicing.output_dir, 'altersplicing')
         self.logger.info("结果文件导入完成！")
@@ -1076,7 +1079,7 @@ class RefrnaWorkflow(Workflow):
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
-        # self.assembly.on("end", self.run_exp_fc)
+        self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
@@ -1089,11 +1092,125 @@ class RefrnaWorkflow(Workflow):
     def end(self):
         super(RefrnaWorkflow, self).end()
 
+    def test_mus(self):
+        self.logger.info("{}".format(self.option("ref_genome_custom").prop["path"]))
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/HiseqQc/output/sickle_dir")
+        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf.bed")
+        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170626/Refrna_mouse_4/RnaseqMapping/output/bam")
+        self.exp.option("network_diff_list", "/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/Express/output/diff/trans_diff/network_X1_vs_Z1")
+        self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
+        self.assembly.option("new_gene_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_genes.gtf")
+        # self.qc.on("end", self.run_qc_stat, "after")
+        # self.qc.on('end', self.run_mapping)
+        # self.qc.on("end", self.run_star_mapping)
+        # self.qc.on("end", self.run_seq_abs)
+        # self.seq_abs.on("end", self.run_test_annotation)
+        # self.mapping.on('end', self.run_assembly)
+        # self.mapping.on('end', self.run_map_assess)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
+        # if self.taxon_id != "":
+        #     self.exp.on("end", self.run_network_trans)
+        #     self.final_tools.append(self.network_trans)
+        # self.on_rely(self.final_tools, self.run_api_and_set_output)
+        # self.assembly.on("end", self.run_exp_rsem_default)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
+        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        self.start_listener()
+        self.fire("start")
+        self.qc.start_listener()
+        self.qc.fire("end")
+        self.mapping.start_listener()
+        self.mapping.fire("end")
+        self.assembly.start_listener()
+        self.assembly.fire("end")
+        self.exp.start_listener()
+        self.exp.fire("end")
+        self.rpc_server.run()
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_AFTER_END = False
+        # task_info = self.api.api('task_info.ref')
+        # task_info.add_task_info()
+        # self.group_id = "5955f5e1edcb253a204f8988"
+        # self.control_id = "5955f821f2e3f7fddea08f6e"
+        # self.group_category = ["X1", "B1", "Z1"]
+        # self.group_detail = [
+        #     {'5955f5deedcb253a204f7ef5': 'X1_3',
+        #      '5955f5deedcb253a204f7ef4': 'X1_2',
+        #      '5955f5deedcb253a204f7ef3': 'X1_1'},
+        #     {'5955f5deedcb253a204f7efb': 'B1_1',
+        #      '5955f5deedcb253a204f7ef9': 'B1_2',
+        #      '5955f5deedcb253a204f7efa': 'B1_3'},
+        #     {'5955f5deedcb253a204f7ef7': 'Z1_3',
+        #      '5955f5deedcb253a204f7ef6': 'Z1_2',
+        #      '5955f5deedcb253a204f7ef8': 'Z1_1'}
+        # ]
+        # self.export_qc()
+        # self.export_genome_info()
+        # self.export_annotation()
+        # self.export_assembly()
+        # self.export_snp()
+        # self.export_map_assess()
+        # self.export_exp_rsem_default()
+        # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
+        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        # self.export_gene_set()
+        # self.export_diff_gene()
+        # self.export_diff_trans()
+        # self.export_ref_diff_gene()
+        # self.export_ref_diff_trans()
+        # # self.export_gene_detail()
+        # self.export_ref_gene_set()
+        # self.export_cor()
+        # self.export_pca()
+        # self.export_cluster_gene()
+        # self.export_cluster_trans()
+        # self.export_go_regulate()
+        # self.export_kegg_regulate()
+        # self.export_go_enrich()
+        # self.export_kegg_enrich()
+        # self.export_cog_class()
+        # if self.taxon_id != "":
+        #     with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
+        #         ft.readline()
+        #         content = ft.read()
+        #         if content:
+        #             self.export_ppi()
+        # self.export_as()
+
+    def run_test_annotation(self):
+        pass
+
     def test_ore(self):
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_AFTER_END = False
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
         self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
         self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
-        self.run_api_and_set_output()
+        # self.run_api_and_set_output()
+        self.group_id = "59473300a4e1af65bfaf3816"
+        self.control_id = "59473300a4e1af65bfaf3817"
+        self.group_category = ["A", "B"]
+        self.group_detail = [
+        {
+            "59473300a4e1af65bfaf2d76" : "CL1",
+            "59473300a4e1af65bfaf2d77" : "CL2",
+            "59473300a4e1af65bfaf2d74" : "HFL3",
+            "59473300a4e1af65bfaf2d75" : "CL5"
+        },
+        {
+            "59473300a4e1af65bfaf2d6f" : "HGL4",
+            "59473300a4e1af65bfaf2d72" : "HFL6",
+            "59473300a4e1af65bfaf2d73" : "HFL4",
+            "59473300a4e1af65bfaf2d70" : "HGL3",
+            "59473300a4e1af65bfaf2d71" : "HGL1"
+        }
+        ]
+        self.export_genome_info()
+        #self.export_as()
+        self.end()
 
     def run_api_and_set_output(self):
         self.set_output_all()
@@ -1102,6 +1219,7 @@ class RefrnaWorkflow(Workflow):
         task_info = self.api.api('task_info.ref')
         task_info.add_task_info()
         self.export_qc()
+        self.export_genome_info()
         self.export_annotation()
         self.export_assembly()
         self.export_snp()
@@ -1112,6 +1230,10 @@ class RefrnaWorkflow(Workflow):
         self.export_gene_set()
         self.export_diff_gene()
         self.export_diff_trans()
+        self.export_ref_diff_gene()
+        self.export_ref_diff_trans()
+        # self.export_gene_detail()
+        self.export_ref_gene_set()
         self.export_cor()
         self.export_pca()
         self.export_cluster_gene()
@@ -1122,7 +1244,7 @@ class RefrnaWorkflow(Workflow):
         self.export_kegg_enrich()
         self.export_cog_class()
         if self.taxon_id != "":
-            with open(self.exp.output_dir + "/diff/trans_diff/network_diff_list", "r") as ft:
+            with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
                 ft.readline()
                 content = ft.read()
                 if content:
@@ -1130,14 +1252,20 @@ class RefrnaWorkflow(Workflow):
         self.export_as()
         self.end()
 
+    def export_genome_info(self):
+        self.api_gi = self.api.genome_info
+        species_name = self.option("ref_genome")
+        self.api_gi.add_genome_info(species_name, output_dir=self.gs.output_dir, major=True)
+
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc
-        qc_stat = self.qc_stat_after.output_dir
+        qc_stat = self.qc_stat_before.output_dir
         fq_type = self.option("fq_type").lower()
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="before")
         quality_stat_after = self.qc_stat_after.output_dir + "/qualityStat"
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
         self.api_qc.add_gragh_info(quality_stat_before, "before")
+        qc_stat = self.qc_stat_after.output_dir
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="after")
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
@@ -1145,6 +1273,7 @@ class RefrnaWorkflow(Workflow):
         self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
         self.logger.info(self.group_detail)
         self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
+        self.api_qc.add_bam_path(self.mapping.output_dir)
 
     def export_assembly(self):
         self.api_assembly = self.api.api("ref_rna.ref_assembly")
@@ -1159,10 +1288,15 @@ class RefrnaWorkflow(Workflow):
 
     def export_map_assess(self):
         self.api_map = self.api.ref_rna_qc
-        stat_file = self.map_qc.output_dir + "/bam_stat.xls"
-        self.api_map.add_mapping_stat(stat_file, "genome")
-        stat_file = self.map_qc_gene.output_dir + "/bam_stat.xls"
-        self.api_map.add_mapping_stat(stat_file, "gene")
+        # stat_file = self.map_qc.output_dir + "/bam_stat.xls"
+        # self.api_map.add_mapping_stat(stat_file, "genome")
+        # stat_file = self.map_qc_gene.output_dir + "/bam_stat.xls"
+        # self.api_map.add_mapping_stat(stat_file, "gene")
+        stat_dir = self.mapping.output_dir + "/stat"
+        if self.option("seq_method") == "Topaht":
+            self.api_map.add_tophat_mapping_stat(stat_dir)
+        else:
+            self.api_map.add_hisat_mapping_stat(stat_dir)
         file_path = self.map_qc.output_dir + "/satur"
         self.api_map.add_rpkm_table(file_path)
         coverage = self.map_qc.output_dir + "/coverage"
@@ -1331,6 +1465,58 @@ class RefrnaWorkflow(Workflow):
                 else:
                     self.logger.info("基因name和compare_name匹配错误")
 
+    def export_ref_gene_set(self):
+        self.api_geneset = self.api.refrna_express
+        group_id = self.group_id
+        path = self.exp.output_dir + "/ref_diff/trans_ref_diff/diff_stat_dir"
+        self.transet_id = list()
+        self.trans_gs_id_name = dict()
+        self.gene_gs_id_name = dict()
+        for files in os.listdir(path):
+            if re.search(r'edgr_stat.xls',files):
+                m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
+                if m_:
+                    name = m_.group(1)
+                    compare_name = m_.group(2)
+                    up_down = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
+                                                           group_id=group_id, name=name, compare_name=compare_name,
+                                                           express_method="rsem", type="transcript", up_down='up_down', major=True)
+                    down_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
+                                                           group_id=group_id, name=name,
+                                                           compare_name=compare_name, express_method="rsem",
+                                                           type="transcript", up_down='down', major=True)
+                    up_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
+                                                         group_id=group_id, name=name, compare_name=compare_name,
+                                                         express_method="rsem", type="transcript", up_down='up', major=True)
+                    if up_down:
+                        self.transet_id.append(up_down)
+                        self.trans_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
+                        self.up_down_trans_id = str(down_id) + "," + str(up_id)
+                else:
+                    self.logger.info("转录本name和compare_name匹配错误")
+        path = self.exp.output_dir + "/ref_diff/genes_ref_diff/diff_stat_dir"
+        self.geneset_id = list()
+        for files in os.listdir(path):
+            if re.search(r'edgr_stat.xls',files):
+                m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
+                if m_:
+                    name = m_.group(1)
+                    compare_name = m_.group(2)
+                    up_down = self.api_geneset.add_geneset(diff_stat_path = path+"/"+files, group_id=group_id,
+                                                           name=name, compare_name=compare_name, express_method="rsem",
+                                                           type="gene",up_down='up_down', major=True)
+                    down_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id,
+                                                           name=name, compare_name=compare_name, express_method="rsem",
+                                                           type="gene", up_down='down', major=True)
+                    up_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id, name=name,
+                                                         compare_name=compare_name, express_method="rsem", type="gene",
+                                                         up_down='up', major=True)
+                    self.up_down_gene_id = str(down_id) + "," + str(up_id)
+                    self.geneset_id.append(up_down)
+                    self.gene_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
+                else:
+                    self.logger.info("基因name和compare_name匹配错误")
+
     def export_diff_trans(self):
         path = self.exp.output_dir + "/diff/trans_diff"
         exp_path = self.exp.output_dir + "/rsem"
@@ -1358,14 +1544,15 @@ class RefrnaWorkflow(Workflow):
         params["type"] = "trans"
         class_code = self.exp.mergersem.work_dir + "/class_code"
         diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
-                                                        compare_column_specimen=compare_column_specimen,
+                                                        compare_column_specimen=compare_column_specimen,ref_all='all',value_type=self.option("exp_way"),
                                                         class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
                                                         express_id=self.express_id,
                                                         express_method="rsem",
                                                         is_duplicate=self.option("is_duplicate"),
                                                         query_type="transcript", major=True,
                                                         group_id=params["group_id"], workflow=True)
-        self.api_exp.add_diff_summary_detail(diff_express_id, merge_path)
+        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='all',query_type='transcript',
+                                            class_code=class_code,workflow=True)
 
     def export_diff_gene(self):
         path = self.exp.output_dir + "/diff/genes_diff"
@@ -1393,14 +1580,90 @@ class RefrnaWorkflow(Workflow):
         params['diff_method'] = self.option("diff_method")
         class_code = self.exp.mergersem.work_dir + "/class_code"
         diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
-                                                        compare_column_specimen=compare_column_specimen,
+                                                        compare_column_specimen=compare_column_specimen,ref_all='all',value_type=self.option("exp_way"),
                                                         class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
                                                         express_id=self.express_id,
                                                         express_method="rsem",
                                                         is_duplicate=self.option("is_duplicate"),
                                                         query_type="gene", major=True,
                                                         group_id=params["group_id"], workflow=True)
-        self.api_exp.add_diff_summary_detail(diff_express_id, merge_path)
+        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='all',query_type='gene',
+                                            class_code=class_code,workflow=True)
+
+    def export_ref_diff_trans(self):
+        path = self.exp.output_dir + "/ref_diff/trans_ref_diff"
+        exp_path = self.exp.output_dir + "/rsem"
+        with open(exp_path + "/transcripts.counts.matrix", 'r+') as f1:
+            sample = f1.readline().strip().split("\t")
+        compare_column = self.compare_detail
+        params = {}
+        merge_path = path + "/merge.xls"
+        params['group_id'] = str(self.group_id)
+        params['control_id'] = str(self.control_id)
+        params['group_detail'] = dict()
+        compare_column_specimen = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            value2 = self.group_detail[i].values()
+            params['group_detail'][key] = value
+            compare_column_specimen[key] = value2
+        self.logger.info(params['group_detail'])  # 打印group_detail
+        params['express_id'] = str(self.express_id)
+        params['fc'] = 2
+        params['pvalue_padjust'] = 'padjust'  # 默认为padjust
+        params['pvalue'] = self.option("diff_fdr_ci")
+        params['diff_method'] = self.option("diff_method")
+        params["type"] = "trans"
+        class_code = self.exp.mergersem.work_dir + "/class_code"
+        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
+                                                        compare_column_specimen=compare_column_specimen,ref_all='ref',value_type=self.option("exp_way"),
+                                                        class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
+                                                        express_id=self.express_id,
+                                                        express_method="rsem",
+                                                        is_duplicate=self.option("is_duplicate"),
+                                                        query_type="transcript", major=True,
+                                                        group_id=params["group_id"], workflow=True)
+        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='ref',query_type='transcript',
+                                            class_code=class_code,workflow=True)
+
+    def export_ref_diff_gene(self):
+        path = self.exp.output_dir + "/ref_diff/genes_ref_diff"
+        exp_path = self.exp.output_dir + "/rsem"
+        with open(exp_path + "/genes.counts.matrix", 'r+') as f1:
+            sample = f1.readline().strip().split("\t")
+        compare_column = self.compare_detail
+        params = {}
+        merge_path = path + "/merge.xls"
+        params['group_id'] = str(self.group_id)
+        params['control_id'] = str(self.control_id)
+        params['group_detail'] = dict()
+        params["type"] = "gene"
+        compare_column_specimen = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            value2 = self.group_detail[i].values()
+            params['group_detail'][key] = value
+            compare_column_specimen[key] = value2
+        params['express_id'] = str(self.express_id)
+        params['fc'] = 2
+        params['pvalue_padjust'] = 'padjust'  # 默认为padjust
+        params['pvalue'] = self.option("diff_fdr_ci")
+        params['diff_method'] = self.option("diff_method")
+        class_code = self.exp.mergersem.work_dir + "/class_code"
+        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
+                                                        compare_column_specimen=compare_column_specimen,ref_all='ref',value_type=self.option("exp_way"),
+                                                        class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
+                                                        express_id=self.express_id,
+                                                        express_method="rsem",
+                                                        is_duplicate=self.option("is_duplicate"),
+                                                        query_type="gene", major=True,
+                                                        group_id=params["group_id"], workflow=True)
+        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='ref',query_type='gene',
+                                            class_code=class_code,workflow=True)
+
+
 
     def export_cor(self):
         self.api_cor = self.api.refrna_corr_express
@@ -1489,7 +1752,19 @@ class RefrnaWorkflow(Workflow):
         api_ppinetwork = self.api.ppinetwork
         if self.transet_id == []:
             return
-        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(self.transet_id[0]), self.option("combine_score"), "trans", self.taxon_id)
+        geneset_id = None
+        file_name = self.network_trans.option("diff_exp_gene").prop["path"]
+        name = os.path.split(os.path.basename(file_name))[0]
+        if name.startswith("network_"):
+            name = name.split("network_")[1]
+            for key in self.trans_gs_id_name.keys():
+                if self.trans_gs_id_name[key] == name:
+                    geneset_id = key
+                    break
+        if not geneset_id:
+            self.logger.info("没找到对应的基因集")
+            return
+        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(geneset_id), self.option("combine_score"), "trans", self.taxon_id)
         self.ppi_id = str(self.ppi_id)
         all_nodes_path = self.network_trans.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
         interaction_path = self.network_trans.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
@@ -1502,7 +1777,7 @@ class RefrnaWorkflow(Workflow):
         api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
         api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
         api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
-        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
+        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path,file3_path=all_nodes_path,table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
         api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.ppi_id)  # 中心信息
         api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
         # self.ppi_id = api_ppinetwork.add_ppi_main_id(str(self.geneset_id[0]), self.option("combine_score"), "gene", self.taxon_id)

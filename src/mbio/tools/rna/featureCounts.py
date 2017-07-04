@@ -64,7 +64,7 @@ class FeaturecountsAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '100G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -258,10 +258,10 @@ class FeaturecountsTool(Tool):
             raise Exception("没有生成表达量表")
         for files in os.listdir(self.work_dir):
             if files.endswith("fpkm.xls"):
-                shutil.copy2(os.path.join(self.work_dir,files), os.path.join(self.output_dir,files))
+                os.link(os.path.join(self.work_dir,files), os.path.join(self.output_dir,files))
                 self.option("fpkm").set_path(os.path.join(self.output_dir, files))
             if files.endswith("tpm.xls"):
-                shutil.copy2(os.path.join(self.work_dir,files), os.path.join(self.output_dir,files))
+                os.link(os.path.join(self.work_dir,files), os.path.join(self.output_dir,files))
                 self.option("tpm").set_path(os.path.join(self.output_dir, files))
         self.option("out_file").set_path(self._out_dir)  #featurecounts软件生成文件
         all_gene_list(file_path=os.path.join(self.output_dir, "vs".join(os.path.basename(self._out_dir).split("-"))), all_gene_list_path = os.path.join(self.output_dir, "all_gene_list"))

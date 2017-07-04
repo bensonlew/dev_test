@@ -258,6 +258,8 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
                     w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\tnone\tnone\tnone\t")
                 # print write_line
                 w.write("\n")
+            # else:
+            #     raise Exception("没有找到基因集的COG注释信息")
     return cog_path
 
 
@@ -531,16 +533,17 @@ def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_cod
     class_code = os.path.join(dir_path, "%s_class_code" % option_name)
     bind_obj.logger.debug("正在导出class_code信息:%s" %(class_code))
     type= bind_obj.sheet.option('type')
+    class_code_type =  bind_obj.sheet.option("class_code_type")
     class_code_detail = db['sg_express_class_code_detail']
-    class_code_info = class_code_detail.find({"class_code_id":ObjectId(data)})
+    class_code_info = class_code_detail.find({"class_code_id":ObjectId(data),"type":class_code_type})
     with open(class_code,'w+') as f:
-        header = ['seq_id','gene_name']
+        header = ['seq_id','gene_name',"class_code"]
         f.write("\t".join(header)+"\n")
         for d in class_code_info:
             if type == 'gene':
-                _write = d['assembly_gene_id']+"\t"+d['gene_name']+"\n"
+                _write = d['assembly_gene_id']+"\t"+d['gene_name']+"\t" + d["class_code"] + "\n"
             if type == 'transcript':
-                _write = d['assembly_trans_id']+"\t"+d['gene_name']+"\n"
+                _write = d['assembly_trans_id']+"\t"+d['gene_name']+"\t" + d["class_code"] + "\t" + d["assembly_gene_id"] + "\n"
             f.write(_write)
     return class_code
 

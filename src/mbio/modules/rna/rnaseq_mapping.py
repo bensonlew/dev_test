@@ -137,7 +137,7 @@ class RnaseqMappingModule(Module):
                     })
                 mapping_tool.set_options(self.tool_opts)
                 self.tools.append(mapping_tool)
-        self.on_rely(self.tools, self.set_output)
+        self.on_rely(self.tools, self.set_output, tool)
         # self.on_rely(self.tools, self.end)
         for tool in self.tools:
             tool.run()
@@ -194,22 +194,43 @@ class RnaseqMappingModule(Module):
         self.star_index.set_options(opts)
         self.star_index.run()
         
-    def set_output(self):
+    def set_output(self, event):
         self.logger.info("set output")
         for f in glob.glob(r"{}/*".format(self.output_dir)):
             if os.path.isdir(f):
                 shutil.rmtree(f)
             else:
                 os.remove(f)
+        if not os.path.exists(self.output_dir + "/bam"):
+            os.mkdir(self.output_dir + "/bam")
+        new_path = self.output_dir + "/bam"
         for tool in self.tools:
             out_files = os.listdir(tool.output_dir)
             for f in out_files:
                 f_path = os.path.join(tool.output_dir, f)
-                target = os.path.join(self.output_dir, f)
+                target = os.path.join(new_path, f)
                 if os.path.exists(target):
                     os.remove(target)
                 os.link(f_path, target)
-        self.option("bam_output").set_path(self.output_dir)
+        self.option("bam_output").set_path(self.output_dir+ "/bam")
+        if not os.path.exists(self.output_dir + "/stat"):
+            os.mkdir(self.output_dir + "/stat")
+        stat_dir = self.output_dir + "/stat"
+        if event["data"] == "tophat":
+            for tool in self.tools:
+                tophat_dir = tool.work_dir + "/tophat_out"
+                stat_file = os.path.join(tophat_dir, "align_summary.txt")
+                new_file = os.path.join(stat_dir, tool.option("sample") + ".stat")
+                os.link(stat_file, new_file)
+        elif event["data"] == "hisat":
+            self.logger.info("设置hisat输出文件")
+            for tool in self.tools:
+                # tophat_dir = tool.work_dir + "/tophat_out"
+                stat_file = os.path.join(tool.work_dir, "hisat_mapping.o")
+                new_file = os.path.join(stat_dir, tool.option("sample") + ".stat")
+                self.logger.info(stat_file)
+                self.logger.info(new_file)
+                os.link(stat_file, new_file)
         self.logger.info("done")
         self.end()
 

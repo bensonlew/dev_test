@@ -81,7 +81,7 @@ class KeggUploadTool(Tool):
         # self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
         kegg_ids = self.work_dir + "/kegg.list"
         kegg_table = self.output_dir + '/kegg_table.xls'
-        pidpath = self.work_dir + '/pid.txt'
+        pidpath = self.output_dir + '/pid.txt'
         pathwaydir = self.output_dir + '/pathways'
         pathway_table = self.output_dir + '/pathway_table.xls'
         layerfile = self.output_dir + '/kegg_layer.xls'
