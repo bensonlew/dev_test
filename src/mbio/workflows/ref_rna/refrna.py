@@ -714,8 +714,8 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp_fc
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp_fc_all")
-        mod.on('start', self.set_step, {'start': self.step.exp})
-        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.on('start', self.set_step, {'start': self.step.express})
+        mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
     def run_network_trans(self):
