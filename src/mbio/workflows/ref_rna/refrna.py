@@ -80,7 +80,7 @@ class RefrnaWorkflow(Workflow):
             # 表达量分析手段: Htseq, Featurecount, Kallisto, RSEM
             {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算
 
-            {"name": "diff_method", "type": "string", "default": "edgeR"},
+            {"name": "diff_method", "type": "string", "default": "DESeq2"},
             # 差异表达分析方法
             {"name": "diff_fdr_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "fc", "type": "float", "default": 2},
@@ -152,7 +152,7 @@ class RefrnaWorkflow(Workflow):
                 self.gff = self.option('genome_structure_file').prop["path"]
         else:
             self.gff = self.json_dict[self.option("ref_genome")]["gff"]
-        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans]
+        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
         self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
@@ -639,10 +639,9 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("change_id_gtf"),
-            "cmp_gtf": self.assembly.option("cuff_gtf"),
+            "new_gtf": self.assembly.option("new_transcripts_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("change_id_fa"),
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -699,10 +698,9 @@ class RefrnaWorkflow(Workflow):
             "fastq_dir": self.qc.option("sickle_dir"),
             "fq_type": self.option("fq_type"),
             "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("change_id_gtf"),
-            "cmp_gtf": self.assembly.option("cuff_gtf"),
+            "new_gtf": self.assembly.option("new_transcripts_gtf"),
             "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("change_id_fa"),
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "strand_specific": self.option("strand_specific"),
             "control_file": self.option("control_file"),
             "edger_group": self.option("group_table"),
@@ -1078,10 +1076,10 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_mapping)
         self.qc.on("end", self.run_star_mapping)
         self.map_gene.on("end", self.run_map_assess_gene)
-        self.mapping.on('end', self.run_assembly)
+        self.mapping.on('end', self.run_assembly)`
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
-        # self.assembly.on("end", self.run_exp_fc)
+        self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
         if self.taxon_id != "":
@@ -1097,76 +1095,90 @@ class RefrnaWorkflow(Workflow):
     def test_mus(self):
         self.logger.info("{}".format(self.option("ref_genome_custom").prop["path"]))
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf")
-        # self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/HiseqQc/output/sickle_dir")
-        # self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf.bed")
-        #self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170626/Refrna_mouse_4/RnaseqMapping/output/bam")
-        # self.exp.option("network_diff_list", "/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/Express/output/diff/trans_diff/network_X1_vs_Z1")
-        # self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
-        # self.assembly.option("new_gene_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_genes.gtf")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/HiseqQc/output/sickle_dir")
+        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf.bed")
+        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170626/Refrna_mouse_4/RnaseqMapping/output/bam")
+        self.exp.option("network_diff_list", "/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/Express/output/diff/trans_diff/network_X1_vs_Z1")
+        self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
+        self.assembly.option("new_gene_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_genes.gtf")
         # self.qc.on("end", self.run_qc_stat, "after")
         # self.qc.on('end', self.run_mapping)
         # self.qc.on("end", self.run_star_mapping)
         # self.qc.on("end", self.run_seq_abs)
-        # # self.seq_abs.on("end", self.run_test_annotation)
-        # # self.mapping.on('end', self.run_assembly)
-        # # self.mapping.on('end', self.run_map_assess)
-        # self.assembly.on("end", self.run_new_transcripts_abs)
-        # self.assembly.on("end", self.run_new_gene_abs)
+        # self.seq_abs.on("end", self.run_test_annotation)
+        # self.mapping.on('end', self.run_assembly)
+        # self.mapping.on('end', self.run_map_assess)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
         # if self.taxon_id != "":
         #     self.exp.on("end", self.run_network_trans)
         #     self.final_tools.append(self.network_trans)
         # self.on_rely(self.final_tools, self.run_api_and_set_output)
-        # # self.assembly.on("end", self.run_exp_rsem_default)
-        # self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
-        # self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
-        # self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        # self.start_listener()
-        # self.fire("start")
-        # self.qc.start_listener()
-        # self.qc.fire("end")
-        # self.mapping.start_listener()
-        # self.mapping.fire("end")
-        # self.assembly.start_listener()
-        # self.assembly.fire("end")
-        # self.exp.start_listener()
-        # self.exp.fire("end")
-        # self.rpc_server.run()
+        # self.assembly.on("end", self.run_exp_rsem_default)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
+        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        self.start_listener()
+        self.fire("start")
+        self.qc.start_listener()
+        self.qc.fire("end")
+        self.mapping.start_listener()
+        self.mapping.fire("end")
+        self.assembly.start_listener()
+        self.assembly.fire("end")
+        self.exp.start_listener()
+        self.exp.fire("end")
+        self.rpc_server.run()
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
-        task_info = self.api.api('task_info.ref')
-        task_info.add_task_info()
-        self.export_qc()
+        # task_info = self.api.api('task_info.ref')
+        # task_info.add_task_info()
+        # self.group_id = "5955f5e1edcb253a204f8988"
+        # self.control_id = "5955f821f2e3f7fddea08f6e"
+        # self.group_category = ["X1", "B1", "Z1"]
+        # self.group_detail = [
+        #     {'5955f5deedcb253a204f7ef5': 'X1_3',
+        #      '5955f5deedcb253a204f7ef4': 'X1_2',
+        #      '5955f5deedcb253a204f7ef3': 'X1_1'},
+        #     {'5955f5deedcb253a204f7efb': 'B1_1',
+        #      '5955f5deedcb253a204f7ef9': 'B1_2',
+        #      '5955f5deedcb253a204f7efa': 'B1_3'},
+        #     {'5955f5deedcb253a204f7ef7': 'Z1_3',
+        #      '5955f5deedcb253a204f7ef6': 'Z1_2',
+        #      '5955f5deedcb253a204f7ef8': 'Z1_1'}
+        # ]
+        # self.export_qc()
         # self.export_genome_info()
-        self.export_annotation()
-        self.export_assembly()
-        self.export_snp()
-        self.export_map_assess()
-        self.export_exp_rsem_default()
-        self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
-        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
-        self.export_gene_set()
-        self.export_diff_gene()
-        self.export_diff_trans()
-        self.export_ref_diff_gene()
-        self.export_ref_diff_trans()
-        # self.export_gene_detail()
-        self.export_ref_gene_set()
-        self.export_cor()
-        self.export_pca()
-        self.export_cluster_gene()
-        self.export_cluster_trans()
-        self.export_go_regulate()
-        self.export_kegg_regulate()
-        self.export_go_enrich()
-        self.export_kegg_enrich()
-        self.export_cog_class()
-        if self.taxon_id != "":
-            with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
-                ft.readline()
-                content = ft.read()
-                if content:
-                    self.export_ppi()
-        self.export_as()
+        # self.export_annotation()
+        # self.export_assembly()
+        # self.export_snp()
+        # self.export_map_assess()
+        # self.export_exp_rsem_default()
+        # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
+        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        # self.export_gene_set()
+        # self.export_diff_gene()
+        # self.export_diff_trans()
+        # self.export_ref_diff_gene()
+        # self.export_ref_diff_trans()
+        # # self.export_gene_detail()
+        # self.export_ref_gene_set()
+        # self.export_cor()
+        # self.export_pca()
+        # self.export_cluster_gene()
+        # self.export_cluster_trans()
+        # self.export_go_regulate()
+        # self.export_kegg_regulate()
+        # self.export_go_enrich()
+        # self.export_kegg_enrich()
+        # self.export_cog_class()
+        # if self.taxon_id != "":
+        #     with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
+        #         ft.readline()
+        #         content = ft.read()
+        #         if content:
+        #             self.export_ppi()
+        # self.export_as()
 
     def run_test_annotation(self):
         pass
@@ -1280,6 +1292,11 @@ class RefrnaWorkflow(Workflow):
         # self.api_map.add_mapping_stat(stat_file, "genome")
         # stat_file = self.map_qc_gene.output_dir + "/bam_stat.xls"
         # self.api_map.add_mapping_stat(stat_file, "gene")
+        stat_dir = self.mapping.output_dir + "/stat"
+        if self.option("seq_method") == "Topaht":
+            self.api_map.add_tophat_mapping_stat(stat_dir)
+        else:
+            self.api_map.add_hisat_mapping_stat(stat_dir)
         file_path = self.map_qc.output_dir + "/satur"
         self.api_map.add_rpkm_table(file_path)
         coverage = self.map_qc.output_dir + "/coverage"
