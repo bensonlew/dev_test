@@ -641,7 +641,7 @@ class ExpressModule(Module):
                                ref_trans_count_path=self.rsem_transcripts_count_ref,
                                ref_genes_fpkm_path=self.rsem_genes_fpkm_ref,
                                ref_trans_fpkm_path=self.rsem_transcript_fpkm_ref, ref_all=True)
-            # self.mergersem1_run()
+            self.mergersem1_run()
         elif event['data'] == 'mergersem1':
             self.logger.info("开始设置mergersem1分析!")
             if not os.path.exists(self.output_dir+"/rsem1"):
@@ -651,8 +651,6 @@ class ExpressModule(Module):
                 new_files_path = os.path.join(self.output_dir + "/rsem1", files)
                 os.link(files_path, new_files_path)
             self.logger.info("设置mergersem1分析完毕!")
-            self.logger.info("haha")
-            self.logger.info("heihei")
         # elif re.search(r'genes_diff', event['data']) or re.search(r'trans_diff', event['data']):
         elif event['data'] == 'genes_diff' or event['data'] == 'trans_diff':
             self.logger.info("开始设置差异分析结果目录！")
