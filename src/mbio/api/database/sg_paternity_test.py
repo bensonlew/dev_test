@@ -41,6 +41,11 @@ class SgPaternityTest(Base):
         if re.match('(.*)(C)(.*)', temp_s.group(1)):
             self.bind_object.logger.info('此时胎儿为重送样没有具体的pt家系信息：{}'.format(preg))
         else:
+            if re.match('(.*-T)([0-9])', dad):   # -T 表示重上机信息不变
+                dad = ('-').join(dad.split('-')[:-1])
+            if re.match('(.*-T)([0-9])', mom):
+                mom = ('-').join(mom.split('-')[:-1])
+                tmp_m = re.search(".*-(M.*)", mom)
             message_id = dad + "-" + temp_m.group(1)  # 只有父本和母本的名字
             pt_collection = self.database["sg_pt_customer"]
             result = pt_collection.find_one({"name": message_id})
@@ -60,7 +65,10 @@ class SgPaternityTest(Base):
             "name": name,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "batch_id": ObjectId(batch_id),
-            "member_id": member_id
+            "member_id": member_id,
+            # "message_id": message_id,  # 信息增加modify by zhouxuan 20170705
+            # "ask_time": ask_time,
+            # "report_status": report_status,
         }
         try:
             collection = self.database['sg_father']
