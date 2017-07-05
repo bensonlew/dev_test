@@ -57,7 +57,7 @@ class RmatsWorkflow(Workflow):
     def run(self):
         options = [
             {"name": "seq_type", "type": "string", "default": "paired"},  # 两个选项：'paired'  or ’single‘
-            {"name": "analysis_mode", "type": "string", "default": "P"},
+            {"name": "analysis_mode", "type": "string", "default": "U"},
             {"name": "read_length", "type": "int", "default": 160},
             {"name": "ref_gtf", "type": "string"},  # 一定要设置
             {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是
@@ -91,7 +91,7 @@ class RmatsWorkflow(Workflow):
             # {"name": "group_detail", "type": "string"},
             # {"name": "gname", "type": "string", "default": "group"},  # 分组方案名称
             {"name": "seq_type", "type": "string", "default": "paired"},  # 两个选项：'paired'  or ’single‘
-            {"name": "analysis_mode", "type": "string", "default": "P"},
+            {"name": "analysis_mode", "type": "string", "default": "U"},
             {"name": "read_length", "type": "int", "default": 160},
             {"name": "ref_gtf", "type": "string"},  # 一定要设置
             {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是

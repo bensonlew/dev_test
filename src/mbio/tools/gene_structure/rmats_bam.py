@@ -32,7 +32,7 @@ class RmatsBamAgent(Agent):
 
         '''
         options = [{"name": "seq_type", "type": "string", "default": "paired"},  # 两个选项：'paired'  or ’single‘
-                   {"name": "analysis_mode", "type": "string", "default": "P"},
+                   {"name": "analysis_mode", "type": "string", "default": "U"},
                    {"name": "read_length", "type": "int", "default": 150},
                    {"name": "A_group_bam", "type": "string", "default": None},  # 一定要设置
                    {"name": "B_group_bam", "type": "string", "default": None},  # 一定要设置
