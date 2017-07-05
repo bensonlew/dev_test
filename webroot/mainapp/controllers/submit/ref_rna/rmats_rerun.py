@@ -46,7 +46,7 @@ class RmatsRerunAction(RefRnaController):
     def POST(self):
         data = web.input()
         post_args = ['group_id', 'group_detail', 'cut_off', 'submit_location', 'splicing_id',
-                     'control_id']
+                     'control_id', "compare_plan"]
         print data.control_id
         for arg in post_args:
             if not hasattr(data, arg):
@@ -54,24 +54,32 @@ class RmatsRerunAction(RefRnaController):
                 return json.dumps(info)
         task_name = 'ref_rna.report.rmats'
         task_type = 'workflow'
-        control_doc = RefRna().get_main_info(ObjectId(data.control_id), 'sg_specimen_group_compare')
-        print control_doc
+        # control_doc = RefRna().get_main_info(ObjectId(data.control_id), 'sg_specimen_group_compare')
+        # print control_doc
         group_doc = RefRna().get_main_info(ObjectId(data.group_id), 'sg_specimen_group')
         print group_doc
-        compare_plans = re.sub(r'[\"\[\]\s+\']', '', control_doc['compare_names']).split(',')
-        if len(compare_plans) > 1:
-            info = {"success": False, "info": "只能选一组对照组方案"}
-            return json.dumps(info)
-        case_group_name = compare_plans[0].split('|')[0]
+
+        # compare_plans = re.sub(r'[\"\[\]\s+\']', '', control_doc['compare_names']).split(',')
+        # print compare_plans
+        # if len(compare_plans) > 1:
+        #     info = {"success": False, "info": "只能选一组对照组方案"}
+        #     return json.dumps(info)
+        print(data.compare_plan)
+        case_group_name = data.compare_plan.split('|')[0]
         print case_group_name
-        control_group_name = compare_plans[0].split('|')[1]
+        control_group_name = data.compare_plan.split('|')[1]
         print control_group_name
-        case_group_members = group_doc["specimen_names"][
-            group_doc["category_names"].index(case_group_name)].keys()
+
+        # case_group_members = group_doc["specimen_names"][
+        #     group_doc["category_names"].index(case_group_name)].keys()
+        group_dict = json.loads(data.group_detail)
+        case_group_members = group_dict[case_group_name]
         print case_group_members
-        control_group_members = group_doc["specimen_names"][
-            group_doc["category_names"].index(control_group_name)].keys()
+        # control_group_members = group_doc["specimen_names"][
+        #     group_doc["category_names"].index(control_group_name)].keys()
+        control_group_members = group_dict[control_group_name]
         print control_group_members
+
         case_group_bam_lst = []
         control_group_bam_lst = []
         for case_sp in case_group_members:
@@ -86,9 +94,9 @@ class RmatsRerunAction(RefRnaController):
                 doc['bam_path'])
         case_group_bam_str = ','.join([p.strip() for p in case_group_bam_lst])
         control_group_bam_str = ','.join([p.strip() for p in control_group_bam_lst])
-        if len(case_group_bam_lst) <= 1 or len(control_group_bam_lst) <= 1:
-            info = {"success": False, "info": "每组必须有2个以上的样本"}
-            return json.dumps(info)
+        # if len(case_group_bam_lst) <= 1 or len(control_group_bam_lst) <= 1:
+        #     info = {"success": False, "info": "每组必须有2个以上的样本"}
+        #     return json.dumps(info)
         if not isFloat(data.cut_off):
             info = {"success": False, "info": "cut_off必须为浮点数"}
             return json.dumps(info)
@@ -190,12 +198,12 @@ class RmatsRerunAction(RefRnaController):
             info = {"success": False, "info": "splicing_id不存在，请确认参数是否正确！!"}
             return json.dumps(info)
     
-    def check_options(self, data):
-        params_name = ['group_id', 'group_detail', 'cut_off', 'analysis_mode', 'submit_location', 'splicing_id',
-                       'control_id']
-        success = []
-        for names in params_name:
-            if not (hasattr(data, names)):
-                success.append("缺少参数!")
-        
-        return success
+    # def check_options(self, data):
+    #     params_name = ['group_id', 'group_detail', 'cut_off', 'analysis_mode', 'submit_location', 'splicing_id',
+    #                    'control_id']
+    #     success = []
+    #     for names in params_name:
+    #         if not (hasattr(data, names)):
+    #             success.append("缺少参数!")
+    #
+    #     return success

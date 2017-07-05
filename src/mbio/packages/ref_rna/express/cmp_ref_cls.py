@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = fiona
+# modify by khl
 # time: 2017/3/30 14:50
 
 import re, os, Bio, argparse, sys, fileinput, urllib2, subprocess
@@ -18,11 +19,13 @@ def get_dic_from_merged_gtf(merged_file):
             # ref_txpt_id = ''
             cls = ''
             line_id = line.strip().split("\t")
-            if assembly_txpt_id_m and cls_m and assembly_gene_id_m:
-                cls = cls_m.group(1)
+            if assembly_txpt_id_m and assembly_gene_id_m:
                 assembly_txpt_id = assembly_txpt_id_m.group(1)
                 assembly_gene_id = assembly_gene_id_m.group(1)
-
+                if cls_m:
+                    cls = cls_m.group(1)
+                else:
+                    cls = '='
                 # if re.match(r'^[^u]$', cls) and not ref_txpt_id_m:
                 #     raise Exception(
                 #         '{} of combined gtf file has logical problem: class code 为非U得情况没有cmp_ref的值 '.format(line))
@@ -31,11 +34,11 @@ def get_dic_from_merged_gtf(merged_file):
                 #         '{} of combined gtf file has logical problem: class code 为U得情况有nearest_ref的值 '.format(line))
                 # if ref_txpt_id_m:
                 #     ref_txpt_id = ref_txpt_id_m.group(1)
-            #else:
-            #    raise Exception(
-            #        'line: {} in annotate gtf {} has no valid internal txpt id or class code'.format(line.strip(),merged_file))
-            d[assembly_txpt_id] = {'assembly_txpt_id': assembly_txpt_id, 'cls': cls,
-                                   'assembly_gene_id': assembly_gene_id}
+            # else:
+            #     raise Exception(
+            #         'line: {} in annotate gtf {} has no valid internal txpt id or class code'.format(line.strip(),merged_file))
+                d[assembly_txpt_id] = {'assembly_txpt_id': assembly_txpt_id, 'cls': cls,
+                                       'assembly_gene_id': assembly_gene_id}
     return d
 
 
