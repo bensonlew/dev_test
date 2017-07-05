@@ -13,7 +13,8 @@ class CatAgent(Agent):
         super(CatAgent, self).__init__(parent)
         options = [
             {"name": "file1", "type": "string", "default": None},
-            {"name": "file2", "type": "string", "default": None}
+            {"name": "file2", "type": "string", "default": None},
+            {"name": "file3", "type": "outfile", "format": "gene_structure.gtf"}
         ]
         self.add_option(options)
         self.step.add_steps("cat")

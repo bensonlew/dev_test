@@ -122,12 +122,13 @@ class ExpressModule(Module):
     def transcript_abstract_run(self):
         self.logger.info("开始进行转录本的提取")
         if self.option("is_express_assembly") == 'assembly':
-            self.gtf_path = self.combine_gtf.work_dir + "/ref_new.gtf"
+            # self.gtf_path = self.combine_gtf.work_dir + "/ref_new.gtf"
+            self.gtf_path = self.combine_gtf.option("file3")
         else:
             self.gtf_path = self.option('ref_gtf')
         self.transcript_abstract = self.add_tool("annotation.transcript_abstract")
         tool_opt = {
-            "ref_genome_custom":self.option("ref_genome_custom").prop['path'],
+            "ref_genome_custom":self.option("ref_genome_custom"),
         }
         tool_opt["ref_genome_gtf"]=self.gtf_path
         # if self.option("is_express_assembly") == "assembly":
@@ -200,7 +201,8 @@ class ExpressModule(Module):
             #         "ref_gtf":self.option("ref_gtf")
             #     }
             # tool_opt = {"ref_gtf": self.gtf_path}
-            transcript_fa = self.transcript_abstract.output_dir+"/exons.fa"
+            # transcript_fa = self.transcript_abstract.output_dir+"/exons.fa"
+            transcript_fa = self.transcript_abstract.option("query")
             if not os.path.exists(transcript_fa):
                 raise Exception("rsem Tool 没有设置转录本fa文件!")
             tool_opt = {
