@@ -34,8 +34,22 @@ class SgPaternityTest(Base):
         '''
         temp_d = re.search("WQ([0-9]*)-F.*",dad)
         temp_m = re.search(".*-(M.*)", mom)
-        temp_s = re.search(".*-(S.*)",preg)
+        temp_s = re.search(".*-(S.*)", preg)
         name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
+        # 信息增加modify by zhouxuan 20170705
+        '''
+        if re.match('(.*)(C)(.*)', temp_s.group(1)):
+            self.bind_object.logger.info('此时胎儿为重送样没有具体的pt家系信息：{}'.format(preg))
+        else:
+            message_id = dad + "-" + temp_m.group(1)  # 只有父本和母本的名字
+            pt_collection = self.database["sg_pt_customer"]
+            result = pt_collection.find_one({"name": message_id})
+            if result:
+                report_status = result['report_status']
+                ask_time = result['ask_time']
+            else:
+                self.bind_object.logger.info('该家系信息不全，请查看：{}'.format(message_id))
+        '''
 
         # "name": family_no.group(1)
         insert_data = {
@@ -46,7 +60,7 @@ class SgPaternityTest(Base):
             "name": name,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "batch_id": ObjectId(batch_id),
-            "member_id":member_id
+            "member_id": member_id
         }
         try:
             collection = self.database['sg_father']
