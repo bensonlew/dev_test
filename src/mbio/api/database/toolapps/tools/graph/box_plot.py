@@ -51,13 +51,15 @@ class BoxPlot(Base):
             samples = []
             insert_data = []
             for line in lines[1:]:
+                insert_filter = []
                 line_split = line.strip().split("\t")
                 samples.append(line_split[0])
                 if len(line_split) == 6:
-                    filter = ''
+                    pass
                 else:
-                    filter = line_split[6]
-                data = SON(sample_name=line_split[0], box_id=box_plot_id, min=line_split[1], q1=line_split[2], q2=line_split[3], q3=line_split[4], max=line_split[5], outliers=filter)
+                    insert_filter.append(float(line_split[6]))
+                data_list = [float(line_split[1]), float(line_split[2]), float(line_split[3]), float(line_split[4]), float(line_split[5]), insert_filter]
+                data = SON(sample_name=line_split[0], box_id=box_plot_id, box_data=data_list)
                 insert_data.append(data)
             self.db['box_plot_detail'].insert_many(insert_data)
             self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples}})
