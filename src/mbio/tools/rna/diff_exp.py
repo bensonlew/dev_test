@@ -68,10 +68,10 @@ class DiffExpAgent(Agent):
             raise OptionError("必须设置输入文件:基因表达量表")
         if not self.option('control_file').is_set:
             raise OptionError("必须设置输入文件：上下调对照组参考文件")
-        if self.option("diff_ci") > 1 or self.option("diff_ci") < 0:
-            raise OptionError("显著性水平不在(0,1)范围内")
-        if self.option("diff_fdr_ci") > 1 or self.option("diff_fdr_ci") < 0:
-            raise OptionError("显著性水平不在(0,1)范围内")
+        if self.option("diff_ci") >= 1 or self.option("diff_ci") < 0:
+            raise OptionError("显著性水平不在[0,1)范围内")
+        if self.option("diff_fdr_ci") >= 1 or self.option("diff_fdr_ci") < 0:
+            raise OptionError("显著性水平不在[0,1)范围内")
         if self.option("fc") < 0:
             raise OptionError("显著性水平不能负数")
         if self.option("diff_rate") > 1 or self.option("diff_rate") <= 0:
