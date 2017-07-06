@@ -203,8 +203,6 @@ class ExpressModule(Module):
             # tool_opt = {"ref_gtf": self.gtf_path}
             # transcript_fa = self.transcript_abstract.output_dir+"/exons.fa"
             transcript_fa = self.transcript_abstract.option("query")
-            if not os.path.exists(transcript_fa):
-                raise Exception("rsem Tool 没有设置转录本fa文件!")
             tool_opt = {
                 "ref_gtf":self.gtf_path,
                 "transcript_fa":transcript_fa
