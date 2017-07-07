@@ -314,6 +314,25 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("插入主表成功")
         return main_id
 
+    def add_main_(self, member_id, sample_id, batch_id):
+        collection = self.database['sg_main']
+        insert_data = {
+            'member_id': member_id,
+            'sample_id': sample_id,
+            'batch_id': ObjectId(batch_id),
+            'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'zz': '',
+            'result': "error"
+        }
+
+        try:
+            main_id = collection.insert_one(insert_data).inserted_id
+        except Exception as e:
+            raise Exception('插入异常信息主表出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("插入异常信息主表成功")
+        return main_id
+
     def add_interaction(self,main_id,bw,bs,ref_group,sample_id):
         collection = self.database['sg_interaction']
         params = dict()
