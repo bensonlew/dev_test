@@ -5,6 +5,8 @@ from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 from bson import ObjectId
 import xlrd
+import datetime
+
 
 class PtCustomer(Base):
     '''
@@ -73,6 +75,7 @@ class PtCustomer(Base):
                         "result_time": row_data[result_time_index],
                         "name": family_name,
                         "report_status": row_data[report_status],
+                        'update_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     }
                     insert.append(insert_data)
                 else:
@@ -147,6 +150,20 @@ class PtCustomer(Base):
                     self.bind_object.logger.info("导入ref类型成功")
             else:
                 self.bind_object.logger.info("没有插入样本信息")
+
+    def update_pt_family(self, family_id, accept_time):
+        try:
+            collection = self.database["sg_pt_customer"]
+            if collection.find_one({"pt_serial_number": family_id}):
+                collection.update_many({"pt_serial_number": family_id}, {'$set':
+                                                                            {"accept_time": accept_time,
+                                                                             'update_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}})
+            else:
+                self.bind_object.logger.info('不存在该家系，请确认是否存在胎儿信息：{}'.format(family_id))
+        except Exception as e:
+            self.bind_object.logger.info('导入拆分结果路径出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info('导入拆分结果路径成功')
 
     """
     # 第一版pt家系表导表函数

@@ -87,6 +87,35 @@ class PtDatasplitWorkflow(Workflow):
 			db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
 		                                customer_file=self.option('family_table').prop['path'])
 			self.logger.info("pt家系表导入完成")
+
+		self.logger.info('更新胎儿为重送样时相对应的家系表中的受理日期')  # modify 20170706
+		time = os.path.basename(self.option('message_table').prop['path']).split('-')[0]
+		year = time[0:4]
+		mon = time[4:6]
+		day = time[6:]
+		report_time = datetime.datetime(int(year), int(mon), int(day), 0, 0)
+		accept_time = report_time - datetime.timedelta(days=3)
+		if len(str(accept_time.month)) == 1:
+			ti = str(accept_time.year) + '-0' + str(accept_time.month)
+		else:
+			ti = str(accept_time.year) + '-' + str(accept_time.month)
+		if len(str(accept_time.year)) == 1:
+			ti = ti + '-0' + str(accept_time.day)
+		else:
+			ti = ti + '-' + str(accept_time.day)
+		self.logger.info('time:{}'.format(ti))
+		with open(self.option('message_table').prop['path'], 'r') as m:
+			for line in m:
+				line = line.strip().split('\t')
+				if re.match('WQ([0-9]{8,})-(S)(.*)(T)', line[3]):
+					continue
+				else:
+					if re.match('WQ([0-9]{8,})-(SC)(.*)', line[3]):
+						family_id = line[3].split('-')[0]
+						self.logger.info('存在重送样的胎儿样本——{}'.format(line[3]))
+						db_customer.update_pt_family(family_id, ti)
+		self.logger.info('更新胎儿为重送样时相对应的家系表中的受理日期完成')  # modify 20170706
+
 		self.logger.info("导入样本类型信息")
 		db_customer.add_sample_type(self.option('message_table').prop['path'])
 		self.judge_sample_type(self.option('message_table').prop['path'])  # 判断是否全部是ws的样本
@@ -118,8 +147,8 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_dir = self.data_split.output_dir + "/MED"
 		sample_name = os.listdir(self.data_dir)
 		for j in sample_name:
-			p = re.match('Sample_WQ([0-9]{8})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
-			q = re.match('Sample_WS([0-9]{8})(.*)', j)
+			p = re.match('Sample_WQ([0-9]{8,})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
+			q = re.match('Sample_WS([0-9]{8,})(.*)', j)
 			if p:
 				self.sample_name_wq.append(j)
 			elif q:
