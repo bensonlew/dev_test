@@ -75,8 +75,17 @@ class NiptWorkflow(Workflow):
 					else:
 						self.sample_id.append(m.group(1))
 						self.logger.info('将样本{}添加到待分析队列'.format(m.group(1)))
-
+		small_sample = []
+		for i in self.sample_id:
+			file = os.path.join(self.option('fastq_path').prop['path'], i + "_R1.fastq.gz")
+			self.logger.info('打印出file路径：%s' % file)
+			if os.path.getsize(file) < 1048576:
+				small_sample.append(file)
+				self.sample_id.remove(i)
+				self.api_nipt.add_main_(self.option('member_id'), i, self.option('batch_id'))
+			self.logger.info('small_sample：%s' % small_sample)
 		for sample in self.sample_id:
+			self.logger.info("self.sample_id: %s" % self.sample_id)
 			nipt_analysis = self.add_module("nipt.nipt_analysis")
 			self.step.add_steps('nipt_analysis{}'.format(n))
 			nipt_analysis.set_options({
