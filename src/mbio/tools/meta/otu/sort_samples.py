@@ -8,6 +8,7 @@ from collections import defaultdict
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from multiprocessing import Process
 
 
 class SortSamplesAgent(Agent):
@@ -66,6 +67,7 @@ class SortSamplesAgent(Agent):
 class SortSamplesTool(Tool):
     def __init__(self, config):
         super(SortSamplesTool, self).__init__(config)
+        self.logger.info("SortSamples读取分组表开始")
         samples = list()
         with open(self.option("group_table").prop["path"], "rb") as r:
             line = r.next()
@@ -73,6 +75,7 @@ class SortSamplesTool(Tool):
                 line = line.rstrip().split("\t")
                 samples.append(line[0])
         self.samples = samples
+        self.logger.info("SortSamples读取分组表结束")
 
     def filter_samples(self):
         no_zero_otu = os.path.join(self.work_dir, "otu.nozero")

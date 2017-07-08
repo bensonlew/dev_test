@@ -302,7 +302,7 @@ class PipeSubmitTool(Tool):
             "sixteens_prediction": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["group_method", "task_type", "submit_location"], "collection_name": "sg_16s"},
             "species_lefse_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "second_group_id", "lda_filter", "second_group_detail", "submit_location", "start_level", "strict", "end_level"], "collection_name": "sg_species_difference_lefse"},
             "alpha_rarefaction_curve": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "freq", "submit_location", "task_type"], "collection_name": "sg_alpha_rarefaction_curve"},
-            "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "submit_location"], "collection_name": "sg_network"},
+            "otunetwork_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "add_Algorithm", "submit_location"], "collection_name": "sg_network"},
             "roc_analyse": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["task_type", "top_n_id", "method_type", "submit_location"], "collection_name": "sg_roc"},
             "alpha_diversity_index": {"instant": False, "waits": ["otu_subsample"], "main": [], "others": ["index_type", "submit_location", "task_type"], "collection_name": "sg_alpha_diversity"},
             "alpha_ttest": {"instant": False, "waits": ["alpha_diversity_index", "otu_subsample"], "main": [], "others": ["task_type", "submit_location", "test_method"], "collection_name": "sg_alpha_ttest"},
@@ -345,7 +345,7 @@ class PipeSubmitTool(Tool):
         # monkey.patch_ssl()
         self.signature = self.signature()
         self.task_id = self.option("task_id")
-        self.url = "http://bcl.sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
+        self.url = "http://bcl.i-sanger.com" if self.task_client == "client01" else "http://bcl.tsanger.com"
         self.all = {}
         self.all_count = 0
         sixteens_prediction_flag = False  # 16s功能预测分析特殊性，没有分类水平参数
@@ -371,6 +371,8 @@ class PipeSubmitTool(Tool):
                         self, collection_name, params, api, instant, pipe_main_id, pipe_count, self.min_level)
                 pipe['otu_subsample'] = otu_subsample
                 for analysis, submit in pipe.iteritems():
+                    # self.logger.info("等待5s")
+                    # time.sleep(5)
                     if analysis == 'otu_subsample':
                         continue
                     waits = [pipe[i]
@@ -511,7 +513,7 @@ class Submit(object):
         # if not self.instant:
         if self._params['submit_location'] != "otu_statistic":
             self.bind_object.logger.info("submit_location: %s" % (self._params['submit_location']))
-            wait_time = self.pipe_count * (self.bind_object.sub_analysis_len + 15) + random.randint(0, self.bind_object.sub_analysis_len * 3)
+            wait_time = self.pipe_count * (self.bind_object.sub_analysis_len + 15) + random.randint(0, self.bind_object.sub_analysis_len * 5)
             self.bind_object.logger.info("等待时间%s" % (wait_time))
             gevent.sleep(wait_time)
 
