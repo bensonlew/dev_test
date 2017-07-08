@@ -92,17 +92,36 @@ class TabFile(Base):
             for line in f:
                 line = line.strip()
                 line = line.split('\t')
-                insert_data = {
-                    "sample_id": line[0],
-                    "chrom":line[1],
-                    "pos": line[2],
-                    "ref": line[3],
-                    "alt": line[4],
-                    "dp": line[5],
-                    "ref_dp": line[6],
-                    "alt_dp": line[7],
-                }
-                sg_pt_tab_detail.append(insert_data)
+                if str(line[1]) == "chr3" and str(line[2]) == '18370866':  # xuanhongdong 20170706
+                    pass
+                elif str(line[1]) == 'chr17' and str(line[2]) == '7676154':
+                    pass
+                elif str(line[1]) == 'chr22' and str(line[2]) == '42688607':
+                    pass
+                elif str(line[1]) == 'chr20' and str(line[2]) == '50314010':
+                    pass
+                elif str(line[1]) == 'chr21' and str(line[2]) == '39445145':
+                    pass
+                elif str(line[1]) == 'chr12' and str(line[2]) == '8945306':
+                    pass
+                elif str(line[1]) == 'chr1' and str(line[2]) == '21616107':
+                    pass
+                elif str(line[1]) == 'chr8' and str(line[2]) == '6867054':
+                    pass
+                elif str(line[1]) == 'chr19' and str(line[2]) == '58387815':
+                    pass
+                else:
+                    insert_data = {
+                        "sample_id": line[0],
+                        "chrom":line[1],
+                        "pos": line[2],
+                        "ref": line[3],
+                        "alt": line[4],
+                        "dp": line[5],
+                        "ref_dp": line[6],
+                        "alt_dp": line[7],
+                    }
+                    sg_pt_tab_detail.append(insert_data)
             try:
                 collection = self.database['sg_pt_ref']
                 collection.insert_many(sg_pt_tab_detail)
@@ -510,3 +529,10 @@ class TabFile(Base):
             self.bind_object.logger.error('计算并导入ot出错：{}'.format(e))
         else:
             self.bind_object.logger.info("计算并导入ot成功")
+
+    def judge_qc(self, sample_id):  # 20170707 zhouxuan
+        collection = self.database['sg_pt_qc']
+        if collection.find_one({"sample_id": sample_id, 'color': 'red'}):
+            return 'red'
+        else:
+            return 'green'

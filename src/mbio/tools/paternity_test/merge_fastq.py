@@ -97,23 +97,30 @@ class MergeFastqTool(Tool):
 				r2_list.append(p)
 		r1_list.sort()
 		r2_list.sort()
+		self.logger.info('r1_list:{}'.format(r1_list))
+		self.logger.info('r2_list:{}'.format(r2_list))
 		sample_name_ = self.option('sample_dir_name').split("_")
 		self.new_name = ("_").join(sample_name_[1:])
+		self.logger.info(self.new_name)
 		self.r1_path = os.path.join(file_path, self.new_name + "_R1.fastq")
 		self.r2_path = os.path.join(file_path, self.new_name + "_R2.fastq")
 		r1_path = []
 		for q in r1_list:
 			new_file_path = os.path.join(file_path, q)
 			r1_path.append(new_file_path)
-		os.system('zcat {} {} {} {} >> {}'.format(r1_path[0], r1_path[1], r1_path[2], r1_path[3], self.r1_path))
+		result1_1 = os.system('zcat {} {} {} {} >> {}'.format(r1_path[0], r1_path[1], r1_path[2], r1_path[3], self.r1_path))
+		self.logger.info('result1_1:{}'.format(result1_1))
+		result1_2 = os.system('gzip {}'.format(self.r1_path))
+		self.logger.info('result1_2:{}'.format(result1_2))
 		if self.option("ws_single") == 'false':
 			r2_path = []
 			for l in r2_list:
 				new_file_path_2 = os.path.join(file_path, l)
 				r2_path.append(new_file_path_2)
-			os.system('zcat {} {} {} {} >> {}'.format(r2_path[0], r2_path[1], r2_path[2], r2_path[3], self.r2_path))
-			os.system('gzip {}'.format(self.r2_path))
-		os.system('gzip {}'.format(self.r1_path))
+			result2_1 = os.system('zcat {} {} {} {} >> {}'.format(r2_path[0], r2_path[1], r2_path[2], r2_path[3], self.r2_path))
+			self.logger.info('result2_1:{}'.format(result2_1))
+			result2_2 = os.system('gzip {}'.format(self.r2_path))
+			self.logger.info('result2_2:{}'.format(result2_2))
 
 	def set_output(self):
 		"""
@@ -121,16 +128,18 @@ class MergeFastqTool(Tool):
 		:return:
 		"""
 		gz_r1_file_path = self.r1_path + ".gz"
+		self.logger.info(gz_r1_file_path)
 		gz_r2_file_path = self.r2_path + ".gz"
+		self.logger.info(gz_r2_file_path)
 		if os.path.exists(gz_r1_file_path):
-			os.link(gz_r1_file_path, self.output_dir + '/' + self.new_name + "_R1.fastq.gz")
+			# os.link(gz_r1_file_path, self.output_dir + '/' + self.new_name + "_R1.fastq.gz")
 			os.link(gz_r1_file_path, self.option("result_dir") + '/' + self.new_name + "_R1.fastq.gz")
 		else:
 			self.set_error("no {}_R1_fastq.gz file".format(self.new_name))
 			raise Exception("no {}_R1_fastq.gz file".format(self.new_name))
 		if self.option("ws_single") == 'false':
 			if os.path.exists(gz_r2_file_path):
-				os.link(gz_r2_file_path, self.output_dir + '/' + self.new_name + "_R2.fastq.gz")
+				# os.link(gz_r2_file_path, self.output_dir + '/' + self.new_name + "_R2.fastq.gz")
 				os.link(gz_r2_file_path, self.option("result_dir") + '/' + self.new_name + "_R2.fastq.gz")
 			else:
 				self.set_error("no {}_R2_fastq.gz file".format(self.new_name))
