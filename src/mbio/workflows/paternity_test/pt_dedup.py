@@ -401,8 +401,22 @@ class PtDedupWorkflow(Workflow):
             #如遇深度较低的样本，在结果处报错
             if dad_id + '_' + mom_id + '_' + preg_id + '_family.png' not in results:
                 api_main.has_problem(self.pt_father_id, dad_id)
+                self.logger.info('no_family.png')
+            elif dad_id + '_' + mom_id + '_' + preg_id + '_fig2.png' not in results:  # 20170707 zhouxuan
+                api_main.has_problem(self.pt_father_id, dad_id)
+                self.logger.info('no_fig2.png')
             if mom_id + '_' + preg_id + '_info_show.txt' not in results:
                 api_main.update_infoshow(self.pt_father_id,mom_id,preg_id)
+                self.logger.info('no__info_show')
+                # api_main.has_problem(self.pt_father_id, dad_id)
+            # qc_dad = api_read_tab.judge_qc(dad_id)
+            # qc_mom = api_read_tab.judge_qc(mom_id)
+            # qc_son = api_read_tab.judge_qc(preg_id)
+            # self.logger.info('dad_id-{},mom_id-{},preg_id-{}'.format(qc_dad,qc_mom,qc_son))
+            # if qc_dad == 'red' or qc_mom == 'red' or qc_son == 'red':
+            #     api_main.update_infoshow(self.pt_father_id, mom_id, preg_id)
+            #     self.logger.info('update_infoshow-{}'.format(self.pt_father_id))
+                # api_main.has_problem(self.pt_father_id, dad_id)
 
 
             # 把筛选的内容提取到主表中去
