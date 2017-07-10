@@ -833,7 +833,7 @@ class RefrnaWorkflow(Workflow):
             if 'go_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'gene_go_list': self.merge_trans_annot.option('golist_out'),
-                    'diff_stat_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
+                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
                     # 'go_all_list': self.exp.output_dir + "/rsem/trans_list",
                     'gene_go_level_2': self.merge_trans_annot.option('go2level_out')
                 })

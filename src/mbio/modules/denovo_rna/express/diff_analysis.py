@@ -144,9 +144,9 @@ class DiffAnalysisModule(Module):
             "correct": self.option("correct"),
             # "all_list": self.option("kegg_all_list"),
         }
-        files = os.listdir(self.option('diff_stat_dir').prop['path'])
+        files = os.listdir(self.option('diff_list_dir').prop['path'])
         for f in files:
-            opts.update({"diff_stat": os.path.join(self.option('diff_stat_dir').prop['path'], f)})
+            opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
             self.kegg_rich = self.add_tool("denovo_rna.express.kegg_rich")
             self.kegg_rich.set_options(opts)
             self.kegg_rich_tool.append(self.kegg_rich)
