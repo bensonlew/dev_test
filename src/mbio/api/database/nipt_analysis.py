@@ -63,12 +63,14 @@ class NiptAnalysis(Base):
         else:
             self.bind_object.logger.info("更新主表成功!")
 
-    def get_id(self,name):
+    def get_id(self, name, batch_id):
         collection = self.database["sg_main"]
-        temp = collection.find_one({"sample_id": name})
+        temp = collection.find_one({"sample_id": name, "batch_id": ObjectId(batch_id)})['_id']
+        self.bind_object.logger.info("temp_id:%s" % temp)
         collection_inter = self.database["sg_interaction"]
-        temp1 = collection_inter.find_one({"main_id": temp[u'_id']})
-        return temp[u'_id'],temp1[u'_id']
+        temp1 = collection_inter.find_one({"main_id": temp})['_id']
+        self.bind_object.logger.info("temp1_id:%s" % temp1)
+        return temp, temp1
 
     # @report_check
     def add_z_result(self, file_path, table_id=None):
@@ -442,10 +444,10 @@ class NiptAnalysis(Base):
                 line = line.split('\t')
                 if line[1] == 'total_zz':
                     insert['sample_id'] = line[0]
-                    if -3 < float(line[2]) < 3:
-                        insert['result'] = 'normal'
-                    else:
-                        insert['result'] = 'abnormal'
+                    # if -3 < float(line[2]) < 3:
+                    #     insert['result'] = 'normal'
+                    # else:
+                    #     insert['result'] = 'abnormal'
                 elif line[1] == '13':
                     insert['chr_13'] = line[2]
                     if -3 < float(line[2]) < 3:
@@ -457,7 +459,6 @@ class NiptAnalysis(Base):
                     elif float(line[2]) >= 3:
                         insert['13_result'] = 'high'
                         insert['13_desc'] = '患13染色体三体综合征'
-
                 elif line[1] == '18':
                     insert['chr_18'] = line[2]
                     if -3 < float(line[2]) < 3:
@@ -482,7 +483,10 @@ class NiptAnalysis(Base):
                         insert['21_desc'] = '患21染色体三体综合征'
         try:
             collection.insert_one(insert)
-            collection_main.update({'_id':main_id}, {'$set':{'result':insert['result']}})
+            if insert['21_result'] == 'low' and insert['18_result'] == 'low' and insert['13_result'] == 'low':
+                collection_main.update({'_id': main_id}, {'$set': {'result': 'normal'}})
+            else:
+                collection_main.update({'_id': main_id}, {'$set': {'result': 'abnormal'}})
         except Exception as e:
             raise Exception('插入结果表和更新主表出错：{}'.format(e))
         else:
