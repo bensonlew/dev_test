@@ -187,7 +187,7 @@ def class_code_count(gtf_file, code_num_trans):
         m = re.match("#.*", line)
         if not m:
             nine_line = line.strip().split("\t")[-1]
-            n = re.search(r'\s+transcript_id\s+\"(\S+)\";.*\s+class_code\s+\"(\S+)\";*', nine_line)
+            n = re.search(r'\s*transcript_id\s+\"(\S+)\";.*\s*class_code\s+\"(\S+)\";*', nine_line)
             if n:
                 cls_content.add(n.group(2))
                 new_line = 'transcript_id "' + n.group(1) + '";\t class_code "' + n.group(2) + '"\n'
