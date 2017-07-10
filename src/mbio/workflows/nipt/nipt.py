@@ -156,12 +156,16 @@ class NiptWorkflow(Workflow):
 
 	def run(self):
 		self.analysis_run()
+		# self.sample_id = ['WS17060281', 'WS17060267', 'WS17060286']
+		# self.api_nipt = self.api.nipt_analysis
+		# main_id, interaction_id = self.api_nipt.get_id("WS17060281", "595f59d7a4e1af2cc3927120")
+		# self.logger.info("main_id, interaction_id:%s,%s" % (main_id, interaction_id))
 		super(NiptWorkflow, self).run()
 
 	def end(self):
 		super(NiptWorkflow, self).end()
 		for name in self.sample_id:
-			main_id, interaction_id = self.api_nipt.get_id(name)
+			main_id, interaction_id = self.api_nipt.get_id(name, self.option('batch_id'))
 			for i in os.listdir(self.output_dir):
 				if i == name + '.bed.2':
 					self.api_nipt.add_bed_file(self.output_dir + '/'+ i)
