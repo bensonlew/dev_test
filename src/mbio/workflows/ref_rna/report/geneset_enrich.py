@@ -40,14 +40,14 @@ class GenesetEnrichWorkflow(Workflow):
         if self.option("anno_type") == "kegg":
             options = {
                 "kegg_table": self.option("kegg_table"),
-                "all_list": background_path,
+                # "all_list": background_path,
                 "diff_list": self.option("genset_list"),
                 "correct": self.option("method")
             }
         else:
             options = {
                 "diff_list": self.option("genset_list"),
-                "all_list": background_path,
+                # "all_list": background_path,
                 "go_list": self.option("go_list"),
                 # "pval": self.option("pval"),
                 "method": self.option("method"),

@@ -20,7 +20,7 @@ class GoEnrichAgent(Agent):
         super(GoEnrichAgent, self).__init__(parent)
         options = [
             {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},
-            {"name": "all_list", "type": "infile", "format": "rna.gene_list"},
+            # {"name": "all_list", "type": "infile", "format": "rna.gene_list"},
             {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
             {"name": "pval", "type": "string", "default": "0.05"},
             {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"}
@@ -46,8 +46,8 @@ class GoEnrichAgent(Agent):
         """
         if not self.option("diff_list").is_set:
             raise OptionError("缺少输入文件:差异基因名称文件")
-        if not self.option("all_list").is_set:
-            raise OptionError("缺少输入文件:全部基因名称文件")
+        # if not self.option("all_list").is_set:
+        #     raise OptionError("缺少输入文件:全部基因名称文件")
         if not self.option("go_list").is_set:
             raise OptionError("缺少输入文件:差异基因对应的go_id")
 
@@ -86,8 +86,10 @@ class GoEnrichTool(Tool):
         self.out_go_graph = self.output_dir + '/go_lineage'
 
     def run_enrich(self):
+        cmd0 = "less {}| cut -f1 > {}/all.list".format(self.option('go_list').path, self.work_dir)
+        os.system(cmd0)
         cmd = self.python_path + ' ' + self.config.SOFTWARE_DIR + self.go_enrich_path + ' '
-        cmd = cmd + self.option('diff_list').path + ' ' + self.option('all_list').path + ' ' + self.option('go_list').path
+        cmd = cmd + self.option('diff_list').path + ' ' + self.work_dir + "/all.list" + ' ' + self.option('go_list').path
         cmd = cmd + ' --pval ' + self.option('pval') + ' --indent' + ' --method ' + self.option('method') + ' --outfile ' + self.out_enrich_fp
         cmd = cmd + ' --obo ' + self.obo
         command = self.add_command('go_enrich', cmd)

@@ -17,6 +17,8 @@ class DiffAnalysisModule(Module):
             {"name": "analysis", "type": "string", "default": "cluster,network,kegg_rich,go_rich,go_regulate,kegg_regulate,cog_class"},  # 选择要做的分析
             {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 差异基因表达量表
             {"name": "all_list", "type": "infile", "format": "rna.gene_list"},  # 全部基因名称文件
+            # {"name": "go_all_list", "type": "infile", "format": "rna.gene_list"},  # go全部注释上的基因文件
+            # {"name": "kegg_all_list", "type": "infile", "format": "rna.gene_list"},  # kegg全部注释上的基因文件
             {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},  # 差异基因名称文件
             {"name": "distance_method", "type": "string", "default": "euclidean"},  # 计算距离的算法
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
@@ -53,12 +55,14 @@ class DiffAnalysisModule(Module):
         if 'network' in analysis and not self.option('diff_list'):
             raise OptionError('缺少网络分析的输入文件：diff_list差异基因文件')
         if 'go_rich' in analysis:
-            opts = ['diff_list_dir', 'all_list', 'gene_go_list']
+            # opts = ['diff_list_dir', 'go_all_list', 'gene_go_list']
+            opts = ['diff_list_dir','gene_go_list']
             for i in opts:
                 if not self._options[i]:
                     raise OptionError('缺少go富集分析的输入文件:{}'.format(i))
         if 'kegg_rich' in analysis:
-            opts = ['diff_list_dir', 'all_list', 'gene_kegg_table']
+            # opts = ['diff_list_dir', 'kegg_all_list', 'gene_kegg_table']
+            opts = ['diff_list_dir','gene_kegg_table']
             for i in opts:
                 if not self._options[i]:
                     raise OptionError('缺少kegg富集分析的输入文件:{}'.format(i))
@@ -138,11 +142,11 @@ class DiffAnalysisModule(Module):
         opts = {
             "kegg_table": self.option("gene_kegg_table"),
             "correct": self.option("correct"),
-            "all_list": self.option("all_list"),
+            # "all_list": self.option("kegg_all_list"),
         }
-        files = os.listdir(self.option('diff_list_dir').prop['path'])
+        files = os.listdir(self.option('diff_stat_dir').prop['path'])
         for f in files:
-            opts.update({"diff_list": os.path.join(self.option('diff_list_dir').prop['path'], f)})
+            opts.update({"diff_stat": os.path.join(self.option('diff_stat_dir').prop['path'], f)})
             self.kegg_rich = self.add_tool("denovo_rna.express.kegg_rich")
             self.kegg_rich.set_options(opts)
             self.kegg_rich_tool.append(self.kegg_rich)
@@ -158,7 +162,7 @@ class DiffAnalysisModule(Module):
     def go_rich_run(self):
         self.step.go_rich.start()
         opts = {
-            "all_list": self.option("all_list"),
+            # "all_list": self.option("go_all_list"),
             "go_list": self.option("gene_go_list")
         }
         files = os.listdir(self.option('diff_list_dir').prop['path'])
