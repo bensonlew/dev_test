@@ -156,10 +156,10 @@ class DiffStat(object):
                 from math import pow
                 ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
 
-                fc = float((other_fpkm + 0.1) / (control_fpkm + 0.1))
-                logfc = float(log(fc) / log(2))
+                #fc = float((other_fpkm + 0.1) / (control_fpkm + 0.1))
+                #logfc = float(log(fc) / log(2))
 
-                # logfc = float(line[-4])
+                logfc = float(line[-4])
                 if logfc > 0:
                     reg = 'up'
                 elif logfc < 0:
@@ -167,45 +167,39 @@ class DiffStat(object):
                 else:
                     reg = 'no change'
 
-                def check_fc(fc, pvalue, pvalue_filter, fc_filter=None):
-                    if fc_filter and fc_filter != 0:
-                        if float(fc_filter) >= 1:
+                def check_fc(fc, pvalue, pvalue_filter=None, fc_filter=None):
+                    if pvalue !=0:
+                        if float(fc_filter) != 1:
                             if float(pow(2, float(fc))) > float(fc_filter) or float(pow(2, float(fc))) <= (
-                                float(1) / float(fc_filter)):
+                                        float(1) / float(fc_filter)):
                                 if pvalue <= float(pvalue_filter):
                                     sig = 'yes'
                                 else:
                                     sig = 'no'
                             else:
                                 sig = 'no'
-                        if float(fc_filter) < 1:
-                            if float(pow(2, float(fc))) < float(fc_filter) or float(pow(2, float(fc))) >= (
-                                float(1) / float(fc_filter)):
-                                if pvalue <= float(pvalue_filter):
-                                    sig = 'yes'
-                                else:
-                                    sig = 'no'
-                            else:
-                                sig = 'no'
-                        return sig
-                    else:
-                        if pvalue <= float(pvalue_filter):
-                            sig = 'yes'
                         else:
-                            sig = 'no'
-                        return sig
+                            if pvalue <= float(pvalue_filter):
+                                sig = 'yes'
+                            else:
+                                sig = 'no'
+                    else:
+                        if float(fc_filter) != 1:
+                            if float(pow(2, float(fc))) > float(fc_filter) or float(pow(2, float(fc))) <= (
+                                        float(1) / float(fc_filter)):
+                                sig = 'yes'
+                            else:
+                                sig = 'no'
+                        else:
+                            raise Exception("pvalue为0和fc_filter为1不能同时存在！")
+                    return sig
 
                 if pvalue_padjust == 'pvalue':
                     sig = check_fc(fc=logfc, pvalue=pvalue, pvalue_filter=diff_ci, fc_filter=fc)
+                    # print sig
                 if pvalue_padjust == 'padjust':
                     sig = check_fc(fc=logfc, pvalue=fdr, pvalue_filter=diff_fdr_ci, fc_filter=fc)
-
-                """
-                if pvalue < diff_ci and fdr < diff_fdr_ci:
-                    sig = 'yes'
-                else:
-                    sig = 'no'
-                """
+                    # print sig
                 if group_info:
                     count_data = []
                     fpkm_data = []

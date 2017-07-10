@@ -24,9 +24,12 @@ def up_down_express_list(fp):
                     up.append(line_sp[0])
                 elif line_sp[-2] == 'down':
                     down.append(line_sp[0])
+                elif line_sp[-2] == 'no change':
+                    continue
                 elif line_sp[-2] == 'undone':
                     raise Exception('文件中检查到‘undone’，表明文件没有上下调控信息')
                 else:
+                    print line_sp
                     raise Exception('未知的上下调说明类型:{}，必须为up或者为down'.format(line_sp[-1]))
         return up, down, group_name
 
@@ -95,4 +98,4 @@ if __name__ == '__main__':
     # ["c373_g1_i1", "c426_g1_i1", "c527_g1_i1", "c1571_g1_i1", "c1227_g1_i1", "c5101_g1_i1", "c1998_g1_i1", "c296_g1_i1", "c3383_g1_i1"],
     # ["c1546_g1_i1","c376_g1_i1","c1909_g1_i1","c2964_g1_i1"],
     # 'C:\\Users\\sheng.he.MAJORBIO\\Desktop\\temp.xls')
-    GO_level_2_regulate("/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/Express/output/diff/genes_diff/diff_stat_dir/B1_vs_Z1_edgr_stat.xls","/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/MergeAnnot1/go2level.xls", "output")
+    GO_level_2_regulate("/mnt/ilustre/users/sanger-test/workspace/20170630/Refrna_demo1/Express/output/diff/genes_diff/diff_stat_dir/B1_vs_Z1_edgr_stat.xls","/mnt/ilustre/users/sanger-test/workspace/20170630/Refrna_demo1/MergeAnnot1/go2level.xls", "output")

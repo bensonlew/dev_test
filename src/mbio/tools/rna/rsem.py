@@ -9,7 +9,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.config import Config
-from mbio.packages.ref_rna.express.single_sample1 import *
+from mbio.packages.ref_rna.express.single_sample import *
 from mbio.files.sequence.fastq import FastqFile
 import shutil
 import os
@@ -26,9 +26,9 @@ class RsemAgent(Agent):
             {"name": "transcript_fa", "type": "infile", "format": "sequence.fasta"},  # 转录本fasta文件
             # {"name": "Rsem1_fa", "type": "infile", "format": "sequence.fasta"},  # trinit.fasta文件
             {"name": "fa_build", "type": "outfile", "format": "sequence.fasta"},  # 转录本fasta构建好索引文件
-            {"name": "fq_l", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹  不压缩的fq文件
-            {"name": "fq_r", "type": "infile", "format": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
-            {"name": "fq_s", "type": "infile", "format": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
+            {"name": "fq_l", "type": "string", "default": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹  不压缩的fq文件
+            {"name": "fq_r", "type": "string", "default": "sequence.fastq"},  # PE测序，包含所有样本的左端fq文件的文件夹
+            {"name": "fq_s", "type": "string", "default": "sequence.fastq"},  # SE测序，包含所有样本的fq文件的文件夹
             # {"name": "bam", "type": "infile", "format": "align.bwa.bam, ref_rna.assembly.bam_dir"}, # bam文件输入
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf" }, # gtf/gff文件(目前是merged.gtf文件-提取gene2transcript map文件)
             #{"name": "gtf_type", "type": "string", "default": "ref"}, # "ref" "merged_stringtie" "merged_cufflinks"
@@ -111,10 +111,10 @@ class RsemTool(Tool):
     def ref_Rsem1_run(self, fasta_build):
         data = FastqFile()
         if self.option("fq_type") == "PE":
-            cmd = self.Rsem1_path + "rsem-calculate-expression --paired-end -p 8 {} {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_l").prop['path'],\
-               self.option("fq_r").prop['path'], fasta_build , self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
+            cmd = self.Rsem1_path + "rsem-calculate-expression --paired-end -p 8 {} {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_l"),\
+               self.option("fq_r"), fasta_build , self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
         elif self.option("fq_type") == "SE":
-            cmd = self.Rsem1_path + "rsem-calculate-expression -p 8 {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_s").prop['path'],\
+            cmd = self.Rsem1_path + "rsem-calculate-expression -p 8 {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_s"),\
                    fasta_build, self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
         self.logger.info(cmd)
         exp_cmd = self.add_command("express_run", cmd).run()
@@ -143,11 +143,11 @@ class RsemTool(Tool):
 
     def denovo_run_Rsem1(self, Rsem1_fasta):
         if self.option('fq_type') == 'SE':
-            sample = os.path.basename(self.option('fq_s').prop['path']).split('_sickle_s.fastq')[0]
-            Rsem1_cmd = self.Rsem1 + ' --transcripts %s --seqType fq --single %s --est_method  Rsem1 --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (Rsem1_fasta, self.option('fq_s').prop['path'], self.work_dir, sample)
+            sample = os.path.basename(self.option('fq_s')).split('_sickle_s.fastq')[0]
+            Rsem1_cmd = self.Rsem1 + ' --transcripts %s --seqType fq --single %s --est_method  Rsem1 --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (Rsem1_fasta, self.option('fq_s'), self.work_dir, sample)
         else:
-            sample = os.path.basename(self.option('fq_l').prop['path']).split('_sickle_l.fastq')[0]
-            Rsem1_cmd = self.Rsem1 + ' --transcripts %s --seqType fq --right %s --left %s --est_method  Rsem1 --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (Rsem1_fasta, self.option('fq_r').prop['path'], self.option('fq_l').prop['path'], self.work_dir, sample)
+            sample = os.path.basename(self.option('fq_l')).split('_sickle_l.fastq')[0]
+            Rsem1_cmd = self.Rsem1 + ' --transcripts %s --seqType fq --right %s --left %s --est_method  Rsem1 --output_dir %s --thread_count 6 --trinity_mode --aln_method bowtie2 --output_prefix %s' % (Rsem1_fasta, self.option('fq_r'), self.option('fq_l'), self.work_dir, sample)
 
         self.logger.info("开始运行_Rsem1_cmd")
         cmd = self.add_command("Rsem1_cmd", Rsem1_cmd).run()
