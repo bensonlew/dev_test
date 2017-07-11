@@ -85,11 +85,35 @@ class GoEnrichTool(Tool):
         self.out_enrich_fp = self.output_dir + '/go_enrich_' + os.path.splitext(os.path.basename(self.option('diff_list').path))[0] + '.xls'
         self.out_go_graph = self.output_dir + '/go_lineage'
 
+    def check_list(self):
+        """
+        去除diff_list中没有注释信息的数据
+        new_file_name为在work_dir中生成的新diff_list文件的绝对路径
+        :return:
+        """
+        # file1 = "/mnt/ilustre/users/sanger-dev/workspace/20170613/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list_dir/A_vs_B"
+        # file2 = "/mnt/ilustre/users/sanger-dev/workspace/20170613/Refrna_ore_test_for_api/Express/output/rsem/trans_list"
+        file1 = self.option("diff_list").prop["path"]
+        file2 = self.work_dir + "/all.list"
+        f1 = open(file1, "r")
+        f2 = open(file2, "r")
+        lst_1 = f1.readlines()
+        lst_2 = f2.readlines()
+        f1.close()
+        f2.close()
+        new_file_name = self.work_dir + "/" + os.path.basename(file1)
+        with open(new_file_name, "w") as fw:
+            for item in lst_1:
+                if item in lst_2:
+                    fw.write(item)
+        return new_file_name
+
     def run_enrich(self):
         cmd0 = "less {}| cut -f1 > {}/all.list".format(self.option('go_list').path, self.work_dir)
         os.system(cmd0)
+        new_file_name = self.check_list()  # edited by shijin 除去背景中不存在的基因
         cmd = self.python_path + ' ' + self.config.SOFTWARE_DIR + self.go_enrich_path + ' '
-        cmd = cmd + self.option('diff_list').path + ' ' + self.work_dir + "/all.list" + ' ' + self.option('go_list').path
+        cmd = cmd + new_file_name + ' ' + self.work_dir + "/all.list" + ' ' + self.option('go_list').path
         cmd = cmd + ' --pval ' + self.option('pval') + ' --indent' + ' --method ' + self.option('method') + ' --outfile ' + self.out_enrich_fp
         cmd = cmd + ' --obo ' + self.obo
         command = self.add_command('go_enrich', cmd)
