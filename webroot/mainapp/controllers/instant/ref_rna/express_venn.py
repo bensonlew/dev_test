@@ -45,14 +45,25 @@ class ExpressVennAction(RefRnaController):
 
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
-        main_table_name = 'ExpressVenn_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        # main_table_name = 'ExpressVenn_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        # 'ExpVenn_基因\转录本_软件_tpm/fpkm_筛选阈值_日期_时间'
+
         group_detail_dict = json.loads(data.group_detail)
 
         if express_info:
+            re_name_info = {"gene": "G", "transcript": "T", "featurecounts": "FeaCount", "rsem": "RSEM", "edger": "ER",
+                            "deseq2": "DS", "degseq": "DG"}
+            re_query_type = re_name_info[data.type.lower()]
+            params = json.loads(express_info['params'])
+            re_express_method = re_name_info[params['express_method'].lower()]
+            express_level = params['type']
+            threshold =  str(data.threshold)
+            main_table_name = "ExpVenn_{}_{}_{}_{}_".format(re_query_type,re_express_method,express_level,threshold) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3])
+            # 基因\转录本_软件_tpm / fpkm_筛选阈值_日期_时间
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'end'),
+                ('status', 'start'),
                 ('desc',"样本间特异性venn图分析"),
                 ('name', main_table_name),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
