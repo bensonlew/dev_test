@@ -44,13 +44,19 @@ class ExpressPcaAction(RefRnaController):
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
 
         if express_info:
-            main_table_name = "ExpressPCA_"+datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+            # main_table_name = "ExpressPCA_"+datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+            params = json.loads(express_info['params'])
+            express_method = params["express_method"].lower()
+            express_level = params["type"].lower()
+            re_name_info = {"featurecounts":"FeaCount","rsem":"RSEM"}
+            re_express_method = re_name_info[express_method]
+            main_table_name =  "ExpPCA_{}_{}_".format(re_express_method,express_level) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             group_detail_dict = json.loads(data.group_detail)
             
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'end'),
+                ('status', 'start'),
                 ('desc',"样本间pca分析"),
                 ('name', main_table_name),
                 ("type", "gene"), #pca只对基因进行分析

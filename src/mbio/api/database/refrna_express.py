@@ -454,8 +454,8 @@ class RefrnaExpress(Base):
                     if fpkm_data[i] <1e-02 or fpkm_data[i] > 1e+06:
                         continue
                     else:
-                        data_log2 = log(float(fpkm_data[i]) + 1) / log(2)
-                        data_log10 = log(float(fpkm_data[i]) + 1) / log(10)
+                        data_log2 = log(float(fpkm_data[i])) / log(2)
+                        data_log10 = log(float(fpkm_data[i])) / log(10)
                         insert_data += [
                             ('{}_log2'.format(group_name[i]), float(data_log2)),
                             ('{}_log10'.format(group_name[i]), float(data_log10))
@@ -534,12 +534,15 @@ class RefrnaExpress(Base):
                             else:
                                 _class = False
                         if query_type == 'transcript':
+                            _gene_id = class_code_info[sequence_id]['gene_id']
                             if _class_code == '=':
                                 _class = False
                             else:
                                 _class = True
                     else:
                         _class = None
+                        if query_type == 'transcript':
+                            _gene_id = '-'
 
                 fpkm = l[1:]
                 # if class_code:
@@ -575,10 +578,10 @@ class RefrnaExpress(Base):
                         log2_fpkm = math.log(float(fpkm[i])) / math.log(2)
                         log10_fpkm = math.log(float(fpkm[i])) / math.log(10)
                         data += [('{}'.format(samples[i]), float(fpkm[i]))]
-                        # if float(log2_fpkm) >= min_log2 and float(log2_fpkm) <= max_log2:
-                        data += [('{}_log2'.format(samples[i]), float(log2_fpkm))]
-                        # if float(log10_fpkm) >= min_log10 and float(log10_fpkm) <= max_log10:
-                        data += [('{}_log10'.format(samples[i]), float(log10_fpkm))]
+                        if float(log2_fpkm) >= min_log2 and float(log2_fpkm) <= max_log2:
+                            data += [('{}_log2'.format(samples[i]), float(log2_fpkm))]
+                        if float(log10_fpkm) >= min_log10 and float(log10_fpkm) <= max_log10:
+                            data += [('{}_log10'.format(samples[i]), float(log10_fpkm))]
                         # data += [
                         #     ('{}'.format(samples[i]), float(fpkm[i])),
                         #     ('{}_log2'.format(samples[i]), float(log2_fpkm)),
@@ -838,7 +841,7 @@ class RefrnaExpress(Base):
         if up_data:
             geneset_length = len(up_data)
             if geneset_length > 0:
-                data_up['gene_length'] = int(geneset_length)
+                data_up['geneset_length'] = int(geneset_length)
                 if up_down == 'up' or up_down == 'down':
                     if type == 'gene':
                         data_up["name"] = '{}_vs_{}_{}_G_{}'.format(name, compare_name, up_down, ref_new)
@@ -1022,6 +1025,10 @@ class RefrnaExpress(Base):
                         print '{}'.format(str(i))
                         print line
                         print head
+
+                    if re.search(r'fc', head[i]):
+                        fc = 2 ** (float(line[i]))
+                        data.append(("fc", round(float(fc), 3)))
                     if pvalue_padjust:
                         if re.search(r'{}'.format(pvalue_padjust), head[i].lower()):
                             if float(line[i]) <= 10e-5:
