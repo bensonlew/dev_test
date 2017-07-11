@@ -229,10 +229,10 @@ class NiptAnalysis(Base):
 
                 #插入表格
                 collection = self.database['sg_customer']
-                if type(para_list[11]) == float:
-                    tel = int(para_list[11])
+                if type(para_list[10]) == float:
+                    tel = int(para_list[10])
                 else:
-                    tel = para_list[11]
+                    tel = para_list[10]
 
                 if collection.find_one({"report_num": para_list[0]}):
                     continue
