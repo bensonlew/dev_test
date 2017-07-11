@@ -94,7 +94,7 @@ class PtDatasplitWorkflow(Workflow):
 		mon = time[4:6]
 		day = time[6:]
 		report_time = datetime.datetime(int(year), int(mon), int(day), 0, 0)
-		accept_time = report_time - datetime.timedelta(days=3)
+		accept_time = report_time - datetime.timedelta(days=2)  # 拆分表格的日期为上机日期不是分析日期所以要少减一日
 		if len(str(accept_time.month)) == 1:
 			ti = str(accept_time.year) + '-0' + str(accept_time.month)
 		else:
