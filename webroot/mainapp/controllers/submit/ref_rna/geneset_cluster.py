@@ -64,8 +64,15 @@ class GenesetClusterAction(RefRnaController):
                 info = {"success": False, "info": "geneset不存在，请确认参数是否正确！!"}
                 return json.dumps(info)
         task_info = self.ref_rna.get_task_info(geneset_info['task_id'])
-        
-        main_table_name = "GenesetCluster_"+str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+
+        re_express_level = data.level.lower()
+        re_name_info = {"gene": "G", "transcript": "T", "log2": 'lg2', "log10": "lg10","featurecounts":"FeaCount","rsem":"RSEM"}
+        re_query_type = re_name_info[data.type.lower()]
+        re_log_info = re_name_info['log{}'.format(str(data.log))]
+        re_express_method = re_name_info[data.express_method.lower()]
+        main_table_name = 'GSetCluster_{}_{}_{}_{}_'.format(re_express_method, re_express_level, re_query_type, re_log_info) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+
+        # main_table_name = "GenesetCluster_"+str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
