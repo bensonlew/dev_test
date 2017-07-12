@@ -31,10 +31,9 @@ class ExpressVennAction(RefRnaController):
                 info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
                 return json.dumps(info)
         else:
-            pass
-            # if len(group_detal_dict.values())<2 or len(group_detal_dict.values())>=7:
-            #     info = {"success": False, "info": "进行Venn分析，分组方案的样本数量必须大于等于2且小于等于6！"}
-            #     return json.dumps(info)
+            if len(group_detal_dict.values()[0])<2 or len(group_detal_dict.values()[0])>=7:
+                info = {"success": False, "info": "进行Venn分析，分组方案的样本数量必须大于等于2且小于等于6！"}
+                return json.dumps(info)
         print data.group_detail
         task_name = "ref_rna.report.express_venn"
         task_type = "workflow"
