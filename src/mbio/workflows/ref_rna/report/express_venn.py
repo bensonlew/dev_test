@@ -8,7 +8,6 @@ import datetime
 import json
 import shutil
 import re
-import shutil
 from biocluster.workflow import Workflow
 import pandas as pd
 
@@ -30,7 +29,7 @@ class ExpressVennWorkflow(Workflow):
         self.logger.info(options)
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.venn = self.add_tool("graph.venn_table")
+        self.venn = self.add_tool("rna.expressvenn")
         with open(self.option('group_id'), 'r+') as f1:
             f1.readline()
             if not f1.readline():
@@ -46,8 +45,9 @@ class ExpressVennWorkflow(Workflow):
         else:
             new_fpkm = self.get_sample_table(fpkm_path,specimen)
         options = {
-            "otu_table": new_fpkm,
-            "group_table": self.option("group_id")
+            "express_matrix": new_fpkm,
+            "group_table": self.option("group_id"),
+            "threshold":self.option("threshold")
         }
         
         self.logger.info("检查new_fpkm和new_group的路径:")
@@ -91,11 +91,11 @@ class ExpressVennWorkflow(Workflow):
                     del_sam.append(sam)
             except Exception:
                 pass
-        if self.option("threshold"):
-            """过滤"""
-            threshold = self.option("threshold")
-            for i in sample_name:
-                fpkm[i]=fpkm[i].apply(lambda x: x if(x>=threshold)else 0)
+        # if self.option("threshold"):
+        #     """过滤"""
+        #     threshold = self.option("threshold")
+        #     for i in sample_name:
+        #         fpkm[i]=fpkm[i].apply(lambda x: x if(x>=threshold)else 0)
         if del_sam:
             new_fpkm = fpkm.drop(del_sam, axis=1)
             self.new_fpkm = self.venn.work_dir + "/fpkm"

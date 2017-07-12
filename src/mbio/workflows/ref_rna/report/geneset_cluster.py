@@ -37,7 +37,13 @@ class GenesetClusterWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.cluster = self.add_tool("rna.cluster")
         self.output_dir = self.cluster.output_dir
-    
+        with open(self.option('group_id'), 'r+') as f1:
+            f1.readline()
+            if not f1.readline():
+                self.group_id = 'all'
+            else:
+                self.group_id = self.option('group_id')
+
     def get_samples(self): #add by khl 20170504
         edger_group_path = self.option("group_id")
         self.logger.info(edger_group_path)
@@ -75,8 +81,11 @@ class GenesetClusterWorkflow(Workflow):
             return fpkm_path
     
     def run_cluster(self):
-        specimen = self.get_samples()
-        new_fpkm = self.fpkm(specimen)
+        if self.group_id in ['all', 'All', 'ALL']:
+            new_fpkm = self.option("express_file").split(",")[0]
+        else:
+            specimen = self.get_samples()
+            new_fpkm = self.fpkm(specimen)
         self.logger.info(self.option("method"))
         options = {
             "sub_num": self.option("sub_num"),
