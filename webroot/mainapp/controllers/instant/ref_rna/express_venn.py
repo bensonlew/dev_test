@@ -22,16 +22,20 @@ class ExpressVennAction(RefRnaController):
             if not hasattr(data, arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
-
         group_detal_dict = json.loads(data.group_detail)
-        if len(group_detal_dict) < 2:
-            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
-            return json.dumps(info)
-        if len(group_detal_dict) > 6:
-            info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
-            return json.dumps(info)
+        if data.group_id not in ['all', 'All', 'ALL']:
+            if len(group_detal_dict) < 2:
+                info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
+                return json.dumps(info)
+            if len(group_detal_dict) > 6:
+                info = {"success": False, "info": "进行Venn分析，分组方案的分组类别必须大于等于2且小于等于6！"}
+                return json.dumps(info)
+        else:
+            pass
+            # if len(group_detal_dict.values())<2 or len(group_detal_dict.values())>=7:
+            #     info = {"success": False, "info": "进行Venn分析，分组方案的样本数量必须大于等于2且小于等于6！"}
+            #     return json.dumps(info)
         print data.group_detail
-
         task_name = "ref_rna.report.express_venn"
         task_type = "workflow"
         my_param = dict()
