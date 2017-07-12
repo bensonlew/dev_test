@@ -210,8 +210,8 @@ def get_event_psi_dic(d):
                 while True:
                     val = jc_it.next()
                     event_id = val[0]
-                    inc_1 = [float(e) for e in val[1]['IncLevel1'].split(',') if isnumber(e)]
-                    inc_2 = [float(e) for e in val[1]['IncLevel2'].split(',') if isnumber(e)]
+                    inc_1 = [float(e) for e in str(val[1]['IncLevel1']).split(',') if isnumber(e)]
+                    inc_2 = [float(e) for e in str(val[1]['IncLevel2']).split(',') if isnumber(e)]
                     one_minus_two = sum(inc_1) / float(len(inc_1)) - sum(inc_2) / float(len(inc_2))
                     two_minus_one = -one_minus_two
                     psi_dic[event_type]['JunctionCountOnly_data'][event_id] = (
@@ -245,8 +245,8 @@ def get_event_psi_dic(d):
                 while True:
                     val = all_it.next()
                     event_id = val[0]
-                    inc_1 = [float(e) for e in val[1]['IncLevel1'].split(',') if isnumber(e)]
-                    inc_2 = [float(e) for e in val[1]['IncLevel2'].split(',') if isnumber(e)]
+                    inc_1 = [float(e) for e in str(val[1]['IncLevel1']).split(',') if isnumber(e)]
+                    inc_2 = [float(e) for e in str(val[1]['IncLevel2']).split(',') if isnumber(e)]
                     one_minus_two = sum(inc_1) / float(len(inc_1)) - sum(inc_2) / float(len(inc_2))
                     two_minus_one = -one_minus_two
                     psi_dic[event_type]['ReadsOnTargetAndJunctionCounts_data'][event_id] = (
@@ -316,8 +316,8 @@ def add_psi_info(mats_file, new_file):
     while 1:
         try:
             record = it.next()
-            IncLevel1_arr = [float(e) for e in record[1].IncLevel1.split(',') if isnumber(e)]
-            IncLevel2_arr = [float(e) for e in record[1].IncLevel2.split(',') if isnumber(e)]
+            IncLevel1_arr = [float(e) for e in str(record[1].IncLevel1).split(',') if isnumber(e)]
+            IncLevel2_arr = [float(e) for e in str(record[1].IncLevel2).split(',') if isnumber(e)]
             aver_IncLevel1 = sum(IncLevel1_arr) / float(len(IncLevel1_arr))
             aver_IncLevel2 = sum(IncLevel2_arr) / float(len(IncLevel2_arr))
             increase_inclusion_SAMPLE1 = ''
@@ -547,5 +547,6 @@ def process_single_rmats_output_dir(root):
 
 if __name__ == '__main__':
     process_single_rmats_output_dir(
-        root='/mnt/ilustre/users/sanger-dev/workspace/'
-             '20170502/Single_rmats_module_linfang_new/Rmats/RmatsBam/output')
+        # root='/mnt/ilustre/users/sanger-dev/workspace/'
+        #      '20170502/Single_rmats_module_linfang_new/Rmats/RmatsBam/output')
+        root='/mnt/ilustre/users/sanger-dev/workspace/20170706/Rmats_demo1_1087_8595/RmatsBam/output')
