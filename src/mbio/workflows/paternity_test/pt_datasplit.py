@@ -94,12 +94,12 @@ class PtDatasplitWorkflow(Workflow):
 		mon = time[4:6]
 		day = time[6:]
 		report_time = datetime.datetime(int(year), int(mon), int(day), 0, 0)
-		accept_time = report_time - datetime.timedelta(days=3)
+		accept_time = report_time - datetime.timedelta(days=3)  # 拆分表格的日期为上机日期不是分析日期所以要少减一日
 		if len(str(accept_time.month)) == 1:
 			ti = str(accept_time.year) + '-0' + str(accept_time.month)
 		else:
 			ti = str(accept_time.year) + '-' + str(accept_time.month)
-		if len(str(accept_time.year)) == 1:
+		if len(str(accept_time.day)) == 1:
 			ti = ti + '-0' + str(accept_time.day)
 		else:
 			ti = ti + '-' + str(accept_time.day)
@@ -107,7 +107,8 @@ class PtDatasplitWorkflow(Workflow):
 		with open(self.option('message_table').prop['path'], 'r') as m:
 			for line in m:
 				line = line.strip().split('\t')
-				if re.match('WQ([0-9]{8,})-(S)(.*)(T)', line[3]):
+				# 如果是胎儿重上机不更新信息依旧用之前的信息（重送样或者爸爸妈妈的信息）
+				if re.match('WQ([0-9]{8,})-(S)(.*)(T)([0-9])', line[3]):
 					continue
 				else:
 					if re.match('WQ([0-9]{8,})-(SC)(.*)', line[3]):
