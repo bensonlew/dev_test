@@ -84,6 +84,9 @@ class NiptWorkflow(Workflow):
 				self.sample_id.remove(i)
 				self.api_nipt.add_main_(self.option('member_id'), i, self.option('batch_id'))
 			self.logger.info('small_sample：%s' % small_sample)
+		if len(self.sample_id) == 0:
+			self.logger.error("该批次的样本都分析过了，没有样本可以进行分析！")
+			self.exit(exitcode=1, data='该批次的样本都分析过了，没有样本可以进行分析！', terminated=False)
 		for sample in self.sample_id:
 			self.logger.info("self.sample_id: %s" % self.sample_id)
 			nipt_analysis = self.add_module("nipt.nipt_analysis")
