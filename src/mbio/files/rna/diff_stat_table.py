@@ -2,6 +2,7 @@
 # __author__ = 'qiuping'
 
 import re
+import os
 from collections import defaultdict
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
@@ -44,6 +45,22 @@ class DiffStatTableFile(File):
                     regulate_dict['down'].append(line[0])
         return diff_gene, regulate_dict
 
+    def get_stat_file(self, output, kegg_file):
+        f = open(kegg_file, "r")
+        ko_list = []
+        f.readline()
+        for line in f:
+            line = line.strip().split("\t")
+            ko_list.append(line[0])
+        f.close()
+        new_file_name = output + "/" + os.path.basename(self.prop["path"]).split("_edgr_stat.xls")[0] + ".DE.list"
+        with open(self.prop['path'], "r") as f, open(new_file_name, "w") as w:
+            header = f.readline().strip()
+            for line in f:
+                line = line.strip('\n').split('\t')
+                if line[0] in ko_list:
+                    w.write(line[0] + "\t" + line[-2] + "\n")
+
     def check(self):
         """
         检测文件是否满足要求，发生错误时应该触发FileError异常
@@ -52,3 +69,9 @@ class DiffStatTableFile(File):
         if super(DiffStatTableFile, self).check():
             # 父类check方法检查文件路径是否设置，文件是否存在，文件是否为空
             self.get_info()
+
+if __name__ == "__main__":
+    cls = DiffStatTableFile()
+    cls.set_path("/mnt/ilustre/users/sanger-dev/workspace/20170613/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_stat_dir/A_vs_B_edgr_stat.xls")
+    cls.check()
+    cls.get_stat_file()

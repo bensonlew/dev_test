@@ -13,7 +13,8 @@ class CatAgent(Agent):
         super(CatAgent, self).__init__(parent)
         options = [
             {"name": "file1", "type": "string", "default": None},
-            {"name": "file2", "type": "string", "default": None}
+            {"name": "file2", "type": "string", "default": None},
+            {"name": "file3", "type": "outfile", "format": "gene_structure.gtf"}
         ]
         self.add_option(options)
         self.step.add_steps("cat")
@@ -59,6 +60,7 @@ class CatTool(Tool):
     def cat(self):
         cmd = "cat {} {} > ref_new.gtf".format(self.option("file1"), self.option("file2"))
         os.system(cmd)
+        self.option("file3", self.work_dir + "/ref_new.gtf")
     
     def run(self):
         super(CatTool, self).run()

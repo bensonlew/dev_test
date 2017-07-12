@@ -822,19 +822,19 @@ class RefrnaWorkflow(Workflow):
                 'analysis': self.option('exp_analysis'),
                 'diff_list': self.exp.output_dir + "/diff/trans_diff/diff_list",
                 "is_genelist": True,
-                "diff_list_dir": self.exp.output_dir + "/diff/trans_diff/diff_list_dir"
+                "diff_list_dir": self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
             }
             if 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'gene_kegg_table': self.merge_trans_annot.option('kegg_table'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
-                     'all_list': self.exp.output_dir + "/rsem/trans_list",
+                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_stat_dir",
+                     # 'kegg_all_list': self.exp.output_dir + "/rsem/trans_list",
                 })
             if 'go_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'gene_go_list': self.merge_trans_annot.option('golist_out'),
                     'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
-                    'all_list': self.exp.output_dir + "/rsem/trans_list",
+                    # 'go_all_list': self.exp.output_dir + "/rsem/trans_list",
                     'gene_go_level_2': self.merge_trans_annot.option('go2level_out')
                 })
             if 'cog_class' in self.option('exp_analysis'):
@@ -869,13 +869,13 @@ class RefrnaWorkflow(Workflow):
                 exp_diff_opts.update({
                     'gene_kegg_table': self.merge_gene_annot.option('kegg_table'),
                     'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-                     'all_list': self.exp.output_dir + "/rsem/gene_list",
+                     'kegg_all_list': self.exp.output_dir + "/rsem/gene_list",
                 })
             if 'go_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'gene_go_list': self.merge_gene_annot.option('golist_out'),
                     'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-                    'all_list': self.exp.output_dir + "/rsem/gene_list",
+                    'go_all_list': self.exp.output_dir + "/rsem/gene_list",
                     'gene_go_level_2': self.merge_gene_annot.option('go2level_out')
                 })
             if 'cog_class' in self.option('exp_analysis'):
@@ -1076,7 +1076,7 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('end', self.run_mapping)
         self.qc.on("end", self.run_star_mapping)
         self.map_gene.on("end", self.run_map_assess_gene)
-        self.mapping.on('end', self.run_assembly)`
+        self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
         self.assembly.on("end", self.run_exp_rsem_default)
         self.assembly.on("end", self.run_exp_fc)
@@ -1108,46 +1108,46 @@ class RefrnaWorkflow(Workflow):
         # self.seq_abs.on("end", self.run_test_annotation)
         # self.mapping.on('end', self.run_assembly)
         # self.mapping.on('end', self.run_map_assess)
-        self.assembly.on("end", self.run_new_transcripts_abs)
-        self.assembly.on("end", self.run_new_gene_abs)
+        # self.assembly.on("end", self.run_new_transcripts_abs)
+        # self.assembly.on("end", self.run_new_gene_abs)
         # if self.taxon_id != "":
         #     self.exp.on("end", self.run_network_trans)
         #     self.final_tools.append(self.network_trans)
         # self.on_rely(self.final_tools, self.run_api_and_set_output)
         # self.assembly.on("end", self.run_exp_rsem_default)
-        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
-        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
-        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        self.start_listener()
-        self.fire("start")
-        self.qc.start_listener()
-        self.qc.fire("end")
-        self.mapping.start_listener()
-        self.mapping.fire("end")
-        self.assembly.start_listener()
-        self.assembly.fire("end")
-        self.exp.start_listener()
-        self.exp.fire("end")
-        self.rpc_server.run()
+        # self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
+        # self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        # self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        # self.start_listener()
+        # self.fire("start")
+        # self.qc.start_listener()
+        # self.qc.fire("end")
+        # self.mapping.start_listener()
+        # self.mapping.fire("end")
+        # self.assembly.start_listener()
+        # self.assembly.fire("end")
+        # self.exp.start_listener()
+        # self.exp.fire("end")
+        # self.rpc_server.run()
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
-        # task_info = self.api.api('task_info.ref')
-        # task_info.add_task_info()
-        # self.group_id = "5955f5e1edcb253a204f8988"
-        # self.control_id = "5955f821f2e3f7fddea08f6e"
-        # self.group_category = ["X1", "B1", "Z1"]
-        # self.group_detail = [
-        #     {'5955f5deedcb253a204f7ef5': 'X1_3',
-        #      '5955f5deedcb253a204f7ef4': 'X1_2',
-        #      '5955f5deedcb253a204f7ef3': 'X1_1'},
-        #     {'5955f5deedcb253a204f7efb': 'B1_1',
-        #      '5955f5deedcb253a204f7ef9': 'B1_2',
-        #      '5955f5deedcb253a204f7efa': 'B1_3'},
-        #     {'5955f5deedcb253a204f7ef7': 'Z1_3',
-        #      '5955f5deedcb253a204f7ef6': 'Z1_2',
-        #      '5955f5deedcb253a204f7ef8': 'Z1_1'}
-        # ]
-        # self.export_qc()
+        task_info = self.api.api('task_info.ref')
+        task_info.add_task_info()
+        self.group_id = "596452d7edcb255322d9e66e"
+        self.control_id = "596452d7edcb255322d9e66f"
+        self.group_category = ["X1", "B1", "Z1"]
+        self.group_detail =[
+            {'596452d7edcb255322d9dbe1': 'A_1',
+             '596452d7edcb255322d9dbdf': 'A_2',
+             '596452d7edcb255322d9dbe0': 'A_3'},
+            {'596452d7edcb255322d9dbdd': 'C_3',
+             '596452d7edcb255322d9dbde': 'C_1',
+             '596452d7edcb255322d9dbdc': 'C_2'},
+            {'596452d7edcb255322d9dbda': 'B_2',
+             '596452d7edcb255322d9dbdb': 'B_3',
+             '596452d7edcb255322d9dbd9': 'B_1'}
+        ]
+        self.export_qc()
         # self.export_genome_info()
         # self.export_annotation()
         # self.export_assembly()
@@ -2023,7 +2023,7 @@ class RefrnaWorkflow(Workflow):
                     geneset_list_path = "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list_dir/A_vs_B"
                     dir_path = os.path.join(trans_kegg_regulate_dir, dir)
                     self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.kegg_enrichment.xls".format(
-                        self.trans_gs_id_name[str(trans_id)]), enrich_id=str(inserted_id), geneset_list_path=geneset_list_path, all_list_path=self.exp_diff_trans.option("all_list").prop["path"])
+                        self.trans_gs_id_name[str(trans_id)]), enrich_id=str(inserted_id))
         for gene_id in self.gene_gs_id_name.keys():
             params = dict()
             params["geneset_id"] = str(gene_id)
@@ -2042,7 +2042,7 @@ class RefrnaWorkflow(Workflow):
                     geneset_list_path = "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list_dir/A_vs_B"
                     dir_path = os.path.join(gene_kegg_regulate_dir, dir)
                     self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.kegg_enrichment.xls".format(
-                        self.gene_gs_id_name[gene_id]), enrich_id=str(inserted_id), geneset_list_path=geneset_list_path, all_list_path=self.exp_diff_gene.option("all_list").prop["path"])
+                        self.gene_gs_id_name[gene_id]), enrich_id=str(inserted_id))
 
     def export_cog_class(self):
         self.api_regulate = self.api.ref_rna_geneset

@@ -2,7 +2,7 @@
 # __author__ = 'qiuping'
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
-
+import os
 
 class GeneListFile(File):
     """
@@ -54,6 +54,23 @@ class GeneListFile(File):
             for line in r:
                 line = line.strip('\n')
                 w.write('{}\t{}\n'.format(line, line))
+
+    def get_stat_file(self, outpath, kegg_file):
+        f = open(kegg_file, "r")
+        ko_list = []
+        f.readline()
+        for line in f:
+            line = line.strip().split("\t")
+            ko_list.append(line[0])
+        f.close()
+        new_file_name = outpath + "/" + os.path.basename(self.prop["path"]) + ".DE.list"
+        with open(self.prop['path'], "r") as f, open(new_file_name, "w") as w:
+            header = f.readline().strip()
+            for line in f:
+                line = line.strip('\n').split('\t')
+                if line[0] in ko_list:
+                    w.write(line[0] + "\tnone\n")
+
 
 if __name__ == "__main__":
     cls = GeneListFile()

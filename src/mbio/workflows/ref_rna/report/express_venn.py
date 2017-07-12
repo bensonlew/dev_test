@@ -31,11 +31,20 @@ class ExpressVennWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.venn = self.add_tool("graph.venn_table")
+        with open(self.option('group_id'), 'r+') as f1:
+            f1.readline()
+            if not f1.readline():
+                self.group_id = 'all'
+            else:
+                self.group_id = self.option('group_id')
         # self.samples = re.split(',', self.option("specimen"))
         
     def run_venn(self, fpkm_path, specimen):
         """样本间特异性基因venn图"""
-        new_fpkm = self.get_sample_table(fpkm_path,specimen)
+        if self.group_id in ['all', 'All', 'ALL']:
+            new_fpkm = fpkm_path
+        else:
+            new_fpkm = self.get_sample_table(fpkm_path,specimen)
         options = {
             "otu_table": new_fpkm,
             "group_table": self.option("group_id")
