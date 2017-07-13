@@ -87,6 +87,36 @@ class PtDatasplitWorkflow(Workflow):
 			db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
 		                                customer_file=self.option('family_table').prop['path'])
 			self.logger.info("pt家系表导入完成")
+
+		self.logger.info('更新胎儿为重送样时相对应的家系表中的受理日期')  # modify 20170706
+		time = os.path.basename(self.option('message_table').prop['path']).split('-')[0]
+		year = time[0:4]
+		mon = time[4:6]
+		day = time[6:]
+		report_time = datetime.datetime(int(year), int(mon), int(day), 0, 0)
+		accept_time = report_time - datetime.timedelta(days=3)  # 拆分表格的日期为上机日期不是分析日期所以要少减一日
+		if len(str(accept_time.month)) == 1:
+			ti = str(accept_time.year) + '-0' + str(accept_time.month)
+		else:
+			ti = str(accept_time.year) + '-' + str(accept_time.month)
+		if len(str(accept_time.day)) == 1:
+			ti = ti + '-0' + str(accept_time.day)
+		else:
+			ti = ti + '-' + str(accept_time.day)
+		self.logger.info('time:{}'.format(ti))
+		with open(self.option('message_table').prop['path'], 'r') as m:
+			for line in m:
+				line = line.strip().split('\t')
+				# 如果是胎儿重上机不更新信息依旧用之前的信息（重送样或者爸爸妈妈的信息）
+				if re.match('WQ([0-9]{8,})-(S)(.*)(T)([0-9])', line[3]):
+					continue
+				else:
+					if re.match('WQ([0-9]{8,})-(SC)(.*)', line[3]):
+						family_id = line[3].split('-')[0]
+						self.logger.info('存在重送样的胎儿样本——{}'.format(line[3]))
+						db_customer.update_pt_family(family_id, ti)
+		self.logger.info('更新胎儿为重送样时相对应的家系表中的受理日期完成')  # modify 20170706
+
 		self.logger.info("导入样本类型信息")
 		db_customer.add_sample_type(self.option('message_table').prop['path'])
 		self.judge_sample_type(self.option('message_table').prop['path'])  # 判断是否全部是ws的样本
@@ -112,39 +142,23 @@ class PtDatasplitWorkflow(Workflow):
 			self.ws_single = 'false'
 
 	def get_sample(self):
+		self.sample_name_wq = []
+		self.sample_name_ws = []
+		self.sample_name_un = []
 		self.data_dir = self.data_split.output_dir + "/MED"
 		sample_name = os.listdir(self.data_dir)
 		for j in sample_name:
-			p = re.match('Sample_WQ([0-9].*)-(.*)', j)
-			q = re.match('Sample_WS(.*)', j)
+			p = re.match('Sample_WQ([0-9]{8,})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
+			q = re.match('Sample_WS([0-9]{8,})(.*)', j)
 			if p:
 				self.sample_name_wq.append(j)
 			elif q:
 				self.sample_name_ws.append(j)
 			else:
 				self.sample_name_un.append(j)
-		# if len(self.sample_name_wq) == 0 and self.option("family_table").is_set:
-		# 	raise Exception('没有亲子鉴定的样本无法进行该分析')
-		# if len(self.sample_name_ws) == 0 and self.option("customer_table").is_set:
-		# 	raise Exception('没有产前筛查的样本无法进行该分析')
 
 	def run_merge_fastq_wq(self):
 		self.get_sample()
-		# self.data_dir = self.data_split.output_dir + "/MED"
-		# sample_name = os.listdir(self.data_dir)
-		# for j in sample_name:
-		# 	p = re.match('Sample_WQ([0-9].*)-(.*)', j)
-		# 	q = re.match('Sample_WS(.*)', j)
-		# 	if p:
-		# 		self.sample_name_wq.append(j)
-		# 	elif q:
-		# 		self.sample_name_ws.append(j)
-		# 	else:
-		# 		self.sample_name_un.append(j)
-		# if len(self.sample_name_wq) == 0 and self.option("family_table").is_set:
-		# 	raise Exception('没有亲子鉴定的样本无法进行该分析')
-		# if len(self.sample_name_ws) == 0 and self.option("customer_table").is_set:
-		# 	raise Exception('没有产前筛查的样本无法进行该分析')
 		n = 0
 		self.tools = []
 		self.wq_dir = os.path.join(self.output_dir, "wq_dir")
@@ -152,6 +166,7 @@ class PtDatasplitWorkflow(Workflow):
 			os.mkdir(self.wq_dir)
 		for i in self.sample_name_wq:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
+			self.logger.info(i)
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": self.data_dir,
@@ -177,7 +192,8 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_merge_fastq_ws(self):
-		self.get_sample()
+		if self.sample_name_ws == []:
+			self.get_sample()
 		if self.option("family_table").is_set and self.ws_single != 'true':
 			self.run_wq_wf()  # 启动亲子鉴定流程和导表工作
 		n = 0
@@ -187,6 +203,7 @@ class PtDatasplitWorkflow(Workflow):
 			os.mkdir(self.ws_dir)
 		for i in self.sample_name_ws:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
+			self.logger.info(i)
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": self.data_dir,
@@ -215,7 +232,7 @@ class PtDatasplitWorkflow(Workflow):
 			("type", "pt"),
 			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
 			("status", "start"),
-			("member_id",self.option('member_id'))
+			("member_id", self.option('member_id'))
 		]
 		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
 		update_info = {str(main_table_id): 'sg_analysis_status'}
@@ -313,6 +330,7 @@ class PtDatasplitWorkflow(Workflow):
 			os.mkdir(self.un_dir)
 		for i in self.sample_name_un:
 			merge_fastq = self.add_tool("paternity_test.merge_fastq")
+			self.logger.info(i)
 			merge_fastq.set_options({
 				"sample_dir_name": i,
 				"data_dir": self.data_dir,

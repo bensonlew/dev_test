@@ -21,7 +21,12 @@ function checkIdentity($code, $input_dir, $mode){
 		$info["info"] = "模式错误";
 		return $info;
 	}
-    $database = "tp";
+	if ($mode == "tsanger"){
+	    $database = "tp";
+	}
+	else{
+	    $database = "isanger";
+	}
     $conn = new mysqli($servername, $username, $password, $database);
     if ($conn->connect_error) {
 		die("连接失败: " . $conn->connect_error);
