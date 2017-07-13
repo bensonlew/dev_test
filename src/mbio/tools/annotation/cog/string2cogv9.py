@@ -71,14 +71,16 @@ class String2cogv9Tool(Tool):
         super(String2cogv9Tool, self).__init__(config)
         self._version = '1.0'  # to be changed
         self.python = self.config.SOFTWARE_DIR + '/program/Python/bin/python'
-        self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
+        # self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
+        self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/String2Cog.pl'
         self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
+        self.perl = '/program/perl-5.24.0/bin/perl'
 
     def run(self):
         super(String2cogv9Tool, self).run()
         self.run_string2cog()
 
-    def run_string2cog(self):
+    def run_string2cog_old(self):
         if self.option("blastout").is_set:
             cmd = '{} {} {} {}'.format(self.python, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
         else:
@@ -100,3 +102,31 @@ class String2cogv9Tool(Tool):
             self.end()
         except subprocess.CalledProcessError:
             self.set_error('运行string2cog.py出错')
+
+    def run_string2cog(self):
+        if self.option("blastout").is_set:
+            cmd = '{} {} -i {} --format blastxml -e 1e-5 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
+        else:
+            cmd = '{} {} -i {} --format blasttable -e 1e-5 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
+        self.logger.info('运行string2cog.pl')
+        self.logger.info(cmd)
+        cmd_obj = self.add_command("string_cog", cmd).run()
+        self.wait(cmd_obj)
+        if cmd_obj.return_code == 0:
+            self.logger.info('运行string2cog.pl完成')
+            for file in os.listdir(self.work_dir + "/tmp_out"):
+                file_path = os.path.join(self.work_dir + "/tmp_out", file)
+                if file == "cog.list.xls":
+                    os.link(file_path, self.output_dir + "/cog_list.xls")
+                if file == "cog.sumary.xls":
+                    os.link(file_path, self.output_dir + "/cog_summary.xls")
+                if file == "cog_table.xls":
+                    os.link(file_path, self.output_dir + "/cog_table.xls")
+            self.option('cog_list', self.output_dir + '/cog_list.xls')
+            self.option('cog_summary', self.output_dir + '/cog_summary.xls')
+            self.option('cog_table', self.output_dir + '/cog_table.xls')
+            self.end()
+        else:
+            self.set_error("string2cog出错")
+            raise Exception("string2cog出错")
+

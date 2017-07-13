@@ -40,7 +40,7 @@ class KeggAnnotationAgent(Agent):
     def check_options(self):
         if not self.option("blastout").is_set:
             raise OptionError("必须提供BLAST结果文件")
-        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", None]:
+        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", "None"]:
             raise OptionError("物种类别必须为Animals/Plants/Fungi/Protists/Archaea/Bacteria/None")
 
     def set_resource(self):
@@ -78,10 +78,12 @@ class KeggAnnotationTool(Tool):
 
     def kegg_annotation(self):
         self.logger.info("运行kegg注释脚本")
-        if self.option("taxonomy"):
-            taxonomy = self.taxonomy_path
-        else:
+        if not self.option("taxonomy"):
             taxonomy = None
+        elif self.option("taxonomy") == "None":
+            taxonomy = None
+        else:
+            taxonomy = self.taxonomy_path
         blast_xml = self.option('blastout').prop['path']
         kegg_table = self.output_dir + '/kegg_table.xls'
         pidpath = self.output_dir + '/pid.txt'

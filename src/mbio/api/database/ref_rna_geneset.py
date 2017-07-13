@@ -258,8 +258,12 @@ class RefRnaGeneset(Base):
                     data["{}_num".format(dk)] = int(line[3+n*3])
                     data["{}_percent".format(dk)] = float(line4[0])
                     # data["{}_percent_str".format(dk)] = line4[1][:-1] if len(line4[1][:-1]) > 1 else "0"
-                    data["{}_str".format(dk)] = line[5+n*3]
-                    data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    try:
+                        data["{}_str".format(dk)] = line[5+n*3]
+                        data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    except:
+                        data["{}_str".format(dk)] = ""
+                        data["{}_genes".format(dk)] = ""
                     if len(line4) > 1:
                         data["{}_percent_str".format(dk)] = line4[1][:-1]
                     else:
