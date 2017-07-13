@@ -101,12 +101,12 @@ class DiffExpressWorkflow(Workflow):
             f1.readline()
             for lines in f1:
                 line = lines.strip().split("\t")
-                if self.option("type") == "gene":
-                    if line[2] == '=':
+                # if self.option("type") == "gene":
+                if line[2] == '=':
                         new_id.append(line[0])
-                if self.option("type") == "transcript":
-                    if line[2] != 'u':
-                        new_id.append(line[0])
+                # if self.option("type") == "transcript":
+                #     if line[2] != 'u':
+                #         new_id.append(line[0])
         with open(old_count,'r+') as f1,open(old_fpkm,'r+') as f2,open(new_count,'w+') as f3,open(new_fpkm,'w+') as f4:
             if not new_id:
                 raise Exception("生成的class_code信息为空!")

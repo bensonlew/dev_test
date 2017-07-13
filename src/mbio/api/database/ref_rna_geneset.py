@@ -169,7 +169,7 @@ class RefRnaGeneset(Base):
             print("导入%s信息成功！" % (go_graph_png))
 
     @report_check
-    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table, geneset_list_path, all_list_path):
+    def add_kegg_enrich_detail(self, enrich_id, kegg_enrich_table):
         """
         KEGG富集详情表导表函数
         :param enrich_id: 主表id
@@ -184,25 +184,24 @@ class RefRnaGeneset(Base):
         if not os.path.exists(kegg_enrich_table):
             raise Exception('kegg_enrich_table所指定的路径:{}不存在，请检查！'.format(kegg_enrich_table))
         data_list = []
-        geneset_length = len(open(geneset_list_path, "r").readlines())
-        all_list_length = len(open(all_list_path, "r").readlines())
+        # geneset_length = len(open(geneset_list_path, "r").readlines())
+        # all_list_length = len(open(all_list_path, "r").readlines())
         with open(kegg_enrich_table, 'rb') as r:
             for line in r:
                 if re.match(r'\w', line):
                     line = line.strip('\n').split('\t')
                     insert_data = {
                         'kegg_enrich_id': enrich_id,
-                        'term': line[0],
-                        'database': line[1],
-                        'id': line[2],
-                        'study_number': int(line[3]),
-                        'backgroud_number': int(line[4]),
-                        'ratio_in_study': line[3] + "/" + str(geneset_length),
-                        'ratio_in_pop': line[4] + "/" + str(all_list_length),
-                        'pvalue': round(float(line[5]), 4),
-                        'corrected_pvalue': round(float(line[-3]), 4) if not line[-3] == "None" else "None",
-                        'gene_lists': line[-2],
-                        'hyperlink': line[-1]
+                        'term': line[1],
+                        'database': line[2],
+                        'id': line[3].split("path:")[1] if "path:" in line[3] else line[3],
+                        'study_number': int(line[0]),
+                        'ratio_in_study': line[4],
+                        'ratio_in_pop': line[5],
+                        'pvalue': round(float(line[7]), 4),
+                        'corrected_pvalue': round(float(line[6]), 4) if not line[-3] == "None" else "None",
+                        'gene_lists': line[8],
+                        'hyperlink': line[9]
                     }
                     data_list.append(insert_data)
             if data_list:
@@ -259,8 +258,12 @@ class RefRnaGeneset(Base):
                     data["{}_num".format(dk)] = int(line[3+n*3])
                     data["{}_percent".format(dk)] = float(line4[0])
                     # data["{}_percent_str".format(dk)] = line4[1][:-1] if len(line4[1][:-1]) > 1 else "0"
-                    data["{}_str".format(dk)] = line[5+n*3]
-                    data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    try:
+                        data["{}_str".format(dk)] = line[5+n*3]
+                        data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    except:
+                        data["{}_str".format(dk)] = ""
+                        data["{}_genes".format(dk)] = ""
                     if len(line4) > 1:
                         data["{}_percent_str".format(dk)] = line4[1][:-1]
                     else:

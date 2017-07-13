@@ -597,10 +597,11 @@ class RefrnaWorkflow(Workflow):
             anno_opts.update({
                 'blast_swissprot_xml': self.new_blast_swissprot.option('outxml'),
             })
-        if 'pfam' in self.option("database"):
-            anno_opts.update({
-                'pfam_domain': self.pfam.output_dir + "/pfam_domain"
-            })
+        if os.path.exists(self.pfam.output_dir + "/pfam_domain"):
+            if 'pfam' in self.option("database"):
+                anno_opts.update({
+                    'pfam_domain': self.pfam.output_dir + "/pfam_domain"
+                })
         self.logger.info('....anno_opts:%s' % anno_opts)
         self.new_annotation.set_options(anno_opts)
         self.new_annotation.on('end', self.set_output, 'new_annotation')
@@ -714,8 +715,8 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp_fc
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp_fc_all")
-        mod.on('start', self.set_step, {'start': self.step.exp})
-        mod.on('end', self.set_step, {'end': self.step.exp})
+        mod.on('start', self.set_step, {'start': self.step.express})
+        mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
     def run_network_trans(self):
@@ -822,19 +823,19 @@ class RefrnaWorkflow(Workflow):
                 'analysis': self.option('exp_analysis'),
                 'diff_list': self.exp.output_dir + "/diff/trans_diff/diff_list",
                 "is_genelist": True,
-                "diff_list_dir": self.exp.output_dir + "/diff/trans_diff/diff_list_dir"
+                "diff_list_dir": self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
             }
             if 'kegg_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'gene_kegg_table': self.merge_trans_annot.option('kegg_table'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
-                     'all_list': self.exp.output_dir + "/rsem/trans_list",
+                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_stat_dir",
+                     # 'kegg_all_list': self.exp.output_dir + "/rsem/trans_list",
                 })
             if 'go_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'gene_go_list': self.merge_trans_annot.option('golist_out'),
                     'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
-                    'all_list': self.exp.output_dir + "/rsem/trans_list",
+                    # 'go_all_list': self.exp.output_dir + "/rsem/trans_list",
                     'gene_go_level_2': self.merge_trans_annot.option('go2level_out')
                 })
             if 'cog_class' in self.option('exp_analysis'):
@@ -869,13 +870,13 @@ class RefrnaWorkflow(Workflow):
                 exp_diff_opts.update({
                     'gene_kegg_table': self.merge_gene_annot.option('kegg_table'),
                     'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-                     'all_list': self.exp.output_dir + "/rsem/gene_list",
+                     # 'kegg_all_list': self.exp.output_dir + "/rsem/gene_list",
                 })
             if 'go_rich' in self.option('exp_analysis'):
                 exp_diff_opts.update({
                     'gene_go_list': self.merge_gene_annot.option('golist_out'),
                     'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-                    'all_list': self.exp.output_dir + "/rsem/gene_list",
+                    # 'go_all_list': self.exp.output_dir + "/rsem/gene_list",
                     'gene_go_level_2': self.merge_gene_annot.option('go2level_out')
                 })
             if 'cog_class' in self.option('exp_analysis'):
@@ -1094,123 +1095,39 @@ class RefrnaWorkflow(Workflow):
 
     def test_mus(self):
         self.logger.info("{}".format(self.option("ref_genome_custom").prop["path"]))
-        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf")
-        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/HiseqQc/output/sickle_dir")
-        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf.bed")
-        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170626/Refrna_mouse_4/RnaseqMapping/output/bam")
-        self.exp.option("network_diff_list", "/mnt/ilustre/users/sanger-test/workspace/20170629/Refrna_demo1/Express/output/diff/trans_diff/network_X1_vs_Z1")
-        self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
-        self.assembly.option("new_gene_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/RefrnaAssemble/output/NewTranscripts/new_genes.gtf")
-        # self.qc.on("end", self.run_qc_stat, "after")
-        # self.qc.on('end', self.run_mapping)
-        # self.qc.on("end", self.run_star_mapping)
-        # self.qc.on("end", self.run_seq_abs)
-        # self.seq_abs.on("end", self.run_test_annotation)
-        # self.mapping.on('end', self.run_assembly)
-        # self.mapping.on('end', self.run_map_assess)
-        self.assembly.on("end", self.run_new_transcripts_abs)
-        self.assembly.on("end", self.run_new_gene_abs)
-        # if self.taxon_id != "":
-        #     self.exp.on("end", self.run_network_trans)
-        #     self.final_tools.append(self.network_trans)
-        # self.on_rely(self.final_tools, self.run_api_and_set_output)
-        # self.assembly.on("end", self.run_exp_rsem_default)
-        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_merge_annot)
-        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
-        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        self.start_listener()
-        self.fire("start")
-        self.qc.start_listener()
-        self.qc.fire("end")
-        self.mapping.start_listener()
-        self.mapping.fire("end")
-        self.assembly.start_listener()
-        self.assembly.fire("end")
-        self.exp.start_listener()
-        self.exp.fire("end")
-        self.rpc_server.run()
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
-        # task_info = self.api.api('task_info.ref')
-        # task_info.add_task_info()
-        # self.group_id = "5955f5e1edcb253a204f8988"
-        # self.control_id = "5955f821f2e3f7fddea08f6e"
-        # self.group_category = ["X1", "B1", "Z1"]
-        # self.group_detail = [
-        #     {'5955f5deedcb253a204f7ef5': 'X1_3',
-        #      '5955f5deedcb253a204f7ef4': 'X1_2',
-        #      '5955f5deedcb253a204f7ef3': 'X1_1'},
-        #     {'5955f5deedcb253a204f7efb': 'B1_1',
-        #      '5955f5deedcb253a204f7ef9': 'B1_2',
-        #      '5955f5deedcb253a204f7efa': 'B1_3'},
-        #     {'5955f5deedcb253a204f7ef7': 'Z1_3',
-        #      '5955f5deedcb253a204f7ef6': 'Z1_2',
-        #      '5955f5deedcb253a204f7ef8': 'Z1_1'}
-        # ]
-        # self.export_qc()
-        # self.export_genome_info()
-        # self.export_annotation()
-        # self.export_assembly()
-        # self.export_snp()
-        # self.export_map_assess()
-        # self.export_exp_rsem_default()
-        # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
-        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
-        # self.export_gene_set()
-        # self.export_diff_gene()
-        # self.export_diff_trans()
-        # self.export_ref_diff_gene()
-        # self.export_ref_diff_trans()
-        # # self.export_gene_detail()
-        # self.export_ref_gene_set()
-        # self.export_cor()
-        # self.export_pca()
-        # self.export_cluster_gene()
-        # self.export_cluster_trans()
+        # self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf")
+        self.group_id = "596452d7edcb255322d9e66e"
+        self.control_id = "596452d7edcb255322d9e66f"
+        self.group_category = ["A", "B", "C"]
+        self.group_detail =[
+            {'596452d7edcb255322d9dbe1': 'A_1',
+             '596452d7edcb255322d9dbdf': 'A_2',
+             '596452d7edcb255322d9dbe0': 'A_3'},
+            {'596452d7edcb255322d9dbdd': 'C_3',
+             '596452d7edcb255322d9dbde': 'C_1',
+             '596452d7edcb255322d9dbdc': 'C_2'},
+            {'596452d7edcb255322d9dbda': 'B_2',
+             '596452d7edcb255322d9dbdb': 'B_3',
+             '596452d7edcb255322d9dbd9': 'B_1'}
+        ]
+        self.trans_gs_id_name = {
+            "5964800ea4e1af2583dcc94f": "A_vs_B",
+            "5964800fa4e1af2583dcc955": "A_vs_C",
+            "59648010a4e1af2583dcc95b": "B_vs_C"
+        }
+        self.gene_gs_id_name = {
+            "59647fc7a4e1af25303e5c62": "A_vs_B",
+            "59647fc8a4e1af25303e5c68": "A_vs_C",
+            "59647fc8a4e1af25303e5c6e": "B_vs_C"
+        }
         # self.export_go_regulate()
         # self.export_kegg_regulate()
         # self.export_go_enrich()
         # self.export_kegg_enrich()
         # self.export_cog_class()
-        # if self.taxon_id != "":
-        #     with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
-        #         ft.readline()
-        #         content = ft.read()
-        #         if content:
-        #             self.export_ppi()
-        # self.export_as()
-
-    def run_test_annotation(self):
-        pass
-
-    def test_ore(self):
-        self.IMPORT_REPORT_DATA = True
-        self.IMPORT_REPORT_AFTER_END = False
-        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170606/Refrna_tsg_7901/FilecheckRef/Oreochromis_niloticus.Orenil1.0.87.gff3.gtf")
-        self.exp_diff_trans.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list")
-        self.exp_diff_gene.option("all_list", "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list")
-        # self.run_api_and_set_output()
-        self.group_id = "59473300a4e1af65bfaf3816"
-        self.control_id = "59473300a4e1af65bfaf3817"
-        self.group_category = ["A", "B"]
-        self.group_detail = [
-        {
-            "59473300a4e1af65bfaf2d76" : "CL1",
-            "59473300a4e1af65bfaf2d77" : "CL2",
-            "59473300a4e1af65bfaf2d74" : "HFL3",
-            "59473300a4e1af65bfaf2d75" : "CL5"
-        },
-        {
-            "59473300a4e1af65bfaf2d6f" : "HGL4",
-            "59473300a4e1af65bfaf2d72" : "HFL6",
-            "59473300a4e1af65bfaf2d73" : "HFL4",
-            "59473300a4e1af65bfaf2d70" : "HGL3",
-            "59473300a4e1af65bfaf2d71" : "HGL1"
-        }
-        ]
-        self.export_genome_info()
-        #self.export_as()
-        self.end()
+        # self.export_ppi_test()
 
     def run_api_and_set_output(self):
         self.set_output_all()
@@ -1232,7 +1149,6 @@ class RefrnaWorkflow(Workflow):
         self.export_diff_trans()
         self.export_ref_diff_gene()
         self.export_ref_diff_trans()
-        # self.export_gene_detail()
         self.export_ref_gene_set()
         self.export_cor()
         self.export_pca()
@@ -1469,7 +1385,7 @@ class RefrnaWorkflow(Workflow):
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
         path = self.exp.output_dir + "/ref_diff/trans_ref_diff/diff_stat_dir"
-        self.transet_id = list()
+        self.ref_transet_id = list()
         self.trans_gs_id_name = dict()
         self.gene_gs_id_name = dict()
         for files in os.listdir(path):
@@ -1489,7 +1405,7 @@ class RefrnaWorkflow(Workflow):
                                                          group_id=group_id, name=name, compare_name=compare_name,
                                                          express_method="rsem", type="transcript", up_down='up', major=True)
                     if up_down:
-                        self.transet_id.append(up_down)
+                        self.ref_transet_id.append(up_down)
                         self.trans_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
                         self.up_down_trans_id = str(down_id) + "," + str(up_id)
                 else:
@@ -1748,6 +1664,26 @@ class RefrnaWorkflow(Workflow):
         else:
             self.api_as.add_sg_splicing_rmats(params=params, major=False, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
 
+    def export_ppi_test(self):
+        geneset_id = "59648010a4e1af2583dcc95b"
+        api_ppinetwork = self.api.ppinetwork
+        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(geneset_id), self.option("combine_score"), "trans", self.taxon_id)
+        self.ppi_id = str(self.ppi_id)
+        all_nodes_path = self.network_trans.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
+        interaction_path = self.network_trans.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
+        network_stats_path = self.network_trans.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
+        network_centrality_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
+        network_clustering_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
+        network_transitivity_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
+        degree_distribution_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
+        network_node_degree_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
+        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
+        api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
+        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
+        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path,file3_path=all_nodes_path,table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
+        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, file1_path=all_nodes_path,table_id=self.ppi_id)  # 中心信息
+        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
+
     def export_ppi(self):
         api_ppinetwork = self.api.ppinetwork
         if self.transet_id == []:
@@ -1778,24 +1714,9 @@ class RefrnaWorkflow(Workflow):
         api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
         api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
         api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path,file3_path=all_nodes_path,table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
-        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.ppi_id)  # 中心信息
+        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, file1_path=all_nodes_path, table_id=self.ppi_id)  # 中心信息
         api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
-        # self.ppi_id = api_ppinetwork.add_ppi_main_id(str(self.geneset_id[0]), self.option("combine_score"), "gene", self.taxon_id)
-        # self.ppi_id = str(self.ppi_id)
-        # all_nodes_path = self.network_gene.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
-        # interaction_path = self.network_gene.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
-        # network_stats_path = self.network_gene.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
-        # network_centrality_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
-        # network_clustering_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
-        # network_transitivity_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
-        # degree_distribution_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
-        # network_node_degree_path = self.network_gene.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
-        # api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
-        # api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
-        # api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
-        # api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path, table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
-        # api_ppinetwork.add_network_centrality(file_path=network_centrality_path, table_id=self.ppi_id)  # 中心信息
-        # api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
+
 
     def export_snp(self):
         self.api_snp = self.api.api("ref_rna.ref_snp")
@@ -1902,6 +1823,7 @@ class RefrnaWorkflow(Workflow):
         return table_dict
 
     def export_go_regulate(self):
+        self.logger.info("正在导出go调控数据")
         self.api_regulate = self.api.ref_rna_geneset
         trans_dir = self.exp_diff_trans.output_dir
         gene_dir = self.exp_diff_gene.output_dir
@@ -1909,7 +1831,7 @@ class RefrnaWorkflow(Workflow):
         gene_go_regulate_dir = gene_dir + "/go_regulate"
         for trans_id in self.trans_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(self.up_down_trans_id)
+            params["geneset_id"] = str(trans_id)
             params["anno_type"] = "go"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
@@ -1918,10 +1840,11 @@ class RefrnaWorkflow(Workflow):
             for dir in os.listdir(trans_go_regulate_dir):
                 if self.trans_gs_id_name[trans_id] in dir:
                     dir_path = os.path.join(trans_go_regulate_dir, dir)
+                    self.logger.info(dir_path)
                     self.api_regulate.add_go_regulate_detail(go_regulate_dir=dir_path + "/GO_regulate.xls", go_regulate_id=str(inserted_id))
         for gene_id in self.gene_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(self.up_down_gene_id)
+            params["geneset_id"] = str(gene_id)
             params["anno_type"] = "go"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
@@ -1930,9 +1853,11 @@ class RefrnaWorkflow(Workflow):
             for dir in os.listdir(gene_go_regulate_dir):
                 if self.gene_gs_id_name[gene_id] in dir:
                     dir_path = os.path.join(trans_go_regulate_dir, dir)
+                    self.logger.info(dir_path)
                     self.api_regulate.add_go_regulate_detail(go_regulate_dir=dir_path + "/GO_regulate.xls", go_regulate_id=str(inserted_id))
 
     def export_go_enrich(self):
+        self.logger.info("正在导出go富集的数据")
         self.api_regulate = self.api.ref_rna_geneset
         trans_dir = self.exp_diff_trans.output_dir
         gene_dir = self.exp_diff_gene.output_dir
@@ -1966,6 +1891,7 @@ class RefrnaWorkflow(Workflow):
                     self.api_regulate.add_go_enrich_detail(go_enrich_dir=dir_path + "/go_enrich_{}.xls".format(self.gene_gs_id_name[gene_id]), go_enrich_id=str(inserted_id))
 
     def export_kegg_regulate(self):
+        self.logger.info("正在导出kegg调控的数据")
         self.api_regulate = self.api.ref_rna_geneset
         trans_dir = self.exp_diff_trans.output_dir
         gene_dir = self.exp_diff_gene.output_dir
@@ -1973,7 +1899,7 @@ class RefrnaWorkflow(Workflow):
         gene_kegg_regulate_dir = gene_dir + "/kegg_regulate"
         for trans_id in self.trans_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(self.up_down_trans_id)
+            params["geneset_id"] = str(trans_id)
             params["anno_type"] = "kegg"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
@@ -1987,7 +1913,7 @@ class RefrnaWorkflow(Workflow):
                     self.api_regulate.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
         for gene_id in self.gene_gs_id_name.keys():
             params = dict()
-            params["geneset_id"] = str(self.up_down_gene_id)
+            params["geneset_id"] = str(gene_id)
             params["anno_type"] = "kegg"
             params["submit_location"] = "geneset_class"
             params["task_type"] = ""
@@ -2000,6 +1926,7 @@ class RefrnaWorkflow(Workflow):
                     self.api_regulate.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
 
     def export_kegg_enrich(self):
+        self.logger.info("正在导出kegg富集的数据")
         self.api_regulate = self.api.ref_rna_geneset
         trans_dir = self.exp_diff_trans.output_dir
         gene_dir = self.exp_diff_gene.output_dir
@@ -2020,10 +1947,10 @@ class RefrnaWorkflow(Workflow):
                         if dir in list_path:
                             geneset_list_path = list_path
                             break
-                    geneset_list_path = "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/trans_diff/diff_list_dir/A_vs_B"
                     dir_path = os.path.join(trans_kegg_regulate_dir, dir)
-                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.kegg_enrichment.xls".format(
-                        self.trans_gs_id_name[str(trans_id)]), enrich_id=str(inserted_id), geneset_list_path=geneset_list_path, all_list_path=self.exp_diff_trans.option("all_list").prop["path"])
+                    self.logger.info(dir_path)
+                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.DE.list.kegg_enrichment.xls".format(
+                        self.trans_gs_id_name[str(trans_id)]), enrich_id=str(inserted_id))
         for gene_id in self.gene_gs_id_name.keys():
             params = dict()
             params["geneset_id"] = str(gene_id)
@@ -2039,12 +1966,13 @@ class RefrnaWorkflow(Workflow):
                         if dir in list_path:
                             geneset_list_path = list_path
                             break
-                    geneset_list_path = "/mnt/ilustre/users/sanger-dev/workspace/20170615/Refrna_ore_test_for_api/Express/output/diff/genes_diff/diff_list_dir/A_vs_B"
                     dir_path = os.path.join(gene_kegg_regulate_dir, dir)
-                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.kegg_enrichment.xls".format(
-                        self.gene_gs_id_name[gene_id]), enrich_id=str(inserted_id), geneset_list_path=geneset_list_path, all_list_path=self.exp_diff_gene.option("all_list").prop["path"])
+                    self.logger.info(dir_path)
+                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.DE.list.kegg_enrichment.xls".format(
+                        self.gene_gs_id_name[gene_id]), enrich_id=str(inserted_id))
 
     def export_cog_class(self):
+        self.logger.info("正在导出cog分类的数据")
         self.api_regulate = self.api.ref_rna_geneset
         trans_dir = self.exp_diff_trans.output_dir
         gene_dir = self.exp_diff_gene.output_dir

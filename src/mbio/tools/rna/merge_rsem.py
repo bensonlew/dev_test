@@ -29,7 +29,7 @@ class MergeRsemAgent(Agent):
         options = [
             {"name": "gtf_ref", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件
             {"name": "gtf_merged", "type": "infile", "format": "gene_structure.gtf"},
-            # 拼接生成的merged.gtf文件非cuff.comp.gtf文件
+            # cat ref.gtf和new_transcript.gtf文件生成的新的gtf文件
             # {"name": "transcript_fa", "type": "infile", "format": "sequence.fasta"},  # 转录本的fa序列信息，用来提取最长的转录本序列(替代基因的序列)
             {"name": "is_class_code", "type": "bool"},  # 是否计算class_code信息(表达量RNA流程分析时设置此参数为False)
             {"name": "rsem_files", "type": "infile", "format": "rna.rsem_dir"},  # SE测序，包含所有样本的fq文件的文件夹

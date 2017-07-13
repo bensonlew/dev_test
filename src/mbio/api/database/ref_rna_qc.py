@@ -634,34 +634,40 @@ class RefRnaQc(Base):
     @report_check
     def add_hisat_mapping_stat(self, stat_file):
         files = glob.glob("{}/*".format(stat_file))
-        print files
+        # print files
         data_list = []
         for fs in files:
             specimen_name = os.path.basename(fs).split(".")[0]
             # print specimen_name
+            values = []
             f = open(fs, "r")
-            f.readline()
-            total_reads = f.next().split()[0]
-            f.next()
-            unmap_reads = f.next().split()[0]
-            map_reads = int(total_reads) - int(unmap_reads)
-            map_reads = str(map_reads) + "(" + str(float("%0.4f" % (map_reads/int(total_reads))) * 100) + "%" + ")"
-            uniq_info = f.next().split()
-            uniq_mapped = uniq_info[0] + uniq_info[1]
-            multi_info = f.next().split()
-            multi_mapped = multi_info[0] + multi_info[1]
-            print total_reads, map_reads, uniq_mapped, multi_mapped
-            data = {
-                "project_sn": self.bind_object.sheet.project_sn,
-                "task_id": self.bind_object.sheet.id,
-                "type": "genome",
-                "specimen_name": specimen_name,
-                "total_reads": total_reads,
-                "mapping_reads": map_reads,
-                "multiple_mapped": multi_mapped,
-                "uniq_mapped": uniq_mapped
-            }
-            data_list.append(data)
+            for line in f:
+                # print line
+                if re.match(r" ", line):
+                    line = line.split()
+                    values.append(line[0])
+            if len(values) == 13:
+                total_reads = int(values[0])*2
+                unmap_reads = int(values[-3])
+                map_reads = int(total_reads) - int(unmap_reads)
+                map_reads = str(map_reads) + "(" + str(float("%0.4f" % (map_reads/int(total_reads))) * 100) + "%" + ")"
+                uniq_mapped = int(values[2])*2 + int(values[6])*2 + int(values[-2])
+                uniq_mapped = str(uniq_mapped) + "(" + str(float("%0.4f" % (uniq_mapped/int(total_reads))) * 100) + "%" + ")"
+                multi_mapped = int(values[3])*2 + int(values[-1])
+                multi_mapped = str(multi_mapped) + "(" + str(float("%0.4f" % (multi_mapped/int(total_reads))) * 100) + "%" + ")"
+                print specimen_name
+                print total_reads, map_reads, uniq_mapped, multi_mapped
+                data = {
+                    "project_sn": self.bind_object.sheet.project_sn,
+                    "task_id": self.bind_object.sheet.id,
+                    "type": "genome",
+                    "specimen_name": specimen_name,
+                    "total_reads": total_reads,
+                    "mapping_reads": map_reads,
+                    "multiple_mapped": multi_mapped,
+                    "uniq_mapped": uniq_mapped
+                }
+                data_list.append(data)
             f.close()
         try:
             collection = self.db["sg_specimen_mapping"]

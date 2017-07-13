@@ -17,8 +17,8 @@ class KeggRichAgent(Agent):
         super(KeggRichAgent, self).__init__(parent)
         options = [
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
-            {"name": "all_list", "type": "infile", "format": "rna.gene_list"},  # gene名字文件
-            {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},
+            {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},  # gene名字文件
+            # {"name": "diff_stat", "type": "infile", "format": "rna.diff_stat_table"},  # 改为输入状态表文件
             {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
         ]
         self.add_option(options)
@@ -45,8 +45,6 @@ class KeggRichAgent(Agent):
             raise OptionError('多重检验校正的方法不在提供的范围内')
         if not self.option("diff_list").is_set:
             raise OptionError("必须设置输入文件diff_list")
-        if not self.option("all_list").is_set:
-            raise OptionError("必须设置输入文件all_list")
         return True
 
     def set_resource(self):
@@ -72,16 +70,19 @@ class KeggRichTool(Tool):
     def __init__(self, config):
         super(KeggRichTool, self).__init__(config)
         self._version = "v1.0.1"
-        self.kobas = '/bioinfo/annotation/kobas-2.1.1/src/kobas/scripts/'
-        self.kobas_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/kobas-2.1.1/src/'
-        self.set_environ(PYTHONPATH=self.kobas_path)
-        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
-        self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
-        self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
-        self.set_environ(PATH=self.r_path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
+        # self.kobas = '/bioinfo/annotation/kobas-2.1.1/src/kobas/scripts/'
+        # self.kobas_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/kobas-2.1.1/src/'
+        # self.set_environ(PYTHONPATH=self.kobas_path)
+        # self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.1/bin:$PATH"
+        # self._r_home = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/"
+        # self._LD_LIBRARY_PATH = self.config.SOFTWARE_DIR + "/program/R-3.3.1/lib64/R/lib:$LD_LIBRARY_PATH"
+        # self.set_environ(PATH=self.r_path, R_HOME=self._r_home, LD_LIBRARY_PATH=self._LD_LIBRARY_PATH)
         self.python = '/program/Python/bin/'
-        self.all_list = self.option('all_list').prop['gene_list']
-        self.diff_list = self.option('diff_list').prop['gene_list']
+        # self.all_list = self.option('all_list').prop['gene_list']
+        # self.diff_list = self.option('diff_list').prop['gene_list']
+        self.script_path = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/"
+        self.k2e = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/K2enzyme.tab"
+        self.brite = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/br08901.txt"
 
     def run(self):
         """
@@ -89,6 +90,10 @@ class KeggRichTool(Tool):
         :return:
         """
         super(KeggRichTool, self).run()
+        # if self.option("diff_stat").is_set:
+        #     self.run_kegg_rich()
+        # else:
+        #     self.run_web_kegg()
         self.run_kegg_rich()
 
     def run_kegg_rich(self):
@@ -96,16 +101,35 @@ class KeggRichTool(Tool):
         运行kobas软件，进行kegg富集分析
         """
         try:
-            self.option('kegg_table').get_kegg_list(self.work_dir, self.all_list, self.diff_list)
-            self.logger.info("kegg富集第一步运行完成")
-            self.run_identify()
+            # self.option('kegg_table').get_kegg_list(self.work_dir, self.all_list, self.diff_list)
+            # self.logger.info("kegg富集第一步运行完成")
+            self.logger.info("准备gene path:gene_Knumber G2K文件")
+            self.option("kegg_table").get_gene2K(self.work_dir)
+            self.logger.info("准备gene path:konumber G2K文件")
+            self.option("kegg_table").get_gene2path(self.work_dir)
+            self.logger.info("准备差异文件")
+            # diff_gene, regulate_dict = self.option("diff_list").get_table_info()
+            self.option("diff_list").get_stat_file(self.work_dir, self.work_dir + "/gene2K.info")
+            self.logger.info("统计背景数量")
+            length = os.popen("less {}|wc -l".format(self.work_dir + "/gene2K.info"))
+            line_number = int(length.read().strip("\n"))
+            self.bgn = line_number - 1  # 去掉头文件
+            # self.run_identify()
         except Exception as e:
             self.set_error("kegg富集第一步运行出错:{}".format(e))
             self.logger.info("kegg富集第一步运行出错:{}".format(e))
+        self.run_identify()
 
     def run_identify(self):
-        kofile = os.path.splitext(os.path.basename(self.option('diff_list').prop['path']))[0]
-        cmd_2 = self.python + 'python {}identify.py -f {} -n {} -b {} -o {}.kegg_enrichment.xls'.format(self.config.SOFTWARE_DIR + self.kobas, self.work_dir + '/kofile', self.option('correct'), self.work_dir + '/all_kofile', kofile)
+        deg_path = self.work_dir + "/" + os.path.basename(self.option('diff_list').prop["path"]) + ".DE.list"
+        # kofile = os.path.splitext(os.path.basename(self.option('diff_list').prop['path']))[0]
+        kofile = os.path.basename(self.option('diff_list').prop['path']) + ".DE.list"
+        g2p_path = self.work_dir + "/gene2path.info"
+        g2k_path = self.work_dir + "/gene2K.info"
+        bgn = self.bgn
+        k2e = self.k2e
+        brite = self.brite
+        cmd_2 = self.python + 'python {}kegg_enrichment.py -deg {} -g2p {} -g2k {} -bgn {} -k2e {} -brite {} --FDR -dn 20'.format(self.script_path, deg_path, g2p_path, g2k_path, bgn, k2e, brite)
         self.logger.info('开始运行kegg富集第二步：进行kegg富集分析')
         command_2 = self.add_command("cmd_2", cmd_2).run()
         self.wait(command_2)
@@ -115,6 +139,7 @@ class KeggRichTool(Tool):
             self.end()
         else:
             self.set_error("kegg富集分析运行出错!")
+            raise Exception("kegg富集分析运行出错")
 
     def set_output(self, linkfile):
         """

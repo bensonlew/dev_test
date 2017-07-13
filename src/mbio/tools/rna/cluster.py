@@ -20,8 +20,10 @@ class ClusterAgent(Agent):
         super(ClusterAgent, self).__init__(parent)
         options = [
             {"name": "diff_fpkm", "type": "infile", "format": "rna.express_matrix"},  # 输入文件，差异基因表达量矩阵
-            {"name": "samples_distance_method", "type": "string","default":"complete"},  # 计算距离的算法hclust对应的是complete single average kmeans对应的是euclidean
+            {"name": "samples_distance_method", "type": "string","default":"average"},  # 计算距离的算法hclust对应的是complete single average kmeans对应的是euclidean
             {"name": "genes_distance_method", "type": "string","default":"complete"},  # 计算距离的算法hclust对应的是complete single average kmeans对应的是euclidean
+            {"name": "samples_distance_algorithm","type":"string","default":"pearson"}, #基因距离算法，只对hclust，默认是euclidean
+            {"name": "genes_distance_algorithm", "type":"string","default":"euclidean"},  #样本聚类算法，只对hclust, 默认是pearson
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
             {"name": "sub_num", "type": "int", "default": 10},  # 子聚类的数目
@@ -134,7 +136,8 @@ class ClusterTool(Tool):
     def run_cluster(self,fpkm_path):
         #genes_distance_method=self.option("genes_distance_method")
         #samples_distance_method=self.option("samples_distance_method")
-        clust(input_matrix=fpkm_path, sub_num=self.option('sub_num'), method=self.option('method'), lognorm=self.option('log'), samples_distance_method=self.option('samples_distance_method'), genes_distance_method = self.option("genes_distance_method"), cltype="both")
+        clust(input_matrix=fpkm_path, sub_num=self.option('sub_num'), method=self.option('method'), lognorm=self.option('log'), samples_distance_method=self.option('samples_distance_method'), genes_distance_method = self.option("genes_distance_method"), cltype="both",
+              samples_distance_algorithm=self.option("samples_distance_algorithm"),genes_distance_algorithm = self.option("genes_distance_algorithm"))
         clust_cmd = self.r_path + " clust.r"
         self.logger.info("开始运行clust_cmd")
         cmd = self.add_command("clust_cmd", clust_cmd).run()

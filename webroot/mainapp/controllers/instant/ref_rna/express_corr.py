@@ -36,11 +36,17 @@ class ExpressCorrAction(RefRnaController):
         if express_info:
             # task_info = self.ref_rna.get_task_info(express_info['task_id'])
             # print task_info
-            main_table_name = "ExpressCorr_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+            # main_table_name = "ExpressCorr_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+            params = json.loads(express_info['params'])
+            express_method = params["express_method"].lower()
+            express_level = params["type"].lower()
+            re_name_info = {"featurecounts": "FeaCount", "rsem": "RSEM"}
+            re_express_method = re_name_info[express_method]
+            main_table_name = "ExpCor_{}_{}_".format(re_express_method,express_level) +  str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             mongo_data = [
                 ('project_sn', express_info['project_sn']),
                 ('task_id', express_info['task_id']),
-                ('status', 'end'),
+                ('status', 'start'),
                 ('desc',"样本间相关性分析"),
                 ('name', main_table_name),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
