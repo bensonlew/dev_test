@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 # last_modify:20161027
+# modify by khl
+
 from biocluster.api.database.base import Base, report_check
 import os
 import datetime
@@ -14,10 +16,35 @@ import json
 class DenovoCluster(Base):
     def __init__(self, bind_object):
         super(DenovoCluster, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_rna'
+        #self._db_name = Config().MONGODB + '_rna'
+        #self._db_ref = Confif().MONGODB + "_ref_rna"
+        self.denovo_db = Config().mongo_client[Config().MONGODB + "_rna"] 
+        self.ref_db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
 
-    @report_check
-    def add_cluster(self, params, express_id, sample_tree=None, gene_tree=None, name=None, samples=None, genes=None):
+    def get_gene_name(self, class_code, query_type=None, workflow=False):
+        """
+        :params: 是否工作流根据class_code信息导入基因/转录本名称
+        对转录本都加上相应的gene id信息
+        """
+        with open(class_code, 'r+') as f1:
+            f1.readline()
+            data = {}
+            for lines in f1:
+                line = lines.strip().split("\t")
+                if workflow:
+                    if query_type == 'transcript':
+                        data[line[0]] = {"gene_name": line[3], "class_code": line[2], "gene_id": line[1]}
+                    if query_type == 'gene':
+                        data[line[1]] = {"gane_name": line[3], "class_code": line[2]}
+                else:
+                    if query_type == 'gene':
+                        data[line[0]] = {"gene_name": line[1]}
+                    if query_type == 'transcript':
+                        data[line[0]] = {"gene_name": line[1], 'gene_id': line[3]}
+            return data
+
+    #@report_check
+    def add_cluster(self, params, express_id, sample_tree=None, gene_tree=None, name=None, samples=None, genes=None, project='ref'):
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
                 express_id = ObjectId(express_id)
@@ -33,8 +60,8 @@ class DenovoCluster(Base):
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'Cluster_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
-            'desc': '差异基因聚类分析主表',
+            'name': name if name else 'cluster_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'desc': '基因集聚类分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'specimen': samples,
@@ -44,12 +71,17 @@ class DenovoCluster(Base):
             'gene_tree': gene_tree,
             'genes': genes,
         }
-        collection = self.db['sg_denovo_cluster']
+        if project == 'denovo':
+            collection = self.denovo_db['sg_denovo_cluster']
+        elif project == 'ref':
+            collection = self.ref_db["sg_geneset_cluster"]
+        else:
+            raise Exception("请设置project参数为denovo或ref")
         cluster_id = collection.insert_one(insert_data).inserted_id
         return cluster_id
 
-    @report_check
-    def add_cluster_detail(self, cluster_id, sub, sub_path):
+    #@report_check
+    def add_cluster_detail(self, cluster_id, sub, sub_path, class_code=None,project="ref",workflow=True,query_type=None):
         if not isinstance(cluster_id, ObjectId):
             if isinstance(cluster_id, types.StringTypes):
                 cluster_id = ObjectId(cluster_id)
@@ -58,6 +90,11 @@ class DenovoCluster(Base):
         if not os.path.exists(sub_path):
             raise Exception('sub_path所指定的路径:{}不存在，请检查！'.format(sub_path))
         data_list = []
+        if query_type == 'transcript':
+            if not os.path.exists(class_code):
+                raise Exception("转录本的聚类需要输入class_code信息!")
+            else:
+                class_code_info = self.get_gene_name(class_code,query_type=query_type,workflow=workflow)
         with open(sub_path, 'rb') as f:
             head = f.readline().strip().split('\t')
             for line in f:
@@ -65,14 +102,26 @@ class DenovoCluster(Base):
                 data = [
                     ('sub_cluster', int(sub)),
                     ('cluster_id', cluster_id),
-                    ('gene_id', line[0])
+                    ('seq_id', line[0])
                 ]
+                if query_type == 'transcript':
+                    if line[0] in class_code_info.keys():
+                        seq_id = class_code_info[line[0]]['gene_id']
+                    else:
+                        seq_id = '-'
+                    data.append(('gene_id', seq_id))
+
                 for i in range(len(head)):
                     data.append((head[i], round(float(line[i + 1]), 4)))
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = self.db["sg_denovo_cluster_detail"]
+            if project == "denovo":
+                collection = self.denovo_db["sg_denovo_cluster_detail"]
+            elif project == "ref":
+                collection = self.ref_db["sg_geneset_cluster_detail"]
+            else:
+                raise Exception("请设置project参数为denovo或ref!")
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error("导入子聚类统计表：%s信息出错:%s" % (sub_path, e))

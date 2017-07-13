@@ -39,7 +39,7 @@ class RmatsBamAgent(Agent):
                    {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 一定要设置
                    {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是
                    {"name": "lib_type", "type": "string", "default": "fr-unstranded"},  # 建库类型
-                   {"name": "cut_off", "type": "float", "default": 0.05},
+                   {"name": "cut_off", "type": "float", "default": 0.0001},
                    {"name": "output_dir", "type": "string", "default": self.output_dir},  # agent默认输出目录
                    {"name": "keep_temp", "type": "int", "default": 1}
                    ]

@@ -246,7 +246,8 @@ class RefrnaSplicingRmats(Base):
             'status': 'end',
             'group': group,
             'chr_set': chr_set,
-            'rmats_out_root_dir': outpath
+            'rmats_out_root_dir': outpath,
+            'ref_gtf': ref_gtf  # add by qindanhua
         }
         collection_obj = self.db['sg_splicing_rmats']
         self.bind_object.logger.info(insert_data)
@@ -302,7 +303,10 @@ class RefrnaSplicingRmats(Base):
             data['splicing_id'] = splicing_id
             for field in self._RMATS_DETAIL_MONGO_TABLE_FIELD_DIC.keys():
                 data[field] = arr[rmats_detail_file_head_index_dic[self._RMATS_DETAIL_MONGO_TABLE_FIELD_DIC[field]]]
-            
+
+            data["pvalue_jc"] = float(data["pvalue_jc"]) if data["pvalue_jc"] != "null" else data["pvalue_jc"]
+            data["pvalue_all"] = float(data["pvalue_all"]) if data["pvalue_all"] != "null" else data["pvalue_all"]
+
             data['splicing_id'] = splicing_id
             data['no_diff'] = 'no' if data['diff_jc_or_all'] == 'yes' else 'yes'
             data_lst.append(data)

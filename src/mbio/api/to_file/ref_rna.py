@@ -374,14 +374,35 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     type = bind_obj.sheet.option("type")
     bind_obj.logger.debug(type)
     level = bind_obj.sheet.option("express_level")
+
+    group_detail = bind_obj.sheet.option('group_detail')
+    if not isinstance(group_detail, dict):
+        try:
+            table_dict = json.loads(group_detail)
+        except Exception:
+            raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+    if not isinstance(table_dict, dict):
+        raise Exception("生成group表失败，传入的{}不是一个字典或者是字典对应的字符串".format(option_name))
+
+    sample_table_name = 'sg_specimen'
+    sample_table = db[sample_table_name]
+    samples = []
+    for k in table_dict:
+            for sp_id in table_dict[k]:
+                sp = sample_table.find_one({"_id": ObjectId(sp_id)})
+                if not sp:
+                    raise Exception("group_detal中的样本_id:{}在样本表{}中未找到".format(sp_id, sample_table_name))
+                else:
+                    sp_name = sp["specimen_name"]
+                    samples.append(sp_name)
+
     #sample_group = bind_obj.sheet.option("sample_group")
     results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"},{"value_type":level}]})
     count_results = collection.find({'$and': [{'express_id': ObjectId(data)}, {'type': '{}'.format(type)},{"sample_group":"sample"},{"value_type":"count"}]})
     my_result = my_collection.find_one({'_id': ObjectId(data)})
     if not my_result:
         raise Exception("意外错误，express_id:{}在sg_express中未找到！".format(ObjectId(data)))
-
-    samples = my_result['specimen']
+    # samples = my_result['specimen']
     def write_file(path, collcetion_results):
         with open(path, "wb") as f:
             head = '\t'.join(samples)
@@ -399,7 +420,7 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
                         print fpkm_write
                         print sam
                         print result
-                        raise Exception("{}错误".format(result[fpkm]))
+                        #raise Exception("{}错误".format(result[fpkm]))
                 fpkm_write += '\n'
                 #count_write += '\n'
                 f.write(fpkm_write)
