@@ -85,7 +85,7 @@ class PtDatasplitWorkflow(Workflow):
 			self.logger.info("开始导入pt家系表")
 			db_customer = self.api.pt_customer
 			db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
-		                                customer_file=self.option('family_table').prop['path'])
+			                            customer_file=self.option('family_table').prop['path'])
 			self.logger.info("pt家系表导入完成")
 
 		self.logger.info('更新胎儿为重送样时相对应的家系表中的受理日期')  # modify 20170706
@@ -111,7 +111,7 @@ class PtDatasplitWorkflow(Workflow):
 				if re.match('WQ([0-9]{8,})-(S)(.*)(T)([0-9])', line[3]):
 					continue
 				else:
-					if re.match('WQ([0-9]{8,})-(SC)(.*)', line[3]):
+					if re.match('WQ([0-9]{8,})-(S)(.*)(C)(.*)', line[3]):  # 胎儿重送样的样本名称为-S/S1/-C1/C2
 						family_id = line[3].split('-')[0]
 						self.logger.info('存在重送样的胎儿样本——{}'.format(line[3]))
 						db_customer.update_pt_family(family_id, ti)
@@ -226,87 +226,94 @@ class PtDatasplitWorkflow(Workflow):
 			tool.run()
 
 	def run_wq_wf(self):  # 亲子鉴定流程
-		self.logger.info("给pt_batch传送数据路径")
-		mongo_data = [
-			('batch_id', ObjectId(self.option('pt_data_split_id'))),
-			("type", "pt"),
-			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-			("status", "start"),
-			("member_id", self.option('member_id'))
-		]
-		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
-		update_info = {str(main_table_id): 'sg_analysis_status'}
-		update_info = json.dumps(update_info)
-		if self.done_data_split == "true":
-			value = "False"
+		if self.wq_dir == '':
+			self.logger.info("wq_dir不存在，不能进行亲子鉴定流程")
 		else:
-			value = "True"
-		data = {
-			'stage_id': 0,
-			'UPDATE_STATUS_API': self._update_status_api(),
-			"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-			"type": "workflow",
-			"name": "paternity_test.pt_dedup",
-			"instant": False,
-			"IMPORT_REPORT_DATA": True,
-			"IMPORT_REPORT_AFTER_END": False,
-			"options": {
-				"member_id": self.option('member_id'),
-				"fastq_path": self.wq_dir,
-				"cpu_number": 8,
-				"ref_fasta": Config().SOFTWARE_DIR + "/database/human/hg38.chromosomal_assembly/ref.fa",
-				"targets_bedfile": Config().SOFTWARE_DIR + "/database/human/pt_ref/snp.chr.sort.3.bed",
-				"ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
-				"err_min": 2,
-				"batch_id": self.option('pt_data_split_id'),
-				"dedup_num": 10,
-				"update_info": update_info,
-				"direct_get_path": value
+			self.logger.info("给pt_batch传送数据路径")
+			mongo_data = [
+				('batch_id', ObjectId(self.option('pt_data_split_id'))),
+				("type", "pt"),
+				("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+				("status", "start"),
+				("member_id", self.option('member_id'))
+			]
+			main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
+			update_info = {str(main_table_id): 'sg_analysis_status'}
+			update_info = json.dumps(update_info)
+			if self.done_data_split == "true":
+				value = "False"
+			else:
+				value = "True"
+			data = {
+				'stage_id': 0,
+				'UPDATE_STATUS_API': self._update_status_api(),
+				"id": 'pt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+				"type": "workflow",
+				"name": "paternity_test.pt_dedup",
+				"instant": False,
+				"IMPORT_REPORT_DATA": True,
+				"IMPORT_REPORT_AFTER_END": False,
+				"options": {
+					"member_id": self.option('member_id'),
+					"fastq_path": self.wq_dir,
+					"cpu_number": 8,
+					"ref_fasta": Config().SOFTWARE_DIR + "/database/human/hg38.chromosomal_assembly/ref.fa",
+					"targets_bedfile": Config().SOFTWARE_DIR + "/database/human/pt_ref/snp.chr.sort.3.bed",
+					"ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
+					"err_min": 2,
+					"batch_id": self.option('pt_data_split_id'),
+					"dedup_num": 10,
+					"update_info": update_info,
+					"direct_get_path": value
+				}
 			}
-		}
-		WC().add_task(data)
+			WC().add_task(data)
+			self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 		self.done_wq = "true"
-		self.logger.info("亲子鉴定数据拆分结束，pt_batch流程开始")
 
 	def run_ws_wf(self):
-		self.logger.info("给nipt的workflow传送数据")
-		mongo_data = [
-			('batch_id', ObjectId(self.option('pt_data_split_id'))),
-			("type", "nipt"),
-			("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-			("status", "start"),
-			("member_id", self.option('member_id'))
-		]
-		main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
-		update_info = {str(main_table_id): 'sg_analysis_status'}
-		update_info = json.dumps(update_info)
-		if self.done_data_split == "true":
-			nipt_value = "False"
+		if self.ws_dir == '':
+			self.logger.info("ws_dir不存在，不能进行产前筛查流程")
 		else:
-			nipt_value = "True"
-		data = {
-			'stage_id': 0,
-			'UPDATE_STATUS_API': self._update_status_api(),
-			"id": 'nipt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
-			"type": "workflow",
-			"name": "nipt.nipt",
-			"instant": False,
-			"IMPORT_REPORT_DATA": True,
-			"IMPORT_REPORT_AFTER_END": False,
-			"options": {
-				"fastq_path": self.ws_dir,
-				"batch_id": self.option('pt_data_split_id'),
-				'member_id': self.option('member_id'),
-				"bw": 10,
-				"bs": 1,
-				"ref_group": 2,
-				"update_info": update_info,
-				"single": self.ws_single,
-				'sanger_type': self.option('data_dir').split(":")[0],
-				"direct_get_path": nipt_value,
+			self.logger.info("给nipt的workflow传送数据")
+			mongo_data = [
+				('batch_id', ObjectId(self.option('pt_data_split_id'))),
+				("type", "nipt"),
+				("created_ts", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+				("status", "start"),
+				("member_id", self.option('member_id'))
+			]
+			main_table_id = PT().insert_main_table('sg_analysis_status', mongo_data)
+			update_info = {str(main_table_id): 'sg_analysis_status'}
+			update_info = json.dumps(update_info)
+			if self.done_data_split == "true":
+				nipt_value = "False"
+			else:
+				nipt_value = "True"
+			data = {
+				'stage_id': 0,
+				'UPDATE_STATUS_API': self._update_status_api(),
+				"id": 'nipt_batch' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"),
+				"type": "workflow",
+				"name": "nipt.nipt",
+				"instant": False,
+				"IMPORT_REPORT_DATA": True,
+				"IMPORT_REPORT_AFTER_END": False,
+				"options": {
+					"fastq_path": self.ws_dir,
+					"batch_id": self.option('pt_data_split_id'),
+					'member_id': self.option('member_id'),
+					"bw": 10,
+					"bs": 1,
+					"ref_group": 2,
+					"update_info": update_info,
+					"single": self.ws_single,
+					'sanger_type': self.option('data_dir').split(":")[0],
+					"direct_get_path": nipt_value,
+				}
 			}
-		}
-		WC().add_task(data)
+			WC().add_task(data)
+			self.logger.info("亲子鉴定数据产筛部分结束，nipt_batch流程开始")
 		self.done_ws = "true"
 
 	def _update_status_api(self):
@@ -362,7 +369,7 @@ class PtDatasplitWorkflow(Workflow):
 			self.start_listener()
 			self.end()
 		else:
-			self.done_data_split = "true"
+			self.done_data_split = "true"   # 本次workflow是否进行数据拆分，true为进行
 			self.run_data_split()
 			super(PtDatasplitWorkflow, self).run()
 
