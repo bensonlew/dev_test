@@ -55,6 +55,7 @@ class SgPaternityTest(Base):
                 report_status = '0'
         else:
             self.bind_object.logger.info('该家系信息不全，请查看：{}'.format(message_id))
+            raise Exception('{}-该家系信息不全，请查看是否是样本名存在问题'.format(message_id))
         time = accept.split('-')
         accept_time = datetime.datetime(int(time[0]), int(time[1]), int(time[2]), 0, 0)
         if re.match('(.*)(C)(.*)', temp_s.group(1)):
