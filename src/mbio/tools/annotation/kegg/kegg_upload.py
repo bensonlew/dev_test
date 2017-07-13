@@ -35,7 +35,7 @@ class KeggUploadAgent(Agent):
     def check_options(self):
         if not self.option("kos_list_upload").is_set:
             raise OptionError("必须提供kegg注释结果文件")
-        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", None]:
+        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", "None"]:
             raise OptionError("物种类别必须为Animals/Plants/Fungi/Protists/Archaea/Bacteria/None")
 
     def set_resource(self):
@@ -73,10 +73,13 @@ class KeggUploadTool(Tool):
 
     def kegg_annotation(self):
         self.logger.info("开始运行kegg注释脚本")
-        if self.option("taxonomy"):
-            taxonomy = self.taxonomy_path
-        else:
+        if not self.option("taxonomy"):
+            # taxonomy = self.taxonomy_path
             taxonomy = None
+        elif self.option("taxonomy") == "None":
+            taxonomy = None
+        else:
+            taxonomy = self.taxonomy_path
         self.option("kos_list_upload").get_transcript_anno(outdir=self.work_dir + "/kegg.list")
         # self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
         kegg_ids = self.work_dir + "/kegg.list"

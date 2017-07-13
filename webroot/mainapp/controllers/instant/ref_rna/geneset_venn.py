@@ -46,13 +46,17 @@ class GenesetVennAction(RefRnaController):
             geneset_num=len(data.geneset_id.split(","))
             if geneset_num<=1 or geneset_num >=7:
                 raise Exception("venn图分析只能选择2至6个样本！")
-            
-            main_table_name = 'GenesetVenn_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+            # GSetVenn_基因\转录本_日期_时间 修改基因集的文件名格式
+            if data.type == 'gene':
+                re_type = 'G'
+            if data.type == 'transcript':
+                re_type = 'T'
+            main_table_name = 'GSetVenn_{}_'.format(re_type) + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
             collection_name = 'sg_geneset_venn'
             mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
-                ('status', 'end'),
+                ('status', 'start'),
                 ('desc',"基因集venn图分析"),
                 ('name', main_table_name),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),

@@ -40,11 +40,22 @@ class ExpressCorrWorkflow(Workflow):
             self.corr = self.add_tool('statistical.correlation')
         if self.option("corr_pca") == "pca":
             self.pca = self.add_tool('meta.beta_diversity.pca')
-        
+        with open(self.option('group_id'), 'r+') as f1:
+            f1.readline()
+            if not f1.readline():
+                self.group_id = 'all'
+            else:
+                self.group_id = self.option('group_id')
+        self.logger.info("开始打印group_id")
+        self.logger.info(self.group_id)
+
     def run_corr(self):
         """样本间相关性分析"""
-        specimen = self.get_samples()
-        new_fpkm = self.fpkm(specimen)
+        if self.group_id in ['all','All','ALL']:
+            new_fpkm = self.option("express_file").split(",")[0]
+        else:
+            specimen = self.get_samples()
+            new_fpkm = self.fpkm(specimen)
         opts = {
             "fpkm":new_fpkm,
             "method":self.option('method'),
@@ -67,10 +78,13 @@ class ExpressCorrWorkflow(Workflow):
     
     def run_pca(self):
         """样本间pca分析"""
-        new_specimen = self.get_samples()
-        print 'haha1'
-        print new_specimen
-        new_fpkm = self.fpkm(new_specimen)
+        if self.group_id in ['all','All','ALL']:
+            new_fpkm = self.option("express_file").split(",")[0]
+        else:
+            new_specimen = self.get_samples()
+            print 'haha1'
+            print new_specimen
+            new_fpkm = self.fpkm(new_specimen)
         self.logger.info(new_fpkm)
         opts = {
             "otutable": new_fpkm

@@ -17,8 +17,10 @@ class GenesetClusterWorkflow(Workflow):
         super(GenesetClusterWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "express_file", "type": "string", "default": "none"},  # 输入文件，差异基因表达量矩阵
-            {"name": "samples_distance_method", "type": "string","default":"complete"},  # 计算距离的算法
-            {"name": "genes_distance_method", "type": "string","defalut":"complete"},  # 计算距离的算法
+            {"name": "samples_distance_method", "type": "string","default":"complete"},  # 计算距离的方式
+            {"name": "genes_distance_method", "type": "string","defalut":"complete"},  # 计算距离的方式
+            {"name": "samples_distance_algorithm", "type": "string", "default": "pearson"},# 基因距离算法，只对hclust，默认是euclidean
+            {"name": "genes_distance_algorithm", "type": "string", "default": "euclidean"},# 样本聚类算法，只对hclust, 默认是pearson
             {"name": "log", "type": "int", "default": None},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
             {"name": "group_id", "type": "string"},
@@ -28,8 +30,10 @@ class GenesetClusterWorkflow(Workflow):
             {"name": "sub_num", "type": "int", "default": 0},  # 子聚类的数目
             {"name": "geneset_cluster_id", "type": "string"},
             {"name": "update_info", "type": "string"},
+            {"name":"class_code_type","type":"string","default":"express_diff"},
             # {"name":"gene_cluster",'type':bool}, #是否基因聚类
             # {"name":"sample_cluster",'type':bool}, #是否样本聚类
+            {"name":"class_code","type":"string"}, #class_code信息
             {"name": "gene_list", "type": "string"},  #输出gene_list
             {"name": "express_level", "type": "string"}# 对应 tpm/fpkm字段, 传给workflow
         ]
@@ -37,7 +41,13 @@ class GenesetClusterWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.cluster = self.add_tool("rna.cluster")
         self.output_dir = self.cluster.output_dir
-    
+        with open(self.option('group_id'), 'r+') as f1:
+            f1.readline()
+            if not f1.readline():
+                self.group_id = 'all'
+            else:
+                self.group_id = self.option('group_id')
+
     def get_samples(self): #add by khl 20170504
         edger_group_path = self.option("group_id")
         self.logger.info(edger_group_path)
@@ -75,8 +85,11 @@ class GenesetClusterWorkflow(Workflow):
             return fpkm_path
     
     def run_cluster(self):
-        specimen = self.get_samples()
-        new_fpkm = self.fpkm(specimen)
+        if self.group_id in ['all', 'All', 'ALL']:
+            new_fpkm = self.option("express_file").split(",")[0]
+        else:
+            specimen = self.get_samples()
+            new_fpkm = self.fpkm(specimen)
         self.logger.info(self.option("method"))
         options = {
             "sub_num": self.option("sub_num"),
@@ -87,6 +100,8 @@ class GenesetClusterWorkflow(Workflow):
             genes_distance_method ="complete"
             options["genes_distance_method"]=genes_distance_method
         if self.option("method") == "hclust":
+            options['genes_distance_algorithm'] = self.option("genes_distance_algorithm")
+            options['samples_distance_algorithm'] = self.option("samples_distance_algorithm")
             if self.option("samples_distance_method") == "":
                 samples_distance_method = "complete"
                 options["samples_distance_method"]=samples_distance_method
@@ -144,7 +159,7 @@ class GenesetClusterWorkflow(Workflow):
                 if re.match('subcluster', sub_cluster):  # 找到子聚类的文件进行迭代
                     sub = sub_cluster.split("_")[1]
                     sub_path = os.path.join(hclust_path, sub_cluster)
-                    api_cluster.add_cluster_detail(cluster_id=self.option("geneset_cluster_id"), sub=sub, sub_path=sub_path,project='ref')
+                    api_cluster.add_cluster_detail(cluster_id=self.option("geneset_cluster_id"), sub=sub, class_code =self.option('class_code'),sub_path=sub_path,project='ref',workflow=False,query_type=self.option("type"))
                     self.logger.info("开始导子聚类函数！")
                 if re.search('samples_tree', sub_cluster):  # 找到sample_tree
                     sample_tree = os.path.join(hclust_path, sub_cluster)
@@ -167,7 +182,7 @@ class GenesetClusterWorkflow(Workflow):
                 if re.match('subcluster', sub_cluster):
                     sub = sub_cluster.split("_")[1]
                     sub_path = os.path.join(kmeans_path, sub_cluster)
-                    api_cluster.add_cluster_detail(cluster_id=self.option("geneset_cluster_id"), sub=sub, sub_path=sub_path)
+                    api_cluster.add_cluster_detail(cluster_id=self.option("geneset_cluster_id"), sub=sub, class_code =self.option('class_code'), sub_path=sub_path,workflow=False,query_type=self.option("type"))
                 if re.search(r'kmeans_heatmap.xls', sub_cluster):
                     sub_cluster_path = os.path.join(kmeans_path, sub_cluster)
                     with open(sub_cluster_path, 'rb') as heatmap:

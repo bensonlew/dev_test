@@ -51,7 +51,7 @@ class DiffExpressAction(RefRnaController):
         my_param['pvalue_padjust'] = data.pvalue_padjust
         my_param['pvalue'] = data.pvalue
         my_param['diff_method'] = data.diff_method
-        my_param['type'] = data.type
+        my_param['type'] = data.type  #基因还是转录本
         my_param['task_type']= task_type
         my_param['submit_location'] = data.submit_location
 
@@ -60,13 +60,19 @@ class DiffExpressAction(RefRnaController):
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
         express_params=json.loads(express_info["params"])
         express_method = express_params["express_method"]
-        value_type = express_params["type"]
-        
-        if express_info:
-            params = json.loads(express_info['params'])
-            express_level = params['type']
+        value_type = data.type  #gene or transcript
+        diff_method = data.diff_method.lower()
 
-            main_table_name = "DiffExpress_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        if express_info:
+            express_params = json.loads(express_info['params'])
+            express_level = express_params['type']  #fpkm or tpm
+            # DiffExp_基因\转录本_软件_tpm\fpkm_差异分析软件_日期_时间
+            re_name_info = {"gene":"G","transcript":"T","featurecounts":"FeaCount","rsem":"RSEM","edger":"ER","deseq2":"DS","degseq":"DG"}
+            re_value_type = re_name_info[value_type.lower()]
+            re_express_method = re_name_info[express_method.lower()]
+            re_express_level = express_level.lower()
+            re_diff_method = re_name_info[diff_method]
+            main_table_name = "DiffExp_{}_{}_{}_{}_".format(re_value_type,re_express_method,re_express_level,re_diff_method) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             task_id = express_info["task_id"]
             project_sn = express_info["project_sn"]
 

@@ -8,7 +8,6 @@ import datetime
 import json
 import shutil
 import re
-import shutil
 from biocluster.workflow import Workflow
 import pandas as pd
 
@@ -30,19 +29,24 @@ class ExpressVennWorkflow(Workflow):
         self.logger.info(options)
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.venn = self.add_tool("graph.venn_table")
+        self.venn = self.add_tool("rna.expressvenn")
+        with open(self.option('group_id'), 'r+') as f1:
+            f1.readline()
+            if not f1.readline():
+                self.group_id = 'all'
+            else:
+                self.group_id = self.option('group_id')
         # self.samples = re.split(',', self.option("specimen"))
         
     def run_venn(self, fpkm_path, specimen):
         """样本间特异性基因venn图"""
-        new_fpkm = self.get_sample_table(fpkm_path,specimen)
         options = {
-            "otu_table": new_fpkm,
-            "group_table": self.option("group_id")
+            "express_matrix": fpkm_path,
+            "group_table": self.option("group_id"),
+            "threshold":self.option("threshold")
         }
         
         self.logger.info("检查new_fpkm和new_group的路径:")
-        self.logger.info(new_fpkm)
         self.venn.set_options(options)
         self.venn.on('end', self.set_db)
         self.venn.run()
@@ -70,40 +74,14 @@ class ExpressVennWorkflow(Workflow):
                 self.samples.append(line[0])
         print self.samples
         return self.samples
-        
-    def get_sample_table(self,fpkm_path, specimen):
-        """ 根据筛选的样本名生成新的fpkm表 和 group_table表 """
-        fpkm = pd.read_table(fpkm_path,sep="\t",)
-        sample_name = fpkm.columns[1:]
-        del_sam = []
-        for sam in sample_name:
-            try:
-                if sam not in specimen:
-                    del_sam.append(sam)
-            except Exception:
-                pass
-        if self.option("threshold"):
-            """过滤"""
-            threshold = self.option("threshold")
-            for i in sample_name:
-                fpkm[i]=fpkm[i].apply(lambda x: x if(x>=threshold)else 0)
-        if del_sam:
-            new_fpkm = fpkm.drop(del_sam, axis=1)
-            self.new_fpkm = self.venn.work_dir + "/fpkm"
-            header=['']
-            header.extend(specimen)
-            new_fpkm.columns = header
-            new_fpkm.to_csv(self.new_fpkm, sep="\t",index=False)
-            print 'end!'
-            return self.new_fpkm
-        else:
-            self.new_fpkm = self.venn.work_dir + "/fpkm"
-            fpkm.to_csv(self.new_fpkm,sep="\t",index=False)
-            return self.new_fpkm
-        
+
     def run(self):
         fpkm = self.option("express_file").split(",")[0]
-        specimen = self.get_samples()
+        if self.group_id in ['all','All','ALL']:
+            with open(fpkm,'r+') as f1:
+                specimen = f1.readline().strip().split("\t")
+        else:
+            specimen = self.get_samples()
         self.run_venn(fpkm, specimen)
         super(ExpressVennWorkflow, self).run()
     
