@@ -21,7 +21,10 @@ class MedReportTupdate(UpdateStatus):
         pass
 
     def update_status(self):
-        status = self.data["sync_task_log"]["task"]["status"]
+        if "status" in self.data["sync_task_log"]["task"].keys():
+            status = self.data["sync_task_log"]["task"]["status"]
+        else:
+            return
         desc = ''
         for i in self.data['sync_task_log']['log']:
             if 'step_name' not in i:

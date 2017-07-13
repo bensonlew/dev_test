@@ -32,10 +32,49 @@ class SgPaternityTest(Base):
         :param member_id:前端传入的用户id
         :return:返回值为主表的_id
         '''
-        temp_d = re.search("WQ([0-9]*)-F.*",dad)
+        temp_d = re.search("WQ([0-9]*)-F.*", dad)
         temp_m = re.search(".*-(M.*)", mom)
-        temp_s = re.search(".*-(S.*)",preg)
+        temp_s = re.search(".*-(S.*)", preg)
         name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
+        # 信息增加modify by zhouxuan 20170705
+
+        if re.match('(.*-T)([0-9])', dad):  # -T 表示重上机信息不变
+            dad = ('-').join(dad.split('-')[:-1])
+        if re.match('(.*-T)([0-9])', mom):
+            mom = ('-').join(mom.split('-')[:-1])
+            temp_m = re.search(".*-(M.*)", mom)
+        message_id = dad + "-" + temp_m.group(1)  # 只有父本和母本的名字
+        pt_collection = self.database["sg_pt_customer"]
+        result = pt_collection.find_one({"name": message_id})
+        if result:
+            report_status = result['report_status']
+            accept = result['accept_time']
+            if report_status == '是':
+                report_status = '1'
+            else:
+                report_status = '0'
+        else:
+            self.bind_object.logger.info('该家系信息不全，请查看：{}'.format(message_id))
+        time = accept.split('-')
+        accept_time = datetime.datetime(int(time[0]), int(time[1]), int(time[2]), 0, 0)
+        if re.match('(.*)(C)(.*)', temp_s.group(1)):
+            report_time = accept_time + datetime.timedelta(days=3)
+        else:
+            self.bind_object.logger.info('此时胎儿不为重送样：{}'.format(preg))
+            report_time = accept_time + datetime.timedelta(days=5)
+        # t = []
+        # t.append(report_time.year)
+        # t.append(report_time.month)
+        # t.append(report_time.day)
+        # ti = ('-').join(str(t))
+        if len(str(report_time.month)) == 1:
+            ti = str(report_time.year) + '0' + str(report_time.month)
+        else:
+            ti = str(report_time.year) + str(report_time.month)
+        if len(str(report_time.day)) == 1:
+            ti = ti + '0' + str(report_time.day)
+        else:
+            ti += str(report_time.day)
 
         # "name": family_no.group(1)
         insert_data = {
@@ -46,7 +85,10 @@ class SgPaternityTest(Base):
             "name": name,
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "batch_id": ObjectId(batch_id),
-            "member_id":member_id
+            "member_id": member_id,
+            "message_id": message_id,
+            "report_time": ti,
+            "report_status": report_status,
         }
         try:
             collection = self.database['sg_father']
