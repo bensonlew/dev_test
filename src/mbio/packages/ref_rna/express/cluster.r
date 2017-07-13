@@ -1,8 +1,12 @@
 options(warn=-100)
 method<-'${method}'
 k<- ${sub_num}
+
 samples_distance_method <- "${samples_distance_method}"
 genes_distance_method <- "${genes_distance_method}"
+genes_distance_algorithm <- "${genes_distance_algorithm}"
+samples_distance_algorithm <- "${samples_distance_algorithm}"
+
 input_matrix<-"${input_matrix}"
 lognorm<-${lognorm}
 cltype<-"${cltype}" #### both row column none
@@ -28,11 +32,11 @@ if(lognorm!=0){
     if(is.null(genes_distance_method)){
         genes_distance_method = 'complete'
     }
-    hc_genes = agnes(final_data, diss=FALSE, method = genes_distance_method, metric='euclidean') # method: default-complete-linkage metric: default-euclidean cluster genes
+    hc_genes = agnes(final_data, diss=FALSE, method = genes_distance_method, metric=genes_distance_algorithm) # method: default-complete-linkage metric: default-euclidean cluster genes
     if(is.null(samples_distance_method)){
         samples_distance_method = 'complete'
     }
-    hc_samples = hclust(as.dist(1-cor(final_data, method="spearman")), method=samples_distance_method) # cluster conditions
+    hc_samples = hclust(as.dist(1-cor(final_data, method=samples_distance_algorithm)), method=samples_distance_method) # cluster conditions
 }
 if(lognorm==0){
     final_data = t(scale(t(data),scale=F))
@@ -40,11 +44,11 @@ if(lognorm==0){
     if(is.null(genes_distance_method)){
         genes_distance_method = 'complete'
     }
-    hc_genes = agnes(final_data,diss=FALSE, method=genes_distance_method, metric='euclidean') # cluster genes
+    hc_genes = agnes(final_data,diss=FALSE, method=genes_distance_method, metric=genes_distance_algorithm) # cluster genes
     if(is.null(samples_distance_method)){
         samples_distance_method = 'complete'
     }
-    hc_samples = hclust(as.dist(1-cor(final_data, method="spearman")), method=samples_distance_method) # cluster conditions
+    hc_samples = hclust(as.dist(1-cor(final_data, method=samples_distance_algorithm)), method=samples_distance_method) # cluster conditions
 }
 
 # if(k==0){
