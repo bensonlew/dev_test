@@ -60,6 +60,10 @@ class PtDatasplitWorkflow(Workflow):
 
 		if not self.option("message_table"):
 			raise OptionError("缺少拆分需要的数据表")
+		else:
+			name = os.path.basename(self.option("message_table").prop['path'])
+			if len(name.split('-')) < 2:
+				raise OptionError('拆分表的文件名不以日期加中划线组成,请确认。格式应如：20170708-（）.xls')
 		if not self.option("data_dir"):
 			raise OptionError("缺少拆分需要的下机数据")
 		if not self.option("family_table"):
