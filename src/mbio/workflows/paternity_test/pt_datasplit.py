@@ -111,7 +111,7 @@ class PtDatasplitWorkflow(Workflow):
 				if re.match('WQ([0-9]{8,})-(S)(.*)(T)([0-9])', line[3]):
 					continue
 				else:
-					if re.match('WQ([0-9]{8,})-(S)(.*)(C)(.*)', line[3]):  # 胎儿重送样的样本名称为-S/S1/-C1/C2
+					if re.match('WQ([0-9]{8,})-(SC)(.*)', line[3]):  # 胎儿重送样的样本名称为-这个是系统中生成的一般会标记为SC1
 						family_id = line[3].split('-')[0]
 						self.logger.info('存在重送样的胎儿样本——{}'.format(line[3]))
 						db_customer.update_pt_family(family_id, ti)
