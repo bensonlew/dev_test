@@ -52,6 +52,7 @@ class PtDatasplitWorkflow(Workflow):
 		self.done_ws = ''
 		self.done_data_split = ''
 		self.ws_single = ''
+		self.message_table = os.path.basename(self.option('message_table').prop['path'])
 
 	def check_options(self):
 		'''
@@ -364,7 +365,9 @@ class PtDatasplitWorkflow(Workflow):
 		"""
 		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
 		db_customer = self.api.pt_customer
-		dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1])
+		self.logger.info(self.message_table)
+		dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
+
 		self.logger.info(dir_list)
 		if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
 			self.wq_dir = dir_list[0]
@@ -408,7 +411,7 @@ class PtDatasplitWorkflow(Workflow):
 		if self.done_data_split == "true":  # true表示这是第一次进行拆分
 			self.logger.info("开始导入拆分结果路径")
 			db_customer = self.api.pt_customer
-			db_customer.add_data_dir(self.option('data_dir').split(":")[1], self.wq_dir, self.ws_dir, self.un_dir)
+			db_customer.add_data_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table, self.wq_dir, self.ws_dir, self.un_dir)
 		if self.done_wq != "true" and self.option('family_table').is_set:
 			if self.ws_single != 'true':
 				self.run_wq_wf()
