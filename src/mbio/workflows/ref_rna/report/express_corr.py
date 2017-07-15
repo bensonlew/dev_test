@@ -30,7 +30,7 @@ class ExpressCorrWorkflow(Workflow):
             {"name":"update_info","type":"string"},
             {"name":"type","type":"string","default":"gene"}, #传给to_file 参数
             {"name":"method","type":"string","default":"pearson"}, #聚类方法
-            {"name":"hclust_method",'type':"string",'default':'complete'}, #层次聚类方式
+            # {"name":"hclust_method",'type':"string",'default':'complete'}, #层次聚类方式
             {"name":"express_level","type":"string"}, #对应fpkm/tpm
             {"name":"corr_pca","type":"string"} #pca 或 correlation分析
         ]
@@ -58,8 +58,7 @@ class ExpressCorrWorkflow(Workflow):
             new_fpkm = self.fpkm(specimen)
         opts = {
             "fpkm":new_fpkm,
-            "method":self.option('method'),
-            "hclust_method":self.option("hclust_method")
+            "method":self.option('method')
         }
         self.corr.set_options(opts)
         self.corr.on('end', self.set_db)
