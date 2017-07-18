@@ -206,11 +206,11 @@ class Terms(dict):
         return all_parent_edges
 
 
-def get_color(values, steps=1000):
-    all_red_colors = list(Color.range_to(Color('white'), Color('red'), steps - 1))
-    all_blue_colors = list(Color.range_to(Color('blue'), Color('white'), steps - 1))
-    print("vvvvvvvvvvalusssssss")
-    print(values)
+def get_color(values, steps=100):
+    all_red_colors = list(Color.range_to(Color('yellow'), Color('red'), steps - 1))
+    all_blue_colors = list(Color.range_to(Color('blue'), Color('yellow'), steps - 1))
+    # print("vvvvvvvvvvalusssssss")
+    # print(values)
     new_values = []
     for i in values:
         if i == 0:
@@ -255,11 +255,15 @@ def get_color(values, steps=1000):
 def draw_GO(GOs, out='GO_lineage', obo="/mnt/ilustre/users/sanger-dev/app/database/GO/go-plus.obo"):
     """"""
     if isinstance(GOs, list):
+        # GOs = GOs[:20]
         terms_colors = [(i, '#ffce7b') for i in GOs]
     if isinstance(GOs, dict):
         temp_tuple = [[i, GOs[i]] for i in GOs]
         p_value = [i[1] for i in temp_tuple]
         temp_colors = get_color(p_value)
+        print "************"
+        print temp_colors
+        print "************"
         terms_colors = zip([i[0] for i in temp_tuple], temp_colors)
         GOs = GOs.keys()
     terms = Terms(obo_fp=obo)
@@ -275,7 +279,8 @@ def draw_GO(GOs, out='GO_lineage', obo="/mnt/ilustre/users/sanger-dev/app/databa
                        minlen=1.5, arrowsize=1.3, penwidth=1.5)
     G.add_nodes_from([terms[i].id + r'\n' + terms[i].name for i in GOs])
     G.graph_attr.update(dpi="180")
-    G.node_attr.update(shape="box", style="rounded,filled", fillcolor="#efefef")
+    G.node_attr.update(shape="box", style="rounded,filled", fillcolor="#FFFFFF")
+    # G.node_attr.update(shape="box", style="rounded,filled", fillcolor="#FFFFFF")
     G.edge_attr.update(dir="back")
     for i in terms_colors:
         node = G.get_node(terms[i[0]].id + r'\n' + terms[i[0]].name)
@@ -285,11 +290,17 @@ def draw_GO(GOs, out='GO_lineage', obo="/mnt/ilustre/users/sanger-dev/app/databa
 
 
 if __name__ == '__main__':
-    recs = ['GO:0046466', 'GO:0030149', 'GO:0006643', 'GO:0006665', 'GO:0016042', 'GO:0044242', 'GO:0006950',
-            'GO:0006664', 'GO:0006687', 'GO:0044699', 'GO:0044763', 'GO:0044710', 'GO:0008150', 'GO:0006952',
-            'GO:0006629', 'GO:0045087', 'GO:0003674', 'GO:0070776', 'GO:0070775', 'GO:0006955']
-    p_bonferroni = [5.58E-09, 5.58E-09, 3.05E-08, 3.05E-08, 3.33E-08, 6.06E-08, 7.82E-08, 8.35E-08, 8.35E-08, 1.99E-07,
-                    2.86E-07, 3.40E-07, 3.45E-07, 4.72E-07, 7.47E-07, 8.18E-07, 9.87E-07, 1.02E-06, 1.02E-06, 2.29E-06]
-    my_test = dict(zip(recs, p_bonferroni))
-    draw_GO(my_test, obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")
-    draw_GO(recs, out='GO_lineage_1', obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")
+    # recs = ['GO:0046466', 'GO:0030149', 'GO:0006643', 'GO:0006665', 'GO:0016042', 'GO:0044242', 'GO:0006950',
+    #         'GO:0006664', 'GO:0006687', 'GO:0044699', 'GO:0044763', 'GO:0044710', 'GO:0008150', 'GO:0006952',
+    #         'GO:0006629', 'GO:0045087', 'GO:0003674', 'GO:0070776', 'GO:0070775', 'GO:0006955']
+    # p_bonferroni = [5.58E-09, 5.58E-09, 3.05E-08, 3.05E-08, 3.33E-08, 6.06E-08, 7.82E-08, 8.35E-08, 8.35E-08, 1.99E-07,
+    #                 2.86E-07, 3.40E-07, 3.45E-07, 4.72E-07, 7.47E-07, 8.18E-07, 9.87E-07, 1.02E-06, 1.02E-06, 2.29E-06]
+    # my_test = dict(zip(recs, p_bonferroni))
+    # draw_GO(my_test, obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")
+    # draw_GO(recs, out='GO_lineage_1', obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")
+    my_test = {'GO:0004372': 0.000361044713629, 'GO:0006563': 0.000652439537723,
+               'GO:0071466': 0.000829319912781, 'GO:0036342': 0.000925470872641,
+               'GO:0035999': 0.000571758551499, 'GO:0005764': 0.000358838049038,
+               'GO:0009410': 0.000925470872641, 'GO:0030170': 9.16754833893e-05,
+               'GO:0005007': 0.000652439537723, 'GO:0000323': 0.000358838049038}
+    draw_GO(my_test, out= "sj", obo= "/mnt/ilustre/users/sanger-dev/app/database/GO/go-basic.obo")
