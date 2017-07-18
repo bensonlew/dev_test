@@ -370,7 +370,7 @@ def group_express(old_fpkm, new_fpkm, old_count, new_count, sample_group_info, f
                 data[seq_id] = {}
                 for i in range(len(sample)):
                     print i
-                    data[seq_id][sample[i]] = int(float(line[i + 1]))
+                    data[seq_id][sample[i]] = float(line[i + 1])
             f2.write("\t" + "\t".join(group_name) + "\n")
             for keys in data.keys():
                 grp_data = []
@@ -388,7 +388,7 @@ def group_express(old_fpkm, new_fpkm, old_count, new_count, sample_group_info, f
                         print sam
                         print sum_value
                         raise Exception("error！")
-                    average_value = round(sum_value / len(sample_id), 6)
+                    average_value = round(float(sum_value) / len(sample_id), 6)
                     grp_data.append(str(average_value))
                 f2.write(keys + "\t" + "\t".join(grp_data) + "\n")
 
