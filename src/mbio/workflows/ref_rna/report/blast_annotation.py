@@ -21,11 +21,11 @@ class BlastAnnotationWorkflow(Workflow):
         super(BlastAnnotationWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "blastout_table", "type": "string"},
-            {"name": "nr_evalue", "type": "float", "default": 10e-5},
+            {"name": "nr_evalue", "type": "float", "default": 1e-5},
             {"name": "nr_score", "type": "float", "default": 0},
             {"name": "nr_similarity", "type": "float", "default": 0},
             {"name": "nr_identity", "type": "float", "default": 0},
-            {"name": "swissprot_evalue", "type": "float", "default": 10e-5},
+            {"name": "swissprot_evalue", "type": "float", "default": 1e-5},
             {"name": "swissprot_score", "type": "float", "default": 0},
             {"name": "swissprot_similarity", "type": "float", "default": 0},
             {"name": "swissprot_identity", "type": "float", "default": 0},
