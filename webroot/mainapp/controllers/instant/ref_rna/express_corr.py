@@ -17,7 +17,8 @@ class ExpressCorrAction(RefRnaController):
 
     def POST(self):
         data = web.input()
-        postArgs = ['group_id', 'group_detail', 'submit_location', 'express_id', 'method', 'hclust_method']
+        postArgs = ['group_id', 'group_detail', 'submit_location', 'express_id', 'method']
+        # postArgs删除了 hclust_method 参数
         for args in postArgs:
             if not hasattr(data, args):
                 info = {'success': False, 'info': '%s参数缺少!' % args}
@@ -30,7 +31,7 @@ class ExpressCorrAction(RefRnaController):
         my_param['group_id'] = data.group_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['method'] = data.method
-        my_param['hclust_method'] = data.hclust_method
+        # my_param['hclust_method'] = data.hclust_method
         my_param['submit_location'] = data.submit_location
         my_param["task_type"] = task_type
         if express_info:
@@ -62,7 +63,6 @@ class ExpressCorrAction(RefRnaController):
             options = {
                 "express_file": data.express_id,
                 "method": data.method,
-                "hclust_method": data.hclust_method,
                 "correlation_id": str(main_table_id),
                 "group_id": data.group_id,
                 "group_detail": data.group_detail,

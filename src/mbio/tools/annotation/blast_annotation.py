@@ -19,7 +19,7 @@ class BlastAnnotationAgent(Agent):
         super(BlastAnnotationAgent, self).__init__(parent)
         options = [
             {"name": "blastout_table", "type": "infile", "format": "align.blast.blast_table"},
-            {"name": "evalue", "type": "float", "default": 10e-5},  # evalue值
+            {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "score", "type": "float", "default": 0},  # score值
             {"name": "similarity", "type": "float", "default": 0},  # similarity值
             {"name": "identity", "type": "float", "default": 0},  # identity值
@@ -41,14 +41,14 @@ class BlastAnnotationAgent(Agent):
         if not self.option("blastout_table").is_set:
             raise OptionError("必须提供BLAST的结果文件")
         if self.option("evalue"):
-            if self.option("evalue") > 10e-3:
-                raise OptionError("E-value需小于最大值10e-3")
+            if self.option("evalue") > 1e-3:
+                raise OptionError("E-value需小于最大值1e-3")
         if self.option("similarity"):
-            if self.option("similarity") > 1 or self.option("similarity") < 0:
-                raise OptionError("similarity范围为0-1")
+            if self.option("similarity") > 100 or self.option("similarity") < 0:
+                raise OptionError("similarity范围为0-100")
         if self.option("identity"):
-            if self.option("identity") > 1 or self.option("identity") < 0:
-                raise OptionError("identity范围为0-1")
+            if self.option("identity") > 100 or self.option("identity") < 0:
+                raise OptionError("identity范围为0-100")
         else:
             pass
 
