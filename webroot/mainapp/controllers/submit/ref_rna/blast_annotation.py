@@ -90,37 +90,37 @@ class BlastAnnotationAction(RefRnaController):
         if not (hasattr(data, "task_type")):
             success.append("缺少参数task_type")
         if not (hasattr(data, "nr_evalue")):
-            data.nr_evalue = 10e-3
+            data.nr_evalue = 1e-3
         else:
-            if float(data.nr_evalue) > 10e-3:
-                success.append("NR E-value值需小于10e-3")
+            if float(data.nr_evalue) > 1e-3:
+                success.append("NR E-value值需小于1e-3")
         if not (hasattr(data, "nr_similarity")):
             data.nr_similarity = 0
         else:
-            if float(data.nr_similarity) < 0 or float(data.nr_similarity) > 1:
-                success.append("NR Similarity值需在0-1范围内")
+            if float(data.nr_similarity) < 0 or float(data.nr_similarity) > 100:
+                success.append("NR Similarity值需在0-100范围内")
         if not (hasattr(data, "nr_identity")):
             data.nr_identity = 0
         else:
-            if float(data.nr_identity) < 0 or float(data.nr_identity) > 1:
-                success.append("NR Identity值需在0-1范围内")
+            if float(data.nr_identity) < 0 or float(data.nr_identity) > 100:
+                success.append("NR Identity值需在0-100范围内")
         if not (hasattr(data, "nr_score")):
             data.nr_score = 0
         if not (hasattr(data, "swissprot_similarity")):
             data.swissprot_similarity = 0
         else:
-            if float(data.swissprot_similarity) < 0 or float(data.swissprot_similarity) > 1:
-                success.append("Swiss-Prot Similarity值需在0-1范围内")
+            if float(data.swissprot_similarity) < 0 or float(data.swissprot_similarity) > 100:
+                success.append("Swiss-Prot Similarity值需在0-100范围内")
         if not (hasattr(data, "swissprot_evalue")):
-            data.swissprot_evalue = 10e-3
+            data.swissprot_evalue = 1e-3
         else:
-            if float(data.swissprot_evalue) > 10e-3:
-                success.append("Swiss-Prot E-value值需小于10e-3")
+            if float(data.swissprot_evalue) > 1e-3:
+                success.append("Swiss-Prot E-value值需小于1e-3")
         if not (hasattr(data, "swissprot_identity")):
             data.swissprot_identity = 0
         else:
-            if float(data.swissprot_identity) < 0 or float(data.swissprot_identity) > 1:
-                success.append("Swiss-Prot Identity值需在0-1范围内")
+            if float(data.swissprot_identity) < 0 or float(data.swissprot_identity) > 100:
+                success.append("Swiss-Prot Identity值需在0-100范围内")
         if not (hasattr(data, "swissprot_score")):
             data.swissprot_score = 0
         return success
