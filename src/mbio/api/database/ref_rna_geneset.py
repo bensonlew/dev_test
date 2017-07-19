@@ -258,8 +258,12 @@ class RefRnaGeneset(Base):
                     data["{}_num".format(dk)] = int(line[3+n*3])
                     data["{}_percent".format(dk)] = float(line4[0])
                     # data["{}_percent_str".format(dk)] = line4[1][:-1] if len(line4[1][:-1]) > 1 else "0"
-                    data["{}_str".format(dk)] = line[5+n*3]
-                    data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    try:
+                        data["{}_str".format(dk)] = line[5+n*3]
+                        data["{}_genes".format(dk)] = line[5+n*3].split(";")
+                    except:
+                        data["{}_str".format(dk)] = ""
+                        data["{}_genes".format(dk)] = ""
                     if len(line4) > 1:
                         data["{}_percent_str".format(dk)] = line4[1][:-1]
                     else:
@@ -361,9 +365,13 @@ class RefRnaGeneset(Base):
                     'kegg_id': regulate_id,
                     'pathway_id': line[0],
                     'ko_ids': line[1],
-                    'pathway_definition': path_def[line[0]],
+                    # 'pathway_definition': path_def[line[0]],
                     'link': line[-1]
                 }
+                try:
+                    insert_data.update({'pathway_definition': path_def[line[0]]})
+                except:
+                    insert_data.update({'pathway_definition': ''})
                 # print path_def[line[0]]
                 for n, gn in enumerate(genesets_name):
                     gene_list = re.findall(r"(.*?)\(.*?\)", line[3+2*n])
@@ -381,3 +389,47 @@ class RefRnaGeneset(Base):
                 self.bind_object.logger.info("导入kegg调控统计表：%s信息出错:%s" % (kegg_regulate_table, e))
             else:
                 self.bind_object.logger.info("导入kegg调控统计表:%s信息成功!" % kegg_regulate_table)
+
+
+if __name__ == "__main__":
+    a = RefRnaGeneset("aaa")
+    trans_gs_id_name = {
+        "5964800ea4e1af2583dcc94f": "A_vs_B",
+        "5964800fa4e1af2583dcc955": "A_vs_C",
+        "59648010a4e1af2583dcc95b": "B_vs_C"
+    }
+    gene_gs_id_name = {
+        "59647fc7a4e1af25303e5c62": "A_vs_B",
+        "59647fc8a4e1af25303e5c68": "A_vs_C",
+        "59647fc8a4e1af25303e5c6e": "B_vs_C"
+    }
+    trans_dir = "/mnt/ilustre/users/sanger-test/workspace/20170714/Refrna_demo_0711/DiffAnalysis/output"
+    gene_dir = "/mnt/ilustre/users/sanger-test/workspace/20170714/Refrna_demo_0711/DiffAnalysis1/output"
+    trans_kegg_regulate_dir = trans_dir + "/kegg_regulate"
+    gene_kegg_regulate_dir = gene_dir + "/kegg_regulate"
+    for trans_id in trans_gs_id_name.keys():
+        params = dict()
+        params["geneset_id"] = str(trans_id)
+        params["anno_type"] = "kegg"
+        params["submit_location"] = "geneset_class"
+        params["task_type"] = ""
+        params["geneset_type"] = "transcript"
+        inserted_id = a.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
+        for dir in os.listdir(trans_kegg_regulate_dir):
+            if trans_gs_id_name[str(trans_id)] in dir:
+                dir_path = os.path.join(trans_kegg_regulate_dir, dir)
+                a.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
+                a.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
+    for gene_id in gene_gs_id_name.keys():
+        params = dict()
+        params["geneset_id"] = str(gene_id)
+        params["anno_type"] = "kegg"
+        params["submit_location"] = "geneset_class"
+        params["task_type"] = ""
+        params["geneset_type"] = "gene"
+        inserted_id = a.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
+        for dir in os.listdir(gene_kegg_regulate_dir):
+            if gene_gs_id_name[str(gene_id)] in dir:
+                dir_path = os.path.join(gene_kegg_regulate_dir, dir)
+                a.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
+                a.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))

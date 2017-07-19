@@ -27,7 +27,9 @@ class PearsonCorrelation(MetaController):
             if not hasattr(data, argu):
                 info = {'success': False, 'info': '%s参数缺少!' % argu}
                 return json.dumps(info)
-
+        if len(str(data.env_labs).split(",")) < 2:
+            info = {'success': False, 'info': '相关性Heatmap分析环境因子数量必须大于等于2!'}
+            return json.dumps(info)
         task_name = 'meta.report.pearson_correlation'
         task_type = 'workflow'
         otu_info = self.meta.get_otu_table_info(data.otu_id)

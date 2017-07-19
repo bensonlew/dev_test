@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 # last_modify:20161027
+# modify by khl
+
 from biocluster.api.database.base import Base, report_check
 import os
 import datetime
@@ -18,6 +20,30 @@ class DenovoCluster(Base):
         #self._db_ref = Confif().MONGODB + "_ref_rna"
         self.denovo_db = Config().mongo_client[Config().MONGODB + "_rna"] 
         self.ref_db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+
+
+    def get_gene_name(self, class_code, query_type=None, workflow=False):
+        """
+        :params: 是否工作流根据class_code信息导入基因/转录本名称
+        对转录本都加上相应的gene id信息
+        """
+        with open(class_code, 'r+') as f1:
+            f1.readline()
+            data = {}
+            for lines in f1:
+                line = lines.strip().split("\t")
+                if workflow:
+                    if query_type == 'transcript':
+                        data[line[0]] = {"gene_name": line[3], "class_code": line[2], "gene_id": line[1]}
+                    if query_type == 'gene':
+                        data[line[1]] = {"gane_name": line[3], "class_code": line[2]}
+                else:
+                    if query_type == 'gene':
+                        data[line[0]] = {"gene_name": line[1]}
+                    if query_type == 'transcript':
+                        data[line[0]] = {"gene_name": line[1], 'gene_id': line[3]}
+            return data
+
 
     def get_gene_name(self, class_code, query_type=None, workflow=False):
         """

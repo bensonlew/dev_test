@@ -19,7 +19,7 @@ from mainapp.controllers.project.ref_express_controller import RefExpressControl
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from mbio.api.to_file.ref_rna import *
 from bson import ObjectId
-
+from mainapp.models.mongo.ref_rna import *
 
 class GenesetClusterAction(RefRnaController):
     def __init__(self):
@@ -54,6 +54,9 @@ class GenesetClusterAction(RefRnaController):
         my_param['genes_distance_method'] = data.genes_distance_method
         if data.method == 'hclust':
             my_param['samples_distance_method'] = data.samples_distance_method
+            my_param['genes_distance_algorithm'] = data.genes_distance_algorithm
+            my_param['samples_distance_algorithm'] = data.samples_distance_algorithm
+
         # my_param['gene_cluster'] = data.gene_cluster #逻辑值为true/false
         # my_param['sample_cluster'] = data.sample_cluster #逻辑值为true/false
         
@@ -99,7 +102,14 @@ class GenesetClusterAction(RefRnaController):
         if not express_id:
              info = {"success": False, "info": "sg_express表params参数中没有找到表达量水平type:{},表达量计算软件exp    ress_method{}的表达量信息,请换一种表达量或表达量值类型".format(data.type,data.express_method)}
              return json.dumps(info)
-
+        #添加class_code信息
+        try:
+            class_code_id = self.ref_rna.get_class_code_id(geneset_info['task_id'])
+            print 'class_code_id'
+            print class_code_id
+        except Exception:
+            print "没有获得class_code_id信息"
+            raise Exception("没有找到class_code_id信息!")
         main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
         update_info = {str(main_table_id): collection_name}
         update_info = json.dumps(update_info) 
@@ -108,6 +118,7 @@ class GenesetClusterAction(RefRnaController):
             "express_file": str(express_id),
             "genes_distance_method": data.genes_distance_method,
             "log": data.log,
+            "class_code": class_code_id,
             "method": data.method,
             "group_id": data.group_id,
             "group_detail": data.group_detail,
@@ -117,12 +128,15 @@ class GenesetClusterAction(RefRnaController):
             "sub_num": data.sub_num,
             "geneset_cluster_id": str(main_table_id),
             "gene_list": data.geneset_id,
-            "update_info": update_info
+            "update_info": update_info,
+            "class_code_type":"express_diff"
         }
         if data.method == 'hclust':
             options["samples_distance_method"] = data.samples_distance_method
+            options['genes_distance_algorithm'] = data.genes_distance_algorithm
+            options['samples_distance_algorithm'] = data.samples_distance_algorithm
 
-        to_file = ["ref_rna.export_express_matrix_level(express_file)","ref_rna.export_group_table_by_detail(group_id)", "ref_rna.export_gene_list(gene_list)"]
+        to_file = ["ref_rna.export_express_matrix_level(express_file)","ref_rna.export_group_table_by_detail(group_id)", "ref_rna.export_gene_list(gene_list)","ref_rna.export_class_code(class_code)"]
         self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,\
                 task_id = task_info['task_id'],project_sn = task_info['project_sn'],\
                 params = my_param, to_file = to_file)
@@ -138,7 +152,7 @@ class GenesetClusterAction(RefRnaController):
         """
         if method == 'hclust':
             params_name = ['type','genes_distance_method','method','log','sub_num',"level",'samples_distance_method',
-                        'group_id','group_detail','geneset_id', 'express_method','submit_location']
+                        'group_id','group_detail','geneset_id', 'express_method','submit_location','genes_distance_algorithm','samples_distance_algorithm']
         if method == 'kmeans':
             params_name = ['type', 'genes_distance_method', 'method', 'log', 'sub_num', "level",
                            'group_id', 'group_detail', 'geneset_id',

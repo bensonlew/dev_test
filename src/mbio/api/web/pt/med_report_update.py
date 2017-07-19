@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
-from biocluster.config import Config
 from .med_report_tupdate import MedReportTupdate
 
 
@@ -11,4 +10,4 @@ class MedReportUpdate(MedReportTupdate):
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://api.sanger.com/task/add_file"
-        self.mongodb = self._mongo_client[self.config.MONGODB+'_paternity_test']
+        self.database = self._mongo_client[self.config.MONGODB + '_paternity_test']

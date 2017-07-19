@@ -65,8 +65,12 @@ class PcoaTool(Tool):
     def __init__(self, config):
         super(PcoaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
-        self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
+        # self.cmd_path = os.path.join(
+        #     self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
+        self.cmd_path = 'bioinfo/statistical/scripts/ordination.pl'
+        self.script_path = "bioinfo/meta/scripts/beta_diver.sh"
+        self.R_path = os.path.join(self.config.SOFTWARE_DIR, 'program/R-3.3.1/bin/R')
+
 
     def run(self):
         """
@@ -84,19 +88,34 @@ class PcoaTool(Tool):
             self.option('dis_matrix').prop['path'], self.work_dir)
         self.logger.info('运行ordination.pl程序计算pcoa')
         self.logger.info(cmd)
-
-        try:
-            subprocess.check_output(cmd, shell=True)
-            self.logger.info('生成 cmd.r 文件成功')
-        except subprocess.CalledProcessError:
+        cmd1 = self.add_command("cmd.r", cmd).run()
+        self.wait(cmd1)
+        if cmd1.return_code == 0:
+            self.logger.info("生成 cmd.r 文件成功")
+        else:
             self.logger.info('生成 cmd.r 文件失败')
             self.set_error('无法生成 cmd.r 文件')
-        try:
-            subprocess.check_output(self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
-            self.logger.info('pcoa计算成功')
-        except subprocess.CalledProcessError:
+        # try:
+        #     subprocess.check_output(cmd, shell=True)
+        #     self.logger.info('生成 cmd.r 文件成功')
+        # except subprocess.CalledProcessError:
+        #     self.logger.info('生成 cmd.r 文件失败')
+        #     self.set_error('无法生成 cmd.r 文件')
+        cmd_ = self.script_path + ' %s %s' % (self.R_path, self.work_dir + "/cmd.r")
+        self.logger.info(cmd_)
+        cmd2 = self.add_command("pcoa", cmd_).run()
+        self.wait(cmd2)
+        if cmd2.return_code == 0:
+            self.logger.info("pcoa计算成功")
+        else:
             self.logger.info('pcoa计算失败')
             self.set_error('R程序计算pcoa失败')
+        # try:
+        #     subprocess.check_output(self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
+        #     self.logger.info('pcoa计算成功')
+        # except subprocess.CalledProcessError:
+        #     self.logger.info('pcoa计算失败')
+        #     self.set_error('R程序计算pcoa失败')
         allfile = self.get_filesname()
         sites_file = self.format_header(allfile[1])
         eigenvalues = self.format_eigenvalues(allfile[0], self.work_dir + '/format_eigenvalues.txt')

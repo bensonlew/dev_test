@@ -69,6 +69,7 @@ class KeggRegulateTool(Tool):
         self._version = "v1.0.1"
         self.python = '/program/Python/bin/'
         self.diff_list = self.option('diff_stat').prop['diff_genes']
+        self.image_magic_path = self.config.SOFTWARE_DIR + "/bioinfo/plot/imageMagick/bin/convert"
 
     def run(self):
         """
@@ -103,7 +104,7 @@ class KeggRegulateTool(Tool):
         if not os.path.exists(pathways):
             os.mkdir(pathways)
         try:
-            kegg().get_pictrue(path_ko=path_ko, out_dir=pathways, regulate_dict=regulate_dict)
+            kegg().get_pictrue(path_ko=path_ko, out_dir=pathways, regulate_dict=regulate_dict, image_magick= self.image_magic_path)
             kegg().get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output=self.output_dir + '/kegg_regulate_stat.xls')
             name = os.path.splitext(os.path.basename(self.option("diff_stat").prop["path"]))[0].split("_edgr_stat")[0]
             cmd_str = "Pathway_id\tKo_ids\t{}_down_numbers\t{}_down_genes\t{}_up_numbers\t{}_up_genes".format(name, name, name, name)

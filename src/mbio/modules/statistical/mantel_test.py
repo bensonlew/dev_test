@@ -118,12 +118,12 @@ class MantelTestModule(Module):
             line = o.readline()
             line = line.strip('\n').split('\t')
             sample_o = line[1:]
-        for i in sample_e:
-            if i in sample_o:
+        for i in sample_o:
+            if i in sample_e:
                 continue
             else:
                 # return False
-                raise Exception('环境因子表中的样本和otu表中的样本不一致')
+                raise Exception('OTU表中的样本和环境因子表中的样本不一致，请剔除OTU中非法样本！')
         return True
 
     def facdistance_run(self):

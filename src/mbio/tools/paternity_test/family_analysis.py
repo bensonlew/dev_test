@@ -13,6 +13,7 @@ class FamilyAnalysisAgent(Agent):
     """
     合并家族之后的一系列分析
     包括父权值、有效率、无效率、错配率等等
+    包含data_analysis.R
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21
@@ -84,8 +85,8 @@ class FamilyAnalysisTool(Tool):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        analysis_cmd = "{}Rscript {}data_analysis.R {}".\
-            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'])
+        analysis_cmd = "{}Rscript {}data_analysis.R {} {}".\
+            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'],self.work_dir)
         self.logger.info(analysis_cmd)
         self.logger.info("开始运行家系的分析")
         cmd = self.add_command("analysis_cmd", analysis_cmd).run()

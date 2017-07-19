@@ -19,21 +19,29 @@ class PtDatasplit(PtController):
         # print(data)
         # client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         # params_name = ['message_table', 'data_dir', 'family_table', 'submit_location', 'member_id']
-        params_name = ['message_table', 'data_dir', 'family_table','member_id']
+        # params_name = ['message_table', 'data_dir', 'family_table', 'member_id', 'customer_table']
+        params_name = ['message_table', 'data_dir', 'member_id']
         for param in params_name:
             if not hasattr(data, param):
                 info = {'success': False, 'info': '缺少{}参数'.format(param)}
+                return json.dumps(info)
+        if not hasattr(data, "family_table"):
+            if not hasattr(data, "customer_table"):
+                info = {'success': False, 'info': '缺少客户信息表参数，无法进行分析'}
                 return json.dumps(info)
         task_name = 'paternity_test.pt_datasplit'
         task_type = 'workflow'
         params_json = {
             'message_table': data.message_table,
             'data_dir': data.data_dir,
-            'family_table': data.family_table,
-            # 'submit_location': data.submit_location,
+            # 'family_table': data.family_table,
             'member_id': data.member_id,
-            # 'task_type': 'reportTask'
+            # 'customer_table': data.customer_table,
         }
+        if hasattr(data, "family_table"):
+            params_json['family_table'] = data.family_table
+        if hasattr(data, "customer_table"):
+            params_json['customer_table'] = data.customer_table
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
             ('params', params),
@@ -48,11 +56,16 @@ class PtDatasplit(PtController):
         options = {
             "message_table": data.message_table,
             "data_dir": data.data_dir,
-            "family_table": data.family_table,
+            # "family_table": data.family_table,
             "pt_data_split_id": str(main_table_id),
             "update_info": json.dumps(update_info),
-            "member_id": data.member_id
+            "member_id": data.member_id,
+            # "customer_table": data.customer_table,
         }
+        if hasattr(data, "family_table"):
+            options['family_table'] = data.family_table
+        if hasattr(data, "customer_table"):
+            options['customer_table'] = data.customer_table
         sheet_data = self.set_sheet_data_(name=task_name, options=options, module_type=task_type, params=params)
         print "*********"
         print sheet_data

@@ -93,11 +93,11 @@ class PearsonsCorrelationAgent(Agent):
                 line = o.readline()
                 line = line.strip('\n').split('\t')
                 sample_o = line[1:]
-            for i in sample_e:
-                if i in sample_o:
+            for i in sample_o:
+                if i in sample_e:
                     continue
                 else:
-                    raise OptionError('环境因子表中的样本和otu表中的样本不一致')
+                    raise OptionError('OTU表中的样本和环境因子表中的样本不一致，请剔除OTU中非法样本！')
 
 
     def set_resource(self):

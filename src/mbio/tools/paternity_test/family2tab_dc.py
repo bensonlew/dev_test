@@ -14,7 +14,8 @@ import shutil
 
 class Family2tabDcAgent(Agent):
     """
-    调用fastq2bam.sh脚本，完成无创亲子鉴定的生信分析流程中将fastq转为bam文件
+    调用fastq2bam.sh脚本，完成无创亲子鉴定的生信分析流程中将fastq转为bam文件——针对多重流程
+    包含脚本：dcpt_zml.sh
     version v1.0
     author: hongdongxuan
     modified: moli.zhou

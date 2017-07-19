@@ -13,6 +13,7 @@ class FamilyMergeAgent(Agent):
     """
     tab2family
     将已知的tab文件合并转化为整个家系在一起的表格
+    包含family_joined.R
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21
@@ -91,10 +92,10 @@ class FamilyMergeTool(Tool):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {}".\
+        tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {} {}".\
             format(self.R_path,self.script_path,self.option("dad_tab").prop['path'],
                    self.option("mom_tab").prop['path'],self.option("preg_tab").prop['path'],
-                   self.option("err_min"),self.option("ref_point").prop['path'])
+                   self.option("err_min"),self.option("ref_point").prop['path'], self.work_dir)
         self.logger.info(tab2family_cmd)
         self.logger.info("开始运行家系合并")
         cmd = self.add_command("tab2family_cmd", tab2family_cmd).run()
