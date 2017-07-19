@@ -54,7 +54,10 @@ class DiffExpressAction(RefRnaController):
         my_param['type'] = data.type  #基因还是转录本
         my_param['task_type']= task_type
         my_param['submit_location'] = data.submit_location
-
+        
+        if data.pvalue ==0 and data.fc == 1:
+            info = {"success":False,"info":'{}值为0和fc为1不能同时存在!'.format(data.pvalue_padjust)}
+            return json.dumps(info)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])

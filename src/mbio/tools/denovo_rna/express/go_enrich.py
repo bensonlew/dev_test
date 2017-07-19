@@ -46,7 +46,7 @@ class GoEnrichAgent(Agent):
         """
         if not self.option("diff_list").is_set:
             raise OptionError("缺少输入文件:差异基因名称文件")
-        # if not self.option("all_list").is_set:
+        # if not self.option("all_list").is_set: # edited by shijin
         #     raise OptionError("缺少输入文件:全部基因名称文件")
         if not self.option("go_list").is_set:
             raise OptionError("缺少输入文件:差异基因对应的go_id")
