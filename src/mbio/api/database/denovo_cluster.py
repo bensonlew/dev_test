@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
-# last_modify:20161027
 # modify by khl
 
 from biocluster.api.database.base import Base, report_check
@@ -20,30 +19,6 @@ class DenovoCluster(Base):
         #self._db_ref = Confif().MONGODB + "_ref_rna"
         self.denovo_db = Config().mongo_client[Config().MONGODB + "_rna"] 
         self.ref_db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-
-
-    def get_gene_name(self, class_code, query_type=None, workflow=False):
-        """
-        :params: 是否工作流根据class_code信息导入基因/转录本名称
-        对转录本都加上相应的gene id信息
-        """
-        with open(class_code, 'r+') as f1:
-            f1.readline()
-            data = {}
-            for lines in f1:
-                line = lines.strip().split("\t")
-                if workflow:
-                    if query_type == 'transcript':
-                        data[line[0]] = {"gene_name": line[3], "class_code": line[2], "gene_id": line[1]}
-                    if query_type == 'gene':
-                        data[line[1]] = {"gane_name": line[3], "class_code": line[2]}
-                else:
-                    if query_type == 'gene':
-                        data[line[0]] = {"gene_name": line[1]}
-                    if query_type == 'transcript':
-                        data[line[0]] = {"gene_name": line[1], 'gene_id': line[3]}
-            return data
-
 
     def get_gene_name(self, class_code, query_type=None, workflow=False):
         """
@@ -81,10 +56,18 @@ class DenovoCluster(Base):
             with open(sample_tree, 'rb') as s:
                 sample_tree = s.readlines()[0].strip('\n')
         params['diff_fpkm'] = str(express_id)
+        if 'express_method' in params.keys() and 'level' in params.keys() and 'type' in params.keys() and 'log' in params.keys():
+            express_method = params['express_method']
+            express_level = params['express_level']
+            query_type = params['query_type']
+            log_info = params['log']
+            re_name = 'GSetCluster_{}_{}_{}_{}_'.format(express_method, express_level, query_type, log_info) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("params需要有express_method、level、type、log字段!")
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'cluster_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else re_name,
             'desc': '基因集聚类分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
