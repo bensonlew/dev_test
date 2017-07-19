@@ -545,6 +545,7 @@ class RefAnnotation(Base):
         self.bind_object.logger.info("add sg_annotation_swissprot!")
         return swissprot_id
 
+    @report_check
     def add_annotation_swissprot_pie(self, swissprot_id, evalue_path, similar_path, seq_type, anno_type):
         """
         """
