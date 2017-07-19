@@ -57,7 +57,7 @@ def step_count(fasta_file, fasta_to_txt, group_num, step, stat_out):
                 w.write(area_line)
                 top_sum += int(num_statistics)
             else:
-                area_line = ">" + str(i * step) + "\t" + str(len(trans_list)-int(top_sum)) + "\n"
+                area_line = ">" + str(i * step + 1) + "\t" + str(len(trans_list)-int(top_sum)) + "\n"
                 end_line = "total" + "\t" + str(len(trans_list)) + "\n"
                 w.write(area_line)
                 w.write(end_line)
@@ -150,7 +150,11 @@ def count_trans_or_exons(input_file, step, count_file, final_files):
                 final_value += int(value)
                 for id_num in ids_list:
                     final_ids.append(id_num)
-        area_line = str(n * step) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(final_ids) + "\n"
+        if n == 0:
+            area_line = str(n * step) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(final_ids) + "\n"
+        else:
+            area_line = str(n * step + 1) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(
+                final_ids) + "\n"
         f2.write(area_line)
         f3.close()
     f2.close()
