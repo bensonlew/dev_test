@@ -46,13 +46,13 @@ class NiptAnalysis(Base):
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list, table_id
 
-    def update_main(self,main_id,file_path):
+    def update_main(self, main_id, file_path):
         with open(file_path, "rb") as r:
             data1 = r.readlines()[1:]
             for line1 in data1:
                 temp1 = line1.rstrip().split("\t")
                 insert = {
-                    "zz":eval(temp1[1])
+                    "zz": '%.3f' % eval(temp1[1])
                 }
 
         try:
@@ -439,12 +439,12 @@ class NiptAnalysis(Base):
             else:
                 raise Exception("样本 %s 的bed文件为空！"%(sample))
 
-    def add_main(self,member_id,sample_id,batch_id):
+    def add_main(self, member_id, sample_id, batch_id):
         collection = self.database['sg_main']
-        insert_data={
-            'member_id':member_id,
-            'sample_id':sample_id,
-            'batch_id':ObjectId(batch_id),
+        insert_data = {
+            'member_id': member_id,
+            'sample_id': sample_id,
+            'batch_id': ObjectId(batch_id),
             'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
@@ -535,13 +535,13 @@ class NiptAnalysis(Base):
         else:
             self.bind_object.logger.info("插入fastqc表成功")
 
-    def add_qc(self,file,file_gc):
+    def add_qc(self, file, file_gc):
         collection = self.database['sg_sample_qc']
         insert = {}
-        file_name =file.split('/')[-1]
+        file_name = file.split('/')[-1]
         sample_name = file_name.split('.')[0]
         insert["sample_id"] = sample_name
-        with open(file,'rb') as f:
+        with open(file, 'rb') as f:
             for line in f:
                 line = line.strip()
                 line = line.split(': ')
@@ -557,11 +557,14 @@ class NiptAnalysis(Base):
                     insert["properly_paired"] = line[1]
 
         insert['mapping_ratio'] = float(insert["n_map"]) / float(insert["num"])
-        with open(file_gc,'rb') as gc:
+        with open(file_gc, 'rb') as gc:
             for line in gc:
                 line = line.strip()
                 line = line.split('\t')
-                insert['GC'] = line[1]
+                if line[0] == "%GC":
+                    insert['GC'] = line[1]
+                elif line[0] == 'adapt_percent':
+                    insert['adapt_percent'] = line[1]
         try:
             collection.insert_one(insert)
         except Exception as e:
@@ -589,7 +592,7 @@ class NiptAnalysis(Base):
                     # else:
                     #     insert['result'] = 'abnormal'
                 elif line[1] == '13':
-                    insert['chr_13'] = line[2]
+                    insert['chr_13'] = '%.2f' % float(line[2])
                     if -3 < float(line[2]) < 3:
                         insert['13_result'] = 'low'
                         insert['13_desc'] = ''
@@ -598,9 +601,9 @@ class NiptAnalysis(Base):
                         insert['13_desc'] = '13染色体异常' #染色体异常
                     elif float(line[2]) >= 3:
                         insert['13_result'] = 'high'
-                        insert['13_desc'] = '患13染色体三体综合征'
+                        insert['13_desc'] = '13染色体三体综合征'
                 elif line[1] == '18':
-                    insert['chr_18'] = line[2]
+                    insert['chr_18'] = '%.2f' % float(line[2])
                     if -3 < float(line[2]) < 3:
                         insert['18_result'] = 'low'
                         insert['18_desc'] = ''
@@ -609,9 +612,9 @@ class NiptAnalysis(Base):
                         insert['18_desc'] = '18染色体异常'  # 染色体异常
                     elif float(line[2]) >= 3:
                         insert['18_result'] = 'high'
-                        insert['18_desc'] = '患18染色体三体综合征'
+                        insert['18_desc'] = '18染色体三体综合征'
                 elif line[1] == '21':
-                    insert['chr_21'] = line[2]
+                    insert['chr_21'] = '%.2f' % float(line[2])
                     if -3 < float(line[2]) < 3:
                         insert['21_result'] = 'low'
                         insert['21_desc'] = ''
@@ -620,7 +623,7 @@ class NiptAnalysis(Base):
                         insert['21_desc'] = '21染色体异常'  # 染色体异常
                     elif float(line[2]) >= 3:
                         insert['21_result'] = 'high'
-                        insert['21_desc'] = '患21染色体三体综合征'
+                        insert['21_desc'] = '21染色体三体综合征'
         try:
             collection.insert_one(insert)
             if insert['21_result'] == 'low' and insert['18_result'] == 'low' and insert['13_result'] == 'low':
