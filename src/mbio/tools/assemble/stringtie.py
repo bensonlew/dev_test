@@ -92,9 +92,8 @@ class StringtieTool(Tool):
         运行stringtie软件，进行拼接组装
         """
         sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-        cmd = self.stringtie_path + 'stringtie %s -p %s -G %s -s %s -o ' % (
-            self.option('sample_bam').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'],
-            self.option('ref_fa').prop['path'])+sample_name+"_out.gtf"
+        cmd = self.stringtie_path + 'stringtie %s -p %s -G %s  -o ' % (
+            self.option('sample_bam').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'])+sample_name+"_out.gtf"
         self.logger.info('运行stringtie软件，进行组装拼接')
         command = self.add_command("stringtie_cmd", cmd).run()
         self.wait(command)
