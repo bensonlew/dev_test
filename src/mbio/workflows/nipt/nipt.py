@@ -24,7 +24,7 @@ class NiptWorkflow(Workflow):
 			{'name': 'member_id','type':'string'},
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
-			{"name": "ref_group", "type": "int", "default": 2},
+			{"name": "ref_group", "type": "int", "default": 1},
 			{"name": "update_info", "type": "string"},
 			{"name": "single", "type": "string", "default": "false"},
 			{"name": "sanger_type", "type":"string"}, #判断sanger or tsanger

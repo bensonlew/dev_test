@@ -56,8 +56,8 @@ class FastqcAgent(Agent):
 		设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
 		:return:
 		"""
-		self._cpu = 10
-		self._memory = '3G'
+		self._cpu = 11
+		self._memory = '13G'
 
 	def end(self):
 		result_dir = self.add_upload_dir(self.output_dir)
@@ -116,21 +116,32 @@ class FastqcTool(Tool):
 		# 	raise Exception("解压出错")
 
 		file_zip = self.work_dir+'/temp/' + self.option('sample_id') + '.map.valid_fastqc.zip'
+		file_zip1 = self.work_dir + '/temp/' + self.option('sample_id') + '_R1_fastqc.zip'
 		file_dir = self.work_dir
 		fz = zipfile.ZipFile(file_zip, 'r')
 		for f in fz.namelist():
 			fz.extract(f, file_dir)
+		fz1 = zipfile.ZipFile(file_zip1, 'r')
+		for f in fz1.namelist():
+			fz1.extract(f, file_dir)
 
 		file = '{}.map.valid_fastqc/fastqc_data.txt'.format(self.work_dir+'/' + self.option('sample_id'))
-		with open(file, 'r+') as f:
+		file1 = '{}_R1_fastqc/fastqc_data.txt'.format(self.work_dir+'/' + self.option('sample_id'))
+		adapt_percent = ''
+		with open(file, 'r+') as f, open(file1, "r+") as f1:
+			for line1 in f1:
+				line1 = line1.strip().split('\t')
+				for i in range(len(line1)):
+					if re.match(r'TruSeq', line1[i]):
+						adapt_percent = line1[i - 1]
 			for line in f:
 				line = line.strip()
 				line = line.split('\t')
 				if line[0] == '%GC':
 					with open('{}.gc'.format(self.option('sample_id')),'w+') as gc:
 						gc.write(line[0]+'\t'+line[1]+'\n')
+						gc.write("adapt_percent" + '\t' + adapt_percent + '\n')
 						gc.close()
-
 					break
 
 	def set_output(self):
