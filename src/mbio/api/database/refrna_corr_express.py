@@ -21,7 +21,7 @@ class RefrnaCorrExpress(Base):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         print db
     @report_check
-    def add_pca_table(self, pca_path, group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
+    def add_pca_table(self, pca_path, express_level = None,group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         params = {}
         # params ['group_id'] = "58f01bbca4e1af488e52de3d"
@@ -42,11 +42,17 @@ class RefrnaCorrExpress(Base):
                 pc[line[0]]=round(float(line[1]),6)
         if params:
             params['submit_location']='express_pca'
+        if express_level:
+            # 默认写死了是rsem软件
+            re_name = "ExpPCA_RSEM_{}_".format(express_level.lower()) + str(
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("add_pca_table需要设置express_level参数!")
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
             "type": seq_type,
-            "name": name if name else "pca_origin_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            "name": name if name else re_name,
             "status": "end",
             "desc": "样本间相关性PCA分析",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
@@ -69,7 +75,7 @@ class RefrnaCorrExpress(Base):
             pca_rotation = os.path.join(pca_path, 'pca_rotation.xls')
             site_file = os.path.join(pca_path, 'pca_sites.xls')
             if os.path.exists(pca_path):
-                self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
+                # self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
                 #self.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
                 self.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
         print "pca主表导入成功！{}".format(inserted_id)
@@ -126,7 +132,7 @@ class RefrnaCorrExpress(Base):
             print ("导入%s数据成功" % db_name)
     
     @report_check
-    def add_correlation_table(self, correlation, group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
+    def add_correlation_table(self, correlation, express_level=None,group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         correlation_tree = glob.glob("{}/*.tre".format(correlation))
         with open(correlation_tree[0], "r") as t:
@@ -145,12 +151,18 @@ class RefrnaCorrExpress(Base):
             params['group_detail'] = group_detail
         params['submit_location']='express_corr'
         task_id = self.bind_object.sheet.id
-        project_sn = self.bind_object.sheet.project_sn    
+        project_sn = self.bind_object.sheet.project_sn
+        if express_level:
+            re_name = "ExpCor_RSEM_{}_".format(express_level.lower()) + str(
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("add_correlation_table函数需要设置express_level参数!")
+
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
             "type": seq_type,
-            "name": name if name else "correlation_origin_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            "name": name if name else re_name,
             "status": "end",
             "desc": "",
             "correlation_tree": correlation_tree,
