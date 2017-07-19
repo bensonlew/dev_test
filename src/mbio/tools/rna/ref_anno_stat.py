@@ -188,7 +188,9 @@ class RefAnnoStatTool(Tool):
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
         self.kegg_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
-        self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
+        # self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
+        self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/String2Cog.pl'
+        self.perl = '/program/perl-5.24.0/bin/perl'
         self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
@@ -241,11 +243,13 @@ class RefAnnoStatTool(Tool):
             transcript_gene().get_gene_blast_xml(tran_list=self.tran_list, tran_gene=self.tran_gene, xml_path=self.gene_string_xml, gene_xml_path=self.gene_string_xml)
             xml2table(self.gene_string_xml, self.work_dir + '/blast/gene_string.xls')
             self.logger.info("完成筛选gene_string.xml、gene_string.xls")
-            cmd = '{} {} {} {}'.format(self.python_path, self.cog_xml, self.gene_string_xml, self.cog_stat_path)
+            # cmd = '{} {} {} {}'.format(self.python_path, self.cog_xml, self.gene_string_xml, self.cog_stat_path)
+            cmd = '{} {} -i {} --format blastxml -e 1e-3 -o {}'.format(self.perl, self.cog_xml, self.gene_string_xml, self.cog_stat_path)
         else:
             self.option('string_table').sub_blast_table(genes=self.gene_list, new_fp=self.work_dir + '/gene_string.xls')
             transcript_gene().get_gene_blast_table(tran_list=self.tran_list, tran_gene=self.tran_gene, table_path=self.work_dir + '/gene_string.xls', gene_table_path=self.gene_string_table)
-            cmd = '{} {} {} {}'.format(self.python_path, self.cog_table, self.gene_string_table, self.cog_stat_path)
+            # cmd = '{} {} {} {}'.format(self.python_path, self.cog_table, self.gene_string_table, self.cog_stat_path)
+            cmd = '{} {} -i {} --format blasttable -e 1e-3 -o {}'.format(self.perl, self.cog_xml, self.gene_string_table, self.cog_stat_path)
         cog_cmd = self.add_command('cog_cmd', cmd).run()
         self.wait(cog_cmd)
         if cog_cmd.return_code == 0:
