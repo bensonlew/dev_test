@@ -1101,16 +1101,16 @@ class RefrnaExpress(Base):
                 if i == 0:
                     i = 1
                 else:
-                    l = line.strip().split('\t')
-                    gene_id = l[0]
-                    alen = len(l)
-                    blen = alen - 2
-                    alen = alen - 1
-                    fpkm = l[1:alen]
-                    if not re.search(r'yes',"_".join(fpkm)):
+                        l = line.strip().split('\t')
+                        gene_id = l[0]
+                        alen = len(l)
+                        blen = alen - 2
+                        alen = alen - 1
+                        fpkm = l[1:alen]
+                        #if not re.search(r'yes',"_".join(fpkm)):
                         # add by khl 20170623 只取出含有yes的信息，否则过滤掉
-                        continue
-                    else:
+                        #    continue
+                        #else:
                         sum_1 = l[alen]
                         data = [
                             ("seq_id", gene_id),
