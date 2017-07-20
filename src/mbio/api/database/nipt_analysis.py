@@ -244,7 +244,7 @@ class NiptAnalysis(Base):
                         "accpeted_date": para_list[3],
                         "number": para_list[4],
                         # "register_number": para_list[5], # 去除住院门诊号
-                        "gestation": para_list[5],
+                        "gestation": '/' if str(para_list[5]) == '孕/产/' else para_list[5],
                         "pregnancy": para_list[6],
                         "IVFET": para_list[7],
                         "hospital": para_list[8],
@@ -252,7 +252,7 @@ class NiptAnalysis(Base):
                         "tel": tel,
                         "status": para_list[11],
                         "final_period": para_list[12],
-                        "gestation_week": para_list[13],
+                        "gestation_week": self.set_week_date(para_list[13]),
                         "age": para_list[14],
                         "sample_type": para_list[15],
                         "sample_id": para_list[16]
@@ -410,6 +410,27 @@ class NiptAnalysis(Base):
             else:
                 self.bind_object.logger.info("插入客户信息表成功")
     '''
+
+
+    def set_week_date(self, gestation_week):
+
+        if re.search("\+", str(gestation_week)):
+            temp = gestation_week.strip().split('+')
+            if len(temp[0]) >= 5:
+                m = temp[0][:-3]
+            else:
+                m = temp[0]
+            if len(temp[1]) >= 4:
+                n = temp[1][:-3]
+            else:
+                n = temp[1]
+            data = m + '+' + n
+        else:
+            if len(gestation_week) >= 5:
+                data = gestation_week[:-3]
+            else:
+                data = gestation_week
+        return data
 
     def export_bed_file(self, sample, dir):
         """
@@ -592,7 +613,7 @@ class NiptAnalysis(Base):
                     # else:
                     #     insert['result'] = 'abnormal'
                 elif line[1] == '13':
-                    insert['chr_13'] = '%.2f' % float(line[2])
+                    insert['chr_13'] = '%.3f' % float(line[2])
                     if -3 < float(line[2]) < 3:
                         insert['13_result'] = 'low'
                         insert['13_desc'] = ''
@@ -603,7 +624,7 @@ class NiptAnalysis(Base):
                         insert['13_result'] = 'high'
                         insert['13_desc'] = '13染色体三体综合征'
                 elif line[1] == '18':
-                    insert['chr_18'] = '%.2f' % float(line[2])
+                    insert['chr_18'] = '%.3f' % float(line[2])
                     if -3 < float(line[2]) < 3:
                         insert['18_result'] = 'low'
                         insert['18_desc'] = ''
@@ -614,7 +635,7 @@ class NiptAnalysis(Base):
                         insert['18_result'] = 'high'
                         insert['18_desc'] = '18染色体三体综合征'
                 elif line[1] == '21':
-                    insert['chr_21'] = '%.2f' % float(line[2])
+                    insert['chr_21'] = '%.3f' % float(line[2])
                     if -3 < float(line[2]) < 3:
                         insert['21_result'] = 'low'
                         insert['21_desc'] = ''
