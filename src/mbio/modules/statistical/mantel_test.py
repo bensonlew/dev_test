@@ -99,7 +99,7 @@ class MantelTestModule(Module):
         # self.otudistance.on("end",self.facdistance_run)
         self.otudistance.run()
 
-    def check_env(self):  # add by zhouxuan 20170612
+    def check_env(self):  # add by zhouxuan 20170720
         env_table = self.option('factor').prop['path']
         sample_e = []
         with open(env_table, 'r') as e:
@@ -108,7 +108,7 @@ class MantelTestModule(Module):
                 if line[0] != '#SampleID':
                     sample_e.append(line[0])
                     for i in range(1, len(line)):
-                        if float(line[i]):
+                        if float(line[i]) or line[i] == '0':
                             continue
                         else:
                             # return False
