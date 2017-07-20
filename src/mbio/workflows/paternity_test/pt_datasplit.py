@@ -109,9 +109,32 @@ class PtDatasplitWorkflow(Workflow):
 		else:
 			ti = ti + '-' + str(accept_time.day)
 		self.logger.info('time:{}'.format(ti))
+		api_read_tab = self.api.tab_file
+		check_file = self.api.sg_paternity_test
 		with open(self.option('message_table').prop['path'], 'r') as m:
 			for line in m:
 				line = line.strip().split('\t')
+				x = api_read_tab.tab_exist(line[3])  # 判断是否重名
+				if x:
+					self.logger.error('请确认{}样本是否重名'.format(line[3]))
+					raise Exception('请确认{}样本是否重名'.format(line[3]))
+					# self.exit(exitcode=1, data='请确认{}样本是否重名'.format(line[3]), terminated=False)
+				if re.match('WQ([0-9]{8,})-(.*)(T)([0-9])', line[3]):  # 如果为重上机，检测是否命名符合规范
+					name = line[3].split('-')
+					family_id_ = name[0]
+					member_id_ = ('-').join(name[1:-1])
+					if re.match('M(.*)', name[1]):
+						member = 'mom'
+					else:
+						member = 'dad'
+					r = check_file.check_pt_message(family_id_=family_id_, member_id_=member_id_, type=member)
+					if r == 'True':
+						self.logger.info('重上机命名没有问题')
+					else:
+						self.logger.error('重上机命名有问题{}'.format(line[3]))
+						raise Exception('重上机命名有问题{}'.format(line[3]))
+						# self.exit(exitcode=1, data='重上机命名有问题{}'.format(line[3]), terminated=False)
+
 				# 如果是胎儿重上机不更新信息依旧用之前的信息（重送样或者爸爸妈妈的信息）
 				if re.match('WQ([0-9]{8,})-(S)(.*)(T)([0-9])', line[3]):
 					continue

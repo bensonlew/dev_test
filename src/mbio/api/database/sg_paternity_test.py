@@ -466,3 +466,14 @@ class SgPaternityTest(Base):
         else:
             collection.find_one_and_update({"pt_father_id": pt_father_id, 'dad_id': 'NA'},
                                            {"$set": {"result": 'MARK'}})
+
+    def check_pt_message(self, family_id_, member_id_, type):
+        collection = self.database["sg_pt_customer"]
+        if type == 'mom':
+            m = collection.find_one({"pt_serial_number": family_id_, 'mom_id_': member_id_})
+        else:
+            m = collection.find_one({"pt_serial_number": family_id_, 'dad_id_': member_id_})
+        if m:
+            return 'True'
+        else:
+            return 'False'
