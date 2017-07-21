@@ -182,7 +182,10 @@ class NiptWorkflow(Workflow):
 				elif re.search(name +'.*_fastqc.html$', i):
 					sanger_path = Config().get_netdata_config(self.option('sanger_type'))
 					path = sanger_path[self.option('sanger_type')+ "_path"] + "/rerewrweset/nipt_fastqc"
-					os.link(self.output_dir + '/' + i, path + '/' + i)
+					if not os.path.exists(path + '/' + i):
+						os.link(self.output_dir + '/' + i, path + '/' + i)
+					else:
+						pass
 					self.api_nipt.add_fastqc(self.output_dir + '/' + i)  # fastqc入库
 				elif i == name + '_result.txt':
 					self.api_nipt.report_result(interaction_id, self.output_dir + '/' + i)
