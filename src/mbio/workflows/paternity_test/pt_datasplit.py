@@ -39,7 +39,6 @@ class PtDatasplitWorkflow(Workflow):
 		self.data_split = self.add_tool("paternity_test.data_split")
 		self.merge_fastq = self.add_tool("paternity_test.merge_fastq")
 		self.set_options(self._sheet.options())
-		# self.update_status_api = self.api.pt_update_status
 		self.tools = []
 		self.sample_name_wq = []
 		self.sample_name_ws = []
@@ -109,9 +108,32 @@ class PtDatasplitWorkflow(Workflow):
 		else:
 			ti = ti + '-' + str(accept_time.day)
 		self.logger.info('time:{}'.format(ti))
+		api_read_tab = self.api.tab_file
+		check_file = self.api.sg_paternity_test
 		with open(self.option('message_table').prop['path'], 'r') as m:
 			for line in m:
 				line = line.strip().split('\t')
+				x = api_read_tab.tab_exist(line[3])  # 判断是否重名
+				if x:
+					self.logger.error('请确认{}样本是否重名'.format(line[3]))
+					raise Exception('请确认{}样本是否重名'.format(line[3]))
+					# self.exit(exitcode=1, data='请确认{}样本是否重名'.format(line[3]), terminated=False)
+				if re.match('WQ([0-9]{8,})-(.*)(T)([0-9])', line[3]):  # 如果为重上机，检测是否命名符合规范
+					name = line[3].split('-')
+					family_id_ = name[0]
+					member_id_ = ('-').join(name[1:-1])
+					if re.match('M(.*)', name[1]):
+						member = 'mom'
+					else:
+						member = 'dad'
+					r = check_file.check_pt_message(family_id_=family_id_, member_id_=member_id_, type=member)
+					if r == 'True':
+						self.logger.info('重上机命名没有问题')
+					else:
+						self.logger.error('重上机命名有问题{}'.format(line[3]))
+						raise Exception('重上机命名有问题{}'.format(line[3]))
+						# self.exit(exitcode=1, data='重上机命名有问题{}'.format(line[3]), terminated=False)
+
 				# 如果是胎儿重上机不更新信息依旧用之前的信息（重送样或者爸爸妈妈的信息）
 				if re.match('WQ([0-9]{8,})-(S)(.*)(T)([0-9])', line[3]):
 					continue
@@ -363,7 +385,7 @@ class PtDatasplitWorkflow(Workflow):
 	    判断路径是否存在，如果存在给self.wq_dir等赋值，如果不存在，直接重跑
 		:return:
 		"""
-		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
+		# self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
 		db_customer = self.api.pt_customer
 		self.logger.info(self.message_table)
 		dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
@@ -376,6 +398,7 @@ class PtDatasplitWorkflow(Workflow):
 			self.start_listener()
 			self.end()
 		else:
+			self.db_customer()
 			self.done_data_split = "true"   # 本次workflow是否进行数据拆分，true为进行
 			self.run_data_split()
 			super(PtDatasplitWorkflow, self).run()
