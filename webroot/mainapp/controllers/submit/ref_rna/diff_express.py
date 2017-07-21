@@ -63,7 +63,7 @@ class DiffExpressAction(RefRnaController):
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
         express_params=json.loads(express_info["params"])
         express_method = express_params["express_method"]
-        value_type = data.type  #gene or transcript
+        #value_type = data.type  #gene or transcript
         diff_method = data.diff_method.lower()
 
         if express_info:
@@ -85,7 +85,7 @@ class DiffExpressAction(RefRnaController):
                 ('status', 'start'),
                 ('desc',"表达量差异主表"),
                 ('name', main_table_name),
-                ("value_type",value_type),
+                ("value_type",express_level),
                 ("express_id",ObjectId(data.express_id)),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
