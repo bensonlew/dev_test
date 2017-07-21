@@ -52,7 +52,8 @@ class NiptAnalysis(Base):
             for line1 in data1:
                 temp1 = line1.rstrip().split("\t")
                 insert = {
-                    "zz": '%.3f' % eval(temp1[1])
+                    "zz": '%.3f' % eval(temp1[1]),
+                    'created_ts': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
 
         try:
