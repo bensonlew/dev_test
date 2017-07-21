@@ -63,7 +63,7 @@ class DiffExpressAction(RefRnaController):
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
         express_params=json.loads(express_info["params"])
         express_method = express_params["express_method"]
-        #value_type = data.type  #gene or transcript
+        value_type = data.type  #gene or transcript
         diff_method = data.diff_method.lower()
 
         if express_info:
