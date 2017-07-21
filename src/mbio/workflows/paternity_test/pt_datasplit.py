@@ -52,6 +52,8 @@ class PtDatasplitWorkflow(Workflow):
 		self.done_data_split = ''
 		self.ws_single = ''
 		self.message_table = os.path.basename(self.option('message_table').prop['path'])
+		self.api_read_tab = self.api.tab_file
+		self.check_file = self.api.sg_paternity_test
 
 	def check_options(self):
 		'''
@@ -83,7 +85,7 @@ class PtDatasplitWorkflow(Workflow):
 			self.data_split.on('end', self.run_merge_fastq_ws)
 		self.data_split.run()
 
-	def db_customer(self):
+	def db_customer(self):  # 不做任何判断全部都是导表
 		db_customer = self.api.pt_customer
 		if self.option("family_table").is_set:
 			self.logger.info("开始导入pt家系表")
@@ -108,32 +110,9 @@ class PtDatasplitWorkflow(Workflow):
 		else:
 			ti = ti + '-' + str(accept_time.day)
 		self.logger.info('time:{}'.format(ti))
-		api_read_tab = self.api.tab_file
-		check_file = self.api.sg_paternity_test
 		with open(self.option('message_table').prop['path'], 'r') as m:
 			for line in m:
 				line = line.strip().split('\t')
-				x = api_read_tab.tab_exist(line[3])  # 判断是否重名
-				if x:
-					self.logger.error('请确认{}样本是否重名'.format(line[3]))
-					raise Exception('请确认{}样本是否重名'.format(line[3]))
-					# self.exit(exitcode=1, data='请确认{}样本是否重名'.format(line[3]), terminated=False)
-				if re.match('WQ([0-9]{8,})-(.*)(T)([0-9])', line[3]):  # 如果为重上机，检测是否命名符合规范
-					name = line[3].split('-')
-					family_id_ = name[0]
-					member_id_ = ('-').join(name[1:-1])
-					if re.match('M(.*)', name[1]):
-						member = 'mom'
-					else:
-						member = 'dad'
-					r = check_file.check_pt_message(family_id_=family_id_, member_id_=member_id_, type=member)
-					if r == 'True':
-						self.logger.info('重上机命名没有问题')
-					else:
-						self.logger.error('重上机命名有问题{}'.format(line[3]))
-						raise Exception('重上机命名有问题{}'.format(line[3]))
-						# self.exit(exitcode=1, data='重上机命名有问题{}'.format(line[3]), terminated=False)
-
 				# 如果是胎儿重上机不更新信息依旧用之前的信息（重送样或者爸爸妈妈的信息）
 				if re.match('WQ([0-9]{8,})-(S)(.*)(T)([0-9])', line[3]):
 					continue
@@ -146,7 +125,7 @@ class PtDatasplitWorkflow(Workflow):
 
 		self.logger.info("导入样本类型信息")
 		db_customer.add_sample_type(self.option('message_table').prop['path'])
-		self.judge_sample_type(self.option('message_table').prop['path'])  # 判断是否全部是ws的样本
+
 		if self.option("customer_table").is_set:
 			self.logger.info("开始导入nipt家系表")
 			self.api_nipt = self.api.nipt_analysis
@@ -167,6 +146,29 @@ class PtDatasplitWorkflow(Workflow):
 			self.ws_single = 'true'
 		else:
 			self.ws_single = 'false'
+
+	def judge_sample_name(self):  # 判断样本名是不是有问题 20170721
+		with open(self.option('message_table').prop['path'], 'r') as m:
+			for line in m:
+				line = line.strip().split('\t')
+				x = self.api_read_tab.tab_exist(line[3])  # 判断是否重名
+				if x:
+					self.logger.error('请确认{}样本是否重名'.format(line[3]))
+					raise Exception('请确认{}样本是否重名'.format(line[3]))
+				if re.match('WQ([0-9]{8,})-(M|F)(.*)(T)([0-9])', line[3]):  # 如果为重上机，检测是否命名符合规范
+					name = line[3].split('-')
+					family_id_ = name[0]
+					member_id_ = ('-').join(name[1:-1])
+					if re.match('M(.*)', name[1]):
+						member = 'mom'
+					else:
+						member = 'dad'
+					r = self.check_file.check_pt_message(family_id_=family_id_, member_id_=member_id_, type=member)
+					if r == 'True':
+						self.logger.info('重上机命名没有问题')
+					else:
+						self.logger.error('重上机命名有问题{}'.format(line[3]))
+						raise Exception('重上机命名有问题{}'.format(line[3]))
 
 	def get_sample(self):
 		self.sample_name_wq = []
@@ -385,7 +387,8 @@ class PtDatasplitWorkflow(Workflow):
 	    判断路径是否存在，如果存在给self.wq_dir等赋值，如果不存在，直接重跑
 		:return:
 		"""
-		# self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
+		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
+		self.judge_sample_type(self.option('message_table').prop['path'])  # 判断ws是否为单端
 		db_customer = self.api.pt_customer
 		self.logger.info(self.message_table)
 		dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
@@ -398,7 +401,7 @@ class PtDatasplitWorkflow(Workflow):
 			self.start_listener()
 			self.end()
 		else:
-			self.db_customer()
+			self.judge_sample_name()
 			self.done_data_split = "true"   # 本次workflow是否进行数据拆分，true为进行
 			self.run_data_split()
 			super(PtDatasplitWorkflow, self).run()
