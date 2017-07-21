@@ -386,7 +386,7 @@ class PtDatasplitWorkflow(Workflow):
 	    判断路径是否存在，如果存在给self.wq_dir等赋值，如果不存在，直接重跑
 		:return:
 		"""
-		self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
+		# self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
 		db_customer = self.api.pt_customer
 		self.logger.info(self.message_table)
 		dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
@@ -399,6 +399,7 @@ class PtDatasplitWorkflow(Workflow):
 			self.start_listener()
 			self.end()
 		else:
+			self.db_customer()
 			self.done_data_split = "true"   # 本次workflow是否进行数据拆分，true为进行
 			self.run_data_split()
 			super(PtDatasplitWorkflow, self).run()
