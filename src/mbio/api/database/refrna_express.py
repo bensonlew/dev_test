@@ -110,11 +110,11 @@ class RefrnaExpress(Base):
         express_method = params['express_method']
         print "value_type"
         print value_type
+        re_name = "ExpStat_RSEM_{}_".format(value_type.lower()) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'ExpressStat_' + str(
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}_{}".format(express_method,value_type),
+            'name': name if name else re_name,
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
@@ -297,11 +297,11 @@ class RefrnaExpress(Base):
         if 'express_method' not in params.keys():
             raise Exception("请在params中设置express_method参数!")
         express_method = params['express_method']
+        re_name = "ExpStat_FeaCount_{}_".format(value_type.lower()) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'ExpressStat_' + str(
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}_{}".format(express_method, value_type),
+            'name': name if name else re_name,
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (
@@ -451,15 +451,17 @@ class RefrnaExpress(Base):
                 ]
                 fpkm_data = line[1:]
                 for i in range(len(fpkm_data)):
-                    if fpkm_data[i] <1e-02 or fpkm_data[i] > 1e+06:
-                        continue
-                    else:
+                    if float(fpkm_data[i]) >= 1e-02 and float(fpkm_data[i]) <= 1e+06:
+                        # print '{}fpkm_data{}符合要求'.format(seq_id, str(float(fpkm_data[i])))
                         data_log2 = log(float(fpkm_data[i])) / log(2)
                         data_log10 = log(float(fpkm_data[i])) / log(10)
                         insert_data += [
                             ('{}_log2'.format(group_name[i]), float(data_log2)),
                             ('{}_log10'.format(group_name[i]), float(data_log10))
                         ]
+                    else:
+                        continue
+
                 insert_data = SON(insert_data)
                 data_list.append(insert_data)
         try:
@@ -570,7 +572,13 @@ class RefrnaExpress(Base):
                     data += [
                         ("is_new", _class)
                     ]
+                if query_type == 'transcript':
+                    data += [("gene_id", _gene_id)]
                 for i in range(len(samples)):
+                    log2_line_fpkm = math.log(float(fpkm[i]) + 1) / math.log(2)
+                    log10_line_fpkm = math.log(float(fpkm[i]) + 1) / math.log(10)
+                    data += [('{}_line_log2'.format(samples[i]), float(log2_line_fpkm))]
+                    data += [('{}_line_log10'.format(samples[i]), float(log10_line_fpkm))]
                     if float(fpkm[i]) < (1e-02) or float(fpkm[i]) > (1e+06):
                         data += [('{}'.format(samples[i]), float(fpkm[i]))]
                         continue
@@ -582,11 +590,6 @@ class RefrnaExpress(Base):
                             data += [('{}_log2'.format(samples[i]), float(log2_fpkm))]
                         if float(log10_fpkm) >= min_log10 and float(log10_fpkm) <= max_log10:
                             data += [('{}_log10'.format(samples[i]), float(log10_fpkm))]
-                        # data += [
-                        #     ('{}'.format(samples[i]), float(fpkm[i])),
-                        #     ('{}_log2'.format(samples[i]), float(log2_fpkm)),
-                        #     ('{}_log10'.format(samples[i]), float(log10_fpkm)),
-                        # ]
                 data = SON(data)
                 data_list.append(data)
         try:
@@ -907,7 +910,7 @@ class RefrnaExpress(Base):
     def add_express_diff(self, params, samples, compare_column, compare_column_specimen=None, ref_all=None,
                                 workflow=True,is_duplicate=None, value_type="fpkm", express_method=None, diff_exp_dir=None,
                                 class_code=None,query_type=None, express_id=None, name=None, group_id=None, group_detail=None,
-                                control_id=None,major=True,pvalue_padjust = None):
+                                control_id=None,major=True,pvalue_padjust = None,diff_method = None):
 
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         """
@@ -931,10 +934,25 @@ class RefrnaExpress(Base):
             params['group_detail'] = {'all': group_detail}
         if params:
             params.update({"submit_location": "express_diff"})
+        if not express_method:
+            raise Exception("add_express_diff函数需要设置express_method(选择表达量计算软件rsem或featurecounts)参数!")
+        if not value_type:
+            raise Exception("add_express_diff函数需要设置value_type(选择表达量水平fpkm或tpm)参数!")
+        if "type" in params.keys() and "diff_method" in params.keys():
+            query_type = params['type'].lower()
+            diff_method = params['diff_method'].lower()
+            re_name_info = {"gene": "G", "transcript": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
+                            "featurecounts": "FeaCount", "rsem": "RSEM"}
+            re_name = 'DiffExp_{}_{}_{}_{}_'.format(re_name_info[query_type],
+                                                    re_name_info[express_method.lower()], value_type.lower(),
+                                                    re_name_info[diff_method]) + str(
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("params是字典格式，需要分别设置type和diff_method键值对!")
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'ExpressDiffStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else re_name,
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (
@@ -1083,16 +1101,16 @@ class RefrnaExpress(Base):
                 if i == 0:
                     i = 1
                 else:
-                    l = line.strip().split('\t')
-                    gene_id = l[0]
-                    alen = len(l)
-                    blen = alen - 2
-                    alen = alen - 1
-                    fpkm = l[1:alen]
-                    if not re.search(r'yes',"_".join(fpkm)):
+                        l = line.strip().split('\t')
+                        gene_id = l[0]
+                        alen = len(l)
+                        blen = alen - 2
+                        alen = alen - 1
+                        fpkm = l[1:alen]
+                        #if not re.search(r'yes',"_".join(fpkm)):
                         # add by khl 20170623 只取出含有yes的信息，否则过滤掉
-                        continue
-                    else:
+                        #    continue
+                        #else:
                         sum_1 = l[alen]
                         data = [
                             ("seq_id", gene_id),
@@ -1123,93 +1141,113 @@ class RefrnaExpress(Base):
         else:
             self.bind_object.logger.info("导入差异分析summary表成功!")
 
-    # @report_check
-
-
 
 if __name__ == "__main__":
-    # pass
     ####################################################################################################################################
     ##################----------------------rsem fpkm 导表
     ####################################################################################################################################
-    rsem_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/rsem"
-    is_duplicate = True
-    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code"
-    sample = "samples"
-    distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/"
-    params = {}
-    params["group_id"] = "5955f5e1edcb253a204f8988"
-    params["group_detail"] = {
-        "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
-        "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
-        "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
-    params["express_method"] = "rsem"
-    params["type"] = "fpkm"
-    group_fpkm_path = distri_path + "/group"
-    samples = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
-    a = RefrnaExpress()
-    a.add_express(rsem_dir=rsem_dir, is_duplicate=True, group_fpkm_path=group_fpkm_path, samples=samples,
-                  class_code=class_code,
-                  params=params, major=True, distri_path=distri_path)
-    print 'end!'
+    # rsem_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/rsem"
+    # rsem_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/output'
+    # rsem_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/output'
+    # rsem_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170702/Single_rsem_stringtie_mouse_total_1/Express/MergeRsem1/output'
+    # rsem_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/output"
+    # is_duplicate = True
+    # # class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/class_code'
+    # # class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170702/Single_rsem_stringtie_mouse_total_1/Express/MergeRsem1/class_code"
+    # class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/class_code'
+    # sample = "samples"
+    # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/'
+    # # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem'
+    # # distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1"
+    # # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170702/Single_rsem_stringtie_mouse_total_1/Express/MergeRsem1/'
+    # # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem'
+    # params = {}
+    # params["group_id"] = "596452d7edcb255322d9e66e"
+    # params['group_detail'] = {
+    #     "A":['596452d7edcb255322d9dbe1','596452d7edcb255322d9dbdf','596452d7edcb255322d9dbe0'],
+    #     "C":['596452d7edcb255322d9dbdd','596452d7edcb255322d9dbde','596452d7edcb255322d9dbdc'],
+    #     "B":['596452d7edcb255322d9dbda','596452d7edcb255322d9dbdb','596452d7edcb255322d9dbd9']
+    # }
+    # # params['group_id'] = '5955f5e1edcb253a204f8988'
+    # # params["group_detail"] = {
+    # #     "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
+    # #     "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
+    # #     "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
+    # params["express_method"] = "rsem"
+    # params["type"] = "fpkm"
+    # group_fpkm_path = distri_path + "/group"
+    # samples = ['A_1', 'A_2', 'A_3', 'B_1', 'B_2', 'B_3', 'C_1', 'C_2', 'C_3']
+    # # samples = ["X1_1","X1_2","X1_3","B1_1","B1_2","B1_3","Z1_1","Z1_2","Z1_3"]
+    # a = RefrnaExpress2()
+    # a.add_express(rsem_dir=rsem_dir, is_duplicate=True, group_fpkm_path=group_fpkm_path, samples=samples,
+    #               class_code=class_code,
+    #               params=params, major=True, distri_path=distri_path)
+    # print 'end!'
 
     #####################################################################################################################################
     #################------------------------featurecounts 导表
     #####################################################################################################################################
-    feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/output/featurecounts"
-    group_fpkm_path = '/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts/group'
-
-    is_duplicate = True
-    samples = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
-    params = {}
-
-    params["group_id"] = "5955f5e1edcb253a204f8988"
-    params["group_detail"] = {
-        "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
-        "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
-        "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
-    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code"
-    params["type"] = "fpkm"
-    params["express_method"] = "featurecounts"
-    distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts"
-    a = RefrnaExpress()
-    a.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, class_code=class_code,
-                          is_duplicate=True, samples=samples,
-                          params=params, major=True, distri_path=distri_path)
-    print 'end!'
+    # feature_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts'
+    # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts'
+    # # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/output/featurecounts"
+    # # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts"
+    # # distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts/"
+    # group_fpkm_path = distri_path + "/group"
+    # # group_fpkm_path = '/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts/group'
+    # is_duplicate = True
+    # samples = ['A_1', 'A_2', 'A_3', 'B_1', 'B_2', 'B_3', 'C_1', 'C_2', 'C_3']
+    # params = {}
+    #
+    # params["group_id"] = "596452d7edcb255322d9e66e"
+    # params['group_detail'] = {
+    #     "A": ['596452d7edcb255322d9dbe1', '596452d7edcb255322d9dbdf', '596452d7edcb255322d9dbe0'],
+    #     "C": ['596452d7edcb255322d9dbdd', '596452d7edcb255322d9dbde', '596452d7edcb255322d9dbdc'],
+    #     "B": ['596452d7edcb255322d9dbda', '596452d7edcb255322d9dbdb', '596452d7edcb255322d9dbd9']
+    # }
+    # class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/class_code"
+    # params["type"] = "fpkm"
+    # params["express_method"] = "featurecounts"
+    #
+    # a = RefrnaExpress2()
+    # a.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, class_code=class_code,
+    #                       is_duplicate=True, samples=samples,
+    #                       params=params, major=True, distri_path=distri_path)
+    # print 'end!'
 
     ####################################################################################################################################
     ######################-------------gene set 导表 ref_new的参数有两种选择  ref和refandnew
     ####################################################################################################################################
-    a = RefrnaExpress()
-    group_id = '5955f5e1edcb253a204f8988'
-    # path = "/mnt/ilustre/users/sanger-dev/workspace/20170527/DiffExpress_deno222_7450_1534/DiffExp/output"
-    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/genes_diff/diff_stat_dir'
-    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/genes_ref_diff/diff_stat_dir'
-    path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/trans_ref_diff/diff_stat_dir'
-    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
-    for files in os.listdir(path):
-        if re.search(r'edgr_stat.xls', files):
-            print files
-            m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
-            if m_:
-                name = m_.group(1)
-                compare_name = m_.group(2)
-                up_down = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name,
-                                        compare_name=compare_name, ref_new='ref', express_method="rsem",
-                                        type="transcript", major=True,
-                                        up_down='up_down')
-                down_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
-                                        compare_name=compare_name, ref_new="ref", express_method="rsem",
-                                        type="transcript", up_down='down')
-                up_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
-                                      compare_name=compare_name, ref_new='ref', express_method="rsem",
-                                      type="transcript", up_down='up')
-
-                print up_id
-                print down_id
-                print name, compare_name
-            print 'end'
+    # a = RefrnaExpress2()
+    # group_id = '596452d7edcb255322d9e66e'
+    # # group_id = '5955f5e1edcb253a204f8988'
+    # # path = "/mnt/ilustre/users/sanger-dev/workspace/20170527/DiffExpress_deno222_7450_1534/DiffExp/output"
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/genes_diff/diff_stat_dir'
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/genes_ref_diff/diff_stat_dir'
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/trans_ref_diff/diff_stat_dir'
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/output/diff/trans_diff/diff_stat_dir'
+    # path = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/output/ref_diff/genes_ref_diff/diff_stat_dir"
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
+    # for files in os.listdir(path):
+    #     if re.search(r'edgr_stat.xls', files):
+    #         print files
+    #         m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
+    #         if m_:
+    #             name = m_.group(1)
+    #             compare_name = m_.group(2)
+    #             up_down = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name,
+    #                                     compare_name=compare_name, ref_new='ref', express_method="rsem",
+    #                                     type="gene", major=True, up_down='up_down')
+    #             down_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
+    #                                     compare_name=compare_name, ref_new="ref", express_method="rsem",
+    #                                     type="gene", up_down='down')
+    #             up_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
+    #                                   compare_name=compare_name, ref_new='ref', express_method="rsem",
+    #                                   type="gene", up_down='up')
+    #
+    #             print up_id
+    #             print down_id
+    #             print name, compare_name
+    #         print 'end'
 
     ####################################################################################################################################
     ######################-------------差异分析 导表
@@ -1218,37 +1256,37 @@ if __name__ == "__main__":
     # path = "/mnt/ilustre/users/sanger-dev/workspace/20170524/Single_rsem_stringtie_fpkm_5/Express/output/diff/genes_diff/diff_stat_dir"
     # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/genes_diff/diff_stat_dir'
     # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
-    path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
-    is_duplicate = True
-    sample = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
-    compare_column = ["X1|B1", "X1|Z1", "B1|Z1"]
-    params = {}
-    class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code'
-    merge_path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/merge.xls'
-    params['control_id'] = '5955f821f2e3f7fddea08f6e'
-    params["group_id"] = "5955f5e1edcb253a204f8988"
-    params["group_detail"] = {
-        "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
-        "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
-        "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
-    params['express_id'] = str("59560618a4e1af1ae5309bf3")
-    params['fc'] = 0.1
-    params['pvalue_padjust'] = 'padjust'
-    params['pvalue'] = 0.5
-    params['type'] = 'transcript'
-    params['diff_method'] = 'DESeq2'
-    compare_column_specimen = {"X1|B1": ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3'],
-                               "X1|Z1": ['X1_1', 'X1_2', 'X1_3', 'Z1_1', 'Z1_2', 'Z1_3'],
-                               "B1|Z1": ['B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']}
-    a = RefrnaExpress()
-    diff_express_id = a.add_express_diff(params=params, samples=sample, compare_column=compare_column, ref_all='all',
-                                         class_code=class_code, is_duplicate=True,
-                                         diff_exp_dir=path, query_type="transcript",
-                                         express_id=ObjectId("592e26fba4e1af397f263b38"),
-                                         compare_column_specimen=compare_column_specimen,
-                                         major=True, group_id=params["group_id"], workflow=True,
-                                         pvalue_padjust='padjust')
-    a.add_diff_summary_detail(diff_express_id, merge_path, ref_all='all', query_type='transcript',
-                              class_code=class_code, workflow=True)
-    print 'end'
-    print "diff_express_id:ObjectId({})".format(str(diff_express_id))
+    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
+    # is_duplicate = True
+    # sample = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
+    # compare_column = ["X1|B1", "X1|Z1", "B1|Z1"]
+    # params = {}
+    # class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code'
+    # merge_path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/merge.xls'
+    # params['control_id'] = '5955f821f2e3f7fddea08f6e'
+    # params["group_id"] = "5955f5e1edcb253a204f8988"
+    # params["group_detail"] = {
+    #     "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
+    #     "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
+    #     "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
+    # params['express_id'] = str("59560618a4e1af1ae5309bf3")
+    # params['fc'] = 0.1
+    # params['pvalue_padjust'] = 'padjust'
+    # params['pvalue'] = 0.5
+    # params['type'] = 'transcript'
+    # params['diff_method'] = 'DESeq2'
+    # compare_column_specimen = {"X1|B1": ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3'],
+    #                            "X1|Z1": ['X1_1', 'X1_2', 'X1_3', 'Z1_1', 'Z1_2', 'Z1_3'],
+    #                            "B1|Z1": ['B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']}
+    # a = RefrnaExpress2()
+    # diff_express_id = a.add_express_diff(params=params, samples=sample, compare_column=compare_column, ref_all='all',
+    #                                      class_code=class_code, is_duplicate=True,
+    #                                      diff_exp_dir=path, query_type="transcript",
+    #                                      express_id=ObjectId("592e26fba4e1af397f263b38"),
+    #                                      compare_column_specimen=compare_column_specimen,
+    #                                      major=True, group_id=params["group_id"], workflow=True,
+    #                                      pvalue_padjust='padjust',express_method = 'rsem',value_type='fpkm')
+    # a.add_diff_summary_detail(diff_express_id, merge_path, ref_all='all', query_type='transcript',
+    #                           class_code=class_code, workflow=True)
+    # print 'end'
+    # print "diff_express_id:ObjectId({})".format(str(diff_express_id))

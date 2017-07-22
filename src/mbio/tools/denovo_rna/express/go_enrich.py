@@ -46,7 +46,7 @@ class GoEnrichAgent(Agent):
         """
         if not self.option("diff_list").is_set:
             raise OptionError("缺少输入文件:差异基因名称文件")
-        # if not self.option("all_list").is_set:
+        # if not self.option("all_list").is_set: # edited by shijin
         #     raise OptionError("缺少输入文件:全部基因名称文件")
         if not self.option("go_list").is_set:
             raise OptionError("缺少输入文件:差异基因对应的go_id")
@@ -132,7 +132,7 @@ class GoEnrichTool(Tool):
             self.logger.info(go_pvalue)
             self.logger.info('run_draw_go_graphhhhhhhhhhhhhhhhh')
             if go_pvalue:
-                draw_GO(go_pvalue, out=self.out_go_graph)
+                draw_GO(go_pvalue, out=self.out_go_graph, obo=self.obo)
             self.end()
         except Exception:
             self.set_error('绘图发生错误:\n{}'.format(traceback.format_exc()))
@@ -144,7 +144,7 @@ class GoEnrichTool(Tool):
             f.readline()
             for line in f:
                 line_sp = line.split('\t')
-                p_bonferroni = float(line_sp[9])
+                p_bonferroni = float(line_sp[6])  # edited by shijin on 20170718
                 go2pvalue[line_sp[0]] = p_bonferroni
         tar = sorted(go2pvalue.items(), key=lambda e:e[1], reverse=True)
         new_go2pvalue = dict(tar[-10:])

@@ -45,13 +45,19 @@ def step_count(fasta_file, fasta_to_txt, group_num, step, stat_out):
                     # amount_group.append(group_num+1)
                 element_set.add(i)
         amount_group.sort()
+        top_sum = 0
         for i in element_set:
             num_statistics = amount_group.count(i)
-            if i < (group_num-1):
-                area_line = str(i * step) + "~" + str((i+1) * step) + "\t" + str(num_statistics) + "\n"
+            if str(i) == '0':
+                area_line = str(i * step) + "~" + str((i + 1) * step) + "\t" + str(num_statistics) + "\n"
                 w.write(area_line)
+                top_sum += int(num_statistics)
+            elif i < (group_num-1):
+                area_line = str(i * step + 1) + "~" + str((i+1) * step) + "\t" + str(num_statistics) + "\n"
+                w.write(area_line)
+                top_sum += int(num_statistics)
             else:
-                area_line = ">" + str(i * step) + "\t" + str(num_statistics) + "\n"
+                area_line = ">" + str(i * step + 1) + "\t" + str(len(trans_list)-int(top_sum)) + "\n"
                 end_line = "total" + "\t" + str(len(trans_list)) + "\n"
                 w.write(area_line)
                 w.write(end_line)
@@ -144,7 +150,11 @@ def count_trans_or_exons(input_file, step, count_file, final_files):
                 final_value += int(value)
                 for id_num in ids_list:
                     final_ids.append(id_num)
-        area_line = str(n * step) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(final_ids) + "\n"
+        if n == 0:
+            area_line = str(n * step) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(final_ids) + "\n"
+        else:
+            area_line = str(n * step + 1) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(
+                final_ids) + "\n"
         f2.write(area_line)
         f3.close()
     f2.close()
@@ -222,13 +232,16 @@ if __name__ == '__main__':
 #     output3 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/3.txt"
 #     output4 = "/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/assembly_newtranscripts/4.txt"
 #     class_code_count(merged_gtf, output1)
-    merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged1.gtf"
-    output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/1.txt"
-    output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/2.txt"
-    output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\3.txt"
-    output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\4.txt"
-    gene_trans_exon(merged_gtf, "stringtie", output3, output4)
+#     merged_gtf = "O:\\Users\\zhaoyue.wang\\Desktop\\merged1.gtf"
+#     output1 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/1.txt"
+#     output2 = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/output/Statistics/2.txt"
+#     output3 = "O:\\Users\\zhaoyue.wang\\Desktop\\3.txt"
+#     output4 = "O:\\Users\\zhaoyue.wang\\Desktop\\4.txt"
+#     gene_trans_exon(merged_gtf, "stringtie", output3, output4)
     # gene_trans_exon(merged_gtf, output1, output2)
     # gtf_file = "O:\\Users\\zhaoyue.wang\\Desktop\\old_trans.gtf.trans"
     # gtf_files = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/old_trans.gtf.trans"
     # count_trans_or_exons(gtf_files, 5, output1, output2)
+    fa_file = '/mnt/ilustre/users/sanger-dev/sg-users/shijin/Refrna_demo1/RefrnaAssemble/output/StringtieMerge/change_id_merged.fa'
+    txt_file = '/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/moduletest/200.txt'
+    step_count(fa_file, txt_file, 10, 200, "/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/moduletest/final_200.txt")

@@ -660,38 +660,6 @@ class RefrnaWorkflow(Workflow):
         mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
-    def run_exp_rsem_alter(self):
-        if self.option("exp_way") == "fpkm":
-            exp_way = "tpm"
-        else:
-            exp_way = "fpkm"
-        self.logger.info("开始运行表达量模块,alter")
-        opts = {
-            "express_method": "rsem",
-            "fastq_dir": self.qc.option("sickle_dir"),
-            "fq_type": self.option("fq_type"),
-            "ref_gtf": self.filecheck.option("gtf"),
-            "merged_gtf": self.assembly.option("change_id_gtf"),
-            "cmp_gtf": self.assembly.option("cuff_gtf"),
-            "sample_bam": self.mapping.option("bam_output"),
-            "ref_genome_custom": self.assembly.option("change_id_fa"),
-            "strand_specific": self.option("strand_specific"),
-            "control_file": self.option("control_file"),
-            "edger_group": self.option("group_table"),
-            "method": self.option("diff_method"),
-            "diff_fdr_ci": self.option("diff_fdr_ci"),
-            "fc": self.option("fc"),
-            "is_duplicate": self.option("is_duplicate"),
-            "exp_way": exp_way,
-            "strand_dir": self.option("strand_dir")
-        }
-        mod = self.exp_alter
-        mod.set_options(opts)
-        mod.on("end", self.set_output, "exp_rsem_alter")
-        mod.on('start', self.set_step, {'start': self.step.exp})
-        mod.on('end', self.set_step, {'end': self.step.exp})
-        mod.run()
-
     def run_exp_fc(self):
         self.logger.info("开始运行表达量模块,fc_fpkm")
         opts = {
@@ -715,8 +683,8 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp_fc
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp_fc_all")
-        mod.on('start', self.set_step, {'start': self.step.express})
-        mod.on('end', self.set_step, {'end': self.step.express})
+        # mod.on('start', self.set_step, {'start': self.step.express})
+        # mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
     def run_network_trans(self):
@@ -1123,7 +1091,7 @@ class RefrnaWorkflow(Workflow):
             "59647fc8a4e1af25303e5c6e": "B_vs_C"
         }
         # self.export_go_regulate()
-        # self.export_kegg_regulate()
+        self.export_kegg_regulate()
         # self.export_go_enrich()
         # self.export_kegg_enrich()
         # self.export_cog_class()
