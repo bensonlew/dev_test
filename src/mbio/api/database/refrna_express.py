@@ -351,8 +351,8 @@ class RefrnaExpress(Base):
                                    sample_group="sample", query_type="gene", value_type='count')
             self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene",
                                  value_type=value_type)
-            self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
-                                 value_type='count')
+            #self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
+            #                     value_type='count')
             if is_duplicate:
                 if value_type == 'fpkm':
                     fpkm_group_path = group_fpkm_path + "/group.fpkm.xls"
@@ -1187,32 +1187,32 @@ if __name__ == "__main__":
     #####################################################################################################################################
     #################------------------------featurecounts 导表
     #####################################################################################################################################
-    # feature_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts'
-    # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts'
-    # # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/output/featurecounts"
-    # # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts"
-    # # distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts/"
-    # group_fpkm_path = distri_path + "/group"
-    # # group_fpkm_path = '/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts/group'
-    # is_duplicate = True
-    # samples = ['A_1', 'A_2', 'A_3', 'B_1', 'B_2', 'B_3', 'C_1', 'C_2', 'C_3']
-    # params = {}
-    #
-    # params["group_id"] = "596452d7edcb255322d9e66e"
-    # params['group_detail'] = {
-    #     "A": ['596452d7edcb255322d9dbe1', '596452d7edcb255322d9dbdf', '596452d7edcb255322d9dbe0'],
-    #     "C": ['596452d7edcb255322d9dbdd', '596452d7edcb255322d9dbde', '596452d7edcb255322d9dbdc'],
-    #     "B": ['596452d7edcb255322d9dbda', '596452d7edcb255322d9dbdb', '596452d7edcb255322d9dbd9']
-    # }
-    # class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/class_code"
-    # params["type"] = "fpkm"
-    # params["express_method"] = "featurecounts"
-    #
-    # a = RefrnaExpress2()
-    # a.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, class_code=class_code,
-    #                       is_duplicate=True, samples=samples,
-    #                       params=params, major=True, distri_path=distri_path)
-    # print 'end!'
+    feature_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts'
+    distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts'
+    # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/output/featurecounts"
+    # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts"
+    # distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts/"
+    group_fpkm_path = distri_path + "/group"
+    # group_fpkm_path = '/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts/group'
+    is_duplicate = True
+    samples = ['A_1', 'A_2', 'A_3', 'B_1', 'B_2', 'B_3', 'C_1', 'C_2', 'C_3']
+    params = {}
+
+    params["group_id"] = "596452d7edcb255322d9e66e"
+    params['group_detail'] = {
+        "A": ['596452d7edcb255322d9dbe1', '596452d7edcb255322d9dbdf', '596452d7edcb255322d9dbe0'],
+        "C": ['596452d7edcb255322d9dbdd', '596452d7edcb255322d9dbde', '596452d7edcb255322d9dbdc'],
+        "B": ['596452d7edcb255322d9dbda', '596452d7edcb255322d9dbdb', '596452d7edcb255322d9dbd9']
+    }
+    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/class_code"
+    params["type"] = "fpkm"
+    params["express_method"] = "featurecounts"
+
+    a = RefrnaExpress2()
+    a.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, class_code=class_code,
+                          is_duplicate=True, samples=samples,
+                          params=params, major=True, distri_path=distri_path)
+    print 'end!'
 
     ####################################################################################################################################
     ######################-------------gene set 导表 ref_new的参数有两种选择  ref和refandnew
