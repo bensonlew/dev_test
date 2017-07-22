@@ -65,7 +65,6 @@ class FeaturecountsAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '30G'
         self._memory = '10G'
 
     def end(self):
