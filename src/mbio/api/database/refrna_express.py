@@ -429,6 +429,7 @@ class RefrnaExpress(Base):
         with open(group_fpkm_path, 'r+') as f1:
             data_list = []
             group_name = f1.readline().strip().split("\t")
+            group_name.sort()
             group_num = len(group_name)
             if not query_type:
                 raise Exception("请设置query_type参数！")
@@ -1213,6 +1214,8 @@ if __name__ == "__main__":
                           is_duplicate=True, samples=samples,
                           params=params, major=True, distri_path=distri_path)
     print 'end!'
+    ####################################################################################################
+
 
     ####################################################################################################################################
     ######################-------------gene set 导表 ref_new的参数有两种选择  ref和refandnew
