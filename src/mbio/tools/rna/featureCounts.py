@@ -64,7 +64,7 @@ class FeaturecountsAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '10G'
+        self._memory = '30G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
