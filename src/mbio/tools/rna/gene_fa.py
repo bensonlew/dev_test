@@ -59,28 +59,36 @@ class GeneFaTool(Tool):
 
     def get_ref_gene_bed(self,ref_gff,bed_path=None):
         """获得参考基因的bed文件"""
-        tmp = os.path.join(bed_path, 'tmp.gff')
+        # tmp = os.path.join(bed_path, 'tmp.gff')
         bed = os.path.join(bed_path, 'ref_bed')
-        cmd = """awk '{if($3=="gene"){print}}' %s > %s """ % (ref_gff, tmp)
+        # cmd = """awk '{if($3=="gene"){print}}' %s > %s """ % (ref_gff, tmp)
         # cmd = """awk '{if($3=="gene"){print $0}}' {} > {}""".format(ref_gff,tmp)
-        os.system(cmd)
+        # os.system(cmd)
         gene_id_total = []
-        with open(tmp, 'r+') as f1, open(bed, 'w+') as f2:
+        with open(ref_gff, 'r+') as f1, open(bed, 'w+') as f2:
             for lines in f1:
-                line = lines.strip().split("\t")
-                if line[2] == 'gene':
-                    m_ = re.search(r'ID=gene:(\w+);', lines)
-                    if m_:
-                        gene_id = m_.group(1)
+                if re.search(r'gene',lines):
+                    line = lines.strip().split("\t")
+                    if len(line) > 5:
+                        if re.search(r'gene', line[2]):
+                            m_ = re.search(r'ID=gene:(\w+);', lines)
+                            if m_:
+                                gene_id = m_.group(1)
+                            else:
+                                continue
+                                # raise Exception("{}没有提取到相应的信息".format(lines))
+                        else:
+                            continue
+                            # raise Exception("{}没有提取到相应的信息".format(lines))
+                        if gene_id not in gene_id_total:
+                            start = int(line[3]) - 1  #gtf转bed start位置需要减去1
+                            f2.write(line[0] + "\t" + str(start) + "\t" + str(line[4]) + "\t" + gene_id + "\t0\t" + line[6] + "\n")
+                        else:
+                            pass
                     else:
-                        raise Exception("{}没有提取到相应的信息".format(lines))
+                        continue
                 else:
-                    raise Exception("{}没有提取到相应的信息".format(lines))
-                if gene_id not in gene_id_total:
-                    start = int(line[3]) - 1  #gtf转bed start位置需要减去1
-                    f2.write(line[0] + "\t" + str(start) + "\t" + str(line[4]) + "\t" + gene_id + "\t0\t" + line[6] + "\n")
-                else:
-                    pass
+                    continue
         print "提取的ref_bed文件路径为{}".format(bed)
         return bed
 
