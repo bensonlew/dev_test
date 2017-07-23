@@ -21,7 +21,7 @@ class GeneFaAgent(Agent):
             {"name":"ref_genome_custom","type":"string"}, #ref fa文件
             {"name":"assembly_method","type":"string","default":"stringtie"}, #拼接方法
             {"name":"gene_fa","type":"outfile","format":"sequence.fasta"}, #结果文件 基因的fa文件
-            {"name":"new_gene_bed","type":"outfile","format":"gene_structure.bed"} #新基因的bed文件
+            {"name":"gene_bed","type":"outfile","format":"gene_structure.bed"} #新基因的bed文件
         ]
         self.add_option(options)
         self.step.add_steps("gene_fa")
@@ -255,8 +255,8 @@ class GeneFaTool(Tool):
         ref_bed = self.get_ref_gene_bed(self.option("ref_gff3"),self.work_dir)
         new_bed = self.get_new_gene_bed(self.option("new_gtf"),self.work_dir + "/new_bed",self.work_dir,
                                         assembly_method=self.option("assembly_method"),query_type="gene",class_code_info=['u'])
-        self.option("new_gene_bed").set_path(new_bed)
         cat_bed = self.cat_gene_bed(new_bed,ref_bed,self.work_dir,"cat_bed")
+        self.option("gene_bed").set_path(cat_bed)
         self.get_gene_fasta(cat_bed,self.option("ref_genome_custom"),self.output_dir,'gene.fa')
         self.end()
 
