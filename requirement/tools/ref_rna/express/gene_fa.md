@@ -14,7 +14,7 @@ Path
 -----------------------------------
 
 输入基因的gff3和ref_new.gtf(ref.gtf+new_transcript.gtf),参考基因组的fa文件
-生成基因的fa文件和新基因的bed文件
+生成基因的fa文件和所有基因的bed文件
 
 使用程序
 -----------------------------------
@@ -32,9 +32,9 @@ Path
         {"name":"ref_genome_custom","type":"string"}, #ref fa文件
         {"name":"assembly_method","type":"string","default":"stringtie"}, #拼接方法
         {"name":"gene_fa","type":"outfile","format":"sequence.fasta"}, #结果文件 基因的fa文件
-        {"name":"new_gene_bed","type":"outfile","format":"gene_structure.bed"} #新基因的bed文件
+        {"name":"gene_bed","type":"outfile","format":"gene_structure.bed"} #新基因的bed文件
 
 运行逻辑
 ------------------------------------
 
-输入ref.gff3和新基因的gtf文件，返回基因的fa文件和新基因的bed文件
+输入ref.gff3和新基因的gtf文件，返回基因的fa文件和所有基因的bed文件

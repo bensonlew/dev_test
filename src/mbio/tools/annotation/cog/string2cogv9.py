@@ -105,9 +105,9 @@ class String2cogv9Tool(Tool):
 
     def run_string2cog(self):
         if self.option("blastout").is_set:
-            cmd = '{} {} -i {} --format blastxml -e 1e-5 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
+            cmd = '{} {} -i {} --format blastxml -e 1e-3 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
         else:
-            cmd = '{} {} -i {} --format blasttable -e 1e-5 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
+            cmd = '{} {} -i {} --format blasttable -e 1e-3 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
         self.logger.info('运行string2cog.pl')
         self.logger.info(cmd)
         cmd_obj = self.add_command("string_cog", cmd).run()

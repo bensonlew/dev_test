@@ -235,6 +235,7 @@ class RefrnaWorkflow(Workflow):
     def run_gs(self):
         opts = {
             "in_fasta": self.option("ref_genome_custom"),
+            "ref_genome": self.option("ref_genome")
             # "in_gtf": self.filecheck.option("gtf")
         }
         if self.gff != "":
