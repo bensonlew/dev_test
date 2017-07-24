@@ -75,7 +75,7 @@ class PearsonsCorrelationAgent(Agent):
         if self.option("top_species") != 0:
             if self.option("top_species") < 2:
                 raise OptionError('至少选择两个物种')
-        if self.option('envtable').is_set:  # add by zhouxuan 20170612
+        if self.option('envtable').is_set:  # add by zhouxuan 20170720
             env_table = self.option('envtable').prop['path']
             sample_e = []
             with open(env_table, 'r') as e:
@@ -84,7 +84,7 @@ class PearsonsCorrelationAgent(Agent):
                     if line[0] != '#SampleID':
                         sample_e.append(line[0])
                         for i in range(1, len(line)):
-                            if float(line[i]):
+                            if float(line[i]) or line[i] == '0':
                                 continue
                             else:
                                 raise OptionError('环境因子表中存在分类型环境因子')

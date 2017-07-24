@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'xuting'  last modify by qindanhua 20170110
+# __author__ = 'khl'  
 import web
 import json
 import datetime

@@ -17,7 +17,7 @@ class NiptAnalysisModule(Module):
 			{"name": "sample_id", "type": "string"},
 			{"name": "bw", "type": "int", "default": 10},
 			{"name": "bs", "type": "int", "default": 1},
-			{"name": "ref_group", "type": "int", "default": 2},
+			{"name": "ref_group", "type": "int", "default": 1},
 			{"name": "single", "type": "string", "default": "false"}
 		]
 		self.add_option(options)

@@ -85,7 +85,7 @@ class DiffExpressAction(RefRnaController):
                 ('status', 'start'),
                 ('desc',"表达量差异主表"),
                 ('name', main_table_name),
-                ("value_type",value_type),
+                ("value_type",express_level),
                 ("express_id",ObjectId(data.express_id)),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))

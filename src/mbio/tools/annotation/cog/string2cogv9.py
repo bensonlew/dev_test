@@ -116,9 +116,9 @@ class String2cogv9Tool(Tool):
             self.logger.info('运行string2cog.pl完成')
             for file in os.listdir(self.work_dir + "/tmp_out"):
                 file_path = os.path.join(self.work_dir + "/tmp_out", file)
-                if file == "cog.list.xls":
+                if file == "cog_list.xls":
                     os.link(file_path, self.output_dir + "/cog_list.xls")
-                if file == "cog.sumary.xls":
+                if file == "cog_summary.xls":
                     os.link(file_path, self.output_dir + "/cog_summary.xls")
                 if file == "cog_table.xls":
                     os.link(file_path, self.output_dir + "/cog_table.xls")
@@ -129,4 +129,3 @@ class String2cogv9Tool(Tool):
         else:
             self.set_error("string2cog出错")
             raise Exception("string2cog出错")
-

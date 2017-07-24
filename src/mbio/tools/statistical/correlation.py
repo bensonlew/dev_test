@@ -22,7 +22,7 @@ class CorrelationAgent(Agent):
         super(CorrelationAgent, self).__init__(parent)
         options = [
             {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # Fpkm矩阵表
-            {"name":"method", "type":"string", "default":"pearson"}, #聚类方式
+            {"name":"method", "type":"string", "default":"pearson"}, #聚类方式 默认是pearson相关性算法 
             # {"name":"hclust_method", "type":"string", "default":"complete"} #层次聚类方法,此参数已被删除 20170713
             # {"name": "", "type": "outfile", "format": "denovo_rna.gene_structure.bed"}  # bed格式文件
         ]
