@@ -55,8 +55,10 @@ class GtfFile(File):
     
     def check(self):
         super(GtfFile, self).check()
-        self.__check_skechy()
-        self._check_chars()
+        if self.prop["path"].endswith("gtf"):
+            return True
+        # self.__check_skechy()  # edited by shijin on 20170721 不适于第三列为gene的情况
+        # self._check_chars()
     
     def check_format(self, fasta, so_file):
         
@@ -116,8 +118,8 @@ class GtfFile(File):
                 r'^([^#]\S*?)\t+((\S+)\t+){7}((.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*)$',
                 line.strip())
             if not (comment_m or content_m):
-                raise FileError(
-                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
+
+                raise FileError(line)
             
             if content_m:
                 contig = content_m.captures(1)[0]
