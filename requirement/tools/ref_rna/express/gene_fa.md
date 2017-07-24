@@ -13,8 +13,8 @@ Path
 功能和用途描述
 -----------------------------------
 
-输入基因的gff3和ref_new.gtf(ref.gtf+new_transcript.gtf),参考基因组的fa文件
-生成基因的fa文件和所有基因的bed文件
+输入基因的ref_new.gtf(ref_new_gtf), 参考基因组的fa文件
+生成基因的fa文件和所有基因/转录本的bed文件
 
 使用程序
 -----------------------------------
@@ -27,14 +27,14 @@ Path
 参数设计
 -----------------------------------
 
-::      {"name":"ref_gff3", "type":"string"},  #ref gff文件
-        {"name":"new_gtf", "type":"string"},  #新基因的gtf文件
+::      {"name":"ref_new_gtf", "type":"string"},  #ref gff文件
         {"name":"ref_genome_custom","type":"string"}, #ref fa文件
         {"name":"assembly_method","type":"string","default":"stringtie"}, #拼接方法
         {"name":"gene_fa","type":"outfile","format":"sequence.fasta"}, #结果文件 基因的fa文件
-        {"name":"gene_bed","type":"outfile","format":"gene_structure.bed"} #新基因的bed文件
+        {"name":"gene_bed","type":"outfile","format":"gene_structure.bed"}, #基因的bed文件
+        {"name":"trans_bed","type":"outfile","format":"gene_structure.bed"}, #转录本的bed文件
 
 运行逻辑
 ------------------------------------
 
-输入ref.gff3和新基因的gtf文件，返回基因的fa文件和所有基因的bed文件
+输入ref_new_gtf, 返回基因的fa文件和基因/转录本的bed文件
