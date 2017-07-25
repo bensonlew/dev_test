@@ -1019,84 +1019,108 @@ class RefrnaWorkflow(Workflow):
         self.logger.info("结果文件导入完成！")
 
     def run(self):
-        """
-        ref-rna workflow run方法
-        :return:
-        """
-        self.filecheck.on('end', self.run_qc)
-        self.filecheck.on('end', self.run_seq_abs)
-        if self.option("blast_method") == "diamond":
-            if self.anno_path == "":
-                self.seq_abs.on('end', self.run_align, "diamond")
-            else:
-                self.seq_abs.on('end', self.run_annotation)
-            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
-        else:
-            if self.anno_path == "":
-                self.seq_abs.on('end', self.run_align, "blast")
-            else:
-                self.seq_abs.on('end', self.run_annotation)
-            self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "blast")
-        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
-        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
-        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        self.filecheck.on("end", self.run_gs)
-        self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
-        self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
-        self.qc.on('end', self.run_mapping)
+        # """
+        # ref-rna workflow run方法
+        # :return:
+        # """
+        # self.filecheck.on('end', self.run_qc)
+        # self.filecheck.on('end', self.run_seq_abs)
+        # if self.option("blast_method") == "diamond":
+        #     if self.anno_path == "":
+        #         self.seq_abs.on('end', self.run_align, "diamond")
+        #     else:
+        #         self.seq_abs.on('end', self.run_annotation)
+        #     self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        # else:
+        #     if self.anno_path == "":
+        #         self.seq_abs.on('end', self.run_align, "blast")
+        #     else:
+        #         self.seq_abs.on('end', self.run_annotation)
+        #     self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "blast")
+        # self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        # self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        # self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        # self.filecheck.on("end", self.run_gs)
+        # self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
+        # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
+        # self.qc.on('end', self.run_mapping)
+        # self.qc.on("end", self.run_star_mapping)
+        # self.map_gene.on("end", self.run_map_assess_gene)
+        # self.mapping.on('end', self.run_assembly)
+        # self.mapping.on('end', self.run_map_assess)
+        # self.assembly.on("end", self.run_exp_rsem_default)
+        # self.assembly.on("end", self.run_exp_fc)
+        # self.assembly.on("end", self.run_new_transcripts_abs)
+        # self.assembly.on("end", self.run_new_gene_abs)
+        # if self.taxon_id != "":
+        #     self.exp.on("end", self.run_network_trans)
+        #     self.final_tools.append(self.network_trans)
+        # self.on_rely(self.final_tools, self.run_api_and_set_output)
+        # self.run_filecheck()
+        # super(RefrnaWorkflow, self).run()  # 以上为原workflow部分
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/HiseqQc/output/sickle_dir")
+        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/FilecheckRef/Mus_musculus.GRCm38.87.chr.gtf.bed")
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/FilecheckRef/Mus_musculus.GRCm38.87.chr.gtf")
+        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/RnaseqMapping/output/bam")
         self.qc.on("end", self.run_star_mapping)
-        self.map_gene.on("end", self.run_map_assess_gene)
+        self.qc.on("end", self.run_seq_abs)
+        self.seq_abs.on("end", self.run_align, "diamond")
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_map_assess)
-        self.assembly.on("end", self.run_exp_rsem_default)
-        self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
+        self.taxon_id = "10090"
         if self.taxon_id != "":
             self.exp.on("end", self.run_network_trans)
             self.final_tools.append(self.network_trans)
-        self.on_rely(self.final_tools, self.run_api_and_set_output)
-        self.run_filecheck()
-        super(RefrnaWorkflow, self).run()
+        self.assembly.on("end", self.run_exp_rsem_default)
+        self.assembly.on("end", self.run_exp_fc)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.on_rely([self.annotation, self.new_annotation], self.run_merge_annot)
+        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        self.start_listener()
+        self.fire("start")
+        self.qc.start_listener()
+        self.qc.fire("end")
+        self.mapping.start_listener()
+        self.mapping.fire("end")
+        self.rpc_server.run()
+
 
     def end(self):
         super(RefrnaWorkflow, self).end()
 
     def test_mus(self):
-        self.logger.info("{}".format(self.option("ref_genome_custom").prop["path"]))
-        self.IMPORT_REPORT_DATA = True
-        self.IMPORT_REPORT_AFTER_END = False
-        # self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170622/Refrna_tsanger_8326/FilecheckRef/Mus_musculus.GRCm38.87.gff3.gtf")
-        self.group_id = "596452d7edcb255322d9e66e"
-        self.control_id = "596452d7edcb255322d9e66f"
-        self.group_category = ["A", "B", "C"]
-        self.group_detail =[
-            {'596452d7edcb255322d9dbe1': 'A_1',
-             '596452d7edcb255322d9dbdf': 'A_2',
-             '596452d7edcb255322d9dbe0': 'A_3'},
-            {'596452d7edcb255322d9dbdd': 'C_3',
-             '596452d7edcb255322d9dbde': 'C_1',
-             '596452d7edcb255322d9dbdc': 'C_2'},
-            {'596452d7edcb255322d9dbda': 'B_2',
-             '596452d7edcb255322d9dbdb': 'B_3',
-             '596452d7edcb255322d9dbd9': 'B_1'}
-        ]
-        self.trans_gs_id_name = {
-            "5964800ea4e1af2583dcc94f": "A_vs_B",
-            "5964800fa4e1af2583dcc955": "A_vs_C",
-            "59648010a4e1af2583dcc95b": "B_vs_C"
-        }
-        self.gene_gs_id_name = {
-            "59647fc7a4e1af25303e5c62": "A_vs_B",
-            "59647fc8a4e1af25303e5c68": "A_vs_C",
-            "59647fc8a4e1af25303e5c6e": "B_vs_C"
-        }
-        # self.export_go_regulate()
-        self.export_kegg_regulate()
-        # self.export_go_enrich()
-        # self.export_kegg_enrich()
-        # self.export_cog_class()
-        # self.export_ppi_test()
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/HiseqQc/output/sickle_dir")
+        self.filecheck.option("bed", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/FilecheckRef/Mus_musculus.GRCm38.87.chr.gtf.bed")
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/FilecheckRef/Mus_musculus.GRCm38.87.chr.gtf")
+        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-test/workspace/20170721/Refrna_mus_test_7/RnaseqMapping/output/bam")
+        self.qc.on("end", self.run_star_mapping)
+        self.qc.on("end", self.run_seq_abs)
+        self.seq_abs.on("end", self.run_align, "diamond")
+        self.mapping.on('end', self.run_assembly)
+        self.mapping.on('end', self.run_map_assess)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
+        self.taxon_id = "10090"
+        if self.taxon_id != "":
+            self.exp.on("end", self.run_network_trans)
+            self.final_tools.append(self.network_trans)
+        self.assembly.on("end", self.run_exp_rsem_default)
+        self.assembly.on("end", self.run_exp_fc)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.on_rely([self.annotation, self.new_annotation], self.run_merge_annot)
+        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
+        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
+        self.start_listener()
+        self.fire("start")
+        self.qc.start_listener()
+        self.qc.fire("end")
+        self.mapping.start_listener()
+        self.mapping.fire("end")
+        self.rpc_server.run()
+        pass
 
     def run_api_and_set_output(self):
         self.set_output_all()
@@ -1111,8 +1135,8 @@ class RefrnaWorkflow(Workflow):
         self.export_snp()
         self.export_map_assess()
         self.export_exp_rsem_default()
-        self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
-        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
+        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.export_gene_set()
         self.export_diff_gene()
         self.export_diff_trans()
