@@ -106,6 +106,7 @@ class Family2tabDcTool(Tool):
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/vcflib-master/bin')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/medical/picard-tools-2.2.4')
         self.java_path = self.config.SOFTWARE_DIR + '/program/sun_jdk1.8.0/bin/java'
+        self.ref_data = self.config.SOFTWARE_DIR + "/database/human/pt_ref/tab_data"
 
 
     def run_Family2tab(self):
@@ -136,9 +137,16 @@ class Family2tabDcTool(Tool):
         print file_path
         results = os.listdir(file_path)
         for f in results:
-            if str(f) == "%s.mem.sort.hit.vcf.tab"%(self.option("fastq")) or str(f) == "%s.qc"%(self.option("fastq")):
-            #if re.search(r'.*\.filter\.bam$', f) or re.search(r'.*\.qc$', f):
+            if str(f) == "%s.mem.sort.hit.vcf.tab" % (self.option("fastq")) or str(f) == "%s.qc" % (self.option("fastq")):
                 shutil.move(file_path + f, self.output_dir)
+            if re.search(r'.*F.*tab$', f) and os.path.getsize(self.output_dir + "/" + f):
+                self.logger.info("存在父本样本，且父本样本大小不为0")
+                m = re.search(r'(.*)\.mem.*tab$', f)
+                file_name = m.group(1) + ".tab"
+                self.logger.info("要移动的父本：%s" % file_name)
+                if not os.path.exists(self.ref_data + "/" + file_name):
+                    os.link(self.output_dir + "/" + f, self.ref_data + "/" + file_name)
+
         self.logger.info('设置文件夹路径成功')
 
         api = self.api.tab_file
