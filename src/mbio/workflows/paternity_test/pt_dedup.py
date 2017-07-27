@@ -33,7 +33,7 @@ class PtDedupWorkflow(Workflow):
             {"name": "batch_id", "type": "string"},
             {"name": "update_info", "type": "string"},
             {"name": "member_id", "type": "string"},
-            {"name":"direct_get_path", "type":"string"}
+            {"name": "direct_get_path", "type": "string"}
 
         ]
         self.add_option(options)
@@ -268,24 +268,24 @@ class PtDedupWorkflow(Workflow):
     def dedup_run(self):
         n = 0
         for i in range(len(self.family_id)):
-            dad_id = self.family_id[i][0]
+            # dad_id = self.family_id[i][0]
             mom_id = self.family_id[i][1]
             preg_id = self.family_id[i][2]
             # self.logger.info("iiii%s" % dad_id)
             # self.name_list.remove(dad_id)   # 20170704 xuanhongdong
-            dad_list = []
+            # dad_list = []
+            #
+            # for i in self.name_list[0:2]:  # 20170704 zhouxuan modify self.name_list → self.name_list[0:2]
+            #     dad_list.append(self.output_dir + '/' + i + '.tab')
+            # dad_list = ",".join(dad_list)
 
-            for i in self.name_list[0:2]:  # 20170704 zhouxuan modify self.name_list → self.name_list[0:2]
-                dad_list.append(self.output_dir + '/' + i + '.tab')
-            dad_list = ",".join(dad_list)
 
-
-            pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
+            pt_analysis_dedup = self.add_tool("paternity_test.dedup")
             self.step.add_steps('dedup_{}'.format(n))
             pt_analysis_dedup.set_options({
-                    "dad_list": dad_list,  # 数据库的tab文件
-                    "mom_tab": self.output_dir + '/' + mom_id +'.tab',
-                    "preg_tab": self.output_dir +'/' + preg_id+'.tab',
+                    # "dad_list": dad_list,  # 数据库的tab文件
+                    "mom_tab": self.output_dir + '/' + mom_id + '.tab',
+                    "preg_tab": self.output_dir + '/' + preg_id + '.tab',
                     "ref_point": self.option("ref_point"),
                     "err_min": self.option("err_min")
             }
@@ -377,7 +377,7 @@ class PtDedupWorkflow(Workflow):
 
             self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=self.option("err_min"),
                                                        dedup=self.option('dedup_num'))
-
+            dedup_new = mom_id + '_' + preg_id + '.txt'
             dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt$'
             dedup1 = '.*_NA_' + preg_id + '_family_analysis.txt'
             dedup2 = '.*' + mom_id + '_NA_family_analysis.txt'
@@ -397,6 +397,11 @@ class PtDedupWorkflow(Workflow):
                 elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family.png':
                     file_dir = self.output_dir + '/' + dad_id + '_' + mom_id + '_' + preg_id
                     api_main.add_pt_father_figure(file_dir, self.pt_father_id)
+                elif str(f) == str(dedup_new):
+                    self.logger.info(f)
+                    self.logger.info(dedup_new)
+                    self.logger.info("test_import_dedup")
+                    api_main.import_dedup_data(self.output_dir + '/' + f, self.pt_father_id)
 
             #如遇深度较低的样本，在结果处报错
             if dad_id + '_' + mom_id + '_' + preg_id + '_family.png' not in results:
