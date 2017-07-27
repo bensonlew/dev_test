@@ -29,7 +29,7 @@ class GenesetClusterAction(RefRnaController):
         return 'khl'
     
     def POST(self):
-        data=web.input()
+        data = web.input()
         print data
 
         task_name = "ref_rna.report.geneset_cluster"
@@ -39,18 +39,18 @@ class GenesetClusterAction(RefRnaController):
             info = {"success": False, "info": '+'.join(return_result)}
             return json.dumps(info)
         my_param = dict()
-        my_param['submit_location']=data.submit_location
-        my_param['type']=data.type # gene or transcript
+        my_param['submit_location'] = data.submit_location
+        my_param['type'] = data.type # gene or transcript
         # my_param['distance_method']=data.distance_method # 距离算法
-        my_param['method']=data.method #聚类方法 kmeans or hclust
-        my_param['log']=data.log
-        my_param['level']=data.level  # fpkm or tpm
-        my_param['sub_num']=data.sub_num
-        my_param['group_id']=data.group_id
-        my_param['group_detail']= group_detail_sort(data.group_detail)
-        my_param['express_method']=data.express_method # featurecounts or rsem
-        my_param['geneset_id']=data.geneset_id
-        my_param["task_type"]=task_type
+        my_param['method'] = data.method #聚类方法 kmeans or hclust
+        my_param['log'] = data.log
+        my_param['level'] = data.level  # fpkm or tpm
+        my_param['sub_num'] = data.sub_num
+        my_param['group_id'] = data.group_id
+        my_param['group_detail'] = group_detail_sort(data.group_detail)
+        my_param['express_method'] = data.express_method # featurecounts or rsem
+        my_param['geneset_id'] = data.geneset_id
+        my_param["task_type"] = task_type
         my_param['genes_distance_method'] = data.genes_distance_method
         if data.method == 'hclust':
             my_param['samples_distance_method'] = data.samples_distance_method
@@ -69,29 +69,30 @@ class GenesetClusterAction(RefRnaController):
         task_info = self.ref_rna.get_task_info(geneset_info['task_id'])
 
         re_express_level = data.level.lower()
-        re_name_info = {"gene": "G", "transcript": "T", "log2": 'lg2', "log10": "lg10","featurecounts":"FeaCount","rsem":"RSEM"}
+        re_name_info = {"gene": "G", "transcript": "T", "log2": 'lg2', "log10": "lg10", "featurecounts": "FeaCount",
+                        "rsem": "RSEM"}
         re_query_type = re_name_info[data.type.lower()]
         re_log_info = re_name_info['log{}'.format(str(data.log))]
         re_express_method = re_name_info[data.express_method.lower()]
-        main_table_name = 'GSetCluster_{}_{}_{}_{}_'.format(re_express_method, re_express_level, re_query_type, re_log_info) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        main_table_name = 'GSetCluster_{}_{}_{}_{}_'.format(re_express_method, re_express_level, re_query_type, re_log_info)\
+                          + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
 
-        # main_table_name = "GenesetCluster_"+str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         mongo_data = [
                 ('project_sn', task_info['project_sn']),
                 ('task_id', task_info['task_id']),
                 ('status', 'end'),
                 ('type', data.type),
                 ('name', main_table_name),
-                ("desc","基因集聚类分析"),
+                ("desc", "基因集聚类分析"),
                 # ('gene_cluster',data.gene_cluster),
                 # ('sample_cluster',data.sample_cluster),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
-            ]
+        ]
         if data.genes_distance_method == '':
-            mongo_data .append(("gene_cluster",False))
+            mongo_data .append(("gene_cluster", False))
         else:
-            mongo_data.append(('gene_cluster',True))
+            mongo_data.append(('gene_cluster', True))
         if data.method == 'hclust':
             if data.samples_distance_method == '':
                 mongo_data.append(('sample_cluster', False))
@@ -145,19 +146,22 @@ class GenesetClusterAction(RefRnaController):
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print task_info
         return json.dumps(task_info)
-    
-    def check_options(self, data, method):
+
+    @staticmethod
+    def check_options(data, method):
         """
         检查网页端传来的参数是否正确
         """
         if method == 'hclust':
-            params_name = ['type','genes_distance_method','method','log','sub_num',"level",'samples_distance_method',
-                        'group_id','group_detail','geneset_id', 'express_method','submit_location','genes_distance_algorithm','samples_distance_algorithm']
+            params_name = ['type', 'genes_distance_method', 'method', 'log', 'sub_num', "level",
+                           'samples_distance_method', 'group_id', 'group_detail', 'geneset_id',
+                           'express_method', 'submit_location', 'genes_distance_algorithm',
+                           'samples_distance_algorithm']
         if method == 'kmeans':
             params_name = ['type', 'genes_distance_method', 'method', 'log', 'sub_num', "level",
                            'group_id', 'group_detail', 'geneset_id',
                            'express_method', 'submit_location']
-        success = []
+        success = list()
         
         for names in params_name:
             if not hasattr(data, names):
