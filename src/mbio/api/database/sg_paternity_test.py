@@ -477,3 +477,38 @@ class SgPaternityTest(Base):
             return 'True'
         else:
             return 'False'
+
+    def import_dedup_data(self, file_path, pt_father_id):
+        sg_pt_family_detail = list()
+        with open(file_path, 'r') as f:
+            data = f.readlines()[1:]
+            for line in data:
+                line = line.strip().split('\t')
+                temp_fp = eval(line[4])
+                RCP = temp_fp / (temp_fp + 1)
+                if RCP > 0.5:
+                    rcp_result = ">99.99%"
+                else:
+                    rcp_result = "<0.01%"
+                insert_data = {
+                    "pt_father_id": pt_father_id,
+                    "dad_id": line[0],
+                    "test_pos_n": line[1],
+                    "err_pos_n": line[2],
+                    "err_rate": line[3],
+                    "fq": line[4],
+                    "dp": line[5],
+                    "eff_rate": line[6],
+                    "ineff_rate": line[7],
+                    "result": line[8],
+                    "rcp": rcp_result
+                }
+                sg_pt_family_detail.append(insert_data)
+            try:
+                collection = self.database['sg_pt_father_analysis']
+                collection.insert_many(sg_pt_family_detail)
+            except Exception as e:
+                self.bind_object.logger.error('导入查重表格出错：{}'.format(e))
+            else:
+                self.bind_object.logger.info("导入查重表格成功")
+
