@@ -115,17 +115,17 @@ class BlastAnnotationWorkflow(Workflow):
         api_stat = self.api.api('ref_rna.annotation_stat')
         nr_params = {
             "stat_id": self.option("stat_id"),
-            "nr_evalue": self.option("nr_evalue"),
-            "nr_similarity": self.option("nr_similarity"),
-            "nr_score": self.option("nr_score"),
-            "nr_identity": self.option("nr_identity")
+            "nr_evalue": str(self.option("nr_evalue")),
+            "nr_similarity": str(self.option("nr_similarity")),
+            "nr_score": str(self.option("nr_score")),
+            "nr_identity": str(self.option("nr_identity"))
         }
         swissprot_params = {
             "stat_id": self.option("stat_id"),
-            "swissprot_evalue": self.option("swissprot_evalue"),
-            "swissprot_similarity": self.option("swissprot_similarity"),
-            "swissprot_score": self.option("swissprot_score"),
-            "swissprot_identity": self.option("swissprot_identity")
+            "swissprot_evalue": str(self.option("swissprot_evalue")),
+            "swissprot_similarity": str(self.option("swissprot_similarity")),
+            "swissprot_score": str(self.option("swissprot_score")),
+            "swissprot_identity": str(self.option("swissprot_identity"))
         }
         nr_evalue = self.output_dir + "/nr_evalue.xls"
         nr_similar = self.output_dir + "/nr_similar.xls"
