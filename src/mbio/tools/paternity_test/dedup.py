@@ -59,7 +59,7 @@ class DedupAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 5
+        self._cpu = 10
         self._memory = '20G'
 
     def end(self):
