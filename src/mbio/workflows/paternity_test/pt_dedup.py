@@ -396,8 +396,6 @@ class PtDedupWorkflow(Workflow):
                     api_main.add_pt_father_figure(file_dir, self.pt_father_id)
                 elif str(f) == str(dedup_new):
                     self.logger.info(f)
-                    self.logger.info(dedup_new)
-                    self.logger.info("test_import_dedup")
                     api_main.import_dedup_data(self.output_dir + '/' + f, self.pt_father_id)
 
             #如遇深度较低的样本，在结果处报错
