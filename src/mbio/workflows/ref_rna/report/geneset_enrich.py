@@ -31,7 +31,7 @@ class GenesetEnrichWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.enrich_tool = self.add_tool("rna.go_enrich") if self.option("anno_type") == "go" else self.add_tool("rna.kegg_rich")
+        self.enrich_tool = self.add_tool("denovo_rna.express.go_enrich") if self.option("anno_type") == "go" else self.add_tool("rna.kegg_rich")
         self.output_dir = self.enrich_tool.output_dir
         # self.group_spname = dict()
 

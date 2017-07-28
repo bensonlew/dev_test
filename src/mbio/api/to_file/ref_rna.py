@@ -240,9 +240,12 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
     with open(cog_path, "wb") as w:
         w.write("Type\tFunctional Categoris\t" + "\t".join(new_table_title) + "\n")
         for cr in cog_results:
-            kog_list = set(cr["kog_list"].split(";") if cr["kog_list"] else [])
-            nog_list = set(cr["nog_list"].split(";") if cr["kog_list"] else [])
-            cog_list = set(cr["cog_list"].split(";") if cr["kog_list"] else [])
+            # kog_list = set(cr["kog_list"].split(";") if cr["kog_list"] else [])
+            # nog_list = set(cr["nog_list"].split(";") if cr["kog_list"] else [])
+            # cog_list = set(cr["cog_list"].split(";") if cr["kog_list"] else [])
+            kog_list = set([])
+            nog_list = set(cr["nog_list"].split(";") if cr["nog_list"] else [])
+            cog_list = set(cr["cog_list"].split(";") if cr["cog_list"] else [])
             # print kog_list
             # write_line_key = cr["type"] + "\t" + cr["function_categories"]
             write_line = {}

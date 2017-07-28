@@ -108,7 +108,7 @@ class DiamondTool(Tool):
         # if self.option('outfmt') == 5:
         outputfile += '.xml'  # outfmt默认为5
         outfmt = 5
-        cmd += " {} -q {} -d {} -o {} -e {} -f {} -p {}".format(
+        cmd += " {} -q {} -d {} -o {} -e {} -f {} -p {} -k 5".format(
             self.blast_type, self.option("query").prop['path'], db, outputfile,
             self.option("evalue"), outfmt, self.option("num_threads"))
         if self.option("sensitive") == 1:
