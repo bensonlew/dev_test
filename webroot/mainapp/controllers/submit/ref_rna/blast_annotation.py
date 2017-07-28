@@ -5,6 +5,7 @@ import web
 import json
 import datetime
 from bson import ObjectId
+import types
 from mainapp.libs.signature import check_sig
 from mainapp.libs.param_pack import *
 from mainapp.models.mongo.ref_rna import RefRna
@@ -32,15 +33,15 @@ class BlastAnnotationAction(RefRnaController):
             info = {"success": False, "info": "stat_id不存在,请确认参数是否正确"}
             return json.dumps(info)
         params_json = {
-            "stat_id": data.stat_id,
-            "nr_evalue": data.nr_evalue,
-            "nr_score": data.nr_score,
-            "nr_similarity": data.nr_similarity,
-            "nr_identity": data.nr_identity,
-            "swissprot_evalue": data.swissprot_evalue,
-            "swissprot_score": data.swissprot_score,
-            "swissprot_similarity": data.swissprot_similarity,
-            "swissprot_identity": data.swissprot_identity,
+            "stat_id": str(data.stat_id),
+            "nr_evalue": str(data.nr_evalue),
+            "nr_score": str(data.nr_score),
+            "nr_similarity": str(data.nr_similarity),
+            "nr_identity": str(data.nr_identity),
+            "swissprot_evalue": str(data.swissprot_evalue),
+            "swissprot_score": str(data.swissprot_score),
+            "swissprot_similarity": str(data.swissprot_similarity),
+            "swissprot_identity": str(data.swissprot_identity),
             "submit_location": data.submit_location,
             "task_type": data.task_type
         }
@@ -87,6 +88,11 @@ class BlastAnnotationAction(RefRnaController):
         success = []
         if not (hasattr(data, "stat_id")):
             success.append("缺少参数stat_id")
+        # if not isinstance(data.stat_id, ObjectId):
+        #     if isinstance(data.stat_id, types.StringTypes):
+        #         pass
+        #     else:
+        #         success.append('stat_id,必须为ObjectId对象或其对应的字符串！')
         if not (hasattr(data, "task_type")):
             success.append("缺少参数task_type")
         if not (hasattr(data, "nr_evalue")):
