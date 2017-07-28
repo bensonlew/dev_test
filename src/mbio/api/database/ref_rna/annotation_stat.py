@@ -140,8 +140,8 @@ class AnnotationStat(Base):
             ('gene', len(gene_nr_ids)),
             ('transcript_percent', round(float(len(nr_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_nr_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_nr_ids)),
-            ('transcript_list', ";".join(nr_ids))
+            ('gene_list', ",".join(gene_nr_ids)),
+            ('transcript_list', ",".join(nr_ids))
         ]
         data = SON(data)
         data_list.append(data)
@@ -154,8 +154,8 @@ class AnnotationStat(Base):
             ('gene', len(gene_sw_ids)),
             ('transcript_percent', round(float(len(sw_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_sw_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_sw_ids)),
-            ('transcript_list', ";".join(sw_ids))
+            ('gene_list', ",".join(gene_sw_ids)),
+            ('transcript_list', ",".join(sw_ids))
         ]
         data = SON(data)
         data_list.append(data)
