@@ -77,17 +77,13 @@ class PtDedupWorkflow(Workflow):
             m = re.match('(.*)_R1.fastq.gz', j)
             if m:
                 type = api_read_tab.type(m.group(1))
-                # if type == "pt" or type == "ppt":
-                #   file.append(m.group(1))
-                # else:
-                #   pass
-                # file.append(m.group(1))
-                # file_type.append(type)
-                if str(type) == "ct_str":  # 临时处理 xuanhongdong 20170703
-                    pass
-                else:
+                if type in ['pt', 'ppt', 'dcpt']:  # 记录分析方法为多重还是杂捕 20170720 modify by zhouxuan
                     file.append(m.group(1))
                     file_type.append(type)
+                else:
+                    self.logger.info(j)
+                    pass
+
         n = 0
         for i in file:
             x = api_read_tab.tab_exist(i)
