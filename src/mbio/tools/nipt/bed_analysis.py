@@ -62,8 +62,8 @@ class BedAnalysisAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
-        self._memory = '3G'
+        self._cpu = 11
+        self._memory = '20G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

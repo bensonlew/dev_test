@@ -238,9 +238,11 @@ def get_color(values, steps=100):
 
     for i in new_values:
         if i > 10:
-            colors.append(all_red_colors[-1])
+            colors.append(all_red_colors[-2])
         elif i < 0:
             colors.append(all_blue_colors[0])
+        elif i == 1:
+            colors.append(Color('grey'))
         elif i <= 1.3:
             colors.append(all_blue_colors[get_range(i, 0, steps - 1, blue_range)])
         elif i <= 10:
@@ -298,9 +300,8 @@ if __name__ == '__main__':
     # my_test = dict(zip(recs, p_bonferroni))
     # draw_GO(my_test, obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")
     # draw_GO(recs, out='GO_lineage_1', obo="C:\\Users\\sheng.he.MAJORBIO\\Desktop\\goa\\go-basic.obo")
-    my_test = {'GO:0004372': 0.000361044713629, 'GO:0006563': 0.000652439537723,
-               'GO:0071466': 0.000829319912781, 'GO:0036342': 0.000925470872641,
-               'GO:0035999': 0.000571758551499, 'GO:0005764': 0.000358838049038,
-               'GO:0009410': 0.000925470872641, 'GO:0030170': 9.16754833893e-05,
-               'GO:0005007': 0.000652439537723, 'GO:0000323': 0.000358838049038}
+    my_test = {'GO:1902305': 0.000651805904284, 'GO:0019836': 0.000704504425152,
+               'GO:0044179': 0.000704504425152, 'GO:0051801': 0.000704504425152,
+               'GO:0005576': 0.000724690563627, 'GO:0001897': 0.000704504425152, 'GO:0050828': 0.000704504425152,
+               'GO:0052331': 0.000704504425152, 'GO:0001907': 0.000704504425152, 'GO:0044004': 0.000704504425152}
     draw_GO(my_test, out= "sj", obo= "/mnt/ilustre/users/sanger-dev/app/database/GO/go-basic.obo")
