@@ -155,13 +155,14 @@ class PtDedupWorkflow(Workflow):
         self.num_list = []
         self.dedup_list = []
         self.father = []
-        self.preg =[]
+        self.preg = []
         self.mother = []
         for p in range(len(self.family_id)):
             # temp = re.match('WQ([1-9].*)-F.*', self.family_id[p][0])
             # num = int(temp.group(1))
             # self.num_list = range(num - self.option('dedup_num'), num + self.option('dedup_num') + 1)
-            self.name_list = []
+            # self.name_list = []
+            api_read_tab.export_tab_file(self.family_id[p][0], self.output_dir)
             api_read_tab.export_tab_file(self.family_id[p][1], self.output_dir)
             api_read_tab.export_tab_file(self.family_id[p][2], self.output_dir)
 
@@ -180,11 +181,11 @@ class PtDedupWorkflow(Workflow):
             #   self.preg.append(self.family_id[p][2])
             #   self.dedup_list.append(name_list)
             #   self.tool.append([])
-            x = api_read_tab.dedup_sample()
-            if len(x):  # 如果库中能取到前后的样本
-                for k in range(len(x)):
-                    api_read_tab.export_tab_file(x[k], self.output_dir)
-                    self.name_list.append(x[k])
+            # x = api_read_tab.dedup_sample()
+            # if len(x):  # 如果库中能取到前后的样本
+            #     for k in range(len(x)):
+            #         api_read_tab.export_tab_file(x[k], self.output_dir)
+            #         self.name_list.append(x[k])
 
 
         for i in range(len(self.family_id)):
