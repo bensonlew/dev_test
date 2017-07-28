@@ -295,8 +295,8 @@ class RefAnnotation(Base):
             ('gene', len(gene_nr_ids)),
             ('transcript_percent', round(float(len(nr_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_nr_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_nr_ids)),
-            ('transcript_list', ";".join(nr_ids))
+            ('gene_list', ",".join(gene_nr_ids)),
+            ('transcript_list', ",".join(nr_ids))
         ]
         data = SON(data)
         data_list.append(data)
@@ -309,8 +309,8 @@ class RefAnnotation(Base):
             ('gene', len(gene_sw_ids)),
             ('transcript_percent', round(float(len(sw_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_sw_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_sw_ids)),
-            ('transcript_list', ";".join(sw_ids))
+            ('gene_list', ",".join(gene_sw_ids)),
+            ('transcript_list', ",".join(sw_ids))
         ]
         data = SON(data)
         data_list.append(data)
@@ -322,19 +322,30 @@ class RefAnnotation(Base):
         else:
             self.bind_object.logger.info("导入注释统计信息成功")
 
+    # def stat(self, stat_path):
+    #     with open(stat_path, "rb") as f:
+    #         id_list = []
+    #         lines = f.readlines()
+    #         for line in lines[1:]:
+    #             line = line.strip().split("\t")
+    #             try:
+    #                 ids = line[2].split(";")
+    #             except:
+    #                 ids = []
+    #             for i in ids:
+    #                 if i not in id_list:
+    #                     id_list.append(i)
+    #     return id_list
+
     def stat(self, stat_path):
         with open(stat_path, "rb") as f:
             id_list = []
             lines = f.readlines()
             for line in lines[1:]:
                 line = line.strip().split("\t")
-                try:
-                    ids = line[2].split(";")
-                except:
-                    ids = []
-                for i in ids:
-                    if i not in id_list:
-                        id_list.append(i)
+                q_id = line[5]
+                id_list.append(q_id)
+        id_list = list(set(id_list))
         return id_list
 
     @report_check
