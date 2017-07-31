@@ -490,7 +490,7 @@ class SgPaternityTest(Base):
             for line in data:
                 line = line.strip().split('\t')
                 temp_fp = eval(line[4])
-                RCP = temp_fp / (temp_fp + 1)
+                RCP = float(temp_fp) / (float(temp_fp) + 1)
                 if RCP > 0.5:
                     rcp_result = ">99.99%"
                 else:
