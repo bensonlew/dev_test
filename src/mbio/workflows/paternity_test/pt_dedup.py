@@ -9,6 +9,7 @@ import os
 import re
 import datetime
 from bson.objectid import ObjectId
+from biocluster.config import Config
 import json
 import shutil
 import gevent
@@ -43,6 +44,7 @@ class PtDedupWorkflow(Workflow):
         self.tools_result = []
         self.tools_dedup = []
         self.rdata = []
+        self.ref_data = self.config.SOFTWARE_DIR + "/database/human/pt_ref/tab_data"
         self.set_options(self._sheet.options())
         self.step.add_steps("pt_analysis", "result_info", "retab",
                             "de_dup1", "de_dup2")
@@ -263,6 +265,7 @@ class PtDedupWorkflow(Workflow):
             t.run()
 
     def dedup_run(self):
+        self.logger.info(self.ref_data)
         n = 0
         for i in range(len(self.family_id)):
             # dad_id = self.family_id[i][0]
@@ -284,7 +287,8 @@ class PtDedupWorkflow(Workflow):
                     "mom_tab": self.output_dir + '/' + mom_id + '.tab',
                     "preg_tab": self.output_dir + '/' + preg_id + '.tab',
                     "ref_point": self.option("ref_point"),
-                    "err_min": self.option("err_min")
+                    "err_min": self.option("err_min"),
+                    "father_path": self.ref_data
             }
             )
             step = getattr(self.step, 'dedup_{}'.format(n))
