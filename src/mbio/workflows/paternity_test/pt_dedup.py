@@ -140,8 +140,8 @@ class PtDedupWorkflow(Workflow):
 
     def pt_analysis_run(self):
         api_read_tab = self.api.tab_file
-        # self.family_id = api_read_tab.family_unanalysised()  # tuple
-        self.family_id = [['WQ17072798-F1', 'WQ17072798-M-1', 'WQ17072798-S-1']]
+        self.family_id = api_read_tab.family_unanalysised()  # tuple
+        # self.family_id = [['WQ17072798-F1', 'WQ17072798-M-1', 'WQ17072798-S-1']]
         if not self.family_id:
             self.logger.error("没有符合条件的家系")
             self.exit(exitcode=1, data='没有符合条件的家系', terminated=False)
@@ -400,11 +400,13 @@ class PtDedupWorkflow(Workflow):
             api_main.add_sg_ref_file(self.father_id, self.option('ref_fasta').prop['path'],
                                      self.option('targets_bedfile').prop['path'],
                                      self.option('ref_point').prop['path'], self.option('fastq_path').prop['path']) # 信息记录
+            self.logger.info('father_id:{}'.format(self.father_id))
             for n in range(2, 6):
                 dir_path = self.output_dir + '/pt_result_' + str(n)
                 results = os.listdir(dir_path)
                 self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=n,
                                                            dedup='all')  # 交互表id
+                self.logger.info('pt_father_id:{}'.format(self.pt_father_id))
                 dedup_new = mom_id + '_' + preg_id + '.txt'
                 dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt$'
                 dedup1 = '.*_NA_' + preg_id + '_family_analysis.txt'
