@@ -54,7 +54,7 @@ class GoAnnotationAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '25g'
+        self._memory = '25G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

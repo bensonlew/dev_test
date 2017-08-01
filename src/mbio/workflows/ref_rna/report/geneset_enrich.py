@@ -27,11 +27,11 @@ class GenesetEnrichWorkflow(Workflow):
             {"name": "main_table_id", "type": "string"},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
-            {"name": "method", "type": "string"},
+            {"name": "method", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.enrich_tool = self.add_tool("denovo_rna.express.go_enrich") if self.option("anno_type") == "go" else self.add_tool("rna.kegg_rich")
+        self.enrich_tool = self.add_tool("denovo_rna.express.go_enrich") if self.option("anno_type") == "go" else self.add_tool("denovo_rna.express.kegg_rich")
         self.output_dir = self.enrich_tool.output_dir
         # self.group_spname = dict()
 
@@ -101,7 +101,7 @@ class GenesetEnrichWorkflow(Workflow):
         genset_list_path = self.option("genset_list")
         all_list_path = self.option("all_list")
         if self.option("anno_type") == "kegg":
-            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0], genset_list_path, all_list_path)
+            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0])
         else:
             api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
             # if len(png_file) == 1:

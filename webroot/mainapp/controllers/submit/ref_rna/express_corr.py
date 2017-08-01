@@ -26,7 +26,7 @@ class ExpressCorrAction(RefRnaController):
                 return json.dumps(info)
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_name = 'ref_rna.report.express_corr'
-        task_type = 'workflow'
+        task_type = ''
         my_param = dict()
         my_param['express_id'] = data.express_id
         my_param['group_id'] = data.group_id
