@@ -250,38 +250,34 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
     cog_collection = db["sg_annotation_cog"]
     cog_detail_collection = db["sg_annotation_cog_detail"]
     cog_id = cog_collection.find_one({"task_id": task_id})["_id"]
-    cog_results = cog_detail_collection.find({'cog_id': cog_id})
+    # cog_results = cog_detail_collection.find({'cog_id': cog_id})
+    cog_results = cog_detail_collection.find({'cog_id': cog_id, 'seq_type': 'all', 'anno_type': geneset_type})
     new_table_title = []
     for tt in table_title:
-        new_tt = [tt + "_COG", tt + "_NOG", tt + "_KOG", tt + "_COG_list", tt + "_NOG_list", tt + "_KOG_list"]
+        # new_tt = [tt + "_COG", tt + "_NOG", tt + "_KOG", tt + "_COG_list", tt + "_NOG_list", tt + "_KOG_list"]
+        new_tt = [tt + "_COG", tt + "_NOG", tt + "_COG_list", tt + "_NOG_list"]
         new_table_title = new_table_title + new_tt
     bind_obj.logger.debug(table_title)
     with open(cog_path, "wb") as w:
         w.write("Type\tFunctional Categoris\t" + "\t".join(new_table_title) + "\n")
         for cr in cog_results:
-            # kog_list = set(cr["kog_list"].split(";") if cr["kog_list"] else [])
-            # nog_list = set(cr["nog_list"].split(";") if cr["kog_list"] else [])
-            # cog_list = set(cr["cog_list"].split(";") if cr["kog_list"] else [])
             kog_list = set([])
             nog_list = set(cr["nog_list"].split(";") if cr["nog_list"] else [])
             cog_list = set(cr["cog_list"].split(";") if cr["cog_list"] else [])
-            # print kog_list
-            # write_line_key = cr["type"] + "\t" + cr["function_categories"]
             write_line = {}
             for gt in genesets:
-                kog_count = list(kog_list & genesets[gt][1])
+                # kog_count = list(kog_list & genesets[gt][1])
                 nog_count = list(nog_list & genesets[gt][1])
                 cog_count = list(cog_list & genesets[gt][1])
-                if not len(kog_count) + len(nog_count) + len(cog_count) == 0:
-                    write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count)), ";".join(cog_count), ";".join(nog_count), ";".join(kog_count)]
+                # if not len(kog_count) + len(nog_count) + len(cog_count) == 0:
+                #     write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count)), ";".join(cog_count), ";".join(nog_count), ";".join(kog_count)]
+                if not len(nog_count) + len(cog_count) == 0:
+                    write_line[gt] = [str(len(cog_count)), str(len(nog_count)), ";".join(cog_count), ";".join(nog_count)]
             if len(write_line) > 0:
                 w.write("{}\t{}\t".format(cr["type"], cr["function_categories"]))
                 for tt in table_title:
-                    w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\tnone\tnone\tnone\t")
-                # print write_line
+                    w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\tnone\tnone\t")
                 w.write("\n")
-            # else:
-            #     raise Exception("没有找到基因集的COG注释信息")
     return cog_path
 
 
