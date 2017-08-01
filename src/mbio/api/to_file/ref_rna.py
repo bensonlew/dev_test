@@ -289,29 +289,24 @@ def get_geneset_detail(data):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     geneset_collection = db["sg_geneset"]
     genesets = {}
-    table_title = []
+    names = []
     print data.split(",")
     task_id = ""
     geneset_type = "gene"
     for geneset_id in data.split(","):
-        # geneset_id = ObjectId(geneset_id)
         geneset_result = geneset_collection.find_one({"_id": ObjectId(geneset_id)})
         if not geneset_result:
             raise Exception("意外错误:未找到基因集_id为{}的基因集信息".format(geneset_id))
         task_id = geneset_result["task_id"]
         geneset_type = geneset_result["type"]
         geneset_name = geneset_result["name"]
-        table_title.append(geneset_name)
+        names.append(geneset_name)
         genesets[geneset_name] = [geneset_type]
-        # geneset_names = set()
         collection = db['sg_geneset_detail']
         results = collection.find_one({"geneset_id": ObjectId(geneset_id)})
         geneset_names = set(results["gene_list"])
-        #for result in results["gene_list"]:
-            #gene_id = result['gene_name']
-            #geneset_names.add(gene_id)
         genesets[geneset_name].append(geneset_names)
-    return genesets, table_title, task_id, geneset_type
+    return genesets, names, task_id, geneset_type
 
 
 def export_go_class(data, option_name, dir_path, bind_obj=None):
