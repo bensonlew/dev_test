@@ -8,6 +8,7 @@ import types
 import json
 import re
 from types import StringTypes
+import gridfs
 
 
 # client = Config().mongo_client
@@ -152,6 +153,24 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
     return kegg_path
 
+def export_kegg_pdf(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    fs = gridfs.GridFS(db)
+    annotation_collection = db["sg_annotation_kegg"]
+    main_id = annotation_collection.find_one({"task_id":data})["_id"]
+    kegg_level_collection = db["sg_annotation_kegg_level"]
+    results = kegg_level_collection.find({"kegg_id":main_id})
+    anno_path = dir_path + "/pdf"
+    if not os.path.exists(anno_path):
+        os.mkdir(anno_path)
+    for result in results:
+        graph_id = result["graph_id"]
+        pathway_id = result["pathway_id"]
+        bind_obj.logger.info("正在导出{}的pdf文件".format(pathway_id))
+        with open(anno_path + "/" + pathway_id, "w") as fw:
+            content = fs.get(graph_id).read()
+            fw.write(content)
+    return anno_path
 
 def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
@@ -299,46 +318,35 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     go_path = os.path.join(dir_path, 'go_class_table.xls')
     bind_obj.logger.debug("正在导出{}".format(go_path))
-    genesets, table_title, task_id, seq_type = get_geneset_detail(data)
-    # bind_obj.logger.debug(seq_type)
-    # bind_obj.logger.debug(genesets)
+    genesets, names, task_id, seq_type = get_geneset_detail(data)
     go_collection = db["sg_annotation_go"]
-    go_level_collection = db["sg_annotation_go_level"]
+    # go_level_collection = db["sg_annotation_go_level"]
+    go_level_collection = db["sg_annotation_go_detail"]
     go_id = go_collection.find_one({"task_id": task_id})["_id"]
-    # go_results = go_level_collection.find({'go_id': go_id, "level": 2})
-    # bind_obj.logger.debug(go_id)
-    go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
-    one_record = go_level_collection.find_one({'go_id': go_id, "level": 2, "anno_type": seq_type})
+    go_results = go_level_collection.find({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
+    one_record = go_level_collection.find_one({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
     if not one_record:
         raise Exception("意外错误:未找到go_id为{}的基因集信息".format(go_id))
-    # print table_title
     new_table_title = []
-    for tt in table_title:
-        new_table_title.append(tt + " num")
-        new_table_title.append(tt + " percent")
-        new_table_title.append(tt + " list")
+    for gt in genesets:
+        new_table_title.append(gt + " num")
+        new_table_title.append(gt + " percent")
+        new_table_title.append(gt + " list")
     bind_obj.logger.debug(new_table_title)
     with open(go_path, "wb") as w:
         w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
         for gr in go_results:
             seq_list = set(gr["seq_list"].split(";"))
-            # seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
-            # bind_obj.logger.debug(seq_list)
             write_line = {}
             for gt in genesets:
                 total_gene_num = len(genesets[gt][1])
                 go_count = list(seq_list & genesets[gt][1])
-                # print len(go_count)
-                # bind_obj.logger.debug(go_count)
                 if not len(go_count) == 0:
                     write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
             if len(write_line):
-                w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
-                for tt in table_title:
-                    # bind_obj.logger.debug(tt)
+                w.write("{}\t{}\t{}\t".format(gr["goterm"], gr["goterm_2"], gr["goid_2"]))
+                for tt in genesets:
                     w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\tnone\t")
-                # print write_line
-                # w.write("\t".join(write_line[write_line_key]))
                 w.write("\n")
     return go_path
 
