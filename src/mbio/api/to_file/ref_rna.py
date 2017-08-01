@@ -8,6 +8,7 @@ import types
 import json
 import re
 from types import StringTypes
+import gridfs
 
 
 # client = Config().mongo_client
@@ -152,6 +153,24 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
     return kegg_path
 
+def export_kegg_pdf(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    fs = gridfs.GridFS(db)
+    annotation_collection = db["sg_annotation_kegg"]
+    main_id = annotation_collection.find_one({"task_id":data})["_id"]
+    kegg_level_collection = db["sg_annotation_kegg_level"]
+    results = kegg_level_collection.find({"kegg_id":main_id})
+    anno_path = dir_path + "/pdf"
+    if not os.path.exists(anno_path):
+        os.mkdir(anno_path)
+    for result in results:
+        graph_id = result["graph_id"]
+        pathway_id = result["pathway_id"]
+        bind_obj.logger.info("正在导出{}的pdf文件".format(pathway_id))
+        with open(anno_path + "/" + pathway_id, "w") as fw:
+            content = fs.get(graph_id).read()
+            fw.write(content)
+    return anno_path
 
 def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]

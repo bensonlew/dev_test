@@ -196,10 +196,11 @@ class RefRnaGeneset(Base):
                         'database': line[2],
                         'id': line[3].split("path:")[1] if "path:" in line[3] else line[3],
                         'study_number': int(line[0]),
+                        "background_number": line[5].split("/")[1],
                         'ratio_in_study': line[4],
                         'ratio_in_pop': line[5],
-                        'pvalue': round(float(line[7]), 4),
-                        'corrected_pvalue': round(float(line[6]), 4) if not line[-3] == "None" else "None",
+                        'pvalue': round(float(line[6]), 4),
+                        'corrected_pvalue': round(float(line[7]), 4) if not line[7] == "None" else "None",
                         'gene_lists': line[8],
                         'hyperlink': line[9]
                     }
