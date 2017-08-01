@@ -55,8 +55,6 @@ class RefRnaGeneset(Base):
         with open(geneset_cog_table, 'r') as f:
             first_line = f.readline().strip("\n").split("\t")
             print first_line
-            # print f.next().split("\t")
-
             for gn in first_line[2:]:
                 if "list" in gn or "LIST" in gn:
                     continue
@@ -71,27 +69,36 @@ class RefRnaGeneset(Base):
                     'function_categories': line[1]
                 }
                 for n, gn in enumerate(geneset_name):
-                    data[gn + "_cog"] = int(line[6*n+2])
-                    data[gn + "_nog"] = int(line[6*n+3])
-                    data[gn + "_kog"] = int(line[6*n+4])
+                    self.bind_object.logger.info(n)
+                    self.bind_object.logger.info(gn)
+                    self.bind_object.logger.info(geneset_name)
+                    # data[gn + "_cog"] = int(line[6*n+2])
+                    # data[gn + "_nog"] = int(line[6*n+3])
+                    data[gn + "_cog"] = int(line[4*n+2])
+                    data[gn + "_nog"] = int(line[4*n+3])
+                    # data[gn + "_kog"] = int(line[6*n+4])
                     if data[gn + "_cog"] == 0:
                         data[gn + "_cog_list"] = ""
                         data[gn + "_cog_str"] = ""
                     else:
-                        data[gn + "_cog_list"] = line[6*n+5].split(";")
-                        data[gn + "_cog_str"] = line[6*n+5]
+                        # data[gn + "_cog_list"] = line[6*n+5].split(";")
+                        # data[gn + "_cog_str"] = line[6*n+5]
+                        data[gn + "_cog_list"] = line[4*n+4].split(";")
+                        data[gn + "_cog_str"] = line[4*n+4]
                     if data[gn + "_nog"] == 0:
                         data[gn + "_nog_str"] = ""
                         data[gn + "_nog_list"] = ""
                     else:
-                        data[gn + "_nog_str"] = line[6*n+6]
-                        data[gn + "_nog_list"] = line[6*n+6].split(";")
-                    if data[gn + "_kog"] == 0:
-                        data[gn + "_kog_list"] = ""
-                        data[gn + "_kog_str"] = ""
-                    else:
-                        data[gn + "_kog_list"] = line[6*n+7].split(";")
-                        data[gn + "_kog_str"] = line[6*n+7]
+                        # data[gn + "_nog_str"] = line[6*n+6]
+                        # data[gn + "_nog_list"] = line[6*n+6].split(";")
+                        data[gn + "_nog_str"] = line[4*n+5]
+                        data[gn + "_nog_list"] = line[4*n+5].split(";")
+                    # if data[gn + "_kog"] == 0:
+                    #     data[gn + "_kog_list"] = ""
+                    #     data[gn + "_kog_str"] = ""
+                    # else:
+                    #     data[gn + "_kog_list"] = line[6*n+7].split(";")
+                    #     data[gn + "_kog_str"] = line[6*n+7]
                 data_list.append(data)
         try:
             collection = self.db['sg_geneset_cog_class_detail']
