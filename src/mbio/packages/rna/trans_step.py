@@ -57,7 +57,7 @@ def step_count(fasta_file, fasta_to_txt, group_num, step, stat_out):
                 w.write(area_line)
                 top_sum += int(num_statistics)
             else:
-                area_line = ">" + str(i * step + 1) + "\t" + str(len(trans_list)-int(top_sum)) + "\n"
+                area_line = ">" + str(i * step) + "\t" + str(len(trans_list)-int(top_sum)) + "\n"
                 end_line = "total" + "\t" + str(len(trans_list)) + "\n"
                 w.write(area_line)
                 w.write(end_line)
