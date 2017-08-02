@@ -314,7 +314,7 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
     # go_level_collection = db["sg_annotation_go_level"]
     go_level_collection = db["sg_annotation_go_detail"]
     go_id = go_collection.find_one({"task_id": task_id})["_id"]
-    go_results = go_level_collection.find({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
+    # go_results = go_level_collection.find({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
     one_record = go_level_collection.find_one({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
     if not one_record:
         raise Exception("意外错误:未找到go_id为{}的基因集信息".format(go_id))
@@ -326,19 +326,23 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
     bind_obj.logger.debug(new_table_title)
     with open(go_path, "wb") as w:
         w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
-        for gr in go_results:
-            seq_list = set(gr["seq_list"].split(";"))
-            write_line = {}
-            for gt in genesets:
-                total_gene_num = len(genesets[gt][1])
-                go_count = list(seq_list & genesets[gt][1])
-                if not len(go_count) == 0:
-                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
-            if len(write_line):
-                w.write("{}\t{}\t{}\t".format(gr["goterm"], gr["goterm_2"], gr["goid_2"]))
-                for tt in genesets:
-                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\tnone\t")
-                w.write("\n")
+        term_list = ["biological_process", "cellular_component", "molecular_function"]
+        for item in term_list:
+            go_results = go_level_collection.find({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
+            for gr in go_results:
+                if gr["goterm"] == item:
+                    seq_list = set(gr["seq_list"].split(";"))
+                    write_line = {}
+                    for gt in genesets:
+                        total_gene_num = len(genesets[gt][1])
+                        go_count = list(seq_list & genesets[gt][1])
+                        if not len(go_count) == 0:
+                            write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
+                    if len(write_line):
+                        w.write("{}\t{}\t{}\t".format(gr["goterm"], gr["goterm_2"], gr["goid_2"]))
+                        for tt in genesets:
+                            w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\tnone\t")
+                        w.write("\n")
     return go_path
 
 
