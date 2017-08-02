@@ -208,7 +208,7 @@ class Terms(dict):
 
 def get_color(values, steps=100):
     all_red_colors = list(Color.range_to(Color('yellow'), Color('red'), steps - 1))
-    all_blue_colors = list(Color.range_to(Color('blue'), Color('yellow'), steps - 1))
+    all_blue_colors = list(Color.range_to(Color('green'), Color('yellow'), steps - 1))
     # print("vvvvvvvvvvalusssssss")
     # print(values)
     new_values = []
@@ -240,7 +240,7 @@ def get_color(values, steps=100):
         if i > 10:
             colors.append(all_red_colors[-2])
         elif i < 0:
-            colors.append(all_blue_colors[0])
+            colors.append(all_blue_colors[1])
         elif i == 1:
             colors.append(Color('grey'))
         elif i <= 1.3:

@@ -107,18 +107,18 @@ class GenesetKeggWorkflow(Workflow):
             path = tmp[0]
             gene_num1 = tmp[2]
             if len(catgory) == 1:
-                if gene_num1:
+                if gene_num1 and not gene_num1 == "0" and not gene_num1.startswith("http"):
                     gene1_list = [x.split("(")[1][:-1] for x in tmp[3].split(";")]
                 else:
                     gene1_list = []
                 gene2_list = []
             else:
-                if gene_num1:
+                if gene_num1 and not gene_num1 == "0" and not gene_num1.startswith("http"):
                     gene1_list = [x.split("(")[1][:-1] for x in tmp[3].split(";")]
                 else:
                     gene1_list = []
                 gene_num2 = tmp[4]
-                if gene_num2:
+                if gene_num2 and not gene_num2.startswith("http") and not gene_num2 == "0":
                     gene2_list = [x.split("(")[1][:-1] for x in tmp[5].split(";")]
                     self.logger.info(gene2_list)
                 else:

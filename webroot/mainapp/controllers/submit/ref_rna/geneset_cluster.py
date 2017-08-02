@@ -137,13 +137,16 @@ class GenesetClusterAction(RefRnaController):
             options['samples_distance_algorithm'] = data.samples_distance_algorithm
 
         to_file = ["ref_rna.export_express_matrix_level(express_file)","ref_rna.export_group_table_by_detail(group_id)", "ref_rna.export_gene_list(gene_list)","ref_rna.export_class_code(class_code)"]
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,\
-                task_id = task_info['task_id'],project_sn = task_info['project_sn'],\
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+                task_id = task_info['task_id'],project_sn = task_info['project_sn'],
                 params = my_param, to_file = to_file)
         
         task_info = super(GenesetClusterAction, self).POST()
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
         print task_info
+        geneset_info = self.ref_rna.insert_geneset_info(data.geneset_id, collection_name, str(main_table_id))
+        if geneset_info:
+            print "geneset_info插入成功"
         return json.dumps(task_info)
     
     def check_options(self, data, method):

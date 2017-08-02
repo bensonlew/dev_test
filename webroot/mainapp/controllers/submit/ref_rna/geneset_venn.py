@@ -19,13 +19,13 @@ class GenesetVennAction(RefRnaController):
     
     def POST(self):
         data=web.input()
-        postArgs = ['type','geneset_id','submit_location',"task_id"]
+        postArgs = ['type','geneset_id','submit_location',"task_id", "task_type"]
         for arg in postArgs:
             if not hasattr(data,arg):
                 info = {'success': False, 'info': '%s参数缺少!' % arg}
                 return json.dumps(info)
         task_name = 'ref_rna.report.geneset_venn'
-        task_type = 'workflow'
+        task_type = ''
         
         my_param = dict()
         my_param['type']=data.type
@@ -72,8 +72,8 @@ class GenesetVennAction(RefRnaController):
                 "geneset_venn_id":str(main_table_id)
             }
             to_file = 'ref_rna.export_geneset_venn_level(geneset_file)'
-            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,\
-                    task_id = task_info['task_id'],project_sn = task_info['project_sn'],\
+            self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name,
+                    task_id = task_info['task_id'],project_sn = task_info['project_sn'],
                     params = my_param, to_file = to_file)
             task_info = super(GenesetVennAction,self).POST()
             
@@ -82,8 +82,11 @@ class GenesetVennAction(RefRnaController):
                         'id':str(main_table_id),
                         'name':main_table_name
                     }}
+            geneset_info = self.ref_rna.insert_geneset_info(data.geneset_id, collection_name, str(main_table_id))
+            if geneset_info:
+                print "geneset_info插入成功"
             return json.dumps(task_info)
         else:
             info = {"success": False, "info": "基因集对应task_id不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-        
+
