@@ -20,7 +20,7 @@ class GenesetKeggAction(RefRnaController):
                 return json.dumps(info)
 
         task_name = 'ref_rna.report.geneset_kegg'
-        task_type = 'workflow'
+        task_type = ''
         params_json = {
             "submit_location": data.submit_location,
             "task_type": data.task_type,
@@ -74,5 +74,7 @@ class GenesetKeggAction(RefRnaController):
                 'id': str(main_table_id),
                 'name': main_table_name
                 }}
-
+        geneset_info = self.ref_rna.insert_geneset_info(data.geneset_id, collection_name, str(main_table_id))
+        if geneset_info:
+            print "geneset_info插入成功"
         return json.dumps(task_info)

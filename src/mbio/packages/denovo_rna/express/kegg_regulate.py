@@ -151,10 +151,11 @@ if __name__ == "__main__":
     kegg = KeggRegulate()
     from mbio.files.annotation.kegg.kegg_table import KeggTableFile
     a = KeggTableFile()
-    a.set_path("/mnt/ilustre/users/sanger-dev/workspace/20170727/GenesetKegg_demo_0711_8933_190/gene_kegg_table.xls")
+    # a.set_path("/mnt/ilustre/users/sanger-dev/workspace/20170802/GenesetKegg_demo_0711_5922_9801/gene_kegg_table.xls")
     pathways = "/mnt/ilustre/users/sanger-dev/workspace/20170727/GenesetKegg_demo_0711_8933_190/output/pathways"
-    ko_genes, path_ko = a.get_pathway_koid()
+    # a.get_regulate_table
+    # ko_genes, path_ko = a.get_pathway_koid()
     # for key in path_ko.keys():
     #     print key + "\t" + ";".join(path_ko[key])
     #     print "***************"
-    kegg.get_pictrue(path_ko=path_ko, out_dir=pathways)
+    # kegg.get_pictrue(path_ko=path_ko, out_dir=pathways)

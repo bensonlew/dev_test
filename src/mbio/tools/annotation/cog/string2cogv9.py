@@ -75,6 +75,7 @@ class String2cogv9Tool(Tool):
         self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/String2Cog.pl'
         self.cog_table = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/cog_annot.py'
         self.perl = '/program/perl-5.24.0/bin/perl'
+        self.db = self.config.SOFTWARE_DIR + "/database/COG/cog.db"
 
     def run(self):
         super(String2cogv9Tool, self).run()
@@ -105,9 +106,9 @@ class String2cogv9Tool(Tool):
 
     def run_string2cog(self):
         if self.option("blastout").is_set:
-            cmd = '{} {} -i {} --format blastxml -e 1e-3 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
+            cmd = '{} {} -i {} --format blastxml -db {} -e 1e-3 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.db, self.work_dir)
         else:
-            cmd = '{} {} -i {} --format blasttable -e 1e-3 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.work_dir)
+            cmd = '{} {} -i {} --format blasttable -db {} -e 1e-3 -o {}/tmp_out'.format(self.perl, self.cog_xml, self.option('blastout').prop['path'], self.db, self.work_dir)
         self.logger.info('运行string2cog.pl')
         self.logger.info(cmd)
         cmd_obj = self.add_command("string_cog", cmd).run()
