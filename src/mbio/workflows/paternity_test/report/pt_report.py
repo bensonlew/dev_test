@@ -34,6 +34,7 @@ class PtReportWorkflow(Workflow):
 		self.add_option(options)
 		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
 		self.result_info = self.add_tool("paternity_test.result_info")
+		self.pt_analysis_dedup = self.add_tool("paternity_test.dedup")
 		self.tools = []
 		self.rdata = []
 		self.tools_rename = []
@@ -112,9 +113,8 @@ class PtReportWorkflow(Workflow):
 		:return:
 		"""
 		father_data = self.output_dir + "/" + "father"
-		if os.path.exists(father_data):
+		if not os.path.exists(father_data):
 			os.mkdir(father_data)
-		pt_analysis_dedup = self.add_tool("paternity_test.dedup")
 		if self.option('dedup_num') != "all":
 			api_read_tab = self.api.tab_file
 			temp = re.match('WQ([1-9].*)-F.*', self.option('dad_id'))
@@ -127,20 +127,22 @@ class PtReportWorkflow(Workflow):
 					for k in range(len(x)):
 						name_list.append(x[k])
 			name_list = list(set(name_list))
+			self.logger.info("name_list:%s" % name_list)
 			for m in name_list:
-				api_read_tab.export_tab_file(str(m), father_data + "/")
-			pt_analysis_dedup.set_options({
+				api_read_tab.export_tab_file(str(m), father_data)
+			self.pt_analysis_dedup.set_options({
 				# "dad_list": dad_list,  # 数据库的tab文件
 				"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
-				"preg_tab": self.output_dir + '/' + preg_id + '.tab',
+				"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
 				"ref_point": self.option("ref_point"),
 				"err_min": self.option("err_min"),
-				"father_path": father_data
+				"father_path": father_data + "/"
 			})
-			pt_analysis_dedup.on('end', self.set_output, 'dedup')
-			pt_analysis_dedup.run()
+			self.pt_analysis_dedup.on('end', self.set_output, 'dedup')
+			self.pt_analysis_dedup.on('end', self.end)
+			self.pt_analysis_dedup.run()
 		else:
-			pt_analysis_dedup.set_options({
+			self.pt_analysis_dedup.set_options({
 				# "dad_list": dad_list,  # 数据库的tab文件
 				"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
 				"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
@@ -148,8 +150,9 @@ class PtReportWorkflow(Workflow):
 				"err_min": self.option("err_min"),
 				"father_path": self.ref_data
 			})
-			pt_analysis_dedup.on('end', self.set_output, 'dedup')
-			pt_analysis_dedup.run()
+			self.pt_analysis_dedup.on('end', self.set_output, 'dedup')
+			self.pt_analysis_dedup.on('end', self.end)
+			self.pt_analysis_dedup.run()
 
 	def linkdir(self, dirpath, dirname):
 		"""
@@ -198,12 +201,14 @@ class PtReportWorkflow(Workflow):
 	def run(self):
 		self.pt_analysis.on('end', self.result_info_run)
 		self.result_info.on('end', self.dedup_run)
+		# self.pt_analysis_dedup.on('end', self.end)
 		self.pt_analysis_run()
 		super(PtReportWorkflow, self).run()
 
 
 
 	def end(self):
+		self.logger.info("开始end函数")
 		api_main = self.api.sg_paternity_test
 
 		results = os.listdir(self.output_dir)
