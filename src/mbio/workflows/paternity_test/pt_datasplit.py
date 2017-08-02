@@ -292,7 +292,7 @@ class PtDatasplitWorkflow(Workflow):
                     "ref_fasta": Config().SOFTWARE_DIR + "/database/human/hg38.chromosomal_assembly/ref.fa",
                     "targets_bedfile": Config().SOFTWARE_DIR + "/database/human/pt_ref/snp.chr.sort.3.bed",
                     "ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
-                    "err_min": 3,  # 11
+                    "err_min": 11,  # 11
                     "batch_id": self.option('pt_data_split_id'),
                     "dedup_num": 10,
                     "update_info": update_info,
