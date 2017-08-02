@@ -62,8 +62,8 @@ class DedupAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 3
-        self._memory = '15G'
+        self._cpu = 5
+        self._memory = '30G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -94,7 +94,7 @@ class DedupTool(Tool):
                                                                     self.option("preg_tab").prop['path'],
                                                                     self.option("err_min"),
                                                                     self.option("ref_point").prop['path'],
-                                                                    "result", father_path)
+                                                                    "result", self.option("father_path"))
         self.logger.info(dedup_cmd)
         self.logger.info("开始进行查重分析")
         cmd = self.add_command("dedup_cmd", dedup_cmd).run()
