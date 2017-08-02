@@ -63,11 +63,11 @@ class PtDatasplitWorkflow(Workflow):
         if not self.option("message_table"):
             raise OptionError("缺少拆分需要的数据表")
         else:
-            self.logger.info(self.option("data_dir"))
             message_file_name = os.path.basename(self.option("message_table").prop['path'])
-            message_name = message_file_name.split('.')[0]
+            message_name = message_file_name.split('.')[0]  # 名字上带有时间戳(上传文件时前端增加的)
+            message_no_time = ('_').join(message_name.split('_')[0:-1])
             data_name = self.option("data_dir").split('/')[-2]
-            if message_name != data_name:
+            if message_no_time != data_name:
                 raise OptionError('拆分表的文件名不正确，必须和下机数据文件夹的名称一致')
         if not self.option("data_dir"):
             raise OptionError("缺少拆分需要的下机数据")
