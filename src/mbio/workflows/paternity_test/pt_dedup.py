@@ -27,7 +27,8 @@ class PtDedupWorkflow(Workflow):
             {"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
             {"name": "targets_bedfile", "type": "infile", "format": "paternity_test.rda"},
 
-            {"name": "err_min", "type": "int", "default": 2},  # 允许错配数
+            {"name": "err_min", "type": "int", "default": 3},  # 允许错配数从2开始默认到该数
+            # {"name": "err_min", "type": "int", "default": 2},  # 允许错配数
             {"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},  # 参考位点
             {"name": "dedup_num", "type": "int", "default": 2},  # 查重样本数
             {"name": "batch_id", "type": "string"},
@@ -196,7 +197,7 @@ class PtDedupWorkflow(Workflow):
             # mom_tab = api_read_tab.export_tab_file(mom_id, self.output_dir)
             # preg_tab =  api_read_tab.export_tab_file(preg_id, self.output_dir)
 
-            for m in range(2, 6):  # modify by zhouxuan 20170728
+            for m in range(2, self.option('err_min')):  # modify by zhouxuan 20170728
                 pt_analysis = self.add_module("paternity_test.pt_analysis")
                 self.step.add_steps('pt_analysis{}'.format(n))
                 result_dir = os.path.join(self.output_dir, 'pt_result_' + str(m))
@@ -233,7 +234,7 @@ class PtDedupWorkflow(Workflow):
             # result_info = self.add_tool("paternity_test.result_info")
             # self.step.add_steps('result_info{}'.format(n))
         n = 0
-        for l in range(2, 6):
+        for l in range(2, self.option('err_min')):
             result_dir = os.path.join(self.output_dir, 'pt_result_' + str(l))
             results = os.listdir(result_dir)
             for f in results:
@@ -298,7 +299,7 @@ class PtDedupWorkflow(Workflow):
             #     dad_list.append(self.output_dir + '/' + i + '.tab')
             # dad_list = ",".join(dad_list)
 
-            for p in range(2, 6):
+            for p in range(2, self.option('err_min')):
                 pt_analysis_dedup = self.add_tool("paternity_test.dedup")
                 self.step.add_steps('dedup_{}'.format(n))
                 pt_analysis_dedup.set_options({
@@ -401,7 +402,7 @@ class PtDedupWorkflow(Workflow):
                                      self.option('targets_bedfile').prop['path'],
                                      self.option('ref_point').prop['path'], self.option('fastq_path').prop['path']) # 信息记录
             self.logger.info('father_id:{}'.format(self.father_id))
-            for n in range(2, 6):
+            for n in range(2, self.option('err_min')):
                 dir_path = self.output_dir + '/pt_result_' + str(n)
                 results = os.listdir(dir_path)
                 self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=n,
