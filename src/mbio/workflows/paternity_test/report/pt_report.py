@@ -22,7 +22,6 @@ class PtReportWorkflow(Workflow):
 		options = [
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
 			{"name": "targets_bedfile", "type": "string"},
-
 			{"name": "dad_id", "type": "string"},  # 输入F/M/S的样本ID
 			{"name": "mom_id", "type": "string"},
 			{"name": "preg_id", "type": "string"},
@@ -41,7 +40,7 @@ class PtReportWorkflow(Workflow):
 		self.tools_rename_analysis = []
 		self.tools_dedup =[]
 		self.tools_dedup_f = []
-		self.ref_data = self.config.SOFTWARE_DIR + "/database/human/pt_ref/tab_data"
+		self.ref_data = self.config.SOFTWARE_DIR + "/database/human/pt_ref/tab_data/"
 		self.set_options(self._sheet.options())
 		# self.step.add_steps("pt_analysis", "result_info", "retab",
 		#                     "de_dup1", "de_dup2")
@@ -129,10 +128,10 @@ class PtReportWorkflow(Workflow):
 						name_list.append(x[k])
 			name_list = list(set(name_list))
 			for m in name_list:
-				api_read_tab.export_tab_file(str(m), father_data)
+				api_read_tab.export_tab_file(str(m), father_data + "/")
 			pt_analysis_dedup.set_options({
 				# "dad_list": dad_list,  # 数据库的tab文件
-				"mom_tab": self.output_dir + '/' + mom_id + '.tab',
+				"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
 				"preg_tab": self.output_dir + '/' + preg_id + '.tab',
 				"ref_point": self.option("ref_point"),
 				"err_min": self.option("err_min"),
@@ -143,8 +142,8 @@ class PtReportWorkflow(Workflow):
 		else:
 			pt_analysis_dedup.set_options({
 				# "dad_list": dad_list,  # 数据库的tab文件
-				"mom_tab": self.output_dir + '/' + mom_id + '.tab',
-				"preg_tab": self.output_dir + '/' + preg_id + '.tab',
+				"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
+				"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
 				"ref_point": self.option("ref_point"),
 				"err_min": self.option("err_min"),
 				"father_path": self.ref_data
