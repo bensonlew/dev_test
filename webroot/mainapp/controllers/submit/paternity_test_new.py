@@ -33,7 +33,7 @@ class PaternityTestNew(PtController):
         task_type = 'workflow'
         params_json = {
             'err_min': int(data.err_min),
-            'dedup': int(data.dedup),
+            'dedup': data.dedup,
             # 'submit_location': data.submit_location,
             # 'task_type': 'reportTask'
         }
@@ -58,7 +58,7 @@ class PaternityTestNew(PtController):
             "ref_point": str(ref_info['ref_point']),
 
             "err_min": int(data.err_min),
-            "dedup_num": int(data.dedup),
+            "dedup_num": data.dedup,
             "pt_father_id": str(main_table_id),
             "update_info": update_info,
         }

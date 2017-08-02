@@ -134,18 +134,26 @@ class Family2tabDcTool(Tool):
                 os.remove(os.path.join(root, names))
         self.logger.info("设置结果目录")
         file_path = self.option("seq_path").prop['path'] + "/"
-        print file_path
+        self.logger.info(file_path)
         results = os.listdir(file_path)
         for f in results:
             if str(f) == "%s.mem.sort.hit.vcf.tab" % (self.option("fastq")) or str(f) == "%s.qc" % (self.option("fastq")):
                 shutil.move(file_path + f, self.output_dir)
+            else:
+                continue
             if re.search(r'.*F.*tab$', f) and os.path.getsize(self.output_dir + "/" + f):
                 self.logger.info("存在父本样本，且父本样本大小不为0")
                 m = re.search(r'(.*)\.mem.*tab$', f)
                 file_name = m.group(1) + ".tab"
                 self.logger.info("要移动的父本：%s" % file_name)
                 if not os.path.exists(self.ref_data + "/" + file_name):
+                    self.logger.info("参考库中没有:%s" % (self.ref_data + "/" + file_name))
+                    # self.logger.info("test_path:%s" % (self.output_dir + "/" + f))
                     os.link(self.output_dir + "/" + f, self.ref_data + "/" + file_name)
+                else:
+                    self.logger.info("参考库中已经存在了该父本tab文件！")
+            else:
+                self.logger.info("没有新父本要导入到参考库中！")
 
         self.logger.info('设置文件夹路径成功')
 

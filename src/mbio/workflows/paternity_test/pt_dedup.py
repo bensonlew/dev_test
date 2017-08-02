@@ -9,6 +9,7 @@ import os
 import re
 import datetime
 from bson.objectid import ObjectId
+from biocluster.config import Config
 import json
 import shutil
 import gevent
@@ -44,6 +45,8 @@ class PtDedupWorkflow(Workflow):
         self.tools_result = []
         self.tools_dedup = []
         self.rdata = []
+        self.ref_data = self.config.SOFTWARE_DIR + "/database/human/pt_ref/tab_data/"
+        self.logger.info("test_ref_data: %s" % self.ref_data)
         self.set_options(self._sheet.options())
         self.step.add_steps("pt_analysis", "result_info", "retab",
                             "de_dup1", "de_dup2")
@@ -197,7 +200,7 @@ class PtDedupWorkflow(Workflow):
             # mom_tab = api_read_tab.export_tab_file(mom_id, self.output_dir)
             # preg_tab =  api_read_tab.export_tab_file(preg_id, self.output_dir)
 
-            for m in range(2, self.option('err_min')):  # modify by zhouxuan 20170728
+            for m in range(2, self.option('err_min')):  # modify by zhouxuan 20170802
                 pt_analysis = self.add_module("paternity_test.pt_analysis")
                 self.step.add_steps('pt_analysis{}'.format(n))
                 result_dir = os.path.join(self.output_dir, 'pt_result_' + str(m))
@@ -286,6 +289,7 @@ class PtDedupWorkflow(Workflow):
             t.run()
 
     def dedup_run(self):
+        self.logger.info("test:%s" % self.ref_data)
         n = 0
         for i in range(len(self.family_id)):
             # dad_id = self.family_id[i][0]
@@ -308,6 +312,7 @@ class PtDedupWorkflow(Workflow):
                         "preg_tab": self.output_dir + '/' + preg_id + '.tab',
                         "ref_point": self.option("ref_point"),
                         "err_min": p,
+                        "father_path": self.ref_data
                         # "err_min": self.option("err_min")
                 }
                 )
@@ -402,6 +407,7 @@ class PtDedupWorkflow(Workflow):
                                      self.option('targets_bedfile').prop['path'],
                                      self.option('ref_point').prop['path'], self.option('fastq_path').prop['path']) # 信息记录
             self.logger.info('father_id:{}'.format(self.father_id))
+
             for n in range(2, self.option('err_min')):
                 dir_path = self.output_dir + '/pt_result_' + str(n)
                 results = os.listdir(dir_path)

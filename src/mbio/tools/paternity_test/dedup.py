@@ -25,7 +25,8 @@ class DedupAgent(Agent):
             {"name": "mom_tab", "type": "infile", "format": "paternity_test.tab"},
             {"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
             {"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},
-            {"name": "err_min", "type": "int", "default": 2}
+            {"name": "err_min", "type": "int", "default": 2},
+            {"name": "father_path", "type": "string"}  # 输入父本tab文件的所在路径
         ]
         self.add_option(options)
         self.step.add_steps("dedup_analysis")
@@ -52,6 +53,8 @@ class DedupAgent(Agent):
             raise OptionError("必须提供母本tab")
         if not self.option('preg_tab'):
             raise OptionError("必须提供胎儿tab")
+        if not self.option('father_path'):
+            raise OptionError("必须提供查重部分父本tab")
         return True
 
     def set_resource(self):
@@ -59,8 +62,8 @@ class DedupAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
-        self._memory = '20G'
+        self._cpu = 5
+        self._memory = '30G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -86,11 +89,12 @@ class DedupTool(Tool):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        dedup_cmd = "{}Rscript {}pt_dup.R {} {} {} {} {}".format(self.R_path, self.script_path,
-                                                                 self.option("mom_tab").prop['path'],
-                                                                 self.option("preg_tab").prop['path'],
-                                                                 self.option("err_min"),
-                                                                 self.option("ref_point").prop['path'], "result")
+        dedup_cmd = "{}Rscript {}pt_dup.R {} {} {} {} {} {}".format(self.R_path, self.script_path,
+                                                                    self.option("mom_tab").prop['path'],
+                                                                    self.option("preg_tab").prop['path'],
+                                                                    self.option("err_min"),
+                                                                    self.option("ref_point").prop['path'],
+                                                                    "result", self.option("father_path"))
         self.logger.info(dedup_cmd)
         self.logger.info("开始进行查重分析")
         cmd = self.add_command("dedup_cmd", dedup_cmd).run()
