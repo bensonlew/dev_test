@@ -138,7 +138,7 @@ class RefRna(Meta):
         return True
 
     def delete_geneset(self, geneset_id):
-        if isinstance(data.geneset_id, types.StringTypes):
+        if isinstance(geneset_id, types.StringTypes):
             geneset_id = ObjectId(geneset_id)
         elif isinstance(data.geneset_id, ObjectId):
             pass
@@ -150,13 +150,19 @@ class RefRna(Meta):
         for result in results:
             col_name = result["col_name"]
             col_id = result["col_id"]
+            print col_id
             col = mongodb[col_name]
+            print col_name
             try:
                 col_result = col.find_one({"_id":col_id})
+                col_result["params"] = ""
+                col.find_one_and_update({"_id":col_id}, {"$set":col_result})
             except:
                 print "不能找到对应id{} in {}".format(col_id, col_name)
-            col_result["params"] = ""
-            col.find_one_and_update({"_id":col_id}, {"$set":col_result})
+        collection = mongodb["sg_geneset"]
+        result = collection.find_one({"_id":geneset_id})
+        if result:
+            collection.remove({"_id":geneset_id})
         return True
 
 

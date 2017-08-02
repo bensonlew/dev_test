@@ -79,6 +79,7 @@ class GenesetKeggWorkflow(Workflow):
         if not os.path.exists(pathways):
             os.mkdir(pathways)
         # kos_path = self.get_ko(ko_genes=ko_genes,catgory=regulate_gene,out_dir=self.output_dir)
+        # self.logger.info(ko_genes)
         kegg.get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output= self.output_dir + '/kegg_stat.xls')
         self.get_ko(ko_genes=ko_genes, catgory=regulate_gene, kegg_regulate=self.output_dir + '/kegg_stat.xls', out_dir=self.output_dir)
         self.get_pics(ko_genes=ko_genes, path_ko=path_ko, kos_path=self.output_dir + "/ko", out_dir=self.output_dir)
@@ -108,21 +109,36 @@ class GenesetKeggWorkflow(Workflow):
             gene_num1 = tmp[2]
             if len(catgory) == 1:
                 if gene_num1 and not gene_num1 == "0" and not gene_num1.startswith("http"):
-                    gene1_list = [x.split("(")[1][:-1] for x in tmp[3].split(";")]
+                    gene1_list_tmp = [x.split("(")[1] if not ")" in x else x.strip(")").split("(")[1] for x in tmp[3].split(");")]
+                    for gene in gene1_list_tmp:
+                        if gene.find(";") != 1:
+                            gene1_list.append(gene)
+                        else:
+                            gene1_list.extend(gene.split(";"))
                 else:
                     gene1_list = []
                 gene2_list = []
             else:
                 if gene_num1 and not gene_num1 == "0" and not gene_num1.startswith("http"):
-                    gene1_list = [x.split("(")[1][:-1] for x in tmp[3].split(";")]
+                    gene1_list_tmp = [x.split("(")[1] if not ")" in x else x.strip(")").split("(")[1] for x in tmp[3].split(");")]
+                    for gene in gene1_list_tmp:
+                        if gene.find(";") != 1:
+                            gene1_list.append(gene)
+                        else:
+                            gene1_list.extend(gene.split(";"))
                 else:
                     gene1_list = []
                 gene_num2 = tmp[4]
+                gene2_list = []
                 if gene_num2 and not gene_num2.startswith("http") and not gene_num2 == "0":
-                    gene2_list = [x.split("(")[1][:-1] for x in tmp[5].split(";")]
-                    self.logger.info(gene2_list)
-                else:
-                    gene2_list = []
+                    # gene2_list = [x.split("(")[1][:-1] for x in tmp[5].split(");")]
+                    # self.logger.info(gene2_list)
+                    gene2_list_tmp = [x.split("(")[1] if not ")" in x else x.strip(")").split("(")[1] for x in tmp[5].split(");")]
+                    for gene in gene2_list_tmp:
+                        if gene.find(";") != 1:
+                            gene2_list.append(gene)
+                        else:
+                            gene2_list.extend(gene.split(";"))
             gene_list = []
             gene_list.extend(gene1_list)
             # if gene2_list:

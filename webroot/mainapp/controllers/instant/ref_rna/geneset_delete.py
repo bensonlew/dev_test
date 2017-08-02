@@ -13,6 +13,7 @@ class GenesetDeleteAction(RefRnaController):
 
     def POST(self):
         data = web.input()
+        print data
         default_argu = ['geneset_id']
         for argu in default_argu:
             if not hasattr(data, argu):
