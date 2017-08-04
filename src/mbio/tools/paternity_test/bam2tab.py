@@ -136,15 +136,27 @@ class Bam2tabTool(Tool):
         api = self.api.tab_file
         temp = os.listdir(self.output_dir)
         api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
-        if os.path.getsize(self.output_dir + '/' + self.option('sample_id') + '.mem.sort.hit.vcf.tab') > 0:
+        if os.path.getsize(self.output_dir + '/' + self.option('sample_id') + '.mem.sort.hit.vcf.tab') > 0:  # 判断该样本的tab文件是否要入库
+            with open(self.output_dir + '/' + self.option('sample_id') + '.qc', 'r') as r:
+                for line in r:
+                    line = line.strip().split(':')
+                    if line[0] == 'dp':
+                        if len(line[1]) == 2 and float(line[2]) > 5:
+                            to_mongo = True
+                            self.logger.info('{}该样本tab和qc文件可以入库'.format(self.option('sample_id')))
+                        else:
+                            to_mongo = False
+                    else:
+                        continue
+        else:
+            to_mongo = False
+        if to_mongo:
             for i in temp:
                 m = re.search(r'(.*)\.mem.*tab$', i)
                 n = re.search(r'(.*)\.qc', i)
                 if m and os.path.getsize(self.output_dir + '/' + i) > 0:
                     tab_path = self.output_dir + '/' + i
                     tab_name = m.group(1)
-                    # tab_path = self.output_dir + '/' + i
-                    # tab_name = m.group(1)
                     if not api_read_tab.tab_exist(tab_name):
                         api.add_pt_tab(tab_path, self.option('batch_id'))
                         api.add_sg_pt_tab_detail(tab_path)
@@ -163,7 +175,6 @@ class Bam2tabTool(Tool):
         else:
             self.logger.info('{}该样本tab文件为空'.format(self.option('sample_id')))
             self.api.sg_paternity_test.sample_size(self.option('sample_id'), self.option('batch_id'))
-
 
     def run(self):
         super(Bam2tabTool, self).run()
