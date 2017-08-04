@@ -38,8 +38,8 @@ class GenesetKeggAction(RefRnaController):
 
         table_name = "Kegg"
         collection_name = "sg_geneset_kegg_class"
-        to_file = ['ref_rna.export_multi_gene_list(geneset_kegg)', "ref_rna.export_kegg_table(kegg_table)", "ref_rna.export_kegg_pdf(kegg_pics)"]
-        option = {"geneset_kegg": data.geneset_id, "kegg_table": data.geneset_id.split(",")[0], "kegg_pics": geneset_info['task_id'] + "\t" + data.geneset_type}
+        to_file = ['ref_rna.export_multi_gene_list(geneset_kegg)', "ref_rna.export_kegg_table(kegg_table)", "ref_rna.export_kegg_pdf(kegg_pics)", "ref_rna.export_add_info(add_info)"]
+        option = {"geneset_kegg": data.geneset_id, "kegg_table": data.geneset_id.split(",")[0], "kegg_pics": geneset_info['task_id'] + "\t" + data.geneset_type, "add_info":geneset_info['task_id'] + "\t" + data.geneset_type}
 
         main_table_name = 'Geneset' + table_name + "Class_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
@@ -56,7 +56,7 @@ class GenesetKeggAction(RefRnaController):
 
         options = {
             "submit_location": data.submit_location,
-            "task_type": data.task_type,
+            "task_type": "workflow",
             'update_info': json.dumps(update_info),
             "main_table_id": str(main_table_id),
             "geneset_id": data.geneset_id,
@@ -64,7 +64,7 @@ class GenesetKeggAction(RefRnaController):
             }
         options.update(option)
         # print(options)
-        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type=task_type,
+        self.set_sheet_data(name=task_name, options=options, main_table_name=main_table_name, module_type="workflow",
                             to_file=to_file, project_sn=task_info['project_sn'], task_id=task_info['task_id'])
 
         task_info = super(GenesetKeggAction, self).POST()
