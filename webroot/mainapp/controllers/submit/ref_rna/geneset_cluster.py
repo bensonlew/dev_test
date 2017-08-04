@@ -64,7 +64,7 @@ class GenesetClusterAction(RefRnaController):
         print data
 
         task_name = "ref_rna.report.geneset_cluster"
-        task_type = "workflow"
+        task_type = ""
         return_result = self.check_options(data, data.method)
         if return_result:
             info = {"success": False, "info": '+'.join(return_result)}
