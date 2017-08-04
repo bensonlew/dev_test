@@ -39,22 +39,22 @@ class SgPaternityTest(Base):
         # 信息增加modify by zhouxuan 20170705
 
         pt_collection = self.database["sg_pt_customer"]
-        if re.match(".*-(C.*)", preg):  # 孩子重送样的时候用的是妈妈的重送样的样本(pt医检表里面妈妈的信息会变)
-            pt_serial_number = preg.split('-')[0]
-            sample_mom = 'MC.*'
-            res = pt_collection.find_one({"pt_serial_number": pt_serial_number, "mom_id_": {"$regex": sample_mom}})
-            message_id = res['name']
+        # if re.match(".*-(C.*)", preg):  # 孩子重送样的时候用的是妈妈的重送样的样本(pt医检表里面妈妈的信息会变)
+        #     pt_serial_number = preg.split('-')[0]
+        #     sample_mom = 'MC.*'
+        #     res = pt_collection.find_one({"pt_serial_number": pt_serial_number, "mom_id_": {"$regex": sample_mom}})
+        #     message_id = res['name']
+        # else:
+        if re.match('(.*-T)([0-9])', dad):  # -T 表示重上机信息不变 # modify by zhouxuan 20170728
+            dad_ = ('-').join(dad.split('-')[:-1])
         else:
-            if re.match('(.*-T)([0-9])', dad):  # -T 表示重上机信息不变 # modify by zhouxuan 20170728
-                dad_ = ('-').join(dad.split('-')[:-1])
-            else:
-                dad_ = dad
-            if re.match('(.*-T)([0-9])', mom):
-                mom_ = ('-').join(mom.split('-')[:-1])
-                temp_m_ = re.search(".*-(M.*)", mom_)
-            else:
-                temp_m_ = temp_m
-            message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
+            dad_ = dad
+        if re.match('(.*-T)([0-9])', mom):
+            mom_ = ('-').join(mom.split('-')[:-1])
+            temp_m_ = re.search(".*-(M.*)", mom_)
+        else:
+            temp_m_ = temp_m
+        message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
 
         result = pt_collection.find_one({"name": message_id})
         if result:
@@ -522,4 +522,21 @@ class SgPaternityTest(Base):
                 self.bind_object.logger.error('导入查重表格出错：{}'.format(e))
             else:
                 self.bind_object.logger.info("导入查重表格成功")
+
+    def sample_size(self, sample_id, batch_id):
+        collection = self.database['sg_pt_problem_sample']
+        self.mongo_client_ref = Config().biodb_mongo_client
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
+        ref_data = self.database_ref['sg_pt_ref_main'].find_one({"sample_id": sample_id})
+        split_data_name = ref_data["split_data_name"]
+        try:
+            collection.insert_one({'sample_id':sample_id,
+                                   'split_data_name': split_data_name,
+                                   'batch_id':batch_id})
+        except Exception as e:
+            self.bind_object.logger.error('导入问题样本出错：{}'.format(e))
+            raise Exception('导入问题样本出错：{}'.format(e))
+        else:
+            self.bind_object.logger.info("导入问题样本成功")
+
 
