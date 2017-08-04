@@ -40,7 +40,7 @@ class DiffExpressAction(RefRnaController):
                 info = {"success":False,"info":'+'.join(return_control_id_group_detail)}
                 return json.dumps(info)
 
-        task_type = 'workflow'
+        task_type = ''
         task_name = 'ref_rna.report.diff_express'
 
         my_param['express_id'] = data.express_id
