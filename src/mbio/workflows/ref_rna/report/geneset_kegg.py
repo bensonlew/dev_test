@@ -149,12 +149,12 @@ class GenesetKeggWorkflow(Workflow):
                 color_dict[gene] = []
                 if len(catgory) == 1:
                     if gene in gene1_list:
-                        color_dict[gene].append("#00CD00")  # 绿色
+                        color_dict[gene].append("#00ffff")  # 兰色
                 elif len(catgory) ==2:
                     if gene in gene1_list:
-                        color_dict[gene].append("#00CD00")  # 绿色
+                        color_dict[gene].append("#00ffff")  # 兰色
                     if gene in gene1_list:
-                        color_dict[gene].append("#9932CC")  # 基佬紫
+                        color_dict[gene].append("#a5682a")  # 棕色
                 else:
                     pass
             with open(out_dir + "/ko/" + path, "w") as fw:
