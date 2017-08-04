@@ -6,6 +6,7 @@ import os
 from biocluster.config import Config
 from bson import regex
 from bson import ObjectId
+import datetime
 
 class TabFile(Base):
     '''
@@ -42,7 +43,8 @@ class TabFile(Base):
                     sample_name = line[0]
                     insert_data = {
                         "analysised": analysised,
-                        "batch_id": ObjectId(batch_id)
+                        "batch_id": ObjectId(batch_id),
+                        "storage_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 入库时间，正确生成tab文件的时间
                     }
                 break
             m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab',sample)
