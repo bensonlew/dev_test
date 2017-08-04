@@ -6,6 +6,7 @@ from biocluster.config import Config
 from bson import ObjectId
 import xlrd
 import datetime
+import os
 
 
 class PtCustomer(Base):
@@ -25,8 +26,8 @@ class PtCustomer(Base):
             self.bind_object.logger.info("缺少家系表")
         if main_id == "None":
             self.bind_object.logger.info("缺少主表id")
-        bk = xlrd.open_workbook(customer_file)
         try:
+            bk = xlrd.open_workbook(customer_file)
             sh = bk.sheet_by_name(u'Report')
         except:
             self.bind_object.logger.info('pt家系表-表单名称不对')
@@ -140,15 +141,18 @@ class PtCustomer(Base):
             return dir_list
 
     def add_sample_type(self, file):
-        insert =[]
-        with open(file,'r') as f:
+        file_name = os.path.basename(file)
+        data_id = ("_").join(file_name.split('_')[0:-1])
+        insert = []
+        with open(file, 'r') as f:
             for line in f:
                 line = line.strip()
                 line = line.split('\t')
-                if re.match('WQ([0-9]*)-.*',line[3]):
-                    insert_data ={
+                if re.match('WQ([0-9]*)-.*', line[3]):
+                    insert_data = {
                         "type": line[2].strip(),
-                        "sample_id":line[3].strip()
+                        "sample_id": line[3].strip(),
+                        'split_data_name': data_id,
                     }
                     collection = self.database_ref['sg_pt_ref_main']
                     if collection.find_one({"sample_id": line[3]}):
