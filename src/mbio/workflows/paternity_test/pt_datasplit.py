@@ -51,7 +51,6 @@ class PtDatasplitWorkflow(Workflow):
         self.done_ws = ''
         self.done_data_split = ''
         self.ws_single = ''
-        self.message_table = os.path.basename(self.option('message_table').prop['path'])
         self.api_read_tab = self.api.tab_file
         self.check_file = self.api.sg_paternity_test
 
@@ -63,11 +62,10 @@ class PtDatasplitWorkflow(Workflow):
         if not self.option("message_table"):
             raise OptionError("缺少拆分需要的数据表")
         else:
-            message_file_name = os.path.basename(self.option("message_table").prop['path'])
-            message_name = message_file_name.split('.')[0]  # 名字上带有时间戳(上传文件时前端增加的)
-            message_no_time = ('_').join(message_name.split('_')[0:-1])
+            self.message_table = os.path.basename(self.option('message_table').prop['path'])
+            self.message_no_time = ('_').join(self.message_table.split('_')[0:-1])
             data_name = self.option("data_dir").split('/')[-2]
-            if message_no_time != data_name:
+            if self.message_no_time != data_name:
                 raise OptionError('拆分表的文件名不正确，必须和下机数据文件夹的名称一致')
         if not self.option("data_dir"):
             raise OptionError("缺少拆分需要的下机数据")
@@ -393,7 +391,6 @@ class PtDatasplitWorkflow(Workflow):
         self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
         self.judge_sample_type(self.option('message_table').prop['path'])  # 判断ws是否为单端
         db_customer = self.api.pt_customer
-        self.logger.info(self.message_table)
         dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
 
         self.logger.info(dir_list)
@@ -404,6 +401,7 @@ class PtDatasplitWorkflow(Workflow):
             self.start_listener()
             self.end()
         else:
+            self.logger.info('开始进行拆分-------------------')
             self.judge_sample_name()
             self.done_data_split = "true"   # 本次workflow是否进行数据拆分，true为进行
             self.run_data_split()
@@ -440,7 +438,8 @@ class PtDatasplitWorkflow(Workflow):
         if self.done_data_split == "true":  # true表示这是第一次进行拆分
             self.logger.info("开始导入拆分结果路径")
             db_customer = self.api.pt_customer
-            db_customer.add_data_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table, self.wq_dir, self.ws_dir, self.un_dir)
+            db_customer.add_data_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table,
+                                     self.wq_dir, self.ws_dir, self.un_dir)
         if self.done_wq != "true" and self.option('family_table').is_set:
             if self.ws_single != 'true':
                 self.run_wq_wf()
