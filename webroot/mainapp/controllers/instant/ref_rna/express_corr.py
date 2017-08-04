@@ -13,7 +13,7 @@ from bson import ObjectId
 
 class ExpressCorrAction(RefRnaController):
     def __init__(self):
-        super(ExpressCorrAction, self).__init__(instant=False)
+        super(ExpressCorrAction, self).__init__(instant=True)
     def GET(self):
         return 'khl'
     def POST(self):
@@ -26,7 +26,7 @@ class ExpressCorrAction(RefRnaController):
                 return json.dumps(info)
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_name = 'ref_rna.report.express_corr'
-        task_type = ''
+        task_type = 'workflow'
         my_param = dict()
         my_param['express_id'] = data.express_id
         my_param['group_id'] = data.group_id

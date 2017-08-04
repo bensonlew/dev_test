@@ -20,7 +20,7 @@ class GenesetKeggAction(RefRnaController):
                 return json.dumps(info)
 
         task_name = 'ref_rna.report.geneset_kegg'
-        task_type = 'workflow'
+        task_type = ''
         params_json = {
             "submit_location": data.submit_location,
             "task_type": data.task_type,
@@ -38,8 +38,8 @@ class GenesetKeggAction(RefRnaController):
 
         table_name = "Kegg"
         collection_name = "sg_geneset_kegg_class"
-        to_file = ['ref_rna.export_multi_gene_list(geneset_kegg)', "ref_rna.export_kegg_table(kegg_table)'"]
-        option = {"geneset_kegg": data.geneset_id, "kegg_table": data.geneset_id.split(",")[0]}
+        to_file = ['ref_rna.export_multi_gene_list(geneset_kegg)', "ref_rna.export_kegg_table(kegg_table)", "ref_rna.export_kegg_pdf(kegg_pics)"]
+        option = {"geneset_kegg": data.geneset_id, "kegg_table": data.geneset_id.split(",")[0], "kegg_pics": geneset_info['task_id']}
 
         main_table_name = 'Geneset' + table_name + "Class_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 
@@ -74,5 +74,7 @@ class GenesetKeggAction(RefRnaController):
                 'id': str(main_table_id),
                 'name': main_table_name
                 }}
-
+        geneset_info = self.ref_rna.insert_geneset_info(data.geneset_id, collection_name, str(main_table_id))
+        if geneset_info:
+            print "geneset_info插入成功"
         return json.dumps(task_info)

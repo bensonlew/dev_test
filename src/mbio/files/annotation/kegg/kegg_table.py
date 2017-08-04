@@ -74,6 +74,6 @@ class KeggTableFile(File):
             w.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')
-                if not line[-1].startswith("path"):
+                if not line[-1]:
                     continue
                 w.write('{}\t{}\n'.format(line[0], line[-1]))
