@@ -335,7 +335,7 @@ class PtDatasplitWorkflow(Workflow):
                     'member_id': self.option('member_id'),
                     "bw": 10,
                     "bs": 1,
-                    "ref_group": 2,
+                    "ref_group": 1,
                     "update_info": update_info,
                     "single": self.ws_single,
                     'sanger_type': self.option('data_dir').split(":")[0],
