@@ -136,29 +136,33 @@ class Bam2tabTool(Tool):
         api = self.api.tab_file
         temp = os.listdir(self.output_dir)
         api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
-        for i in temp:
-            m = re.search(r'(.*)\.mem.*tab$', i)
-            n = re.search(r'(.*)\.qc', i)
-            if m:
-                tab_path = self.output_dir + '/' + i
-                tab_name = m.group(1)
-                # tab_path = self.output_dir + '/' + i
-                # tab_name = m.group(1)
-                if not api_read_tab.tab_exist(tab_name):
-                    api.add_pt_tab(tab_path, self.option('batch_id'))
-                    api.add_sg_pt_tab_detail(tab_path)
-                else:
-                    self.set_error('样本{}重名，请检查！'.format(tab_name))
-                    raise Exception('可能样本重名，请检查！')
-            elif n:
-                tab_path = self.output_dir + '/' + i
-                tab_name = n.group(1)
-                if not api_read_tab.qc_exist(tab_name):
-                    api.sample_qc(tab_path, tab_name)
-                    api.sample_qc_addition(tab_name)
-                else:
-                    self.set_error('样本{}重名，请检查！'.format(tab_name))
-                    raise Exception('可能样本重名，请检查！')
+        if os.path.getsize(self.output_dir + '/' + self.option('sample_id') + '.mem.sort.hit.vcf.tab') > 0:
+            for i in temp:
+                m = re.search(r'(.*)\.mem.*tab$', i)
+                n = re.search(r'(.*)\.qc', i)
+                if m and os.path.getsize(self.output_dir + '/' + i) > 0:
+                    tab_path = self.output_dir + '/' + i
+                    tab_name = m.group(1)
+                    # tab_path = self.output_dir + '/' + i
+                    # tab_name = m.group(1)
+                    if not api_read_tab.tab_exist(tab_name):
+                        api.add_pt_tab(tab_path, self.option('batch_id'))
+                        api.add_sg_pt_tab_detail(tab_path)
+                    else:
+                        self.set_error('样本{}重名，请检查！'.format(tab_name))
+                        raise Exception('可能样本重名，请检查！')
+                elif n:
+                    tab_path = self.output_dir + '/' + i
+                    tab_name = n.group(1)
+                    if not api_read_tab.qc_exist(tab_name):
+                        api.sample_qc(tab_path, tab_name)
+                        api.sample_qc_addition(tab_name)
+                    else:
+                        self.set_error('样本{}重名，请检查！'.format(tab_name))
+                        raise Exception('可能样本重名，请检查！')
+        else:
+            self.logger.info('{}该样本tab文件为空'.format(self.option('sample_id')))
+            self.api.sg_paternity_test.sample_size(self.option('sample_id'), self.option('batch_id'))
 
 
     def run(self):
