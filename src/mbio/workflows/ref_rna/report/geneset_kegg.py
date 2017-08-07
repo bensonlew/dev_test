@@ -35,7 +35,7 @@ class GenesetKeggWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
         self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
-        self.db_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/database/"
+        self.db_path = self.config.SOFTWARE_DIR + "/database/KEGG/xml"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
         self.map_dict = {}
 
@@ -136,7 +136,7 @@ class GenesetKeggWorkflow(Workflow):
                         color_dict[gene].append("#ff69b4")  # pink
                     elif gene in gene1_list:
                         color_dict[gene].append("#0000cd")  # 蓝色
-                    if gene in gene2_list:
+                    elif gene in gene2_list:
                         color_dict[gene].append("#ff0000")  # 大红
                 else:
                     pass
