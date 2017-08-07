@@ -74,7 +74,7 @@ class GenesetKeggWorkflow(Workflow):
                     for gene in regulate_gene[line[0]]:
                         if gene in ko_genes[key]:
                             geneset_ko[line[0]].append(key)
-        self.logger.info(geneset_ko)
+        # self.logger.info(geneset_ko)
         self.category = geneset_ko
         pathways = self.output_dir + '/pathways'
         if not os.path.exists(pathways):
@@ -161,22 +161,22 @@ class GenesetKeggWorkflow(Workflow):
                                              ko_path, out_dir + "/pathways/" + path + ".png",
                                              self.db_path + ko + ".xml",
                                              self.option("kegg_pics") + "/" + path + ".png")
-            self.logger.info(cmd)
+            # self.logger.info(cmd)
             try:
                 subprocess.check_output(cmd, shell=True)
                 pdf_path = out_dir + "/pathways/" + path + ".pdf"
                 cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + out_dir + "/pathways/" + path + ".png" + ' ' + pdf_path
-                self.logger.info(cmd)
+                # self.logger.info(cmd)
                 subprocess.check_output(cmd, shell=True)
             except:
-                self.logger.info("{}画图出错".format(path))
+                # self.logger.info("{}画图出错".format(path))
                 try:
                     # db_png_path = self.db_path + path + ".png"
                     db_png_path = self.option("kegg_pics") + "/" + path + ".png"
                     self.logger.info(db_png_path)
                     os.link(db_png_path, out_dir + "/pathways/" + path + ".png")
                     cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + db_png_path + ' ' + out_dir + "/pathways/" + path + ".pdf"
-                    self.logger.info(cmd)
+                    # self.logger.info(cmd)
                     subprocess.check_output(cmd, shell=True)
                 except:
                     self.logger.info('图片格式png转pdf出错')
@@ -214,7 +214,7 @@ class GenesetKeggWorkflow(Workflow):
                 ko_tmp = [x.split("%09")[0] for x in links_ko]
                 if pathway in self.map_dict:  # 含有背景色
                     for ko in self.map_dict[pathway].keys():  # 对背景色中的所有项进行循环
-                        self.logger.info(ko)
+                        # self.logger.info(ko)
                         if ko == "":
                             continue
                         if ko in ko_tmp:  # 基因ko显著富集
@@ -257,7 +257,7 @@ class GenesetKeggWorkflow(Workflow):
             elif ko in self.category[lst[1]]:
                 return "red"
             else:
-                self.logger.info(str(self.category[lst[0]]))
+                # self.logger.info(str(self.category[lst[0]]))
                 return False
 
 
