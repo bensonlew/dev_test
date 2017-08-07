@@ -12,7 +12,7 @@ from bson import ObjectId
 
 class ExpressPcaAction(RefRnaController):
     def __init__(self):
-        super(ExpressPcaAction, self).__init__(instant=True)
+        super(ExpressPcaAction, self).__init__(instant=False)
     
     def GET(self):
         return 'khl'
@@ -31,7 +31,7 @@ class ExpressPcaAction(RefRnaController):
                 return json.dumps(info)
         
         task_name = 'ref_rna.report.express_corr'
-        task_type = 'workflow'
+        task_type = ''
         
         my_param = {}
         my_param['express_id'] = data.express_id

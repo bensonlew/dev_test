@@ -45,16 +45,19 @@ def step_count(fasta_file, fasta_to_txt, group_num, step, stat_out):
                     # amount_group.append(group_num+1)
                 element_set.add(i)
         amount_group.sort()
+        top_sum = 0
         for i in element_set:
             num_statistics = amount_group.count(i)
             if str(i) == '0':
                 area_line = str(i * step) + "~" + str((i + 1) * step) + "\t" + str(num_statistics) + "\n"
                 w.write(area_line)
+                top_sum += int(num_statistics)
             elif i < (group_num-1):
                 area_line = str(i * step + 1) + "~" + str((i+1) * step) + "\t" + str(num_statistics) + "\n"
                 w.write(area_line)
+                top_sum += int(num_statistics)
             else:
-                area_line = ">" + str(i * step) + "\t" + str(num_statistics) + "\n"
+                area_line = ">" + str(i * step) + "\t" + str(len(trans_list)-int(top_sum)) + "\n"
                 end_line = "total" + "\t" + str(len(trans_list)) + "\n"
                 w.write(area_line)
                 w.write(end_line)
@@ -147,7 +150,11 @@ def count_trans_or_exons(input_file, step, count_file, final_files):
                 final_value += int(value)
                 for id_num in ids_list:
                     final_ids.append(id_num)
-        area_line = str(n * step) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(final_ids) + "\n"
+        if n == 0:
+            area_line = str(n * step) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(final_ids) + "\n"
+        else:
+            area_line = str(n * step + 1) + "~" + str((n + 1) * step) + "\t" + str(final_value) + "\t" + str(
+                final_ids) + "\n"
         f2.write(area_line)
         f3.close()
     f2.close()
@@ -190,7 +197,7 @@ def class_code_count(gtf_file, code_num_trans):
         m = re.match("#.*", line)
         if not m:
             nine_line = line.strip().split("\t")[-1]
-            n = re.search(r'\s+transcript_id\s+\"(\S+)\";.*\s+class_code\s+\"(\S+)\";*', nine_line)
+            n = re.search(r'\s*transcript_id\s+\"(\S+)\";.*\s*class_code\s+\"(\S+)\";*', nine_line)
             if n:
                 cls_content.add(n.group(2))
                 new_line = 'transcript_id "' + n.group(1) + '";\t class_code "' + n.group(2) + '"\n'
@@ -216,7 +223,7 @@ def class_code_count(gtf_file, code_num_trans):
                                         str(cls_txpt_set_dic[cls]['count']))
         fw.write(newline)
     fw.close()
-# if __name__ == '__main__':
+if __name__ == '__main__':
 #     merged_gtf = '/mnt/ilustre/users/sanger-dev/workspace/20170401/Single_assembly_module_tophat_cufflinks/Assembly/output/Cuffmerge/merged.gtf'
 #     old_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
 #     new_genes_gtf = "/mnt/ilustre/users/sanger-dev/workspace/20170407/Single_assembly_module_tophat_stringtie_gene2/Assembly/output/NewTranscripts/old_genes.gtf"
@@ -235,6 +242,6 @@ def class_code_count(gtf_file, code_num_trans):
     # gtf_file = "O:\\Users\\zhaoyue.wang\\Desktop\\old_trans.gtf.trans"
     # gtf_files = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_assembly_module_tophat_stringtie_zebra/Assembly/assembly_newtranscripts/old_trans.gtf.trans"
     # count_trans_or_exons(gtf_files, 5, output1, output2)
-# fa_file = 'O:\\Users\\zhaoyue.wang\\Desktop\\merged.fa'
-# txt_file = 'O:\\Users\\zhaoyue.wang\\Desktop\\old_genes.gtf.trans'
-# step_count(fa_file, txt_file, 10, 200, "O:\\Users\\zhaoyue.wang\\Desktop\\trans_count_stat_200.txt")
+    fa_file = '/mnt/ilustre/users/sanger-dev/sg-users/shijin/Refrna_demo1/RefrnaAssemble/output/StringtieMerge/change_id_merged.fa'
+    txt_file = '/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/moduletest/200.txt'
+    step_count(fa_file, txt_file, 10, 200, "/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/moduletest/final_200.txt")

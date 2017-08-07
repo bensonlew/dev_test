@@ -676,3 +676,7 @@ class RefRnaQc(Base):
             print("导入比对结果统计信息出错:%s" % e)
         else:
             print("导入比对结果统计信息成功")
+
+if __name__ == "__main__":
+    a =
+    dir_path = "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/MapAssessment/output/chr_stat"
