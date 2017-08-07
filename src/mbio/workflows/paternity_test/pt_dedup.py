@@ -146,6 +146,7 @@ class PtDedupWorkflow(Workflow):
         api_read_tab = self.api.tab_file
         self.family_id = api_read_tab.family_unanalysised()  # tuple
         # self.family_id = [['WQ17072798-F1', 'WQ17072798-M-1', 'WQ17072798-S-1']]
+        self.logger.info("组成的家系个数：%s" % len(self.family_id))
         if not self.family_id:
             self.logger.error("没有符合条件的家系")
             self.exit(exitcode=1, data='没有符合条件的家系', terminated=False)
