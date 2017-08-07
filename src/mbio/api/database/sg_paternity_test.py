@@ -530,9 +530,10 @@ class SgPaternityTest(Base):
         ref_data = self.database_ref['sg_pt_ref_main'].find_one({"sample_id": sample_id})
         split_data_name = ref_data["split_data_name"]
         try:
-            collection.insert_one({'sample_id':sample_id,
+            collection.insert_one({'sample_id': sample_id,
                                    'split_data_name': split_data_name,
-                                   'batch_id':batch_id})
+                                   'batch_id': batch_id,
+                                   'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
         except Exception as e:
             self.bind_object.logger.error('导入问题样本出错：{}'.format(e))
             raise Exception('导入问题样本出错：{}'.format(e))

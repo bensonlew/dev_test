@@ -568,3 +568,16 @@ class TabFile(Base):
             return 'red'
         else:
             return 'green'
+
+    def remove_sample(self, sample_id):
+        """
+        用于当样本tab大小为0，或者深度小于5的时候，删除sg_pt_ref_main中的相关样本的信息
+        :return:
+        """
+        collection = self.database['sg_pt_ref_main']
+        try:
+            collection.remove({'sample_id': str(sample_id)})
+        except Exception as e:
+            self.bind_object.logger.error('删除深度小于5或者tab为0的样本：{}出错{}'.format(sample_id, e))
+        else:
+            self.bind_object.logger.info("删除 {} 成功！".format(sample_id))
