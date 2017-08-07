@@ -69,10 +69,17 @@ class GenesetKeggWorkflow(Workflow):
             for line in f:
                 line = line.strip().split("\t")
                 regulate_gene[line[0]] = line[1].split(",")
+                geneset_ko[line[0]] = []
+                for key in ko_genes.keys():
+                    for gene in regulate_gene[line[0]]:
+                        if gene in ko_genes[key]:
+                            geneset_ko[line[0]].append(key)
+        self.logger.info(geneset_ko)
+        self.category = geneset_ko
         pathways = self.output_dir + '/pathways'
         if not os.path.exists(pathways):
             os.mkdir(pathways)
-        self.category = regulate_gene
+        # self.category = regulate_gene
         kegg.get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output= self.output_dir + '/kegg_stat.xls')
         self.run_add_info()
         self.get_ko(ko_genes=ko_genes, catgory=regulate_gene, kegg_regulate=self.output_dir + '/kegg_stat.xls', out_dir=self.output_dir)
@@ -210,15 +217,21 @@ class GenesetKeggWorkflow(Workflow):
                         self.logger.info(ko)
                         if ko == "":
                             continue
-                        if ko in ko_tmp:  # 当背景色在富集得出的表中时
-                            lnk += ko + "+{},{}%0d%0a".format(self.map_dict[pathway][ko], self.get_color(ko))  # 有背景色,前景色
+                        if ko in ko_tmp:  # 基因ko显著富集
+                            if self.get_color(ko):
+                                lnk += ko + "+{},{}%0d%0a".format(self.map_dict[pathway][ko], self.get_color(ko))  # 有背景色,前景色
+                            else:
+                                lnk += ko + "+{}%0d".format(self.map_dict[pathway][ko])  # 只有背景色
                         else:
                             lnk += ko + "+{}%0d".format(self.map_dict[pathway][ko])  # 只有背景色
                 else:  # 只标边框
                     for ko in ko_tmp:
                         if ko == "":
                             continue
-                        lnk += ko + "+{},{}%0d%0a".format("white", self.get_color(ko))  # 只有背景色
+                        if self.get_color(ko):
+                            lnk += ko + "+{},{}%0d%0a".format("white", self.get_color(ko))  # 只有背景色
+                        else:
+                            pass
                 tmp[-1] = lnk
                 str_ = "\t".join(tmp) + "\n"
                 fw.write(str_)
@@ -230,18 +243,22 @@ class GenesetKeggWorkflow(Workflow):
         :return:
         """
         if len(self.category) == 1:
-            return "blue"
+            if ko in self.category[0]:
+                return "blue"
+            else:
+                return False
         elif len(self.category) == 2:
             lst = list(self.category.keys())  # 基因集列表
             lst.sort()
-            if ko in lst[0] and ko in lst[1]:
+            if ko in self.category[lst[0]] and ko in self.category[lst[1]]:
                 return "pink"
-            elif ko in lst[0]:
+            elif ko in self.category[lst[0]]:
                 return "blue"
-            elif ko in lst[1]:
+            elif ko in self.category[lst[1]]:
                 return "red"
             else:
-                return "white"
+                self.logger.info(str(self.category[lst[0]]))
+                return False
 
 
 
