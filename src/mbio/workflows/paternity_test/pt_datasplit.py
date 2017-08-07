@@ -90,7 +90,6 @@ class PtDatasplitWorkflow(Workflow):
         db_customer = self.api.pt_customer
         if self.option("family_table").is_set:
             self.logger.info("开始导入pt家系表")
-            db_customer = self.api.pt_customer
             db_customer.add_pt_customer(main_id=self.option('pt_data_split_id'),
                                         customer_file=self.option('family_table').prop['path'])
             self.logger.info("pt家系表导入完成")
@@ -170,6 +169,32 @@ class PtDatasplitWorkflow(Workflow):
                     else:
                         self.logger.error('重上机命名有问题{}'.format(line[3]))
                         raise Exception('重上机命名有问题{}'.format(line[3]))
+
+    def family_search(self):  # 判断样本是否存在于家系表中
+        paternity_sample = []
+        pt_customer = self.api.pt_customer
+        with open(self.option('message_table').prop['path'], 'r') as m:
+            for line in m:
+                line = line.strip().split('\t')
+                if re.match('WQ([0-9]{8,})-(M|F)(.*)', line[3]):
+                    paternity_sample.append(line[3])
+        for i in paternity_sample:
+            m = re.match('WQ([0-9]{8,})-(M|F)(.*)', i)  # 家系表里面只有爸爸和妈妈，所以此处只匹配父本和母本的名称
+            pt_number = 'WQ' + m.group(1)
+            if 'T' in m.group(3):
+                n = re.match('(.*)-T(.*)', m.group(3))
+                name = m.group(2) + n.group(1)
+            else:
+                name = m.group(2) + m.group(3)
+            if 'M' in i:
+                result = pt_customer.family_search(family_id=pt_number, mom_id_=name)
+            else:
+                result = pt_customer.family_search(family_id=pt_number, dad_id_=name)
+            if result == 'False':
+                self.logger.error('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
+                raise Exception('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
+            else:
+                self.logger.error('{}该样本存在于家系表中'.format(i))
 
     def get_sample(self):
         self.sample_name_wq = []
@@ -392,6 +417,7 @@ class PtDatasplitWorkflow(Workflow):
         self.judge_sample_type(self.option('message_table').prop['path'])  # 判断ws是否为单端
         db_customer = self.api.pt_customer
         dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
+        self.family_search()  # 判断样本是否存在于家系表中
 
         self.logger.info(dir_list)
         if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):

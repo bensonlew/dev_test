@@ -184,6 +184,16 @@ class PtCustomer(Base):
         else:
             self.bind_object.logger.info('导入拆分结果路径成功')
 
+    def family_search(self, family_id,  mom_id_=None, dad_id_=None):
+        collection = self.database["sg_pt_customer"]
+        if mom_id_ == None and collection.find_one({"pt_serial_number": family_id, 'dad_id_': dad_id_}):
+            return 'True'
+        elif dad_id_ == None and collection.find_one({"pt_serial_number": family_id, 'mom_id_': mom_id_}):
+            return 'True'
+        else:
+            return "False"
+
+
     """
     # 第一版pt家系表导表函数
     def add_pt_customer(self, main_id=None, customer_file=None):
