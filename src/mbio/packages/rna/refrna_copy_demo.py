@@ -53,6 +53,7 @@ class RefrnaCopyMongo(object):
         self.copy_main_details("sg_geneset_detail", "geneset_id", self.geneset_id_dict, join=False)
         self.copy_collection_with_change('sg_specimen_mapping')
         self.copy_collection_with_change('sg_specimen_info')
+        self.copy_collection_with_change('sg_software_para')
         greenlet = Greenlet(self.annotation_blast)
         greenlet.start()
         self.all_greenlets.append(greenlet)

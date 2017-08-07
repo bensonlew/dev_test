@@ -4,6 +4,7 @@
 """"""
 
 from biocluster.workflow import Workflow
+import pymongo
 
 
 class RefrnaCopyDemoWorkflow(Workflow):
@@ -27,10 +28,41 @@ class RefrnaCopyDemoWorkflow(Workflow):
     def run(self):
         self.start_listener()
         self.fire("start")
-        from mbio.packages.rna.refrna_copy_demo import RefrnaCopyMongo
-        copy_task = RefrnaCopyMongo(self.option("task_id"), self.option("target_task_id"), self.option("target_project_sn"), self.option("target_member_id"))
-        copy_task.run()
+        # from mbio.packages.rna.refrna_copy_demo import RefrnaCopyMongo
+        # copy_task = RefrnaCopyMongo(self.option("task_id"), self.option("target_task_id"), self.option("target_project_sn"), self.option("target_member_id"))
+        # copy_task.run()
+        old_task_id = self.old_task_id()
+        self.logger.info(old_task_id)
+        self.update_task_id(old_task_id, self.option("target_task_id"))
         self.end()
+
+    def old_task_id(self):
+        client = pymongo.MongoClient('mongodb://192.168.10.189:27017/')
+        db = client['tsanger_ref_rna']
+        col = db["sg_task"]
+        results = col.find()
+        for result in results:
+            old_task_id = result["task_id"]
+            if old_task_id.startswith("refrna_demo_mouse"):
+                return old_task_id
+
+    def update_task_id(self, old_task_id, new_task_id):
+        client = pymongo.MongoClient('mongodb://192.168.10.189:27017/')
+        db = client['tsanger_ref_rna']
+        col_list = []
+        for col_name in db.collection_names():
+            col = db[col_name]
+            result = col.find_one()
+            try:
+                if "task_id" in result:
+                    col_list.append(col_name)
+            except:
+                continue
+        for col_name in col_list:
+            col = db[col_name]
+            results = col.find({"task_id": old_task_id})
+            for result in results:
+                col.update_one({"_id": result["_id"]}, {"$set": {"task_id": new_task_id}})
 
     def end(self):
         super(RefrnaCopyDemoWorkflow, self).end()
