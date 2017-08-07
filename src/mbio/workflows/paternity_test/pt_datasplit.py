@@ -147,30 +147,34 @@ class PtDatasplitWorkflow(Workflow):
         else:
             self.ws_single = 'false'
 
-    def judge_sample_name(self):  # 判断样本名是不是有问题 20170721
+    def judge_sample_name(self):  # 判断样本是否重命名 20170721
         with open(self.option('message_table').prop['path'], 'r') as m:
             for line in m:
                 line = line.strip().split('\t')
-                x = self.api_read_tab.tab_exist(line[3])  # 判断是否重名
-                if x:
-                    self.logger.error('请确认{}样本是否重名'.format(line[3]))
-                    raise Exception('请确认{}样本是否重名'.format(line[3]))
-                if re.match('WQ([0-9]{8,})-(M|F)(.*)(T)([0-9])', line[3]):  # 如果为重上机，检测是否命名符合规范
-                    name = line[3].split('-')
-                    family_id_ = name[0]
-                    member_id_ = ('-').join(name[1:-1])
-                    if re.match('M(.*)', name[1]):
-                        member = 'mom'
-                    else:
-                        member = 'dad'
-                    r = self.check_file.check_pt_message(family_id_=family_id_, member_id_=member_id_, type=member)
-                    if r == 'True':
-                        self.logger.info('重上机命名没有问题')
-                    else:
-                        self.logger.error('重上机命名有问题{}'.format(line[3]))
-                        raise Exception('重上机命名有问题{}'.format(line[3]))
+                if re.match('WQ([0-9]{8,})-(M|F|S)(.*)', line[3]):
+                    x = self.api_read_tab.tab_exist(line[3])  # 判断是否重名
+                    if x:
+                        self.logger.error('请确认{}样本是否重名'.format(line[3]))
+                        raise Exception('请确认{}样本是否重名'.format(line[3]))
+                else:
+                    continue
+                    # if re.match('WQ([0-9]{8,})-(M|F)(.*)(T)([0-9])', line[3]):  # 如果为重上机，检测是否命名符合规范
+                    #     name = line[3].split('-')
+                    #     family_id_ = name[0]
+                    #     member_id_ = ('-').join(name[1:-1])
+                    #     if re.match('M(.*)', name[1]):
+                    #         member = 'mom'
+                    #     else:
+                    #         member = 'dad'
+                    #     r = self.check_file.check_pt_message(family_id_=family_id_,
+                    #                                          member_id_=member_id_, type=member)
+                    #     if r == 'True':
+                    #         self.logger.info('重上机命名没有问题')
+                    #     else:
+                    #         self.logger.error('重上机命名有问题{}'.format(line[3]))
+                    #         raise Exception('重上机命名有问题{}'.format(line[3]))
 
-    def family_search(self):  # 判断样本是否存在于家系表中
+    def family_search(self):  # 判断样本是否存在于家系表中(包括重上机样本和一般样本)
         paternity_sample = []
         pt_customer = self.api.pt_customer
         with open(self.option('message_table').prop['path'], 'r') as m:
