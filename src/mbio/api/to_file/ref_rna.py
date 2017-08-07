@@ -157,17 +157,19 @@ def export_kegg_pdf(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fs = gridfs.GridFS(db)
     annotation_collection = db["sg_annotation_kegg"]
-    main_id = annotation_collection.find_one({"task_id":data})["_id"]
+    task_id = data.split("\t")[0]
+    anno_type = data.split("\t")[1]
+    main_id = annotation_collection.find_one({"task_id":task_id})["_id"]
     kegg_level_collection = db["sg_annotation_kegg_level"]
-    results = kegg_level_collection.find({"kegg_id":main_id})
-    anno_path = dir_path + "/pdf"
+    results = kegg_level_collection.find({"kegg_id":main_id, "seq_type":"all", "anno_type":anno_type})
+    anno_path = dir_path + "/png"
     if not os.path.exists(anno_path):
         os.mkdir(anno_path)
     for result in results:
-        graph_id = result["graph_id"]
+        graph_id = result["graph_png_id"]
         pathway_id = result["pathway_id"]
-        bind_obj.logger.info("正在导出{}的pdf文件".format(pathway_id))
-        with open(anno_path + "/" + pathway_id, "w") as fw:
+        bind_obj.logger.info("正在导出{}的png文件".format(pathway_id))
+        with open(anno_path + "/" + pathway_id + ".png", "w") as fw:
             content = fs.get(graph_id).read()
             fw.write(content)
     return anno_path
@@ -573,6 +575,25 @@ def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_cod
                 _write = d['assembly_trans_id']+"\t"+d['gene_name']+"\t" + d["class_code"] + "\t" + d["assembly_gene_id"] + "\n"
             f.write(_write)
     return class_code
+
+def export_add_info(data,option_name,dir_path,bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    task_id = data.split("\t")[0]
+    anno_type = data.split("\t")[1]
+    add_info = os.path.join(dir_path, '{}.txt'.format(option_name))
+    bind_obj.logger.debug("正在导出add_info信息")
+    col = db["sg_annotation_kegg"]
+    result = col.find_one({"task_id":task_id})
+    insert_id = result["_id"]
+    print insert_id
+    print anno_type
+    col = db["sg_annotation_kegg_level"]
+    results = col.find({"kegg_id":insert_id, "seq_type":"all", "anno_type":anno_type})
+    with open(add_info, "w") as fw:
+        fw.write("pathway\thyperlink\n")
+        for result in results:
+            fw.write(result["pathway_id"] + "\t" + result["hyperlink"] + "\n")
+    return add_info
 
 if __name__ == "__main__":
     data = "5909a269a4e1af11112543e2"

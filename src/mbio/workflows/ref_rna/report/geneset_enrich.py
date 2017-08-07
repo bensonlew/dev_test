@@ -27,7 +27,8 @@ class GenesetEnrichWorkflow(Workflow):
             {"name": "main_table_id", "type": "string"},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
-            {"name": "method", "type": "string"}
+            {"name": "method", "type": "string"},
+            {"name": "add_info", "type": "string", "default": None}  # 输入两列的列表文件，有head，第一列为pathway，第二列为底图链接
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -42,7 +43,8 @@ class GenesetEnrichWorkflow(Workflow):
                 "kegg_table": self.option("kegg_table"),
                 # "all_list": background_path,
                 "diff_list": self.option("genset_list"),
-                "correct": self.option("method")
+                "correct": self.option("method"),
+                "add_info": self.option("add_info")
             }
         else:
             options = {
