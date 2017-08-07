@@ -72,3 +72,16 @@ class RefRnaController(MetaController):
         print('Sheet_Data: {}'.format(self._sheet_data))
         self.workflow_id = new_task_id
         return self._sheet_data
+
+    def _create_output_dir(self, task_id, main_table_name):
+        data = web.input()
+        task_info = self.meta.get_task_info(task_id)
+        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
+        if client == 'client01':
+            target_dir = 'sanger'
+        else:
+            target_dir = 'tsanger'
+        target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
+                      '/' + str(task_info['project_sn']) + '/' + \
+                      task_id + '/inter_analysis_results/' + main_table_name
+        return target_dir

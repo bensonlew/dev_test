@@ -69,7 +69,7 @@ class KeggRegulateTool(Tool):
         self._version = "v1.0.1"
         self.python = '/program/Python/bin/'
         self.diff_list = self.option('diff_stat').prop['diff_genes']
-        self.image_magic_path = self.config.SOFTWARE_DIR + "/bioinfo/plot/imageMagick/bin/convert"
+        self.image_magic_path = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run(self):
         """
