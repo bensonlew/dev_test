@@ -38,13 +38,24 @@ class SgPaternityTest(Base):
         name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
         # 信息增加modify by zhouxuan 20170705
 
-        if re.match('(.*-T)([0-9])', dad):  # -T 表示重上机信息不变
-            dad = ('-').join(dad.split('-')[:-1])
-        if re.match('(.*-T)([0-9])', mom):
-            mom = ('-').join(mom.split('-')[:-1])
-            temp_m = re.search(".*-(M.*)", mom)
-        message_id = dad + "-" + temp_m.group(1)  # 只有父本和母本的名字
         pt_collection = self.database["sg_pt_customer"]
+        if re.match(".*-(C.*)", preg):  # 孩子重送样的时候用的是妈妈的重送样的样本(pt医检表里面妈妈的信息会变)
+            pt_serial_number = preg.split('-')[0]
+            sample_mom = 'MC.*'
+            res = pt_collection.find_one({"pt_serial_number": pt_serial_number, "mom_id_": {"$regex": sample_mom}})
+            message_id = res['name']
+        else:
+            if re.match('(.*-T)([0-9])', dad):  # -T 表示重上机信息不变 # modify by zhouxuan 20170728
+                dad_ = ('-').join(dad.split('-')[:-1])
+            else:
+                dad_ = dad
+            if re.match('(.*-T)([0-9])', mom):
+                mom_ = ('-').join(mom.split('-')[:-1])
+                temp_m_ = re.search(".*-(M.*)", mom_)
+            else:
+                temp_m_ = temp_m
+            message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
+
         result = pt_collection.find_one({"name": message_id})
         if result:
             report_status = result['report_status']
@@ -58,11 +69,11 @@ class SgPaternityTest(Base):
             raise Exception('{}-该家系信息不全，请查看是否是样本名存在问题'.format(message_id))
         time = accept.split('-')
         accept_time = datetime.datetime(int(time[0]), int(time[1]), int(time[2]), 0, 0)
-        if re.match('(.*)(C)(.*)', temp_s.group(1)):
-            report_time = accept_time + datetime.timedelta(days=3)
-        else:
-            self.bind_object.logger.info('此时胎儿不为重送样：{}'.format(preg))
-            report_time = accept_time + datetime.timedelta(days=5)
+        # if re.match('(.*)(C)(.*)', temp_s.group(1)):
+        #     report_time = accept_time + datetime.timedelta(days=3)
+        # else:
+        #     self.bind_object.logger.info('此时胎儿不为重送样：{}'.format(preg))
+        report_time = accept_time + datetime.timedelta(days=5)
         # t = []
         # t.append(report_time.year)
         # t.append(report_time.month)
@@ -477,3 +488,38 @@ class SgPaternityTest(Base):
             return 'True'
         else:
             return 'False'
+
+    def import_dedup_data(self, file_path, pt_father_id):
+        sg_pt_family_detail = list()
+        with open(file_path, 'r') as f:
+            data = f.readlines()[1:]
+            for line in data:
+                line = line.strip().split('\t')
+                temp_fp = eval(line[4])
+                RCP = float(temp_fp) / (float(temp_fp) + 1)
+                if RCP > 0.5:
+                    rcp_result = ">99.99%"
+                else:
+                    rcp_result = "<0.01%"
+                insert_data = {
+                    "pt_father_id": pt_father_id,
+                    "dad_id": line[0],
+                    "test_pos_n": line[1],
+                    "err_pos_n": line[2],
+                    "err_rate": line[3],
+                    "fq": line[4],
+                    "dp": line[5],
+                    "eff_rate": line[6],
+                    "ineff_rate": line[7],
+                    "result": line[8],
+                    "rcp": rcp_result
+                }
+                sg_pt_family_detail.append(insert_data)
+            try:
+                collection = self.database['sg_pt_father_analysis']
+                collection.insert_many(sg_pt_family_detail)
+            except Exception as e:
+                self.bind_object.logger.error('导入查重表格出错：{}'.format(e))
+            else:
+                self.bind_object.logger.info("导入查重表格成功")
+
