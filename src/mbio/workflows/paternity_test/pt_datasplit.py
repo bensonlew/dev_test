@@ -421,7 +421,8 @@ class PtDatasplitWorkflow(Workflow):
         self.judge_sample_type(self.option('message_table').prop['path'])  # 判断ws是否为单端
         db_customer = self.api.pt_customer
         dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
-        self.family_search()  # 判断样本是否存在于家系表中
+        if self.option('family_table').is_set:
+            self.family_search()  # 判断样本是否存在于家系表中
 
         self.logger.info(dir_list)
         if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
@@ -432,7 +433,8 @@ class PtDatasplitWorkflow(Workflow):
             self.end()
         else:
             self.logger.info('开始进行拆分-------------------')
-            self.judge_sample_name()
+            if self.option('family_table').is_set:
+                self.judge_sample_name()
             self.done_data_split = "true"   # 本次workflow是否进行数据拆分，true为进行
             self.run_data_split()
             super(PtDatasplitWorkflow, self).run()
