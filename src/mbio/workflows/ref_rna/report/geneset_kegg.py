@@ -35,7 +35,7 @@ class GenesetKeggWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
         self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
-        self.db_path = self.config.SOFTWARE_DIR + "/database/KEGG/xml"
+        self.db_path = self.config.SOFTWARE_DIR + "/database/KEGG/xml/"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
         self.map_dict = {}
 
@@ -161,7 +161,7 @@ class GenesetKeggWorkflow(Workflow):
                                              ko_path, out_dir + "/pathways/" + path + ".png",
                                              self.db_path + ko + ".xml",
                                              self.option("kegg_pics") + "/" + path + ".png")
-            # self.logger.info(cmd)
+            self.logger.info(cmd)
             try:
                 subprocess.check_output(cmd, shell=True)
                 pdf_path = out_dir + "/pathways/" + path + ".pdf"
@@ -169,14 +169,14 @@ class GenesetKeggWorkflow(Workflow):
                 # self.logger.info(cmd)
                 subprocess.check_output(cmd, shell=True)
             except:
-                # self.logger.info("{}画图出错".format(path))
+                self.logger.info("{}画图出错".format(path))
                 try:
                     # db_png_path = self.db_path + path + ".png"
                     db_png_path = self.option("kegg_pics") + "/" + path + ".png"
-                    self.logger.info(db_png_path)
+                    # self.logger.info(db_png_path)
                     os.link(db_png_path, out_dir + "/pathways/" + path + ".png")
                     cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + db_png_path + ' ' + out_dir + "/pathways/" + path + ".pdf"
-                    # self.logger.info(cmd)
+                    self.logger.info(cmd)
                     subprocess.check_output(cmd, shell=True)
                 except:
                     self.logger.info('图片格式png转pdf出错')
