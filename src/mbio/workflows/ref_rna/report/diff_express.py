@@ -338,3 +338,10 @@ class DiffExpressWorkflow(Workflow):
         else:
             raise Exception("没有生成count.tpm和fpkm.tpm表")
         super(DiffExpressWorkflow, self).run()
+
+    def end(self):
+        output1_dir = self.diff_exp.output_dir
+        output2_dir = self.diff_exp_ref.ouput_dir
+        self.add_upload_dir(output1_dir)
+        self.add_upload_dir(output2_dir)
+        super(DiffExpressWorkflow, self).end()
