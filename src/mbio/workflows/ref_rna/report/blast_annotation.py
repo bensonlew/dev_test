@@ -9,6 +9,7 @@ from bson.objectid import ObjectId
 import os
 import re
 import shutil
+import json
 
 
 class BlastAnnotationWorkflow(Workflow):
@@ -120,6 +121,7 @@ class BlastAnnotationWorkflow(Workflow):
             "nr_score": str(self.option("nr_score")),
             "nr_identity": str(self.option("nr_identity"))
         }
+        nr_params = json.dumps(nr_params, sort_keys=True, separators=(',', ':'))
         swissprot_params = {
             "stat_id": self.option("stat_id"),
             "swissprot_evalue": str(self.option("swissprot_evalue")),
@@ -127,6 +129,7 @@ class BlastAnnotationWorkflow(Workflow):
             "swissprot_score": str(self.option("swissprot_score")),
             "swissprot_identity": str(self.option("swissprot_identity"))
         }
+        swissprot_params = json.dumps(swissprot_params, sort_keys=True, separators=(',', ':'))
         nr_evalue = self.output_dir + "/nr_evalue.xls"
         nr_similar = self.output_dir + "/nr_similar.xls"
         gene_nr_evalue = self.output_dir + "/gene_nr_evalue.xls"

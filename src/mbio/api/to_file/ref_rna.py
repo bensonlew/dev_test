@@ -48,7 +48,7 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
     for result in stat_result:
         task_id = result["task_id"]
     blast_collection = db["sg_annotation_blast"]
-    blast_result = blast_collection.find({"task_id": task_id})
+    blast_result = blast_collection.find({"task_id": task_id, "stat_id": ObjectId(data)})
     if not blast_result.count():
         raise Exception("stat_id:{}在sg_annotation_blast表中未找到".format(data))
     for result in blast_result:
