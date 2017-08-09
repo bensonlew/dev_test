@@ -9,6 +9,7 @@ from bson.objectid import ObjectId
 import os
 import re
 import shutil
+import json
 
 
 class BlastAnnotationWorkflow(Workflow):
