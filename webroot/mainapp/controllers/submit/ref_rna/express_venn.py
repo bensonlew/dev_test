@@ -12,7 +12,7 @@ from bson import ObjectId
 
 class ExpressVennAction(RefRnaController):
     def __init__(self):
-        super(ExpressVennAction, self).__init__(instant=True)
+        super(ExpressVennAction, self).__init__(instant=False)
     
     def GET(self):
         return 'khl'
@@ -39,7 +39,7 @@ class ExpressVennAction(RefRnaController):
                 return json.dumps(info)
         print data.group_detail
         task_name = "ref_rna.report.express_venn"
-        task_type = "workflow"
+        task_type = ""
         my_param = dict()
         my_param["express_id"] = data.express_id
         my_param["group_detail"] = group_detail_sort(data.group_detail)

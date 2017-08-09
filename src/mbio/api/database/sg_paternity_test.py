@@ -55,6 +55,7 @@ class SgPaternityTest(Base):
                 report_status = '0'
         else:
             self.bind_object.logger.info('该家系信息不全，请查看：{}'.format(message_id))
+            raise Exception('{}-该家系信息不全，请查看是否是样本名存在问题'.format(message_id))
         time = accept.split('-')
         accept_time = datetime.datetime(int(time[0]), int(time[1]), int(time[2]), 0, 0)
         if re.match('(.*)(C)(.*)', temp_s.group(1)):
@@ -465,3 +466,14 @@ class SgPaternityTest(Base):
         else:
             collection.find_one_and_update({"pt_father_id": pt_father_id, 'dad_id': 'NA'},
                                            {"$set": {"result": 'MARK'}})
+
+    def check_pt_message(self, family_id_, member_id_, type):
+        collection = self.database["sg_pt_customer"]
+        if type == 'mom':
+            m = collection.find_one({"pt_serial_number": family_id_, 'mom_id_': member_id_})
+        else:
+            m = collection.find_one({"pt_serial_number": family_id_, 'dad_id_': member_id_})
+        if m:
+            return 'True'
+        else:
+            return 'False'

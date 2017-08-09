@@ -26,27 +26,35 @@ class PtCustomer(Base):
         if main_id == "None":
             self.bind_object.logger.info("缺少主表id")
         bk = xlrd.open_workbook(customer_file)
-        sh = bk.sheet_by_name(u'Report')
+        try:
+            sh = bk.sheet_by_name(u'Report')
+        except:
+            self.bind_object.logger.info('pt家系表-表单名称不对')
+            raise Exception('pt家系表-表单名称不对')
         nrows = sh.nrows
         insert = []  # 获取各行数据
         for i in range(0, nrows):
             row_data = sh.row_values(i)
             if i == 0:
-                contrast_num_index = row_data.index(u'\u8ba2\u5355\u5185\u90e8\u7f16\u53f7')  # 订单内部编号
-                ask_person_index = row_data.index(u'\u7533\u8bf7\u4eba')  # 申请人
-                mother_name_index = row_data.index(u'\u6bcd\u672c\u540d\u79f0')  # 母本名称
-                mother_type_index = row_data.index(u'\u6bcd\u672c\u7c7b\u578b')  # 母本类型
-                mom_id_index = row_data.index(u'\u6bcd\u672c\u7f16\u53f7')  # 母本编号
-                father_name_index = row_data.index(u'\u7236\u672c\u540d\u79f0')  # 父本名称
-                father_type_index = row_data.index(u'\u7236\u672c\u7c7b\u578b')  # 父本类型
-                dad_id_index = row_data.index(u'\u7236\u672c\u7f16\u53f7')  # 父本编号
-                ask_time_index = row_data.index(u'\u7533\u8bf7\u65e5\u671f')     # 申请日期
-                accept_time_index = row_data.index(u'\u53d7\u7406\u65e5\u671f')  # 受理日期
-                result_time_index = row_data.index(u'\u9274\u5b9a\u65e5\u671f')  # 鉴定日期
-                family_mom_id = row_data.index(u'\u4eb2\u672c\u0028\u6bcd\u672c\u0029')  # 亲本(母本)
-                family_dad_id = row_data.index(u'\u4eb2\u672c\u0028\u7236\u672c\u0029')  # 亲本(父本)
-                report_status = row_data.index(u'\u52a0\u6025')  # 加急 (标定出了报告立即置顶)
-                # son_type_index = row_data.index(u'\u8865\u9001\u6837\u672c\u80ce\u513f\u4fe1\u606f')  # 补送样本胎儿信息
+                try:
+                    contrast_num_index = row_data.index(u'\u8ba2\u5355\u5185\u90e8\u7f16\u53f7')  # 订单内部编号
+                    ask_person_index = row_data.index(u'\u7533\u8bf7\u4eba')  # 申请人
+                    mother_name_index = row_data.index(u'\u6bcd\u672c\u540d\u79f0')  # 母本名称
+                    mother_type_index = row_data.index(u'\u6bcd\u672c\u7c7b\u578b')  # 母本类型
+                    mom_id_index = row_data.index(u'\u6bcd\u672c\u7f16\u53f7')  # 母本编号
+                    father_name_index = row_data.index(u'\u7236\u672c\u540d\u79f0')  # 父本名称
+                    father_type_index = row_data.index(u'\u7236\u672c\u7c7b\u578b')  # 父本类型
+                    dad_id_index = row_data.index(u'\u7236\u672c\u7f16\u53f7')  # 父本编号
+                    ask_time_index = row_data.index(u'\u7533\u8bf7\u65e5\u671f')     # 申请日期
+                    accept_time_index = row_data.index(u'\u53d7\u7406\u65e5\u671f')  # 受理日期
+                    result_time_index = row_data.index(u'\u9274\u5b9a\u65e5\u671f')  # 鉴定日期
+                    family_mom_id = row_data.index(u'\u4eb2\u672c\u0028\u6bcd\u672c\u0029')  # 亲本(母本)
+                    family_dad_id = row_data.index(u'\u4eb2\u672c\u0028\u7236\u672c\u0029')  # 亲本(父本)
+                    report_status = row_data.index(u'\u52a0\u6025')  # 加急 (标定出了报告立即置顶)
+                    # son_type_index = row_data.index(u'\u8865\u9001\u6837\u672c\u80ce\u513f\u4fe1\u606f')  # 补送样本胎儿信息
+                except:
+                    self.bind_object.logger.info("pt家系表的表头信息不全")
+                    raise Exception('pt家系表的表头信息不全')
             else:
                 if row_data[contrast_num_index] == "":
                     break

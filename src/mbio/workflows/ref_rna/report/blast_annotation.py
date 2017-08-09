@@ -9,6 +9,7 @@ from bson.objectid import ObjectId
 import os
 import re
 import shutil
+import json
 
 
 class BlastAnnotationWorkflow(Workflow):
@@ -21,11 +22,11 @@ class BlastAnnotationWorkflow(Workflow):
         super(BlastAnnotationWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "blastout_table", "type": "string"},
-            {"name": "nr_evalue", "type": "float", "default": 10e-5},
+            {"name": "nr_evalue", "type": "float", "default": 1e-5},
             {"name": "nr_score", "type": "float", "default": 0},
             {"name": "nr_similarity", "type": "float", "default": 0},
             {"name": "nr_identity", "type": "float", "default": 0},
-            {"name": "swissprot_evalue", "type": "float", "default": 10e-5},
+            {"name": "swissprot_evalue", "type": "float", "default": 1e-5},
             {"name": "swissprot_score", "type": "float", "default": 0},
             {"name": "swissprot_similarity", "type": "float", "default": 0},
             {"name": "swissprot_identity", "type": "float", "default": 0},
@@ -108,24 +109,27 @@ class BlastAnnotationWorkflow(Workflow):
 
     def set_db(self):
         self.logger.info("保存结果到mongo")
-        api_nr = self.api.api('ref_rna.annotation_nr')
-        api_swissprot = self.api.api('ref_rna.annotation_swissprot')
-        api_blat = self.api.api('ref_rna.annotation_blast')
+        api_anno = self.api.api('ref_rna.ref_annotation')
+        # api_nr = self.api.api('ref_rna.annotation_nr')
+        # api_swissprot = self.api.api('ref_rna.annotation_swissprot')
+        # api_blat = self.api.api('ref_rna.annotation_blast')
         api_stat = self.api.api('ref_rna.annotation_stat')
         nr_params = {
             "stat_id": self.option("stat_id"),
-            "nr_evalue": self.option("nr_evalue"),
-            "nr_similarity": self.option("nr_similarity"),
-            "nr_score": self.option("nr_score"),
-            "nr_identity": self.option("nr_identity")
+            "nr_evalue": str(self.option("nr_evalue")),
+            "nr_similarity": str(self.option("nr_similarity")),
+            "nr_score": str(self.option("nr_score")),
+            "nr_identity": str(self.option("nr_identity"))
         }
+        nr_params = json.dumps(nr_params, sort_keys=True, separators=(',', ':'))
         swissprot_params = {
             "stat_id": self.option("stat_id"),
-            "swissprot_evalue": self.option("swissprot_evalue"),
-            "swissprot_similarity": self.option("swissprot_similarity"),
-            "swissprot_score": self.option("swissprot_score"),
-            "swissprot_identity": self.option("swissprot_identity")
+            "swissprot_evalue": str(self.option("swissprot_evalue")),
+            "swissprot_similarity": str(self.option("swissprot_similarity")),
+            "swissprot_score": str(self.option("swissprot_score")),
+            "swissprot_identity": str(self.option("swissprot_identity"))
         }
+        swissprot_params = json.dumps(swissprot_params, sort_keys=True, separators=(',', ':'))
         nr_evalue = self.output_dir + "/nr_evalue.xls"
         nr_similar = self.output_dir + "/nr_similar.xls"
         gene_nr_evalue = self.output_dir + "/gene_nr_evalue.xls"
@@ -138,21 +142,40 @@ class BlastAnnotationWorkflow(Workflow):
         gene_nr_blast = self.output_dir + "/gene_nr_blast.xls"
         sw_blast = self.output_dir + "/swissprot_blast.xls"
         gene_sw_blast = self.output_dir + "/gene_swissprot_blast.xls"
-        blast_id = api_blat.add_annotation_blast(name=None, params=None, stat_id=self.option("stat_id"))
-        api_blat.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="transcript", database="nr", blast_path=nr_blast)
-        api_blat.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="gene", database="nr", blast_path=gene_nr_blast)
-        api_blat.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="transcript", database="swissprot", blast_path=sw_blast)
-        api_blat.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="gene", database="swissprot", blast_path=gene_sw_blast)
-        nr_id = api_nr.add_annotation_nr(name=None, params=nr_params, stat_id=self.option("stat_id"))
-        swissprot_id = api_swissprot.add_annotation_swissprot(name=None, params=swissprot_params, stat_id=self.option("stat_id"))
-        api_nr.add_annotation_nr_pie(nr_id=nr_id, evalue_path=nr_evalue, similar_path=nr_similar, seq_type="new", anno_type="transcript")
-        api_nr.add_annotation_nr_pie(nr_id=nr_id, evalue_path=gene_nr_evalue, similar_path=gene_nr_similar, seq_type="new", anno_type="gene")
-        api_swissprot.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=sw_evalue, similar_path=sw_similar, seq_type="new", anno_type="transcript")
-        api_swissprot.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=gene_sw_evalue, similar_path=gene_sw_similar, seq_type="new", anno_type="gene")
+        blast_id = api_anno.add_annotation_blast(name=None, params=None, stat_id=self.option("stat_id"))
+        api_anno.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="transcript", database="nr", blast_path=nr_blast)
+        api_anno.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="gene", database="nr", blast_path=gene_nr_blast)
+        api_anno.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="transcript", database="swissprot", blast_path=sw_blast)
+        api_anno.add_annotation_blast_detail(blast_id=blast_id, seq_type="new", anno_type="gene", database="swissprot", blast_path=gene_sw_blast)
+        nr_id = api_anno.add_annotation_nr(name=None, params=nr_params, stat_id=self.option("stat_id"))
+        swissprot_id = api_anno.add_annotation_swissprot(name=None, params=swissprot_params, stat_id=self.option("stat_id"))
+        api_anno.add_annotation_nr_pie(nr_id=nr_id, evalue_path=nr_evalue, similar_path=nr_similar, seq_type="new", anno_type="transcript")
+        api_anno.add_annotation_nr_pie(nr_id=nr_id, evalue_path=gene_nr_evalue, similar_path=gene_nr_similar, seq_type="new", anno_type="gene")
+        self.logger.info(nr_id)
+        self.logger.info(swissprot_id)
+        api_anno.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=sw_evalue, similar_path=sw_similar, seq_type="new", anno_type="transcript")
+        api_anno.add_annotation_swissprot_pie(swissprot_id=swissprot_id, evalue_path=gene_sw_evalue, similar_path=gene_sw_similar, seq_type="new", anno_type="gene")
         old_stat_id = self.option("old_stat_id")
         stat_id = self.option("stat_id")
-        api_stat.add_stat_detail(old_stat_id, stat_id, nr_evalue, gene_nr_evalue, sw_evalue, gene_sw_evalue)
+        api_stat.add_stat_detail(old_stat_id, stat_id, nr_blast, gene_nr_blast, sw_blast, gene_sw_blast)
+        self.update_task_id(str(stat_id), str(blast_id), str(nr_id), str(swissprot_id))
         self.end()
+
+    def update_task_id(self, stat_id, blast_id, nr_id, swissprot_id):
+        """更新主表task_id"""
+        self.logger.info("更新主表task_id")
+        client = Config().mongo_client
+        db_name = Config().MONGODB + '_ref_rna'
+        stat_coll = client[db_name]['sg_annotation_stat']
+        results = stat_coll.find_one({'_id': ObjectId(stat_id)})
+        task_id = results['task_id']
+        blast_coll = client[db_name]['sg_annotation_blast']
+        nr_coll = client[db_name]['sg_annotation_nr']
+        sw_coll = client[db_name]['sg_annotation_swissprot']
+        blast_coll.update({'_id': ObjectId(blast_id)}, {'$set': {'task_id': task_id}})
+        nr_coll.update({'_id': ObjectId(nr_id)}, {'$set': {'task_id': task_id}})
+        sw_coll.update({'_id': ObjectId(swissprot_id)}, {'$set': {'task_id': task_id}})
+        self.logger.info("更新主表ID成功")
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

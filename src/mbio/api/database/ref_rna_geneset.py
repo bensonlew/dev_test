@@ -55,8 +55,6 @@ class RefRnaGeneset(Base):
         with open(geneset_cog_table, 'r') as f:
             first_line = f.readline().strip("\n").split("\t")
             print first_line
-            # print f.next().split("\t")
-
             for gn in first_line[2:]:
                 if "list" in gn or "LIST" in gn:
                     continue
@@ -71,27 +69,36 @@ class RefRnaGeneset(Base):
                     'function_categories': line[1]
                 }
                 for n, gn in enumerate(geneset_name):
-                    data[gn + "_cog"] = int(line[6*n+2])
-                    data[gn + "_nog"] = int(line[6*n+3])
-                    data[gn + "_kog"] = int(line[6*n+4])
+                    self.bind_object.logger.info(n)
+                    self.bind_object.logger.info(gn)
+                    self.bind_object.logger.info(geneset_name)
+                    # data[gn + "_cog"] = int(line[6*n+2])
+                    # data[gn + "_nog"] = int(line[6*n+3])
+                    data[gn + "_cog"] = int(line[4*n+2])
+                    data[gn + "_nog"] = int(line[4*n+3])
+                    # data[gn + "_kog"] = int(line[6*n+4])
                     if data[gn + "_cog"] == 0:
                         data[gn + "_cog_list"] = ""
                         data[gn + "_cog_str"] = ""
                     else:
-                        data[gn + "_cog_list"] = line[6*n+5].split(";")
-                        data[gn + "_cog_str"] = line[6*n+5]
+                        # data[gn + "_cog_list"] = line[6*n+5].split(";")
+                        # data[gn + "_cog_str"] = line[6*n+5]
+                        data[gn + "_cog_list"] = line[4*n+4].split(";")
+                        data[gn + "_cog_str"] = line[4*n+4]
                     if data[gn + "_nog"] == 0:
                         data[gn + "_nog_str"] = ""
                         data[gn + "_nog_list"] = ""
                     else:
-                        data[gn + "_nog_str"] = line[6*n+6]
-                        data[gn + "_nog_list"] = line[6*n+6].split(";")
-                    if data[gn + "_kog"] == 0:
-                        data[gn + "_kog_list"] = ""
-                        data[gn + "_kog_str"] = ""
-                    else:
-                        data[gn + "_kog_list"] = line[6*n+7].split(";")
-                        data[gn + "_kog_str"] = line[6*n+7]
+                        # data[gn + "_nog_str"] = line[6*n+6]
+                        # data[gn + "_nog_list"] = line[6*n+6].split(";")
+                        data[gn + "_nog_str"] = line[4*n+5]
+                        data[gn + "_nog_list"] = line[4*n+5].split(";")
+                    # if data[gn + "_kog"] == 0:
+                    #     data[gn + "_kog_list"] = ""
+                    #     data[gn + "_kog_str"] = ""
+                    # else:
+                    #     data[gn + "_kog_list"] = line[6*n+7].split(";")
+                    #     data[gn + "_kog_str"] = line[6*n+7]
                 data_list.append(data)
         try:
             collection = self.db['sg_geneset_cog_class_detail']
@@ -196,10 +203,11 @@ class RefRnaGeneset(Base):
                         'database': line[2],
                         'id': line[3].split("path:")[1] if "path:" in line[3] else line[3],
                         'study_number': int(line[0]),
+                        "background_number": line[5].split("/")[1],
                         'ratio_in_study': line[4],
                         'ratio_in_pop': line[5],
-                        'pvalue': round(float(line[7]), 4),
-                        'corrected_pvalue': round(float(line[6]), 4) if not line[-3] == "None" else "None",
+                        'pvalue': round(float(line[6]), 4),
+                        'corrected_pvalue': round(float(line[7]), 4) if not line[7] == "None" else "None",
                         'gene_lists': line[8],
                         'hyperlink': line[9]
                     }
@@ -228,7 +236,6 @@ class RefRnaGeneset(Base):
         :return:
         """
         data_list = []
-        # geneset_name = []
         if not isinstance(go_regulate_id, ObjectId):
             if isinstance(go_regulate_id, types.StringTypes):
                 go_regulate_id = ObjectId(go_regulate_id)
@@ -238,11 +245,12 @@ class RefRnaGeneset(Base):
             raise Exception('{}所指定的路径不存在，请检查！'.format(go_regulate_dir))
         with open(go_regulate_dir, 'r') as f:
             first_line = f.readline().strip().split("\t")
-            doc_keys = set([l.split(" ")[0] for l in first_line[3:]])
-            geneset_name = doc_keys
-            # print first_line[3:]
-            # print f.next()
-            print doc_keys
+            doc_keys = []
+            for l in first_line[3:]:
+                name = l.split(" ")[0]
+                if name not in doc_keys:
+                    doc_keys.append(name)
+            geneset_name = set(doc_keys)
             for line in f:
                 line = line.strip().split('\t')
                 data = {
@@ -251,13 +259,10 @@ class RefRnaGeneset(Base):
                     'go': line[1],
                     'go_id': line[2]
                 }
-                # print line[3]
                 for n, dk in enumerate(doc_keys):
-                    # print n+3
                     line4 = line[4+n*3].split("(")
                     data["{}_num".format(dk)] = int(line[3+n*3])
                     data["{}_percent".format(dk)] = float(line4[0])
-                    # data["{}_percent_str".format(dk)] = line4[1][:-1] if len(line4[1][:-1]) > 1 else "0"
                     try:
                         data["{}_str".format(dk)] = line[5+n*3]
                         data["{}_genes".format(dk)] = line[5+n*3].split(";")
@@ -274,7 +279,6 @@ class RefRnaGeneset(Base):
             main_collection = self.db['sg_geneset_go_class']
             collection.insert_many(data_list)
             main_collection.update({"_id": ObjectId(go_regulate_id)}, {"$set": {"table_columns": list(geneset_name)}})
-            self.bind_object.logger.info("llllllll")
             self.bind_object.logger.info(geneset_name)
             self.bind_object.logger.info(ObjectId(go_regulate_id))
         except Exception, e:
@@ -392,44 +396,4 @@ class RefRnaGeneset(Base):
 
 
 if __name__ == "__main__":
-    a = RefRnaGeneset("aaa")
-    trans_gs_id_name = {
-        "5964800ea4e1af2583dcc94f": "A_vs_B",
-        "5964800fa4e1af2583dcc955": "A_vs_C",
-        "59648010a4e1af2583dcc95b": "B_vs_C"
-    }
-    gene_gs_id_name = {
-        "59647fc7a4e1af25303e5c62": "A_vs_B",
-        "59647fc8a4e1af25303e5c68": "A_vs_C",
-        "59647fc8a4e1af25303e5c6e": "B_vs_C"
-    }
-    trans_dir = "/mnt/ilustre/users/sanger-test/workspace/20170714/Refrna_demo_0711/DiffAnalysis/output"
-    gene_dir = "/mnt/ilustre/users/sanger-test/workspace/20170714/Refrna_demo_0711/DiffAnalysis1/output"
-    trans_kegg_regulate_dir = trans_dir + "/kegg_regulate"
-    gene_kegg_regulate_dir = gene_dir + "/kegg_regulate"
-    for trans_id in trans_gs_id_name.keys():
-        params = dict()
-        params["geneset_id"] = str(trans_id)
-        params["anno_type"] = "kegg"
-        params["submit_location"] = "geneset_class"
-        params["task_type"] = ""
-        params["geneset_type"] = "transcript"
-        inserted_id = a.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
-        for dir in os.listdir(trans_kegg_regulate_dir):
-            if trans_gs_id_name[str(trans_id)] in dir:
-                dir_path = os.path.join(trans_kegg_regulate_dir, dir)
-                a.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
-                a.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
-    for gene_id in gene_gs_id_name.keys():
-        params = dict()
-        params["geneset_id"] = str(gene_id)
-        params["anno_type"] = "kegg"
-        params["submit_location"] = "geneset_class"
-        params["task_type"] = ""
-        params["geneset_type"] = "gene"
-        inserted_id = a.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
-        for dir in os.listdir(gene_kegg_regulate_dir):
-            if gene_gs_id_name[str(gene_id)] in dir:
-                dir_path = os.path.join(gene_kegg_regulate_dir, dir)
-                a.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
-                a.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
+    pass
