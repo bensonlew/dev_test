@@ -137,8 +137,9 @@ def get_event_stats(files):
             event_type = mats_m.group(1)
             d[event_type][mats_m.group(2) + '_file'] = f
             data = pandas.read_table(f, sep='\t')
-            d[event_type][mats_m.group(2) + '_event_id_set_no'] = len(set(data['ID']))
-            d[event_type][mats_m.group(2) + '_event_id_set'] = set(data['ID'])
+            data_filter = data[data['FDR']<=0.05]
+            d[event_type][mats_m.group(2) + '_event_id_set_no'] = len(set(data_filter(['ID'])))
+            d[event_type][mats_m.group(2) + '_event_id_set'] = set(data_filter['ID'])
             continue
         if not (event_m or mats_m):
             print('这个文件： %s 既不是事件文件 也不是 mats 结果文件' % (f))
