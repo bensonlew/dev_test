@@ -18,33 +18,38 @@ def blastout_statistics(blast_table, evalue_path, similarity_path):
         count_similar[3] = []
         count_similar[4] = []
         f.readline()
+        flag = None
         for line in f:
             line = line.strip('\n').split('\t')
             evalue = float(line[1])
             similarity = float(line[4])
             query_id = line[5]
-            if 0 <= evalue <= 1e-30:
-                count_evalue[0].append(query_id)
-            elif 1e-30 < evalue <= 1e-20:
-                count_evalue[1].append(query_id)
-            elif 1e-20 < evalue <= 1e-10:
-                count_evalue[2].append(query_id)
-            elif 1e-10 < evalue <= 1e-5:
-                count_evalue[3].append(query_id)
-            elif 1e-5 < evalue <= 1e-3:
-                count_evalue[4].append(query_id)
+            if flag == query_id:
+                pass
             else:
-                count_evalue[5].append(query_id)
-            if 0 <= similarity <= 20:
-                count_similar[0].append(query_id)
-            elif 20 < similarity <= 40:
-                count_similar[1].append(query_id)
-            elif 40 < similarity <= 60:
-                count_similar[2].append(query_id)
-            elif 60 < similarity <= 80:
-                count_similar[3].append(query_id)
-            else:
-                count_similar[4].append(query_id)
+                flag = query_id
+                if 0 <= evalue <= 1e-30:
+                    count_evalue[0].append(query_id)
+                elif 1e-30 < evalue <= 1e-20:
+                    count_evalue[1].append(query_id)
+                elif 1e-20 < evalue <= 1e-10:
+                    count_evalue[2].append(query_id)
+                elif 1e-10 < evalue <= 1e-5:
+                    count_evalue[3].append(query_id)
+                elif 1e-5 < evalue <= 1e-3:
+                    count_evalue[4].append(query_id)
+                else:
+                    count_evalue[5].append(query_id)
+                if 0 <= similarity <= 20:
+                    count_similar[0].append(query_id)
+                elif 20 < similarity <= 40:
+                    count_similar[1].append(query_id)
+                elif 40 < similarity <= 60:
+                    count_similar[2].append(query_id)
+                elif 60 < similarity <= 80:
+                    count_similar[3].append(query_id)
+                else:
+                    count_similar[4].append(query_id)
         count_evalue[0] = list(set(count_evalue[0]))
         count_evalue[1] = list(set(count_evalue[1]))
         count_evalue[2] = list(set(count_evalue[2]))

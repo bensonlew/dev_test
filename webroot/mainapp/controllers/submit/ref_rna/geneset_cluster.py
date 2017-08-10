@@ -58,7 +58,8 @@ class GenesetClusterAction(RefRnaController):
         if not isinstance(geneset_id, ObjectId) and not isinstance(geneset_id, types.StringType):
             success.append("传入的geneset_id {}不是一个ObjectId对象或字符串类型".format(geneset_id))
         return success
-    
+
+    @check_sig
     def POST(self):
         data = web.input()
         print data
@@ -121,7 +122,7 @@ class GenesetClusterAction(RefRnaController):
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
         ]
         if data.genes_distance_method == '':
-            mongo_data .append(("gene_cluster", False))
+            mongo_data.append(("gene_cluster", False))
         else:
             mongo_data.append(('gene_cluster', True))
         if data.method == 'hclust':
@@ -164,7 +165,7 @@ class GenesetClusterAction(RefRnaController):
             "geneset_cluster_id": str(main_table_id),
             "gene_list": data.geneset_id,
             "update_info": update_info,
-            "class_code_type":"express_diff"
+            "class_code_type": "express_diff"
         }
         if data.method == 'hclust':
             options["samples_distance_method"] = data.samples_distance_method

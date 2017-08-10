@@ -23,6 +23,7 @@ class Ppinetwork(Base):
         params_dict["species"] = species
         params_dict["submit_location"] = "ppinetwork"
         params_dict["task_type"] = "workflow"
+        params_dict["task_id"] = self.bind_object.sheet.id
         data = {
             "project_sn": self.bind_object.sheet.project_sn,
             "task_id": self.bind_object.sheet.id,
