@@ -174,11 +174,13 @@ class ExpressCorrWorkflow(Workflow):
         if self.option('corr_pca') == 'corr':
             output1_dir = self.corr.output_dir
             result = self.add_upload_dir(output1_dir)
-            result.add_relpath_rules([["./correlation_matrix.xls", "", "交互-聚类分析"], ])
+            result.add_relpath_rules([
+                [".", "", "表达量相关性分析结果文件"],
+            ])
         if self.option('corr_pca') == 'pca':
             output2_dir = self.pca.output_dir
             result2 = self.add_upload_dir(output2_dir)
-            result2.add_relpath_rules([[".", "", "交互-PCA分析"], ])
+            result2.add_relpath_rules([[".", "", "表达量PCA分析结果文件"], ])
         super(ExpressCorrWorkflow, self).end()
 
 

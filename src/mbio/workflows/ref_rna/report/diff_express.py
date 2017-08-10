@@ -356,11 +356,9 @@ class DiffExpressWorkflow(Workflow):
     def end(self):
         output1_dir = self.diff_exp.output_dir
         output2_dir = self.diff_exp_ref.output_dir
-        print(output1_dir)
-        print(output2_dir)
-        result = self.add_upload_dir(output1_dir)
-        result2 = self.add_upload_dir(output2_dir)
-        result.add_relpath_rules([["./*xls", "", "交互-refandnew-差异分析结果目录"], ])
-        result2.add_relpath_rules([["./*xls", "", "交互-ref-差异分析结果目录"], ])
+        os.system("cp -r {} {}".format(output1_dir, self.output_dir + "/refandnew"))
+        os.system("cp -r {} {}".format(output2_dir, self.output_dir + "/ref"))
+        result = self.add_upload_dir(self.output_dir)
+        result.add_relpath_rules([[".", "", "表达量差异分析结果文件"], ])
         super(DiffExpressWorkflow, self).end()
 
