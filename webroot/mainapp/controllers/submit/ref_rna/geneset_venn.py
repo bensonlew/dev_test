@@ -13,10 +13,10 @@ from bson import ObjectId
 class GenesetVennAction(RefRnaController):
     def __init__(self):
         super(GenesetVennAction, self).__init__(instant=False)
-    
+
     def GET(self):
         return 'khl'
-    
+
     def POST(self):
         data=web.input()
         postArgs = ['type','geneset_id','submit_location',"task_id", "task_type"]
@@ -26,13 +26,13 @@ class GenesetVennAction(RefRnaController):
                 return json.dumps(info)
         task_name = 'ref_rna.report.geneset_venn'
         task_type = ''
-        
+
         my_param = dict()
         my_param['type']=data.type
         my_param['geneset_id']=data.geneset_id
         my_param['submit_location'] = data.submit_location
         my_param["task_id"] = data.task_id
-        my_param['task_type'] = task_type
+        my_param['task_type'] = data.task_type
 
         # 判断传入的基因集id是否存在
         geneset_info = {}
@@ -64,7 +64,7 @@ class GenesetVennAction(RefRnaController):
             ]
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): 'sg_geneset_venn'}
-           
+
             options = {
                 "geneset_file":data.geneset_id,
                 "update_info":json.dumps(update_info),
@@ -76,7 +76,7 @@ class GenesetVennAction(RefRnaController):
                     task_id = task_info['task_id'],project_sn = task_info['project_sn'],
                     params = my_param, to_file = to_file)
             task_info = super(GenesetVennAction,self).POST()
-            
+
             task_info['content'] = {
                     'ids':{
                         'id':str(main_table_id),
@@ -89,4 +89,3 @@ class GenesetVennAction(RefRnaController):
         else:
             info = {"success": False, "info": "基因集对应task_id不存在，请确认参数是否正确！!"}
             return json.dumps(info)
-
