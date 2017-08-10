@@ -177,12 +177,20 @@ class PtDatasplitWorkflow(Workflow):
     def family_search(self):  # 判断样本是否存在于家系表中(包括重上机样本和一般样本)
         paternity_sample = []
         pt_customer = self.api.pt_customer
+        tab_file = self.api.tab_file
         with open(self.option('message_table').prop['path'], 'r') as m:
             for line in m:
                 line = line.strip().split('\t')
                 if re.match('WQ([0-9]{8,})-(M|F)(.*)', line[3]):
                     paternity_sample.append(line[3])
         for i in paternity_sample:
+            tab_file.add_pt_tab(i, self.option('pt_data_split_id'))
+        self.family_id = tab_file.family_unanalysised()  # tuple
+        check_sample = []
+        for i in range(len(self.family_id)):
+            check_sample.append(self.family_id[i][0])
+            check_sample.append(self.family_id[i][1])
+        for i in check_sample:
             m = re.match('WQ([0-9]{8,})-(M|F)(.*)', i)  # 家系表里面只有爸爸和妈妈，所以此处只匹配父本和母本的名称
             pt_number = 'WQ' + m.group(1)
             if 'T' in m.group(3):
@@ -195,7 +203,7 @@ class PtDatasplitWorkflow(Workflow):
             else:
                 result = pt_customer.family_search(family_id=pt_number, dad_id_=name)
             if result == 'False':
-                self.logger.error('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
+                self.logger.info('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
                 raise Exception('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
             else:
                 self.logger.error('{}该样本存在于家系表中'.format(i))
