@@ -119,10 +119,16 @@ class GenesetClassWorkflow(Workflow):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "基因集功能分类结果目录"],
-            # ["./estimators.xls", "xls", "alpha多样性指数表"]
-        ])
+        if self.option("anno_type") == "go":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集GO分类结果文件"],
+                # ["./estimators.xls", "xls", "alpha多样性指数表"]
+            ])
+        elif self.option("anno_type") == "cog":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集COG分类结果文件"],
+                # ["./estimators.xls", "xls", "alpha多样性指数表"]
+            ])
         # print self.get_upload_files()
         self.set_end()
         self.fire('end')

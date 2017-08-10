@@ -68,5 +68,5 @@ class GenesetVennWorkflow(Workflow):
     def end(self):
         output1_dir = self.geneset_venn.output_dir
         result = self.add_upload_dir(output1_dir)
-        result.add_relpath_rules([[".", "", "交互-基因集-Venn分析结果目录"], ])
+        result.add_relpath_rules([[".", "", "基因集Venn分析结果文件"], ])
         super(GenesetVennWorkflow, self).end()
