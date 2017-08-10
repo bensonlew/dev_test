@@ -88,7 +88,7 @@ class ExpressVennWorkflow(Workflow):
     def end(self):
         output1_dir = self.venn.output_dir
         result = self.add_upload_dir(output1_dir)
-        result.add_relpath_rules([[".", "", "交互-Venn分析结果目录"], ])
+        result.add_relpath_rules([[".", "", "表达量Venn分析结果文件"], ])
         super(ExpressVennWorkflow, self).end()
 
 
