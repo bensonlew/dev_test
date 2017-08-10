@@ -112,10 +112,13 @@ class GenesetEnrichWorkflow(Workflow):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "基因集富集结果目录"],
-            # ["./estimators.xls", "xls", "alpha多样性指数表"]
-        ])
-        # print self.get_upload_files()
+        if self.option("anno_type") == "go":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集GO富集分析结果文件"],
+            ])
+        elif self.option("anno_type") == "kegg":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集KEGG富集分析结果文件"],
+            ])
         super(GenesetEnrichWorkflow, self).end()
 

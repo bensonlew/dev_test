@@ -112,7 +112,7 @@ class RsemTool(Tool):
         data = FastqFile()
         if self.option("fq_type") == "PE":
             cmd = self.Rsem1_path + "rsem-calculate-expression --paired-end -p 8 {} {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_l"),\
-               self.option("fq_r"), fasta_build , self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
+               self.option("fq_r"), fasta_build, self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
         elif self.option("fq_type") == "SE":
             cmd = self.Rsem1_path + "rsem-calculate-expression -p 8 {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_s"),\
                    fasta_build, self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)

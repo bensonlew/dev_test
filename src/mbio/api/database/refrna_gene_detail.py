@@ -398,11 +398,11 @@ class RefrnaGeneDetail(Base):
                 else:
                     gene_id_list.append(line[1])
                     transcript_info = OrderedDict()
-                    is_new = True
-                    if line[2] == 'u':
+                    if line[2] != 'u':
                         entrez_id = self.query_entrezid(line[1], is_new=False)  # 获得已知基因的entrez_id
                         is_new = False
                     else:
+                        is_new = True
                         # 获得新基因的entrez_id
                         entrez_id, description = self.query_entrezid(line[1], is_new=True, blast_id=blast_id)
 
@@ -429,10 +429,11 @@ class RefrnaGeneDetail(Base):
                                 else:
                                     count_none += 1
                                 if trans_ll in trans_sequence.keys():
-                                    transcript_info[trans_ll]["length"] = trans_sequence[trans_ll]
+                                    transcript_info[trans_ll]["sequence"] = trans_sequence[trans_ll]
+                                    transcript_info[trans_ll]["length"] = len(trans_sequence[trans_ll])
                                 else:
-                                    # transcript_info.pop(trans_ll)
                                     transcript_info[trans_ll]["length"] = 0
+                                    transcript_info[trans_ll]["sequence"] = '-'
                                 if count_none == 2:
                                     transcript_info.pop(trans_ll)
                         else:
@@ -444,8 +445,8 @@ class RefrnaGeneDetail(Base):
                                     transcript_info[str(ind)] = {"start": tmp_value['start'], 'end': tmp_value['end']}
                                 if trans_ll in trans_sequence.keys():
                                     # 新转录本的sequence，length信息
-                                    transcript_info[str(ind)]['sequence'] = trans_sequence[str(ind)]['sequence']
-                                    transcript_info[str(ind)]['sequence'] = trans_sequence[str(ind)]['length']
+                                    transcript_info[str(ind)]['sequence'] = trans_sequence[trans_ll]
+                                    transcript_info[str(ind)]['length'] = len(trans_sequence[trans_ll])
 
                     if biomart_path:
                         if line[1] in biomart_data.keys():
@@ -578,28 +579,30 @@ class TestFunction(unittest.TestCase):
             self._db_name = Config().MONGODB + '_ref_rna'
             self._db = None
             self._config = Config()
-    biomart_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/Vertebrates/Mammalia/Mus_musculus/ref/" \
-                   "mmusculus_gene_ensembl_gene.txt"
-    pep_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/Vertebrates/Mammalia/Mus_musculus/ref/" \
-               "Mus_musculus.GRCm38.pep.all.fa"
-    cds_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/Vertebrates/Mammalia/Mus_musculus/" \
-               "Mus_musculus.GRCm38.cds.all.fa"
-    gene_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_bed'
-    trans_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_trans_bed'
-    gene_path = "/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_2/GeneFa/output/gene.fa"
-    transcript_path = "/mnt/ilustre/users/sanger-dev/workspace/20170706/" \
-                      "Single_rsem_stringtie_mouse_total_2/Express1/TranscriptAbstract/output/exons.fa"
-    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170702/" \
-                 "Single_rsem_stringtie_mouse_total_1/Express/MergeRsem/class_code"
 
-    a = TmpRefrnaGeneDetail()
-    blast_id = a.db["sg_annotation_blast"].find_one({"task_id": "demo_0711"})
-    blast_id = blast_id['_id']
-    a.add_class_code(assembly_method="stringtie", name=None, major_gene_detail=True, major_express_diff=True,
-                     biomart_path=biomart_path, gene_location_path=gene_bed, trans_location_path=trans_bed,
-                     class_code_path=class_code,  cds_path=cds_path, pep_path=pep_path,
-                     species='Mus_musculus', transcript_path=transcript_path, gene_path=gene_path, blast_id=blast_id,
-                     test_this=True)
+    def test(self):
+        biomart_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/Vertebrates/Mammalia/Mus_musculus/ref/" \
+                       "mmusculus_gene_ensembl_gene.txt"
+        pep_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/Vertebrates/Mammalia/Mus_musculus/ref/" \
+                   "Mus_musculus.GRCm38.pep.all.fa"
+        cds_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/Vertebrates/Mammalia/Mus_musculus/" \
+                   "Mus_musculus.GRCm38.cds.all.fa"
+        gene_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_bed'
+        trans_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_trans_bed'
+        gene_path = "/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_2/GeneFa/output/gene.fa"
+        transcript_path = "/mnt/ilustre/users/sanger-dev/workspace/20170706/" \
+                          "Single_rsem_stringtie_mouse_total_2/Express1/TranscriptAbstract/output/exons.fa"
+        class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170702/" \
+                     "Single_rsem_stringtie_mouse_total_1/Express/MergeRsem/class_code"
+
+        a = self.TmpRefrnaGeneDetail()
+        blast_id = a.db["sg_annotation_blast"].find_one({"task_id": "demo_0711"})
+        blast_id = blast_id['_id']
+        a.add_class_code(assembly_method="stringtie", name=None, major_gene_detail=True, major_express_diff=True,
+                         biomart_path=biomart_path, gene_location_path=gene_bed, trans_location_path=trans_bed,
+                         class_code_path=class_code,  cds_path=cds_path, pep_path=pep_path,
+                         species='Mus_musculus', transcript_path=transcript_path, gene_path=gene_path, blast_id=blast_id,
+                         test_this=True)
 
 if __name__ == '__main__':
     unittest.main()

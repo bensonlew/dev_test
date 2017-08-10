@@ -206,7 +206,9 @@ def get_event_psi_dic(d):
             jc_data = pandas.read_table(JunctionCountOnly_file, index_col=0, sep='\t',
                                         dtype={'Pvalue': np.float64, 'FDR': np.float64,
                                                'IncLevelDifference': np.float64})
-            jc_it = jc_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']].iterrows()
+            tmp_jc = jc_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']]
+            jc = tmp_jc[tmp_jc['FDR']<=0.05]
+            jc_it = jc.iterrows()
             try:
                 while True:
                     val = jc_it.next()
