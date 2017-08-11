@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
 # __author__:khl
+# testkhl
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
@@ -13,6 +14,7 @@ import os
 import re
 from mbio.files.meta.otu.group_table import *
 
+
 class FeaturecountsAgent(Agent):
 
     def __init__(self, parent):
@@ -24,15 +26,15 @@ class FeaturecountsAgent(Agent):
             {"name": "strand_specific", "type": "bool", "default": False},  # PE测序，是否链特异性, 默认是0, 无特异性
             {"name": "strand_dir", "type": "string","default": "None"},  # "forward", "reverse" 默认不设置此参数
             {"name": "count", "type":"outfile", "format": "rna.express_matrix"},  # featurecounts 输出结果总结
-            {"name": "fpkm", "type": "outfile", "format": "rna.express_matrix"}, #fpkm表达量表
-            {"name": "tpm", "type": "outfile", "format": "rna.express_matrix"}, #tpm表达量表
-            {"name": "out_file", "type": "outfile", "format": "rna.express_matrix"}, #featureCounts软件直接生成的表达量文件
-            {"name": "gtf", "type":"string"}, #该物种的参考基因组文件路径  gtf格式而非gff格式
-            {"name": "cpu", "type": "int", "default": 10},  #设置CPU
-            {"name": "is_duplicate", "type": "bool"}, # 是否有生物学重复
+            {"name": "fpkm", "type": "outfile", "format": "rna.express_matrix"},  # fpkm表达量表
+            {"name": "tpm", "type": "outfile", "format": "rna.express_matrix"},  # tpm表达量表
+            {"name": "out_file", "type": "outfile", "format": "rna.express_matrix"}, # featureCounts软件直接生成的表达量文件
+            {"name": "gtf", "type": "string"},  # 该物种的参考基因组文件路径  gtf格式而非gff格式
+            {"name": "cpu", "type": "int", "default": 10},  # 设置CPU
+            {"name": "is_duplicate", "type": "bool"},  # 是否有生物学重复
             {"name": "edger_group", "type":"infile", "format":"sample.group_table"},
             {"name": "max_memory", "type": "string", "default": "100G"},  #设置内存
-            {"name": "exp_way", "type": "string","default": "fpkm"}, #fpkm水平表达量  fpkm tpm all
+            {"name": "exp_way", "type": "string","default": "fpkm"},  # fpkm水平表达量  fpkm tpm all
             {"name": "all_gene_list", "type": "outfile", "format": "rna.express_matrix"},  #所有基因list列表，提供给下游差异分析module
         ]
         self.add_option(options)
@@ -77,11 +79,12 @@ class FeaturecountsAgent(Agent):
         ])
         super(FeaturecountsAgent, self).end()
 
+
 class FeaturecountsTool(Tool):
 
     def __init__(self, config):
         super(FeaturecountsTool, self).__init__(config)
-        #self._version = '1.0.1'
+        # self._version = '1.0.1'
         self.featurecounts_path = 'bioinfo/align/subread-1.5.0/bin/featureCounts'
         self.set_environ(PATH = self.featurecounts_path)
         self.perl_path = 'program/perl/perls/perl-5.24.0/bin/perl '
@@ -279,15 +282,16 @@ class FeaturecountsTool(Tool):
             self.group_detail()
         self.end()
 
+
 def remove_header(file_path, file_name):
     """除去生成文件的header标签，同时将最后一列列名更新为样本名"""
     if os.path.exists(file_path):
         file_path_path = os.path.split(file_path)[0]
-        column_new_name=[ss.split('.bam')[0]for ss in os.path.basename(file_path).split('-')]
+        column_new_name = [ss.split('.bam')[0]for ss in os.path.basename(file_path).split('-')]
         new_file_path = os.path.join(file_path_path, "count")
         os.system('grep \"#\" -v {} > {}'.format(file_path, new_file_path))
         output_file_path = os.path.join(file_path_path, file_name)
-        file1=open(output_file_path, 'w+')
+        file1 = open(output_file_path, 'w+')
         with open(new_file_path, 'r+') as files:
             data1=files.readline().strip().split('\t')
             data=data1[:6]

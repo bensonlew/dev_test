@@ -8,7 +8,7 @@ import os
 this_file_dir = os.path.dirname(os.path.realpath(__file__))
 
 
-def correlation(inputfile, corr_matrix, pvalue_out, tvalue_out, heatmap_out, col_tree, row_tree,method="pearson",hclust_method="complete"):
+def correlation(inputfile, corr_matrix, pvalue_out, tvalue_out, heatmap_out, col_tree, row_tree,method="pearson"):
     """
     生成并运行R脚本，进行相关系数分析
     :param inputfile: 输入文件
@@ -19,10 +19,9 @@ def correlation(inputfile, corr_matrix, pvalue_out, tvalue_out, heatmap_out, col
     :param col_tree: 输出的相关系数列的树文件
     :param row_tree: 输出的相关系数行的树文件
     :param method: 距离算法 pearson spearman
-    :param hclust_method: 层次聚类方式 complete pairwise 
     """
-    f = Template(filename=this_file_dir + '/correlation.r')
-    mul_test = f.render(inputfile=inputfile, method=method, hclust_method=hclust_method, corr_matrix=corr_matrix, pvalue_out=pvalue_out, tvalue_out=tvalue_out, heatmap_out=heatmap_out, col_tree=col_tree, row_tree=row_tree)
+    f = Template(filename=this_file_dir + '/correlation.r', strict_undefined=True)
+    mul_test = f.render(inputfile=inputfile, corr_matrix=corr_matrix, pvalue_out=pvalue_out, tvalue_out=tvalue_out, heatmap_out=heatmap_out, col_tree=col_tree, row_tree=row_tree, method=method)
     with open("run_correlation.r", 'w') as rfile:
         rfile.write("%s" % mul_test)
 

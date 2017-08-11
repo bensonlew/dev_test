@@ -77,4 +77,7 @@ class PpinetworkAction(RefRnaController):
         task_info = super(PpinetworkAction, self).POST()
 
         task_info['content'] = {'ids': {'id': str(main_table_id), 'name': main_table_name}}
+        geneset_info = self.ref_rna.insert_geneset_info(data.geneset_id, "sg_ppinetwork", str(main_table_id))
+        if geneset_info:
+            print "geneset_info插入成功"
         return json.dumps(task_info)

@@ -88,7 +88,7 @@ class NewTranscriptsTool(Tool):
         self.perl_path = '/program/perl/perls/perl-5.24.0/bin/perl '
         self.Python_path = 'program/Python/bin/python '
         self.newtranscripts_gtf_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/assembly_stat.py'
-        self.change_id_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/gtfmerge_new.pl'
+        self.change_id_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/gtfmerge.pl'
         self.gffread_path = "bioinfo/rna/cufflinks-2.2.1/"
 
     def run(self):

@@ -19,8 +19,10 @@ def blastout_statistics(blast_table, evalue_path, similarity_path):
                 count_evalue[2] += 1
             elif 1e-10 < evalue <= 1e-5:
                 count_evalue[3] += 1
-            else:
+            elif 1e-5 < evalue <= 1e-3:
                 count_evalue[4] += 1
+            else:
+                count_evalue[5] += 1
             if 0 <= similarity <= 20:
                 count_similar[0] += 1
             elif 20 < similarity <= 40:
@@ -36,7 +38,8 @@ def blastout_statistics(blast_table, evalue_path, similarity_path):
         e.write('(1e-30, 1e-20]\t{}\n'.format(count_evalue[1]))
         e.write('(1e-20, 1e-10]\t{}\n'.format(count_evalue[2]))
         e.write('(1e-10, 1e-5]\t{}\n'.format(count_evalue[3]))
-        e.write('(>1e-5)\t{}\n'.format(count_evalue[4]))
+        e.write('(1e-5, 1e-3]\t{}\n'.format(count_evalue[4]))
+        # e.write('(>1e-5)\t{}\n'.format(count_evalue[4]))
         s.write('similarity_interval\tnum_hits\n')
         s.write('[0%, 20%]\t{}\n'.format(count_similar[0]))
         s.write('(20%, 40%]\t{}\n'.format(count_similar[1]))

@@ -76,6 +76,8 @@ class RefrnaAssembleModule(Module):
                 "sample_bam": f,
                 "ref_fa": self.option('ref_fa'),  # 此处不传prop['path']
                 "ref_gtf": self.option('ref_gtf'),
+                "fr_stranded": self.option("fr_stranded"),
+                "strand_direct": self.option("strand_direct"),
             })
             step = getattr(self.step, 'stringtie_{}'.format(n))
             step.start()

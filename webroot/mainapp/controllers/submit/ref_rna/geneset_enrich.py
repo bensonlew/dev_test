@@ -46,8 +46,8 @@ class GenesetEnrichAction(RefRnaController):
         elif data.anno_type == "kegg":
             table_name = "Kegg"
             collection_name = "sg_geneset_kegg_enrich"
-            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)', 'ref_rna.export_kegg_table(kegg_table)']
-            infile = {"kegg_table": data.geneset_id}
+            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)', 'ref_rna.export_kegg_table(kegg_table)', "ref_rna.export_add_info(add_info)"]
+            infile = {"kegg_table": data.geneset_id, "add_info": geneset_info['task_id'] + "\t" + data.geneset_type}
         else:
             info = {'success': False, 'info': '不支持该富集分子!'}
             return json.dumps(info)

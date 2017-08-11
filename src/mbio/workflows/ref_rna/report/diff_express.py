@@ -191,6 +191,7 @@ class DiffExpressWorkflow(Workflow):
             # self.samples = self.diff_exp.option('count').prop['sample']
             self.samples = self.diff_exp.option("count").prop['sample']
             # self.samples_ref = self.diff_exp_ref.option("count").prop['sample']
+            self.samples.sort()
             self.logger.info(self.samples)
             self.group_spname['all'] = self.samples
         else:
@@ -198,8 +199,9 @@ class DiffExpressWorkflow(Workflow):
             # self.group_spname = self.diff_exp_ref.option('edger_group').get_group_spname()
             edger_group = self.option("group_id")
             self.samples=[]
-
+                
             for keys,values in self.group_spname.items():
+                values.sort()
                 self.samples.extend(values)
             self.logger.info("specimenname")
             self.logger.info(self.samples)
