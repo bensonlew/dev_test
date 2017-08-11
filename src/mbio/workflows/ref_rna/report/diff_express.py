@@ -10,6 +10,7 @@ import json
 from biocluster.workflow import Workflow
 from biocluster.config import Config
 from bson.objectid import ObjectId
+import shutil
 
 
 class DiffExpressWorkflow(Workflow):
@@ -45,7 +46,7 @@ class DiffExpressWorkflow(Workflow):
         self.set_options(self._sheet.options())
         self.diff_exp = self.add_tool("rna.diff_exp")
         self.diff_exp_ref = self.add_tool("rna.diff_exp")
-        self.output_dir = self.diff_exp.output_dir
+        # self.output_dir = self.diff_exp.output_dir
         self.group_spname = dict()
 
     def get_samples(self):
@@ -162,7 +163,7 @@ class DiffExpressWorkflow(Workflow):
         if self.option("group_id_id") != "all":
             options['edger_group'] = self.option("group_id")
         self.diff_exp_ref.set_options(options)
-        self.diff_exp_ref.on("end", self.set_db)
+        # self.diff_exp_ref.on("end", self.set_db)
         self.diff_exp_ref.run()
 
     def set_db(self):
@@ -172,19 +173,8 @@ class DiffExpressWorkflow(Workflow):
         api_diff_exp = self.api.refrna_express
         diff_files = os.listdir(self.diff_exp.output_dir)
         diff_files_ref = os.listdir(self.diff_exp_ref.output_dir)
-
-        # self.logger.info("开始打印ref_all参数")
-        # self.logger.info(self.ref_all)
-        # if self.ref_all == 'all':
-        #     diff_files = os.listdir(self.diff_exp.output_dir)
-        #     self.output_dir = self.diff_exp.output_dir
-        # if self.ref_all == 'ref':
-        #     diff_files = os.listdir(self.diff_exp_ref.output_dir)
-        #     self.output_dir = self.diff_exp_ref.output_dir
-
         self.logger.info("打印diff_files文件信息!")
         self.logger.info(diff_files)
-
         if self.option("group_id_id") == "all":
             # self.samples = self.diff_exp.option('count').prop['sample']
             self.samples = self.diff_exp.option("count").prop['sample']
@@ -225,7 +215,7 @@ class DiffExpressWorkflow(Workflow):
                     compare_column.append('|'.join(con_exp))
                 else:
                     continue
-                print self.output_dir + '/' + f
+                # print self.output_dir + '/' + f
                 name = con_exp[0]
                 compare_name = con_exp[1]
 
@@ -254,7 +244,7 @@ class DiffExpressWorkflow(Workflow):
                     compare_column.append('|'.join(con_exp))
                 else:
                     continue
-                print self.output_dir + '/' + f
+                # print self.output_dir + '/' + f
                 name = con_exp[0]
                 compare_name = con_exp[1]
 
@@ -330,7 +320,7 @@ class DiffExpressWorkflow(Workflow):
                               {'$set': {'compare_column': tmp_compare_column, 'specimen': self.samples}})
 
     def run(self):
-        self.on_rely([self.diff_exp, self.diff_exp_ref], self.end)
+        self.on_rely([self.diff_exp, self.diff_exp_ref], self.set_db)
         if self.option("group_id_id").lower() != 'all':
             specimen = self.get_samples()
         else:
@@ -354,12 +344,47 @@ class DiffExpressWorkflow(Workflow):
         super(DiffExpressWorkflow, self).run()
 
     def end(self):
+        self.output_dir = self.work_dir + "/output"
         output1_dir = self.diff_exp.output_dir
         output2_dir = self.diff_exp_ref.output_dir
-        os.mkdir(self.output_dir + "/diff_exp")
-        os.system("cp -r {} {}".format(output1_dir, self.output_dir + "/diff_exp/refandnew"))
-        os.system("cp -r {} {}".format(output2_dir, self.output_dir + "/diff_exp/ref"))
-        result = self.add_upload_dir(self.output_dir + "/diff_exp")
+        # os.mkdir(self.work_dir + "/diff_exp")  # self.output_dir 为tool的dir，上传文件夹经整合后放于work_dir中
+        # os.system("cp -r {} {}".format(output1_dir, self.work_dir + "/diff_exp/refandnew"))
+        # os.system("cp -r {} {}".format(output2_dir, self.work_dir + "/diff_exp/ref"))
+        self.move2outputdir(output1_dir, "diff_exp")
+        self.move2outputdir(output2_dir, "diff_exp_ref")
+        self.logger.info("设置表达量结果文件成功")
+        # result = self.add_upload_dir(self.work_dir + "/diff_exp")
+        result = self.add_upload_dir(self.output_dir)
         result.add_relpath_rules([[".", "", "表达量差异分析结果文件"], ])
         super(DiffExpressWorkflow, self).end()
+
+    def move2outputdir(self, olddir, newname, mode='link'):
+        """
+        移动一个目录下的所有文件/文件夹到workflow输出文件夹下
+        """
+        if not os.path.isdir(olddir):
+            raise Exception('需要移动到output目录的文件夹不存在。')
+        newdir = os.path.join(self.output_dir, newname)
+        if not os.path.exists(newdir):
+            if mode == 'link':
+                shutil.copytree(olddir, newdir, symlinks=True)
+            elif mode == 'copy':
+                shutil.copytree(olddir, newdir)
+            else:
+                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
+        else:
+            allfiles = os.listdir(olddir)
+            oldfiles = [os.path.join(olddir, i) for i in allfiles]
+            newfiles = [os.path.join(newdir, i) for i in allfiles]
+            self.logger.info(newfiles)
+            for newfile in newfiles:
+                if os.path.isfile(newfile) and os.path.exists(newfile):
+                    os.remove(newfile)
+                elif os.path.isdir(newfile) and os.path.exists(newfile):
+                    shutil.rmtree(newfile)
+            for i in range(len(allfiles)):
+                if os.path.isfile(oldfiles[i]):
+                    os.link(oldfiles[i], newfiles[i])
+                else:
+                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
 

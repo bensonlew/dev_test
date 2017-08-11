@@ -49,6 +49,7 @@ class DemoMongodataCopy(object):
                 }
             }
         workflow_client = Basic(data=data, instant=True)
+
         try:
             run_info = workflow_client.run()
             run_info['info'] = filter_error_info(run_info['info'])
