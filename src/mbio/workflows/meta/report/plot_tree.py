@@ -49,7 +49,10 @@ class PlotTreeWorkflow(Workflow):
         species_format = self.work_dir + '/species_group.xls'
         tree_file = self.work_dir + '/format.tre'
         group = self.sample_in_group()
-        self.get_newicktree(tree_file,group)
+        if self.option("group_id") not in ['all','All','ALL',None]:
+            self.get_newicktree(tree_file,group)
+        else:
+            self.get_newicktree(tree_file)
         if self.option('color_level_id'):
             if self.option("group_id") not in ['all', 'All', 'ALL', None]:
                 self.format_group_otu_table(otu_format, species_format)
