@@ -181,9 +181,9 @@ class PtDatasplitWorkflow(Workflow):
         with open(self.option('message_table').prop['path'], 'r') as m:
             for line in m:
                 line = line.strip().split('\t')
-                if re.match('WQ([0-9]{8,})-(M|F)(.*)', line[3]):
+                if re.match('WQ([0-9]{8,})-(M|F|S)(.*)', line[3]):
                     paternity_sample.append(line[3])
-        for i in paternity_sample:
+        for i in paternity_sample:  # 把所有样本照常入库
             tab_file.add_pt_tab(i, self.option('pt_data_split_id'))
         self.family_id = tab_file.family_unanalysised()  # tuple
         check_sample = []
