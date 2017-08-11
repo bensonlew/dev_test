@@ -35,7 +35,7 @@ class KeggUploadAgent(Agent):
     def check_options(self):
         if not self.option("kos_list_upload").is_set:
             raise OptionError("必须提供kegg注释结果文件")
-        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", "None"]:
+        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", "None", None]:
             raise OptionError("物种类别必须为Animals/Plants/Fungi/Protists/Archaea/Bacteria/None")
 
     def set_resource(self):

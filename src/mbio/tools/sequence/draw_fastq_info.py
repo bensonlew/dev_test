@@ -44,7 +44,7 @@ class DrawFastqInfoAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 11
+        self._cpu = 1 # edited by shijin on 20170717
         self._memory = '4G'
 
     def end(self):

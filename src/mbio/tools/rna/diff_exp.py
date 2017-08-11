@@ -18,7 +18,7 @@ class DiffExpAgent(Agent):
     """
     调用align_and_estimate_abundance.pl脚本，运行rsem，进行表达量计算分析
     version v1.0
-    author: zhangpeng#主要在前辈基础上进行修改
+    author: zhangpeng #主要在前辈基础上进行修改
     last_modify: 2016.06.20
     """
     def __init__(self, parent):
@@ -31,17 +31,17 @@ class DiffExpAgent(Agent):
             {"name": "edger_group", "type": "infile", "format": "sample.group_table"},  # 有生物学重复的时候的分组文件
             {"name": "control_file", "type": "infile", "format": "sample.control_table"},  # 对照组文件，格式同分组文件
             {"name": "diff_ci", "type": "float", "default": 0.05},  # 显著性水平
-            {"name": "method", "type": "string", "default": "DESeq2"}, # 选择计算的软件
+            {"name": "method", "type": "string", "default": "DESeq2"},  # 选择计算的软件
             {"name": "gname", "type": "string", "default": "none"},  # 分组方案名称
-            {"name": "fc", "type": "float", "default": 2}, #log底数
-            {"name": "diff_fdr_ci", "type": "float", "default": 0.05}, #fdr的选择
+            {"name": "fc", "type": "float", "default": 2},  # log底数
+            {"name": "diff_fdr_ci", "type": "float", "default": 0.05},  # fdr的选择
             {"name": "diff_rate", "type": "float", "default": 0.01},  # 期望的差异基因比率
             {"name": "diff_count", "type": "outfile", "format": "rna.express_matrix"},  # 差异基因计数表
             {"name": "diff_fpkm", "type": "outfile", "format": "rna.express_matrix"},  # 差异基因表达量表
             {"name": "diff_list", "type": "outfile", "format": "rna.gene_list"},  # 差异基因名称文件
             {"name": "diff_list_dir", "type": "outfile", "format": "rna.gene_list_dir"},
             {"name": "regulate_edgrstat_dir", "type": "outfile", "format": "rna.diff_stat_dir"},
-            {"name":"pvalue_padjust","type":"string","default":"padjust"}  #按照pvalue(diff_ci)还是padjust(diff_fdr_ci)筛选
+            {"name": "pvalue_padjust", "type": "string", "default": "padjust"}  # 按照pvalue(diff_ci)还是padjust(diff_fdr_ci)筛选
         ]
         self.add_option(options)
         self.step.add_steps("diff_exp")

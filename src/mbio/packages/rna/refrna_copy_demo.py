@@ -98,15 +98,15 @@ class RefrnaCopyMongo(object):
         greenlet = Greenlet(self.express_class_code)
         greenlet.start()
         self.all_greenlets.append(greenlet)
-        # greenlet = Greenlet(self.express_corr)
-        # greenlet.start()
-        # self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.express_corr)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
         greenlet = Greenlet(self.express_diff)
         greenlet.start()
         self.all_greenlets.append(greenlet)
-        # greenlet = Greenlet(self.express_pca)
-        # greenlet.start()
-        # self.all_greenlets.append(greenlet)
+        greenlet = Greenlet(self.express_pca)
+        greenlet.start()
+        self.all_greenlets.append(greenlet)
         greenlet = Greenlet(self.express_venn)
         greenlet.start()
         self.all_greenlets.append(greenlet)
@@ -176,6 +176,7 @@ class RefrnaCopyMongo(object):
     def annotation_go(self):
         annotation_go_dict = self.copy_collection_with_change('sg_annotation_go', change_positions=[], update_sg_status=True)
         self.copy_main_details('sg_annotation_go_detail', 'go_id', annotation_go_dict, join=False)
+        self.copy_main_details('sg_annotation_go_graph', 'go_id', annotation_go_dict, join=False)
         self.copy_main_details('sg_annotation_go_level', 'go_id', annotation_go_dict, join=False)
         self.copy_main_details('sg_annotation_go_list', 'go_id', annotation_go_dict, join=False)
 
@@ -190,9 +191,9 @@ class RefrnaCopyMongo(object):
         self.copy_main_details('sg_annotation_query_detail', 'query_id', annotation_query_dict, join=False)
 
     def assessment_chrom_distribution(self):
-        assessment_chrom_distribution_dict = self.copy_collection_with_change('sg _assessment_chrom_distribution', change_positions=[], update_sg_status=True)
+        assessment_chrom_distribution_dict = self.copy_collection_with_change('sg_assessment_chrom_distribution', change_positions=[], update_sg_status=True)
         self.copy_main_details('sg_assessment_chrom_distribution_detail', 'chrom_distribution_id', assessment_chrom_distribution_dict, join=False)
-        self.copy_main_details('sg_assessment_chrom_distribution_circos', 'chrom_distribution_id', assessment_chrom_distribution_dict, join=False)
+        # self.copy_main_details('sg_assessment_chrom_distribution_circos', 'chrom_distribution_id', assessment_chrom_distribution_dict, join=False)
 
     def assessment_coverage(self):
         assessment_coverage_dict = self.copy_collection_with_change('sg_assessment_coverage', change_positions=[], update_sg_status=True)
@@ -229,7 +230,7 @@ class RefrnaCopyMongo(object):
         self.copy_main_details("sg_express_pca_rotation", "pca_id", express_pca_dict, join=False)
 
     def express_venn(self):
-        express_venn_dict = self.copy_collection_with_change("sg_express_venn",change_positions=[], update_sg_status=True)
+        express_venn_dict = self.copy_collection_with_change("sg_express_venn", change_positions=[], update_sg_status=True)
         self.copy_main_details("sg_express_venn_detail", "venn_id", express_venn_dict, join=False)
         self.copy_main_details("sg_express_venn_graph", "venn_id", express_venn_dict, join=False)
 
@@ -280,9 +281,10 @@ class RefrnaCopyMongo(object):
         snp_dict = self.copy_collection_with_change('sg_snp', change_positions=[], update_sg_status=True)
         self.copy_main_details('sg_snp_detail', 'snp_id', snp_dict, join=False)
         self.copy_main_details('sg_snp_graphic', 'snp_id', snp_dict, join=False)
+        self.copy_main_details('sg_snp_stat', 'snp_id', snp_dict, join=False)
 
     def species_information(self):
-        species_information_dict = self.copy_collection_with_change('sg_species_information', change_positions=[], update_sg_status=True)
+        species_information_dict = self.copy_collection_with_change('sg_species_information', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_species_information_detail', 'species_id', species_information_dict, join=False)
 
     def splicing_rmats(self):
@@ -604,7 +606,8 @@ class RefrnaCopyMongo(object):
             coll.insert_many(news)
 
 
-if __name__ == '__main__':
-    copy_task = RefrnaCopyMongo('ore_test_for_api', 'demo_zj2', 'demo_zj2', 'demo_zj2')
-    # copy_task = RefrnaCopyMongo('tsg_2000', 'demo_zj2', 'demo_zj2', 'demo_zj2')
-    copy_task.run()
+# if __name__ == '__main__':
+#     # copy_task = RefrnaCopyMongo('demo_0711', 'demo_sj', '3072', 'demo_sj')
+#     copy_task = RefrnaCopyMongo('demo_0711', 'demo_sj', '3072', 'demo_sj')
+#     # copy_task = RefrnaCopyMongo('tsg_2000', 'demo_zj2', 'demo_zj2', 'demo_zj2')
+#     copy_task.run()
