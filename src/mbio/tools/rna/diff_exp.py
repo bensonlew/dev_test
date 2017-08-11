@@ -107,17 +107,17 @@ class DiffExpAgent(Agent):
         self.diff_gene = True
 
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        relpath = [[".", "", "结果输出目录"]]
-        if self.diff_gene:
-            relpath += [
-                ["diff_fpkm", "xls", "差异基因表达量表"],
-                ["diff_count", "xls", "差异基因计数表"]
-            ]
-        result_dir.add_regexp_rules([
-            [r"_edgr_stat\.xls$", "xls", "edger统计结果文件"]
-        ])
-        result_dir.add_relpath_rules(relpath)
+        # result_dir = self.add_upload_dir(self.output_dir)
+        # relpath = [[".", "", "结果输出目录"]]
+        # if self.diff_gene:
+        #     relpath += [
+        #         ["diff_fpkm", "xls", "差异基因表达量表"],
+        #         ["diff_count", "xls", "差异基因计数表"]
+        #     ]
+        # result_dir.add_regexp_rules([
+        #     [r"_edgr_stat\.xls$", "xls", "edger统计结果文件"]
+        # ])
+        # result_dir.add_relpath_rules(relpath)
         super(DiffExpAgent, self).end()
 
 

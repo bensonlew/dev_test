@@ -163,7 +163,7 @@ class DiffExpressWorkflow(Workflow):
         if self.option("group_id_id") != "all":
             options['edger_group'] = self.option("group_id")
         self.diff_exp_ref.set_options(options)
-        self.diff_exp_ref.on("end", self.set_db)
+        # self.diff_exp_ref.on("end", self.set_db)
         self.diff_exp_ref.run()
 
     def set_db(self):
@@ -320,7 +320,7 @@ class DiffExpressWorkflow(Workflow):
                               {'$set': {'compare_column': tmp_compare_column, 'specimen': self.samples}})
 
     def run(self):
-        self.on_rely([self.diff_exp, self.diff_exp_ref], self.end)
+        self.on_rely([self.diff_exp, self.diff_exp_ref], self.set_db)
         if self.option("group_id_id").lower() != 'all':
             specimen = self.get_samples()
         else:
