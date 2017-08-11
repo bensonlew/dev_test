@@ -356,10 +356,10 @@ class DiffExpressWorkflow(Workflow):
     def end(self):
         output1_dir = self.diff_exp.output_dir
         output2_dir = self.diff_exp_ref.output_dir
-        os.mkdir(self.output_dir + "/diff_exp")
-        os.system("cp -r {} {}".format(output1_dir, self.output_dir + "/diff_exp/refandnew"))
-        os.system("cp -r {} {}".format(output2_dir, self.output_dir + "/diff_exp/ref"))
-        result = self.add_upload_dir(self.output_dir + "/diff_exp")
+        os.mkdir(self.work_dir + "/diff_exp")  # self.output_dir 为tool的dir，上传文件夹经整合后放于work_dir中
+        os.system("cp -r {} {}".format(output1_dir, self.work_dir + "/diff_exp/refandnew"))
+        os.system("cp -r {} {}".format(output2_dir, self.work_dir + "/diff_exp/ref"))
+        result = self.add_upload_dir(self.work_dir + "/diff_exp")
         result.add_relpath_rules([[".", "", "表达量差异分析结果文件"], ])
         super(DiffExpressWorkflow, self).end()
 
