@@ -158,7 +158,7 @@ class Bam2tabTool(Tool):
                     tab_path = self.output_dir + '/' + i
                     tab_name = m.group(1)
                     if not api_read_tab.tab_exist(tab_name):
-                        # api.add_pt_tab(tab_path, self.option('batch_id'))
+                        api.add_pt_tab(tab_path, self.option('batch_id'))
                         api.add_sg_pt_tab_detail(tab_path)
                     else:
                         self.set_error('样本{}重名，请检查！'.format(tab_name))
