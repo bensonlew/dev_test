@@ -243,7 +243,10 @@ def get_event_psi_dic(d):
                                          sep='\t',
                                          dtype={'Pvalue': np.float64, 'FDR': np.float64,
                                                 'IncLevelDifference': np.float64})
-            all_it = all_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']].iterrows()
+            tmp_all = all_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']]
+            all = tmp_all[tmp_all['FDR']<=0.05]
+            all_it = all.iterrows()
+            #all_it = all_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']].iterrows()
             try:
                 while True:
                     val = all_it.next()
