@@ -6,6 +6,7 @@ from mainapp.libs.signature import check_sig
 from mainapp.controllers.core.basic import Basic
 from biocluster.core.function import filter_error_info
 from mainapp.models.workflow import Workflow
+from mainapp.models.mongo.ref_rna import RefRna
 import random
 
 
@@ -48,8 +49,10 @@ class DemoMongodataCopy(object):
                     "target_member_id": data.target_member_id
                 }
             }
+            if not RefRna().check_assest_for_demo():
+                info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
+                return json.dumps(info)
         workflow_client = Basic(data=data, instant=True)
-
         try:
             run_info = workflow_client.run()
             run_info['info'] = filter_error_info(run_info['info'])

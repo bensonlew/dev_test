@@ -165,6 +165,15 @@ class RefRna(Meta):
             collection.remove({"_id":geneset_id})
         return True
 
+    def check_assest_for_demo(self):
+        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = mongodb['sg_task']
+        nums = collection.count({"task_id":{"$regex": "refrna_demo_mouse.*"}})
+        if nums:
+            if nums <= 5:
+                return False
+            else:
+                return True
 
 
             
