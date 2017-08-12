@@ -138,7 +138,7 @@ def get_event_stats(files):
             d[event_type][mats_m.group(2) + '_file'] = f
             data = pandas.read_table(f, sep='\t')
             data_filter = data[data['FDR']<=0.05]
-            d[event_type][mats_m.group(2) + '_event_id_set_no'] = len(set(data_filter(['ID'])))
+            d[event_type][mats_m.group(2) + '_event_id_set_no'] = len(set(data_filter['ID']))
             d[event_type][mats_m.group(2) + '_event_id_set'] = set(data_filter['ID'])
             continue
         if not (event_m or mats_m):
