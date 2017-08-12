@@ -219,14 +219,12 @@ class PtCustomer(Base):
                         else:
                             l = re.match('WQ([0-9]{8,})-(M.*)', mom)
                         mom_ = l.group(2)
-                        name = dad_ + mom_
-                        try:
-                            customer_message_collection.find_one({'name': name})
-                        except Exception as e:
-                            self.bind_object.logger.info('{}——该家系信息不存在，报错信息为{}'.format(name, e))
-                            raise Exception('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
-                        else:
+                        name = dad_ + '-' + mom_
+                        if customer_message_collection.find_one({"name": name}):
                             self.bind_object.logger.info('{}——该家系信息完整'.format(name))
+                        else:
+                            self.bind_object.logger.info('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
+                            raise Exception('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
             else:
                 continue
 

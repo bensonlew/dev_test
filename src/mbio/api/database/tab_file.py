@@ -35,37 +35,37 @@ class TabFile(Base):
             analysised = "no"
         else:
             analysised = "None"
-        # with open(sample, 'r') as f:
-        #     for line in f:
-        #         line = line.strip()
-        #         line = line.split('\t')
-        #         if line[0] != '':
-        #             sample_name = line[0]
-        sample_name = sample
-        insert_data = {
-            "analysised": analysised,
-            "batch_id": ObjectId(batch_id),
-            "storage_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 入库时间，正确生成tab文件的时间
-        }
-                # break
-        m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab',sample)
-        if m:
-            sample_dad = 'WQ' + m.group(1) +'-F.*'
-            collection = self.database['sg_pt_ref_main']
-            try:
-                collection.find_one_and_update({"sample_id": {"$regex": sample_dad}},{'$set': {'analysised': 'no'}})
-            except Exception as e:
-                self.bind_object.logger.error('更新重送样父本出错：{}'.format(e))
-            else:
-                self.bind_object.logger.info("更新重送样父本成功")
+        with open(sample, 'r') as f:
+            for line in f:
+                line = line.strip()
+                line = line.split('\t')
+                if line[0] != '':
+                    sample_name = line[0]
+                    insert_data = {
+                        "analysised": analysised,
+                        "batch_id": ObjectId(batch_id),
+                        "storage_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 入库时间，正确生成tab文件的时间
+                    }
+                break
+            m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab', sample)
+            if m:
+                sample_dad = 'WQ' + m.group(1) + '-F.*'
+                collection = self.database['sg_pt_ref_main']
+                try:
+                    collection.find_one_and_update({"sample_id": {"$regex": sample_dad}},
+                                                   {'$set': {'analysised': 'no'}})
+                except Exception as e:
+                    self.bind_object.logger.error('更新重送样父本出错：{}'.format(e))
+                else:
+                    self.bind_object.logger.info("更新重送样父本成功")
 
-        try:
-            collection = self.database['sg_pt_ref_main']
-            collection.find_one_and_update({"sample_id": sample_name},{'$set':insert_data})
-        except Exception as e:
-            self.bind_object.logger.error('导入tab主表出错：{}'.format(e))
-        else:
-            self.bind_object.logger.info("导入tab主表成功")
+            try:
+                collection = self.database['sg_pt_ref_main']
+                collection.find_one_and_update({"sample_id": sample_name}, {'$set': insert_data})
+            except Exception as e:
+                self.bind_object.logger.error('导入tab主表出错：{}'.format(e))
+            else:
+                self.bind_object.logger.info("导入tab主表成功")
 
     def update_pt_tab(self,sample):
         '''
