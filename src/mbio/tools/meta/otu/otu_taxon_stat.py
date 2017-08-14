@@ -127,7 +127,11 @@ class OtuTaxonStatTool(Tool):
                     line = line.rstrip('\n')
                     name = re.split('\t', line)[0]
                     line = re.sub(r'\.0', '', line)
-                    w.write(line + '\t' + otu_tax[name] + "\n")
+                    if name in otu_tax.keys():
+                        w.write(line + '\t' + otu_tax[name] + "\n")
+                    else:
+                        add_line = "d__unclassified;k__unclassified;p__unclassified;c__unclassified;o__unclassified;f__unclassified;g__unclassified;s__unclassified"
+                        w.write(line + '\t' + add_line + "\n")
         taxon_otu_obj = OtuTableFile()
         taxon_otu_obj.set_path(taxon_otu)
         taxon_otu_obj.get_info()
