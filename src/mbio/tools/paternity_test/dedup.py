@@ -26,6 +26,7 @@ class DedupAgent(Agent):
             {"name": "preg_tab", "type": "infile", "format": "paternity_test.tab"},
             {"name": "ref_point", "type": "infile", "format": "paternity_test.rda"},
             {"name": "err_min", "type": "int", "default": 2},
+            {"name": "dad_id", "type": "string"},
             {"name": "father_path", "type": "string"}  # 输入父本tab文件的所在路径
         ]
         self.add_option(options)
@@ -89,12 +90,12 @@ class DedupTool(Tool):
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        dedup_cmd = "{}Rscript {}pt_dup.R {} {} {} {} {} {}".format(self.R_path, self.script_path,
-                                                                    self.option("mom_tab").prop['path'],
-                                                                    self.option("preg_tab").prop['path'],
-                                                                    self.option("err_min"),
-                                                                    self.option("ref_point").prop['path'],
-                                                                    "result", self.option("father_path"))
+        dedup_cmd = "{}Rscript {}pt_dup.R {} {} {} {} {} {} {}".format(self.R_path, self.script_path,
+                                                                       self.option("mom_tab").prop['path'],
+                                                                       self.option("preg_tab").prop['path'],
+                                                                       self.option("err_min"),
+                                                                       self.option("ref_point").prop['path'],
+                                                                       "result", self.option("father_path"), self.option("dad_id"))
         self.logger.info(dedup_cmd)
         self.logger.info("开始进行查重分析")
         cmd = self.add_command("dedup_cmd", dedup_cmd).run()

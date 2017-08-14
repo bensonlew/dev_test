@@ -175,7 +175,7 @@ class Bam2tabTool(Tool):
         else:
             self.logger.info('{}该样本tab文件为空'.format(self.option('sample_id')))
             self.api.sg_paternity_test.sample_size(self.option('sample_id'), self.option('batch_id'))
-            self.api.tab_file.remove_sample(self.option('fastq'))  # 用于删除sg_pt_ref_main中不合格样本信息
+            self.api.tab_file.remove_sample(self.option('sample_id'))  # 用于删除sg_pt_ref_main中不合格样本信息
 
     def run(self):
         super(Bam2tabTool, self).run()
