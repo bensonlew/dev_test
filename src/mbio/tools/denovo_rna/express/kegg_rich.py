@@ -136,7 +136,25 @@ class KeggRichTool(Tool):
         bgn = self.bgn
         k2e = self.k2e
         brite = self.brite
-        cmd_2 = self.python + 'python {}kegg_enrichment.py -deg {} -g2p {} -g2k {} -bgn {} -k2e {} -brite {} --FDR -dn 20'.format(self.script_path, deg_path, g2p_path, g2k_path, bgn, k2e, brite)
+        # correct method:
+        correct = self.option("correct")
+        correct_method = 3
+        if correct.lower() == "bh":
+            correct_method = 3
+        elif correct.lower() == 'bonferroni':
+            correct_method = 1
+        elif correct.lower() == 'holm':
+            correct_method = 2
+        elif correct.lower() == 'by':
+            correct_method = 4
+        else:
+            print('correct method not exist, BH will be used')
+
+        # end of correct method
+        cmd_2 = self.python + 'python {}kegg_enrichment.py ' \
+                              '-deg {} -g2p {} -g2k {} -bgn {} -k2e {} -brite {} --FDR -dn 20 ' \
+                              '-correct {}'.format(self.script_path, deg_path, g2p_path, g2k_path,
+                                                   bgn, k2e, brite, correct_method)
         self.logger.info('开始运行kegg富集第二步：进行kegg富集分析')
         command_2 = self.add_command("cmd_2", cmd_2).run()
         self.wait(command_2)
