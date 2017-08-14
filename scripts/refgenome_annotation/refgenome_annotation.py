@@ -3,6 +3,7 @@
 import collections
 import re
 import os
+import gridfs
 import subprocess
 from biocluster.config import Config
 from itertools import islice
@@ -21,8 +22,7 @@ class RefgenomeAnnotation(object):
         self.png_coll = self.mongodb.kegg_pathway_png_v1
         self.go = self.mongodb.GO
         self.go_script = "/mnt/ilustre/users/sanger-dev/app/bioinfo/annotation/scripts/goAnnot.py"
-        self.map_db = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/database/"
-        self.map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map6.r"
+        self.map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
         self.r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
         self.gloabl = ["map01100", "map01110", "map01120", "map01130", "map01200", "map01210", "map01212", "map01230", "map01220"]
 
@@ -229,9 +229,7 @@ class RefgenomeAnnotation(object):
                 for k in ko_ids:
                     w.write(k + "\t" + png_bgcolor + "\t" + fgcolor + "\n")
             png_path = pathwaydir + '/' + map_id + ".png"
-            xml_path = self.map_db  + pid + ".xml"
-            db_png_path = self.map_db  + map_id + ".png"
-            self.get_pic(map_id, kos_path, png_path, xml_path, db_png_path)
+            self.get_pic(map_id, kos_path, png_path)
         with open(layerfile, "w+") as k:
             for i in d:
                 for j in d[i]:
@@ -239,16 +237,25 @@ class RefgenomeAnnotation(object):
                     line = i + "\t" + j + "\t" + str(len(seqs)) + "\t" + ';'.join(seqs) + "\n"
                     k.write(line)
 
-    def get_pic(self, path, kos_path, png_path, xml_path, db_png_path):
+    def get_pic(self, path, kos_path, png_path):
         """
         画通路图
         """
-        cmd = "{} {} {} {} {} {} {}".format(self.r_path, self.map_path, path, kos_path, png_path, xml_path, db_png_path)
+        fs = gridfs.GridFS(self.mongodb)
+        pid = re.sub("map", "ko", path)
+        with open("pathway.kgml", "w+") as k, open("pathway.png", "w+") as p:
+            result = self.png_coll.find_one({"pathway_id": pid})
+            if result:
+                kgml_id = result['pathway_ko_kgml']
+                png_id = result['pathway_map_png']
+                k.write(fs.get(kgml_id).read())
+                p.write(fs.get(png_id).read())
+        cmd = "{} {} {} {} {} {} {}".format(self.r_path, self.map_path, path, kos_path, png_path, "pathway.kgml", "pathway.png")
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
             print "{}画图出错".format(path)
-            os.system("cp {} {}".format(db_png_path, png_path))
+            os.system("cp {} {}".format("pathway.png", png_path))
 
     def kegg_annotation(self, org_kegg, table_path, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile):
         """
@@ -327,8 +334,8 @@ if __name__ == "__main__":
     pathway_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/pathway_table.xls"
     png_bgcolor = "#FFFF00" # 黄色
     link_bgcolor = "yellow"
-    pathwaydir = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/pathways"
+    pathwaydir = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/pathways1"
     layerfile = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/kegg_layer.xls"
-    test.cog_annotation(org_cog, cog_summary)
-    test.go_annotation(go_list, out_dir)
+    # test.cog_annotation(org_cog, cog_summary)
+    # test.go_annotation(go_list, out_dir)
     test.kegg_annotation(org_kegg, table_path, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile)
