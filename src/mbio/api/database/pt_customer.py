@@ -185,7 +185,7 @@ class PtCustomer(Base):
             self.bind_object.logger.info('导入拆分结果路径成功')
 
     def family_search(self, sample_list):
-        ref_main_collection = self.database['sg_pt_ref_main']
+        ref_main_collection = self.database_ref['sg_pt_ref_main']   # 正式机与测试机不一样，现在不要ref
         customer_message_collection = self.database["sg_pt_customer"]
         family_id_list = []
         for i in sample_list:
