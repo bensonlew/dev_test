@@ -46,6 +46,9 @@ class RefrnaCopyDemoWorkflow(Workflow):
         for result in results:
             old_task_id = result["task_id"]
             if old_task_id.startswith("refrna_demo_mouse"):
+                col.find_one_and_update({"_id": result["_id"]}, {"$set":{"task_id":self.option("target_task_id")}})
+                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
+                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
                 return old_task_id
 
     def update_task_id(self, old_task_id, new_task_id):
@@ -66,9 +69,9 @@ class RefrnaCopyDemoWorkflow(Workflow):
             results = col.find({"task_id": old_task_id})
             for result in results:
                 col.update_one({"_id": result["_id"]}, {"$set": {"task_id": new_task_id}})
-            if col_name == "sg_task":
-                col.update_one({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
-                col.update_one({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
+            # if col_name == "sg_task":
+            #     col.update_one({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
+            #     col.update_one({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
 
 
     def end(self):
