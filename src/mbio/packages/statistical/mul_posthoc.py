@@ -77,8 +77,8 @@ def scheffe(statfile, groupfile, coverage, outfile):
                 withinGroupStdDev = math.sqrt(withinGroupVar)
                 if withinGroupVar == 0:
                     withinGroupVar = 1e-6  #degenerate case: within group variance is zero; set to 1e-6.
-                es = mean_dict[one[0]][i] - mean_dict[one[1]][i]
-                invSampleSize = 1.0/(group_num_dict[one[0]]) + 1.0/(group_num_dict[one[1]])
+                es = mean_dict[g[0]][i] - mean_dict[g[1]][i]
+                invSampleSize = 1.0/(group_num_dict[g[0]]) + 1.0/(group_num_dict[g[1]])
                 Fs = (es * es) / (withinGroupVar*invSampleSize)
                 pValue = 1.0 - distributions.f.cdf(Fs / dfN, dfN, dfD)
                 # confidence interval
@@ -100,22 +100,22 @@ def welchuncorrected(statfile, groupfile, coverage, outfile):
             cv = dfN*distributions.f.ppf(coverage, dfN, dfD)
             w.write('\t%s_effectsize\t%s_lowerCI\t%s_upperCI\t%s_pvalue\n' % (groups, groups, groups, groups))
             for i in range(len(taxon_list)):
-                meanG1 = mean_dict[one[0]][i]
-                meanG2 = mean_dict[one[1]][i]
+                meanG1 = mean_dict[g[0]][i]
+                meanG2 = mean_dict[g[1]][i]
                 dp = meanG1 - meanG2
-                varG1 = sd_dict[one[0]][i]**2
-                varG2 = sd_dict[one[1]][i]**2
-                n1 = group_num_dict[one[0]]
-                n2 = group_num_dict[one[1]]
+                varG1 = sd_dict[g[0]][i]**2
+                varG2 = sd_dict[g[1]][i]**2
+                n1 = group_num_dict[g[0]]
+                n2 = group_num_dict[g[1]]
                 normVarG1 = varG1 / n1
                 normVarG2 = varG2 / n2
                 unpooledVar = normVarG1 + normVarG2
                 sqrtUnpooledVar = math.sqrt(unpooledVar)
                 if unpooledVar != 0:
                     # p-value
-                    T_statistic = (meanG1 - meanG2) / sqrtUnpooledVar
+                    T_statistic = -1 * abs(meanG1 - meanG2) / sqrtUnpooledVar
                     dof = (unpooledVar*unpooledVar) / ( (normVarG1*normVarG1)/(n1-1) + (normVarG2*normVarG2)/(n2-1) )
-                    pValue = t.cdf(T_statistic, dof)
+                    pValue = t.cdf(T_statistic, dof) * 2
                     # CI
                     tCritical = t.isf(0.5 * (1.0-coverage), dof)
                     # 0.5 factor accounts from symmetric nature of distribution
@@ -159,9 +159,9 @@ def tukeykramer(statfile, groupfile, coverage, outfile, preferences=None):
                 withinGroupStdDev = math.sqrt(withinGroupVar)
                 if withinGroupStdDev == 0:
                     withinGroupStdDev = 1e-6  #degenerate case: within group variance is zero; set to 1e-6.
-                sqrtInvSampleSize = math.sqrt((1.0/group_num_dict[one[0]] + 1.0/group_num_dict[one[1]]) / 2.0)
-                meanG1 = mean_dict[one[0]][i]
-                meanG2 = mean_dict[one[1]][i]
+                sqrtInvSampleSize = math.sqrt((1.0/group_num_dict[g[0]] + 1.0/group_num_dict[g[1]]) / 2.0)
+                meanG1 = mean_dict[g[0]][i]
+                meanG2 = mean_dict[g[1]][i]
                 es = meanG1 - meanG2
                 qs = abs(es) / (withinGroupStdDev*sqrtInvSampleSize)
                 if qs > cv001:
@@ -195,14 +195,14 @@ def gameshowell(statfile, groupfile, coverage, outfile, preferences=None):
         with open(outfile + '_gameshowell_%s.xls' % groups, 'w') as w:
             w.write('\t%s_effectsize\t%s_lowerCI\t%s_upperCI\t%s_pvalue\n' % (groups, groups, groups, groups))
             for i in range(len(taxon_list)):
-                meanG1 = mean_dict[one[0]][i]
-                meanG2 = mean_dict[one[1]][i]
+                meanG1 = mean_dict[g[0]][i]
+                meanG2 = mean_dict[g[1]][i]
                 # effect size
                 es = meanG1 - meanG2
-                varG1 = sd_dict[one[0]][i]**2
-                varG2 = sd_dict[one[1]][i]**2
-                n1 = group_num_dict[one[0]]
-                n2 = group_num_dict[one[1]]
+                varG1 = sd_dict[g[0]][i]**2
+                varG2 = sd_dict[g[1]][i]**2
+                n1 = group_num_dict[g[0]]
+                n2 = group_num_dict[g[1]]
                 vn1 = varG1 / n1
                 vn2 = varG2 / n2
                 if vn1 == 0:
