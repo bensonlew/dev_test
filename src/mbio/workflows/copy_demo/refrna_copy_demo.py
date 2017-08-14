@@ -5,6 +5,7 @@
 
 from biocluster.workflow import Workflow
 import pymongo
+from biocluster.config import Config
 
 
 class RefrnaCopyDemoWorkflow(Workflow):
@@ -37,8 +38,9 @@ class RefrnaCopyDemoWorkflow(Workflow):
         self.end()
 
     def old_task_id(self):
-        client = pymongo.MongoClient('mongodb://192.168.10.189:27017/')
-        db = client['tsanger_ref_rna']
+        # client = pymongo.MongoClient('mongodb://192.168.10.188:27017/')
+        # db = client['sanger_ref_rna']
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         col = db["sg_task"]
         results = col.find()
         for result in results:
@@ -47,8 +49,9 @@ class RefrnaCopyDemoWorkflow(Workflow):
                 return old_task_id
 
     def update_task_id(self, old_task_id, new_task_id):
-        client = pymongo.MongoClient('mongodb://192.168.10.189:27017/')
-        db = client['tsanger_ref_rna']
+        # client = pymongo.MongoClient('mongodb://192.168.10.188:27017/')
+        # db = client['sanger_ref_rna']
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         col_list = []
         for col_name in db.collection_names():
             col = db[col_name]
@@ -63,6 +66,10 @@ class RefrnaCopyDemoWorkflow(Workflow):
             results = col.find({"task_id": old_task_id})
             for result in results:
                 col.update_one({"_id": result["_id"]}, {"$set": {"task_id": new_task_id}})
+            if col_name == "sg_task":
+                col.update_one({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
+                col.update_one({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
+
 
     def end(self):
         super(RefrnaCopyDemoWorkflow, self).end()

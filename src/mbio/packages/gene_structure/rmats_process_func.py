@@ -138,7 +138,7 @@ def get_event_stats(files):
             d[event_type][mats_m.group(2) + '_file'] = f
             data = pandas.read_table(f, sep='\t')
             data_filter = data[data['FDR']<=0.05]
-            d[event_type][mats_m.group(2) + '_event_id_set_no'] = len(set(data_filter(['ID'])))
+            d[event_type][mats_m.group(2) + '_event_id_set_no'] = len(set(data_filter['ID']))
             d[event_type][mats_m.group(2) + '_event_id_set'] = set(data_filter['ID'])
             continue
         if not (event_m or mats_m):
@@ -243,7 +243,10 @@ def get_event_psi_dic(d):
                                          sep='\t',
                                          dtype={'Pvalue': np.float64, 'FDR': np.float64,
                                                 'IncLevelDifference': np.float64})
-            all_it = all_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']].iterrows()
+            tmp_all = all_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']]
+            all = tmp_all[tmp_all['FDR']<=0.05]
+            all_it = all.iterrows()
+            #all_it = all_data[['PValue', 'FDR', 'IncLevel1', 'IncLevel2', 'IncLevelDifference']].iterrows()
             try:
                 while True:
                     val = all_it.next()
