@@ -131,8 +131,12 @@ class NiptAnalysis(Base):
             return False
 
     def nipt_customer(self, file):  # modify by zhouxuan 20170710
-        bk = xlrd.open_workbook(file)
-        sh = bk.sheet_by_name(u'Report')
+        try:
+            bk = xlrd.open_workbook(file)
+            sh = bk.sheet_by_name(u'Report')
+        except:
+            self.bind_object.logger.info("nipt家系表的表格不符合格式要求")
+            raise Exception('nipt家系表的表格不符合格式要求')
         nrows = sh.nrows
 
         insert = list()
@@ -140,24 +144,28 @@ class NiptAnalysis(Base):
         for i in range(0, nrows):
             row_data = sh.row_values(i)
             if i == 0:
-                report_num_index = row_data.index(u'\u8ba2\u5355\u5185\u90e8\u7f16\u53f7')  # (内部订单编号)报告编号
-                sample_date_index = row_data.index(u'\u91c7\u6837\u65e5\u671f')  # (采样日期)采样日期
-                patient_name_index = row_data.index(u'\u68c0\u6d4b\u4eba\u59d3\u540d')  # (检测人姓名)患者姓名
-                accpeted_date_index = row_data.index(u'\u63a5\u6536\u65e5\u671f')  # (接收日期)收样日期
-                number_index = row_data.index(u'\u8ba2\u5355\u7f16\u53f7')  # (订单编号)样本编号
-                # register_number_index = row_data.index(u'\u4f4f\u9662/\u95e8\u8bca\u53f7')  # 住院号
-                gestation_index = row_data.index(u'\u5b55\u4ea7\u53f2')  # 孕产史
-                final_period_index = row_data.index(u'\u672b\u6b21\u6708\u7ecf')  # 末次月经
-                gestation_week_index = row_data.index(u'\u5b55\u5468')  # 孕周
-                pregnancy_index = row_data.index(u'\u5355\u80ce/\u53cc\u80ce')  # 单双胎
-                IVFET_index = row_data.index(u'IVF-ET\u598a\u5a20')  # IVF-ET妊娠
-                hospital_index = row_data.index(u'\u9001\u68c0\u5355\u4f4d/\u533b\u9662')  # 送检单位、医院
-                doctor_index = row_data.index(u'\u9001\u68c0\u533b\u751f')  # 送检医生
-                tel_index = row_data.index(u'\u60a3\u8005\u8054\u7cfb\u7535\u8bdd')  # (患者联系电话)患者联系方式
-                status_index = row_data.index(u'\u6837\u672c\u72b6\u6001')  # (样本状态)标本状态异常
-                age_index = row_data.index(u'\u5e74\u9f84')  # 年龄
-                type_index = row_data.index(u'\u6807\u672c\u7c7b\u578b')  # (标本类型)样本类型
-                ws_number_index = row_data.index(u'\u8ba2\u5355\u5185\u90e8\u7f16\u53f7')  # (内部订单编号)样本缩写
+                try:
+                    report_num_index = row_data.index(u'\u8ba2\u5355\u5185\u90e8\u7f16\u53f7')  # (内部订单编号)报告编号
+                    sample_date_index = row_data.index(u'\u91c7\u6837\u65e5\u671f')  # (采样日期)采样日期
+                    patient_name_index = row_data.index(u'\u68c0\u6d4b\u4eba\u59d3\u540d')  # (检测人姓名)患者姓名
+                    accpeted_date_index = row_data.index(u'\u63a5\u6536\u65e5\u671f')  # (接收日期)收样日期
+                    number_index = row_data.index(u'\u8ba2\u5355\u7f16\u53f7')  # (订单编号)样本编号
+                    # register_number_index = row_data.index(u'\u4f4f\u9662/\u95e8\u8bca\u53f7')  # 住院号
+                    gestation_index = row_data.index(u'\u5b55\u4ea7\u53f2')  # 孕产史
+                    final_period_index = row_data.index(u'\u672b\u6b21\u6708\u7ecf')  # 末次月经
+                    gestation_week_index = row_data.index(u'\u5b55\u5468')  # 孕周
+                    pregnancy_index = row_data.index(u'\u5355\u80ce/\u53cc\u80ce')  # 单双胎
+                    IVFET_index = row_data.index(u'IVF-ET\u598a\u5a20')  # IVF-ET妊娠
+                    hospital_index = row_data.index(u'\u9001\u68c0\u5355\u4f4d/\u533b\u9662')  # 送检单位、医院
+                    doctor_index = row_data.index(u'\u9001\u68c0\u533b\u751f')  # 送检医生
+                    tel_index = row_data.index(u'\u60a3\u8005\u8054\u7cfb\u7535\u8bdd')  # (患者联系电话)患者联系方式
+                    status_index = row_data.index(u'\u6837\u672c\u72b6\u6001')  # (样本状态)标本状态异常
+                    age_index = row_data.index(u'\u5e74\u9f84')  # 年龄
+                    type_index = row_data.index(u'\u6807\u672c\u7c7b\u578b')  # (标本类型)样本类型
+                    ws_number_index = row_data.index(u'\u8ba2\u5355\u5185\u90e8\u7f16\u53f7')  # (内部订单编号)样本缩写
+                except:
+                    self.bind_object.logger.info("nipt家系表的表头信息不全")
+                    raise Exception('nipt家系表的表头信息不全')
             else:
                 para_list = []
                 report_num = row_data[report_num_index]

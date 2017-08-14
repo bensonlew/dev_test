@@ -22,7 +22,7 @@ class TabFile(Base):
 
 
     # @report_check
-    def add_pt_tab(self,sample,batch_id):
+    def add_pt_tab(self,sample,batch_id):  # moduify by zhouxuan 20170810
         '''
         将一批次的样本名、批次表导入库中
         母本和胎儿的analysised字段标记为None，父本标记为no，在做完分析后父本状态改为yes。
@@ -47,12 +47,13 @@ class TabFile(Base):
                         "storage_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 入库时间，正确生成tab文件的时间
                     }
                 break
-            m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab',sample)
+            m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab', sample)
             if m:
-                sample_dad = 'WQ' + m.group(1) +'-F.*'
+                sample_dad = 'WQ' + m.group(1) + '-F.*'
                 collection = self.database['sg_pt_ref_main']
                 try:
-                    collection.find_one_and_update({"sample_id": {"$regex": sample_dad}},{'$set': {'analysised': 'no'}})
+                    collection.find_one_and_update({"sample_id": {"$regex": sample_dad}},
+                                                   {'$set': {'analysised': 'no'}})
                 except Exception as e:
                     self.bind_object.logger.error('更新重送样父本出错：{}'.format(e))
                 else:
@@ -60,7 +61,7 @@ class TabFile(Base):
 
             try:
                 collection = self.database['sg_pt_ref_main']
-                collection.find_one_and_update({"sample_id": sample_name},{'$set':insert_data})
+                collection.find_one_and_update({"sample_id": sample_name}, {'$set': insert_data})
             except Exception as e:
                 self.bind_object.logger.error('导入tab主表出错：{}'.format(e))
             else:
