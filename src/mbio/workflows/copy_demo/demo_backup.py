@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shijin'
 
-""""""
+"""
+对有参RNA demo数据进行备份
+"""
 
 from biocluster.workflow import Workflow
 
