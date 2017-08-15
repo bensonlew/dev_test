@@ -47,8 +47,10 @@ class PtCustomer(Base):
                     father_type_index = row_data.index(u'\u7236\u672c\u7c7b\u578b')  # 父本类型
                     dad_id_index = row_data.index(u'\u7236\u672c\u7f16\u53f7')  # 父本编号
                     ask_time_index = row_data.index(u'\u7533\u8bf7\u65e5\u671f')     # 申请日期
-                    accept_time_index = row_data.index(u'\u53d7\u7406\u65e5\u671f')  # 受理日期
-                    result_time_index = row_data.index(u'\u9274\u5b9a\u65e5\u671f')  # 鉴定日期
+                    f_accept_time_index = row_data.index(u'\u0046\u53d7\u7406\u65e5\u671f')  # F受理日期
+                    m_accept_time_index = row_data.index(u'\u004d\u53d7\u7406\u65e5\u671f')  # M受理日期
+                    f_result_time_index = row_data.index(u'\u0046\u9274\u5b9a\u65e5\u671f')  # F鉴定日期
+                    m_result_time_index = row_data.index(u'\u004d\u9274\u5b9a\u65e5\u671f')  # M鉴定日期
                     family_mom_id = row_data.index(u'\u4eb2\u672c\u0028\u6bcd\u672c\u0029')  # 亲本(母本)
                     family_dad_id = row_data.index(u'\u4eb2\u672c\u0028\u7236\u672c\u0029')  # 亲本(父本)
                     report_status = row_data.index(u'\u52a0\u6025')  # 加急 (标定出了报告立即置顶)
@@ -87,8 +89,10 @@ class PtCustomer(Base):
                             "dad_id_": row_data[family_dad_id],
                             "dad_id": row_data[contrast_num_index] + "-F",  # 父本编号
                             "ask_time": row_data[ask_time_index],
-                            "accept_time": row_data[accept_time_index],
-                            "result_time": row_data[result_time_index],
+                            "F_accept_time": row_data[f_accept_time_index],
+                            "F_result_time": row_data[f_result_time_index],
+                            "M_accept_time": row_data[m_accept_time_index],
+                            "M_result_time": row_data[m_result_time_index],
                             "name": family_name,
                             "report_status": row_data[report_status],
                             'update_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
