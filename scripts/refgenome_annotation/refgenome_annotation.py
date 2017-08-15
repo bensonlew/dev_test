@@ -219,7 +219,7 @@ class RefgenomeAnnotation(object):
             ko_color = []
             for ko_id in ko_ids:
                 ko_color.append(ko_id + "%09" + link_bgcolor)
-            link = 'http://www.genome.jp/dbget-bin/show_pathway?' + map_id + '+' + '+'.join(ko_color)
+            link = 'http://www.genome.jp/dbget-bin/show_pathway?' + map_id + '/' + '/'.join(ko_color)
             path_table.write(map_id+ "\t" + layer_1st + "\t" + layer_2nd + "\t" + definition + "\t"\
                              + str(len(seqs)) + "\t" + ';'.join(seqs) + "\t" + path_image + "\t" + link + "\n")
             fgcolor = "NA"
