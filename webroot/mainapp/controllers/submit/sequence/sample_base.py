@@ -57,7 +57,7 @@ class SampleBase(object):
         table_id = SB().add_sg_sample(data.member_id, data.type)
         json_obj = dict()
         if data.type == "rna":  # 对type进行判断
-            json_obj["name"] = "sequence.rna_check"
+            json_obj["name"] = "sequence.rna_sample"
         json_obj["id"] = self.get_new_id(table_id)
         json_obj['type'] = "workflow"
         json_obj["IMPORT_REPORT_DATA"] = True

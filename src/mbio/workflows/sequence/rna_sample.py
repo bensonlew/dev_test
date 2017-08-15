@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shijin'
 
-"""运行denovo_rna.qc.qc_stat"""
 
 from biocluster.workflow import Workflow
 from mbio.files.sequence.fastq_dir import FastqDirFile
 
-class RnaCheckWorkflow(Workflow):
+class RnaSampleWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        super(RnaCheckWorkflow, self).__init__(wsheet_object)
+        super(RnaSampleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},
             {"name": "fq_type", "type": "string", "default": "PE"},
@@ -45,13 +44,13 @@ class RnaCheckWorkflow(Workflow):
 
     def end(self):
         self.import2mongo()
-        super(RnaCheckWorkflow, self).end()
+        super(RnaSampleWorkflow, self).end()
 
     def run(self):
         self.add_text.on("end", self.run_qc)
         self.qc.on("end", self.end)
         self.get_fastq()
-        super(RnaCheckWorkflow, self).run()
+        super(RnaSampleWorkflow, self).run()
 
     def import2mongo(self):
         self.logger.info("开始导入数据库")
