@@ -23,6 +23,8 @@ class KeggAnnotationAgent(Agent):
             {"name": "blastout", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
+            {"name": "link_bgcolor", "type": "string", "default": "green"},  # 通路图链接官网颜色，约定参考基因组为黄色（yellow），新序列为绿色(green), 两者共有为tomato（红）
+            {"name": "png_bgcolor", "type": "string", "default": "#00CD00"}  # 通路图静态图颜色，#00CD00(绿色)，#FFFF00（黄色）
         ]
         self.add_option(options)
         self.step.add_steps('kegg_annotation')
@@ -68,7 +70,8 @@ class KeggAnnotationTool(Tool):
         self._version = "2.0"
         self.python = "program/Python/bin/python"
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
-        self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation.py"
+        # self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation.py"
+        self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation_v2.py"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run(self):
@@ -91,8 +94,8 @@ class KeggAnnotationTool(Tool):
         image_magick = self.image_magick
         pathway_table = self.output_dir + '/pathway_table.xls'
         layerfile = self.output_dir + '/kegg_layer.xls'
-        taxonomyfile = self.output_dir + '/kegg_taxonomy.xls'
-        cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, blast_xml, None, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        # taxonomyfile = self.output_dir + '/kegg_taxonomy.xls'
+        cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, blast_xml, None, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
         command = self.add_command("kegg_anno", cmd).run()
         self.wait()
         if command.return_code == 0:
