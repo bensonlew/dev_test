@@ -11,75 +11,101 @@ from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 from collections import OrderedDict
 import unittest
+from collections import defaultdict
 
 
 class RefrnaGeneDetail(Base):
     def __init__(self, bind_object):
         super(RefrnaGeneDetail, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
-        # self.db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
 
     @staticmethod
-    def biomart(biomart_path):
+    def biomart(biomart_path, biomart_type='type1'):
         """
         为了获得已知基因的description, gene_type信息
         :param biomart_path:
-        :return: dict, gene_id:  {"trans_id": [trans_id], "gene_name": [gene_name], "chromosome": [chromosome],
-                                 "gene_type": [gene_type], "description": [desc], "strand": [strand],
-                                 "pep_id": [pep_id], "start": [start], "end": [end]}
+        :return: dict, gene_id:  {"trans_id": [trans_id], "gene_name": [gene_name],
+        "chromosome": [chromosome], "gene_type": [gene_type], "description": [desc],
+         "strand": [strand], "pep_id": [pep_id], "start": [start], "end": [end]}
         """
+        def check(_id): return '-' if not _id else _id
 
-        def check(_id):
-            if not _id:
-                return '-'
-            else:
-                return _id
+        if biomart_type == "type1":
+            gene_id_ind = 0
+            trans_id_ind = 1
+            gene_name_ind = 2
+            chromosome_ind = 8
+            gene_type_ind = 16
+            desc_ind = 7
+            strand_ind = 11
+            start_ind = 9
+            end_ind = 10
+            pep_id_ind = 6
+        elif biomart_type == 'type2':
+            gene_id_ind = 0
+            trans_id_ind = 1
+            gene_name_ind = 2
+            chromosome_ind = 6
+            gene_type_ind = 14
+            desc_ind = 5
+            strand_ind = 9
+            start_ind = 7
+            end_ind = 8
+            pep_id_ind = 4
+        elif biomart_type == 'type3':
+            gene_id_ind = 0
+            trans_id_ind = 1
+            gene_name_ind = 0
+            chromosome_ind = 4
+            gene_type_ind = 12
+            desc_ind = 3
+            strand_ind = 7
+            start_ind = 5
+            end_ind = 6
+            pep_id_ind = 2
+        else:
+            raise ValueError('biomart_type should be one of type1, type2, type 3')
 
-        ss = 0
         biomart_info = dict()
-        with open(biomart_path, 'r+') as f1:
-            for lines in f1:
-                if not lines.strip():
+        with open(biomart_path) as f:
+            for line in f:
+                if not line.strip():
                     continue
-                ss += 1
-                line = lines.strip('\n').split("\t")
-                gene_id = check(line[0])
-                trans_id = check(line[1])
-                gene_name = check(line[2])
-                chromosome = check(line[9])
-                gene_type = check(line[17])
-                desc = check(line[8])
-                strand_tmp = check(line[12])
+                tmp_list = line.strip('\n').split("\t")
+                gene_id = check(tmp_list[gene_id_ind])
+                trans_id = check(tmp_list[trans_id_ind])
+                gene_name = check(tmp_list[gene_name_ind])
+                chromosome = check(tmp_list[chromosome_ind])
+                gene_type = check(tmp_list[gene_type_ind])
+                desc = check(tmp_list[desc_ind])
+                strand_tmp = check(tmp_list[strand_ind])
                 if strand_tmp == "1":
                     strand = "+"
                 elif strand_tmp == "-1":
                     strand = "-"
-                else:
+                elif strand_tmp == "0":
                     strand = "."
-                start = check(str(line[10]))
-                end = check(str(line[11]))
-                # location = "{}:{}-{}".format(check(line[12]), check(str(line[10])), check(str(line[11])))
-                pep_id = check(line[6])
-
-                if gene_id not in biomart_info.keys():
-                    biomart_info[gene_id] = {"trans_id": [trans_id], "gene_name": [gene_name],
-                                             "chromosome": [chromosome], "gene_type": [gene_type],
-                                             "description": [desc], "strand": [strand], "pep_id": [pep_id],
-                                             "start": [start], "end": [end]}
                 else:
-                    biomart_info[gene_id]['trans_id'].append(trans_id)
-                    biomart_info[gene_id]['gene_name'].append(gene_name)
-                    biomart_info[gene_id]['chromosome'].append(chromosome)
-                    biomart_info[gene_id]['gene_type'].append(gene_type)
-                    biomart_info[gene_id]['description'].append(desc)
-                    # biomart_info[gene_id]['location'].append(location)
-                    biomart_info[gene_id]['pep_id'].append(pep_id)
-                    biomart_info[gene_id]['strand'].append(strand)
-                    biomart_info[gene_id]['start'].append(start)
-                    biomart_info[gene_id]['end'].append(end)
+                    strand = strand_tmp
+                start = check(str(tmp_list[start_ind]))
+                end = check(str(tmp_list[end_ind]))
+                pep_id = check(tmp_list[pep_id_ind])
+
+                biomart_info.setdefault(gene_id, defaultdict(list))
+                biomart_info[gene_id]['trans_id'].append(trans_id)
+                biomart_info[gene_id]['gene_name'].append(gene_name)
+                biomart_info[gene_id]['chromosome'].append(chromosome)
+                biomart_info[gene_id]['gene_type'].append(gene_type)
+                biomart_info[gene_id]['description'].append(desc)
+                biomart_info[gene_id]['pep_id'].append(pep_id)
+                biomart_info[gene_id]['strand'].append(strand)
+                biomart_info[gene_id]['start'].append(start)
+                biomart_info[gene_id]['end'].append(end)
+
         if not biomart_info:
-            print "没有生成biomart信息"
-        print "biomart共统计出{}行信息".format(str(ss))
+            print("biomart information is None")
+        else:
+            print('Successfully get information of {} genes'.format(len(biomart_info)))
         return biomart_info
 
     @staticmethod
