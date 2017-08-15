@@ -2,6 +2,7 @@
 # __author__ = 'zengjing'
 # last_modifiy: 2017.06.05
 import json
+import os
 import gevent
 import datetime
 from bson import ObjectId
@@ -13,12 +14,14 @@ from mainapp.libs.param_pack import group_detail_sort
 
 class RefrnaCopyMongo(object):
     """"""
-    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, db='tsanger_ref_rna'):
+    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, new_bam_path, new_ref_gtf, db='tsanger_ref_rna'):
         self.db = Config().mongo_client[db]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
         self._new_project_sn = new_project_sn
         self._new_member_id = new_member_id
+        self._new_bam_path = new_bam_path
+        self._new_ref_gtf = new_ref_gtf
         self.specimen_id_dict = {}
         self.specimen_group_id_dict = {}
         self.specimen_compare_id_dict = {}
@@ -291,6 +294,7 @@ class RefrnaCopyMongo(object):
 
     def splicing_rmats(self):
         splicing_rmats_dict = self.copy_collection_with_change('sg_splicing_rmats', change_positions=[], update_sg_status=False)
+        self.update_sg_splicing_rmats()
         self.copy_main_details('sg_splicing_rmats_detail', 'splicing_id', splicing_rmats_dict, join=False)
         self.copy_main_details('sg_splicing_rmats_graph', 'splicing_id', splicing_rmats_dict, join=False)
         self.copy_main_details('sg_splicing_rmats_psi', 'splicing_id', splicing_rmats_dict, join=False)
@@ -326,8 +330,10 @@ class RefrnaCopyMongo(object):
         old_specimen_ids = []
         for i in finds:
             old_specimen_ids.append(str(i.pop('_id')))
+            old_bam_path = os.path.basename(i["bam_path"])
             i['task_id'] = self._new_task_id
             i['project_sn'] = self._new_project_sn
+            i['bam_path'] = os.path.join(self._new_bam_path, old_bam_path)
             news.append(i)
         if news:
             result = self.db["sg_specimen"].insert_many(news)
@@ -542,10 +548,6 @@ class RefrnaCopyMongo(object):
             return "null"
         if not params:
             return "null"
-        # if params == "":
-        #     return "null"
-        # if not params:
-        #     return None
         if 'group_detail' in params:
             for one_group in params['group_detail']:
                 params['group_detail'][one_group] = [self.specimen_id_dict[one_sp] for one_sp in params['group_detail'][one_group]]
@@ -567,13 +569,29 @@ class RefrnaCopyMongo(object):
             try:
                 geneset_ids = []
                 for one_id in params['geneset_id'].split(','):
-                    # print one_id, self.geneset_id_dict[one_id]
-                    # params['geneset_id'][one_id] = self.geneset_id_dict[one_id]
                     geneset_ids.append(self.geneset_id_dict[one_id])
                 params['geneset_id'] = ','.join(geneset_ids)
             except:
                 params['geneset_id'] = self.geneset_id_dict
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
+
+    def update_sg_splicing_rmats(self):
+            """
+            更新sg_splicing_rmats的ref_gtf和params里的splicing_id
+            """
+            finds = self.db["sg_splicing_rmats"].find({"task_id": self._new_task_id})
+            for i in finds:
+                self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"ref_gtf": self._new_ref_gtf}})
+                if 'params' in i:
+                    params_str = i['params']
+                    try:
+                        params = json.loads(params_str)
+                    except Exception:
+                        raise Exception("sg_splicing_rmats表的params非json格式")
+                    if 'splicing_id' in params:
+                        params['splicing_id'] = str(i['_id'])
+                    new_params = json.dumps(params, sort_keys=True, separators=(',', ':'))
+                    self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"params": new_params}})
 
     def insert_new_status(self, collection, main_docs, ids):
         """
@@ -608,7 +626,11 @@ if __name__ == '__main__':
     # copy_task = RefrnaCopyMongo('demo_sj', 'refrna_demo_mouse1', '3072', 'demo_sj')
     # # # copy_task = RefrnaCopyMongo('tsg_2000', 'demo_zj2', 'demo_zj2', 'demo_zj2')
     # copy_task.run()
-    for i in range(0, 101):
-        task_id = "refrna_demo_mouse" + str(i)
-        copy_task = RefrnaCopyMongo('demo_sj', task_id, '3072', 'demo_sj')
-        copy_task.run()
+    new_bam_path = "/mnt/ilustre/users/sanger/test/bam/"
+    new_ref_gtf = "/mnt/ilustre/users/sanger/test/Mus_musculus.GRCm38.87.gff3.gtf"
+    copy_task = RefrnaCopyMongo('demo_sj', "demo_zzz1", '3072', 'demo_sj', new_bam_path, new_ref_gtf)
+    copy_task.run()
+    # for i in range(0, 101):
+    #     task_id = "refrna_demo_mouse" + str(i)
+    #     copy_task = RefrnaCopyMongo('demo_sj', task_id, '3072', 'demo_sj', new_bam_path)
+    #     copy_task.run()
