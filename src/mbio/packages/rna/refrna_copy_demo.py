@@ -14,9 +14,7 @@ from mainapp.libs.param_pack import group_detail_sort
 
 
 class RefrnaCopyMongo(object):
-    """"""
     def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, new_bam_path, new_ref_gtf, db='sanger_ref_rna'):
-        # self.db = Config().mongo_client[db]
         self.db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
