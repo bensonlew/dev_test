@@ -58,6 +58,8 @@ class SampleBase(object):
         json_obj = dict()
         if data.type == "rna":  # 对type进行判断
             json_obj["name"] = "sequence.rna_sample"
+        elif data.type == "meta":
+            json_obj["name"] = "sequence.meta_sample"
         json_obj["id"] = self.get_new_id(table_id)
         json_obj['type'] = "workflow"
         json_obj["IMPORT_REPORT_DATA"] = True

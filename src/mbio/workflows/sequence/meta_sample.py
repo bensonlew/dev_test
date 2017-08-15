@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shijin'
 
+"""
+将fq文件进行拆分，并移入本地参考序列文件夹
+"""
 
 from biocluster.workflow import Workflow
 from mbio.files.sequence.fastq_dir import FastqDirFile
 
-class RnaSampleWorkflow(Workflow):
+class MetaSampleWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        super(RnaSampleWorkflow, self).__init__(wsheet_object)
+        super(MetaSampleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},
             {"name": "fq_type", "type": "string", "default": "PE"},
@@ -17,40 +20,20 @@ class RnaSampleWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.qc = self.add_module("denovo_rna.qc.qc_stat")
-        self.add_text = self.add_tool("sequence.gen_list")
+        self.fastq_extract = self.add_module("sample_base.fastq_extract")
         self.updata_status_api = self.api.meta_update_status
 
     def check_options(self):
-
         pass
-
-    def run_qc(self):
-        opts = {
-            "fastq_dir": self.add_text.output_dir,
-            "fq_type": self.option("fq_type")
-        }
-        self.qc.set_options(opts)
-        self.qc.run()
-
-    def get_fastq(self):
-        opts = {
-            "fastq_dir": self.option("fastq_dir"),
-            "fq_type": self.option("fq_type"),
-            "table_id": self.option("table_id")
-        }
-        self.add_text.set_options(opts)
-        self.add_text.run()
 
     def end(self):
         self.import2mongo()
-        super(RnaSampleWorkflow, self).end()
+        super(MetaSampleWorkflow, self).end()
 
     def run(self):
-        self.add_text.on("end", self.run_qc)
-        self.qc.on("end", self.end)
-        self.get_fastq()
-        super(RnaSampleWorkflow, self).run()
+        super(MetaSampleWorkflow, self).run()
+        self.run_fastq_extract()
+        self.end()
 
     def import2mongo(self):
         self.logger.info("开始导入数据库")
@@ -61,12 +44,12 @@ class RnaSampleWorkflow(Workflow):
             table_id = "test_01"
         sample_list = self.get_sample()
         for sample in sample_list:
-            sample_id = api_sample.add_sg_test_specimen_rna(sample, self.qc.output_dir + "/fastq_stat.xls",
+            sample_id = api_sample.add_sg_test_specimen_meta(sample, self.fastq_extract.option("output_list").prop["path"],
                                                         self.file_sample)
             api_sample.add_sg_test_batch_specimen(table_id, sample_id, sample)
 
     def get_sample(self):
-        dir_path = self.add_text.option("samplebase_dir").prop["path"]
+        dir_path = self.fastq_extract.option("out_fq").prop["path"]
         dir = FastqDirFile()
         dir.set_path(dir_path)
         dir.check()
@@ -74,3 +57,10 @@ class RnaSampleWorkflow(Workflow):
         self.file_sample = dir.prop["file_sample"]
         self.logger.info(str(sample_list))
         return sample_list
+
+    def run_fastq_extract(self):
+        opts = {
+            "in_fastq" : self.option("fastq_dir")
+        }
+        self.fastq_extract.set_options(opts)
+        self.fastq_extract.run()
