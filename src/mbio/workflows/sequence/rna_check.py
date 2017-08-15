@@ -13,12 +13,13 @@ class RnaCheckWorkflow(Workflow):
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},
             {"name": "fq_type", "type": "string", "default": "PE"},
-            {"name": "update_info", "type": "string"}
+            {"name": "update_info", "type": "string"},
+            {"name": "table_id", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.qc = self.add_module("denovo_rna.qc.qc_stat")
-        self.add_text = self.add_tool("sequence.change_fastqdir")
+        self.add_text = self.add_tool("sequence.gen_list")
         self.updata_status_api = self.api.meta_update_status
 
     def check_options(self):
@@ -36,7 +37,8 @@ class RnaCheckWorkflow(Workflow):
     def get_fastq(self):
         opts = {
             "fastq_dir": self.option("fastq_dir"),
-            "fq_type": self.option("fq_type")
+            "fq_type": self.option("fq_type"),
+            "table_id": self.option("table_id")
         }
         self.add_text.set_options(opts)
         self.add_text.run()
@@ -55,7 +57,7 @@ class RnaCheckWorkflow(Workflow):
         self.logger.info("开始导入数据库")
         api_sample = self.api.sample_base
         try:
-            table_id = self.option("update_info").split(":")[0]
+            table_id = self.option("table_id")
         except:  # 测试时无update_info参数
             table_id = "test_01"
         sample_list = self.get_sample()

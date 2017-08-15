@@ -62,8 +62,7 @@ class SampleBase(Base):
         results = {}
         results["test_batch_id"] = ObjectId(table_id)
         results["test_specimen_id"] = ObjectId(sample_id)
-        results["old_name"] = sample
-        results["new_name"] = sample
+        results["alias_name"] = sample
         results_list.append(results)
         try:
             collection.insert_many(results_list)
