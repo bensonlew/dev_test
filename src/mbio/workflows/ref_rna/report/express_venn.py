@@ -20,31 +20,41 @@ class ExpressVennWorkflow(Workflow):
             {"name": "group_id", "type":"string"},  #样本的分组信息
             {"name":"group_detail","type":"string"},
             {"name": "update_info", "type": "string"},
-            {"name":"type","type":"string"},
+            {"name":"type","type":"string"},#对应gene/transcript
+            {"name":"express_level","type":"string"}, #对应fpkm/tpm
+            {"name":"threshold","type":"float","default":1}, #过滤
+            # {"name":"sample_group",'type':"string","default":"sample"},
             {"name":"venn_id","type":"string"},
         ]
         self.logger.info(options)
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.venn = self.add_tool("graph.venn_table")
+        self.venn = self.add_tool("rna.expressvenn")
+        with open(self.option('group_id'), 'r+') as f1:
+            f1.readline()
+            if not f1.readline():
+                self.group_id = 'all'
+            else:
+                self.group_id = self.option('group_id')
         # self.samples = re.split(',', self.option("specimen"))
         
     def run_venn(self, fpkm_path, specimen):
         """样本间特异性基因venn图"""
-        new_fpkm = self.get_sample_table(fpkm_path,specimen)
         options = {
-            "otu_table": new_fpkm,
-            "group_table": self.option("group_id")
+            "express_matrix": fpkm_path,
+            "group_table": self.option("group_id"),
+            "threshold":self.option("threshold")
         }
         
         self.logger.info("检查new_fpkm和new_group的路径:")
-        self.logger.info(new_fpkm)
         self.venn.set_options(options)
         self.venn.on('end', self.set_db)
         self.venn.run()
         
     def set_db(self):
         venn_path = self.venn.output_dir
+        # 更新venn_graph.xls文件
+        shutil.copy2(self.venn.work_dir+"/new_venn_graph.xls",venn_path+"/venn_graph.xls")
         api_venn = self.api.refrna_corr_express
         venn_id = self.option("venn_id")
         self.logger.info("准备开始向mongo数据库中导入venn图detail表和graph信息！")
@@ -56,40 +66,22 @@ class ExpressVennWorkflow(Workflow):
     def get_samples(self):
         edger_group_path = self.option("group_id")
         self.logger.info(edger_group_path)
-        samples=[]
+        self.samples=[]
         with open(edger_group_path,'r+') as f1:
             f1.readline()
             for lines in f1:
                 line=lines.strip().split("\t")
-                samples.append(line[0])
-        print samples
-        
-    def get_sample_table(self,fpkm_path, specimen):
-        """ 根据筛选的样本名生成新的fpkm表 和 group_table表 """
-        fpkm = pd.read_table(fpkm_path,sep="\t",)
-        sample_name = fpkm.columns[1:]
-        del_sam = []
-        for sam in sample_name:
-            try:
-                if sam not in specimen:
-                    del_sam.append(sam)
-            except Exception:
-                pass
-        if del_sam:
-            new_fpkm = fpkm.drop(del_sam, axis=1)
-            self.new_fpkm = self.venn.work_dir + "/fpkm"
-            header=['']
-            header.extend(self.samples)
-            new_fpkm.columns = header
-            new_fpkm.to_csv(self.new_fpkm, sep="\t",index=False)
-            print 'end!'
-            return self.new_fpkm
-        else:
-            return fpkm_path
-        
+                self.samples.append(line[0])
+        print self.samples
+        return self.samples
+
     def run(self):
         fpkm = self.option("express_file").split(",")[0]
-        specimen = self.get_samples()
+        if self.group_id in ['all','All','ALL']:
+            with open(fpkm,'r+') as f1:
+                specimen = f1.readline().strip().split("\t")
+        else:
+            specimen = self.get_samples()
         self.run_venn(fpkm, specimen)
         super(ExpressVennWorkflow, self).run()
     

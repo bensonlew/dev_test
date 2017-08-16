@@ -13,9 +13,6 @@ import sys
 
 config = Config()
 
-process_pid_file = config.wpm_pid_dir + "/pm.pid"
-log_pid_file = config.wpm_pid_dir + "/lm.pid"
-
 parser = argparse.ArgumentParser(description="start biocluster worker manager service")
 parser.add_argument("-s", "--server", action="store_true", help="use the daemon mode to ran server")
 args = parser.parse_args()
@@ -48,19 +45,4 @@ else:
         daemonize()
 
     server = MainServer()
-
-
-    def kill_sub_service(signum, frame):
-        write_log("关闭进程管理器...")
-        os.system("kill %s" % server.manager_server.pid)
-        if os.path.exists(process_pid_file):
-            os.remove(process_pid_file)
-        write_log("关闭API LOG监听...")
-        os.system("kill %s" % server.api_log_server.pid)
-        if os.path.exists(log_pid_file):
-            os.remove(log_pid_file)
-        write_log("关闭WPM主服务监听...")
-
-    signal.signal(signal.SIGTERM, kill_sub_service)
-    signal.signal(signal.SIGINT, kill_sub_service)
     server.start()

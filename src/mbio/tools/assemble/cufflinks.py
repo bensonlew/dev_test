@@ -10,7 +10,7 @@ import re
 
 class CufflinksAgent(Agent):
     """
-    有参转录组cuffmerge合并
+    有参转录组拼接
     version v1.0.1
     author: wangzhaoyue
     last_modify: 2016.09.09
@@ -60,8 +60,8 @@ class CufflinksAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
-        self._memory = "100G"
+        self._cpu = 1
+        self._memory = "10G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -145,10 +145,9 @@ class CufflinksTool(Tool):
         self.logger.info("设置结果目录")
         try:
             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-            shutil.copy2(self.work_dir + "/" + sample_name + "/transcripts.gtf", self.output_dir + "/transcripts.gtf")
+            os.link(self.work_dir + "/" + sample_name + "/transcripts.gtf", self.output_dir + "/transcripts.gtf")
             shutil.move(self.output_dir + "/transcripts.gtf", self.output_dir + "/" + sample_name + "_out.gtf")
-            shutil.copy2(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir +
-                         "/" + sample_name + "_out.fa")
+            os.link(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir + "/" + sample_name + "_out.fa")
             self.option('sample_gtf').set_path(self.work_dir + "/" + sample_name + "/" + "transcripts.gtf")
             self.logger.info("设置组装拼接分析结果目录成功")
 

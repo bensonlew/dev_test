@@ -17,7 +17,8 @@ class GenomeStructureAgent(Agent):
         options = [
             {"name": "in_fasta", "type": "infile", "format": "sequence.fasta"},
             {"name": "in_gff", "type": "infile", "format": "gene_structure.gff3"},
-            {"name": "in_gtf", "type": "infile", "format":"gene_structure.gtf"}
+            {"name": "in_gtf", "type": "infile", "format":"gene_structure.gtf"},
+            {"name": "ref_genome", "type": "string", "default": ""}
         ]
         self.add_option(options)
         self.step.add_steps("genome_structure")
@@ -38,67 +39,46 @@ class GenomeStructureAgent(Agent):
 
     def set_resource(self):
         self._cpu = 4
-        self._memory = "4G"
+        self._memory = "6G"
 
 
 class GenomeStructureTool(Tool):
     def __init__(self, config):
         super(GenomeStructureTool, self).__init__(config)
-        self.samtools ="/bioinfo/align/samtools-1.3.1/samtools"
+        self.seqkit_path = self.config.SOFTWARE_DIR + "/bioinfo/seq"
         self.bedtools = self.config.SOFTWARE_DIR + "/bioinfo/rna/bedtools2-master/bin/bedtools"
-        self.scripts = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/tabletools_add.pl"
+        self.scripts = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts"
+        self.bioawk_path = self.config.SOFTWARE_DIR + "/bioinfo/seq/bioawk"
 
     def cmd1(self):
-        new_path = self.work_dir + "/" + os.path.basename(self.option("in_fasta").prop["path"])
-        if os.path.exists(new_path):
-            os.remove(new_path)
-        os.link(self.option("in_fasta").prop["path"], new_path)
-        cmd = "{} faidx {}".format(self.samtools, os.path.basename(self.option("in_fasta").prop["path"]))
-        command = self.add_command("faidx_cmd", cmd)
-        self.logger.info("samtools开始运行")
-        command.run()
-        self.wait()
-        if command.return_code == 0:
-            self.logger.info("samtools运行完成")
-            self.cmd2()
+        cmd = "less %s | grep \"^#\" -v | awk -F '\\t' " \
+              "-vOFS='\\t' '$9 ~ /ID=transcript/ {print $1,$9}' |  sed 's/\\t.*biotype=/\\t/g' | " \
+              "cut -d ';' -f1 | awk -F '\\t' -vOFS='\\t' '{chr[$1];Gene[$1]++; " \
+              "if($2 == \"protein_coding\"){Pod[$1]++}else if($2 ~/RNA/){Rna[$1]++}" \
+              "else if($2 ~ /pseudogene/){Pse[$1]++}}END{for(i in Gene) " \
+              "{print i,Gene[i],Pod[i],Rna[i],Pse[i]}}'  |sort -k1,1 | " \
+              "awk -F '\\t' -vOFS='\\t' 'BEGIN{print \"Chr\",\"Gene\",\"ProteinCoding\",\"OtherRNA\"," \
+              "\"Pseudogene\"}1' > %s/gene.content.tab.xls" % (self.option("in_gff").prop["path"], self.output_dir)
+        os.system(cmd)
 
     def cmd2(self):
-        cmd = "less -S {}".format(os.path.basename(self.option("in_fasta").prop["path"]) + ".fai")
-        cmd += " | awk -F '\\t' -vOFS='\\t' '{print $1,0,$2}' | sort -k1,1 | "
-        cmd += "{} nuc -fi {} -bed - | cut -f1,5,12 | ".format(self.bedtools, self.option("in_fasta").prop["path"])
-        cmd += """awk -F '\\t' -vOFS='\\t' 'BEGIN{print "#Chr", "Seq_Len","Pct_GC"} NR > 1 {print $1,$3,int($2*10000+0.5)/100"%"}' > ref_genome.stat.xls"""
-        self.logger.info("第二步开始运行,命令为{}".format(cmd))
-        subprocess.check_output(cmd, shell=True)
-        self.logger.info("第二步运行完成")
-        self.cmd3()
+        cmd = "%s/seqkit fx2tab -n -i -g -l  %s" \
+              " | awk  -vOFS='\\t' 'BEGIN{print \"Chr\",\"Size(Mb)\",\"GC\"}{print $1,int($2/10000+0.5)/100,$3}' " \
+              "| perl %s/tabletools_add.pl -i %s/gene.content.tab.xls -t - -n 1 > %s/gene.stat.xls" % \
+              (self.seqkit_path, self.option("in_fasta").prop["path"], self.scripts, self.output_dir, self.output_dir)
+        self.logger.info(cmd)
+        os.system(cmd)
 
     def cmd3(self):
-        if self.option("in_gff").is_set:
-            new_path = self.work_dir + "/" + os.path.basename(self.option("in_gff").prop["path"])
-        else:
-            new_path = self.work_dir + "/" + os.path.basename(self.option("in_gtf").prop["path"])
-        if os.path.exists(new_path):
-            os.remove(new_path)
-        if self.option("in_gff").is_set:
-            os.link(self.option("in_gff").prop["path"], new_path)
-        else:
-            os.link(self.option("in_gtf").prop["path"], new_path)
-        cmd = "less -S {} | grep -v '^#' | awk -F '\\t' '$3 == \"gene\"' | cut -f1,9 | " \
-              "cut -d ';' -f1,2 | sort -k1,1 | {} groupby -g 1 -c 1 -o count ".format(new_path, self.bedtools)
-        cmd += "| awk -F '\\t' -vOFS='\\t' 'BEGIN{print \"# Chr\",\"Gene_Number\"}1' > ref_genome.gee.stat.xls"
-        self.logger.info("第三步开始运行,命令为{}".format(cmd))
-        subprocess.check_output(cmd, shell=True)
-        self.logger.info("第三步运行完成")
-        self.cmd4()
-
-    def cmd4(self):
-        cmd = "perl {} -i ref_genome.gee.stat.xls -t ref_genome.stat.xls -n 1 " \
-              "> ref_genome.gene.stat.xls".format(self.scripts)
-        self.logger.info("第四步开始运行,命令为{}".format(cmd))
-        subprocess.check_output(cmd, shell=True)
-        self.logger.info("第四步运行完成")
-        self.end()
+        cmd = "%s/bioawk  -c fastx 'BEGIN{print \"Ref seq\tLength\tGC\"};{print $name\"\\t\"length($seq)\"\\t\"gc($seq)*100}' %s > %s/gene.stat.xls" % (self.bioawk_path, self.option("in_fasta").prop["path"], self.output_dir)
+        self.logger.info(cmd)
+        os.system(cmd)
 
     def run(self):
         super(GenomeStructureTool, self).run()
-        self.cmd1()
+        if self.option("ref_genome") != "customer_mode":
+            self.cmd1()
+            self.cmd2()
+        else:
+            self.cmd3()
+        self.end()

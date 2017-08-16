@@ -50,7 +50,7 @@ class CoverageAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = '50G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -99,7 +99,10 @@ class CoverageTool(Tool):
     def coverage(self):
         coverage_cmd = "{}python {}geneBody_coverage.py  -i {} -l {} -r {} -o {}".\
             format(self.python_path, self.python_full_path, self.bam_name + ".sorted.bam", self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
-        print(coverage_cmd)
+        # print(coverage_cmd)
+        # coverage_cmd = "{}python {}geneBody_coverage.py  -i {} -l {} -r {} -o {}".\
+        #     format(self.python_path, self.python_full_path, self.option("bam").prop["path"], self.option("min_len"), self.option("bed").prop["path"], "coverage_" + self.bam_name)
+        # print(coverage_cmd)
         self.logger.info("开始运行geneBody_coverage.py脚本")
         coverage_command = self.add_command("coverage", coverage_cmd)
         coverage_command.run()

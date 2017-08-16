@@ -99,7 +99,35 @@ class MantelTestModule(Module):
         # self.otudistance.on("end",self.facdistance_run)
         self.otudistance.run()
 
+    def check_env(self):  # add by zhouxuan 20170720
+        env_table = self.option('factor').prop['path']
+        sample_e = []
+        with open(env_table, 'r') as e:
+            for line in e:
+                line = line.strip('\n').split('\t')
+                if line[0] != '#SampleID':
+                    sample_e.append(line[0])
+                    for i in range(1, len(line)):
+                        if float(line[i]) or line[i] == '0':
+                            continue
+                        else:
+                            # return False
+                            raise Exception('环境因子表中存在分类型环境因子')
+        otu_path = self.option("otutable").prop['path']
+        with open(otu_path, 'r') as o:
+            line = o.readline()
+            line = line.strip('\n').split('\t')
+            sample_o = line[1:]
+        for i in sample_o:
+            if i in sample_e:
+                continue
+            else:
+                # return False
+                raise Exception('OTU表中的样本和环境因子表中的样本不一致，请剔除OTU中非法样本！')
+        return True
+
     def facdistance_run(self):
+        self.check_env()  # add by zhouxuan 20170612
         options = {
             'factor': self.option('factor'),
             'facmatrixtype': self.option('factormatrixtype')
@@ -113,6 +141,7 @@ class MantelTestModule(Module):
         self.facdistance.run()
 
     def partial_run(self):
+        self.check_env()  # add by zhouxuan 20170612
         options = {
             'factor': self.option('factor'),
             'facmatrixtype': self.option('factormatrixtype'),

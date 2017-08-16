@@ -13,6 +13,7 @@ class FamilyAnalysisAgent(Agent):
     """
     合并家族之后的一系列分析
     包括父权值、有效率、无效率、错配率等等
+    包含data_analysis.R
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21
@@ -80,20 +81,23 @@ class FamilyAnalysisTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
     def run_tf(self):
-        analysis_cmd = "{}Rscript {}data_analysis.R {}".\
-            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'])
+        analysis_cmd = "{}Rscript {}data_analysis.R {} {}".\
+            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'],self.work_dir)
         self.logger.info(analysis_cmd)
         self.logger.info("开始运行家系的分析")
         cmd = self.add_command("analysis_cmd", analysis_cmd).run()
         self.wait(cmd)
+
+        self.logger.info("analysis_cmd的返回码是{}".format(cmd.return_code))
         if cmd.return_code == 0:
             self.logger.info("运行家系分析成功")
         else:
-            self.logger.info("运行家系分析出错")
+            self.set_error("运行家系分析出错")
+            raise Exception("运行家系分析出错")
 
     def set_output(self):
         """

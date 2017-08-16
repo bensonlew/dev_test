@@ -56,8 +56,8 @@ class StringtieMergeAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
-        self._memory = "10G"
+        self._cpu = 1
+        self._memory = "3G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -128,9 +128,9 @@ class StringtieMergeTool(Tool):
         """
         self.logger.info("设置结果目录")
         try:
-            shutil.copy2(self.work_dir + "/merged.gtf", self.output_dir + "/merged.gtf")
+            os.link(self.work_dir + "/merged.gtf", self.output_dir + "/merged.gtf")
             self.option('merged_gtf').set_path(self.work_dir + "/merged.gtf")
-            shutil.copy2(self.work_dir + "/merged.fa", self.output_dir + "/merged.fa")
+            os.link(self.work_dir + "/merged.fa", self.output_dir + "/merged.fa")
             self.logger.info("设置拼接合并分析结果目录成功")
 
         except Exception as e:

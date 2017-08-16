@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'qiuping'
+# __author__ = 'zengjing'
 
 
 def blastout_statistics(blast_table, evalue_path, similarity_path):
@@ -11,15 +11,15 @@ def blastout_statistics(blast_table, evalue_path, similarity_path):
             line = line.strip('\n').split('\t')
             evalue = float(line[1])
             similarity = float(line[4])
-            if not evalue:
+            if 0 <= evalue <= 1e-30:
                 count_evalue[0] += 1
-            elif 0 < evalue <= 1e-30:
-                count_evalue[1] += 1
             elif 1e-30 < evalue <= 1e-20:
-                count_evalue[2] += 1
+                count_evalue[1] += 1
             elif 1e-20 < evalue <= 1e-10:
-                count_evalue[3] += 1
+                count_evalue[2] += 1
             elif 1e-10 < evalue <= 1e-5:
+                count_evalue[3] += 1
+            elif 1e-5 < evalue <= 1e-3:
                 count_evalue[4] += 1
             else:
                 count_evalue[5] += 1
@@ -34,7 +34,15 @@ def blastout_statistics(blast_table, evalue_path, similarity_path):
             else:
                 count_similar[4] += 1
         e.write("evlaue_interval\tnum_hits\n")
-        e.write('0\t{}\n0 1e-30\t{}\n1e-30 1e-20\t{}\n1e-20 1e-10\t{}\n1e-10 1e-5\t{}\n1e-5 inf\t{}\n'.format(count_evalue[0], count_evalue[1], count_evalue[2], count_evalue[3], count_evalue[4], count_evalue[5]))
+        e.write('[0, 1e-30]\t{}\n'.format(count_evalue[0]))
+        e.write('(1e-30, 1e-20]\t{}\n'.format(count_evalue[1]))
+        e.write('(1e-20, 1e-10]\t{}\n'.format(count_evalue[2]))
+        e.write('(1e-10, 1e-5]\t{}\n'.format(count_evalue[3]))
+        e.write('(1e-5, 1e-3]\t{}\n'.format(count_evalue[4]))
+        # e.write('(>1e-5)\t{}\n'.format(count_evalue[4]))
         s.write('similarity_interval\tnum_hits\n')
-        for i in range(len(count_similar)):
-            s.write('{}%-{}%\t{}\n'.format(i * 20, (i + 1) * 20, count_similar[i]))
+        s.write('[0%, 20%]\t{}\n'.format(count_similar[0]))
+        s.write('(20%, 40%]\t{}\n'.format(count_similar[1]))
+        s.write('(40%, 60%]\t{}\n'.format(count_similar[2]))
+        s.write('(60%, 80%]\t{}\n'.format(count_similar[3]))
+        s.write('(80%, 100%]\t{}\n'.format(count_similar[4]))

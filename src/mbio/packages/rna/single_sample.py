@@ -8,7 +8,7 @@ from collections import defaultdict
 import re
 import os
 import subprocess
-from mbio.packages.denovo_rna.express.express_distribution import distribution
+from mbio.packages.ref_rna.express.express_distribution import distribution
 
 def prepare(input_file, gtf_file, count_matrix, gene_length):
     #对featureCounts生成的文件进一步处理，求fpkm.tpm表达量
@@ -28,7 +28,7 @@ def prepare(input_file, gtf_file, count_matrix, gene_length):
     """
     with open(input_file,'r+') as f1, open(gene_length,'w+') as f2, open(count_matrix,'w+') as f3:
         _head = f1.readline().strip().split("\t")[6:]
-        f3.write("Genes\t"+"\t".join(_head)+"\n")
+        f3.write("\t"+"\t".join(_head)+"\n")
         f2.write("Genes\tLength\n")
         ss=0
         for line in f1:
@@ -464,7 +464,7 @@ def add_gene_name(old_express, new_express, class_code, type= 'gene'):
                 f3.write(seq_id+","+gene_trans_info[seq_id]['gene_name']+"\t"+"\t".join(line[1:])+"\n")
             else:
                 f3.write(ll)
-def group_express(old_fpkm, new_fpkm, sample_group_info, rfile, filename, outputfile):
+def group_express(old_fpkm, new_fpkm, old_count, new_count, sample_group_info, filename, outputfile):
     """
     :params: old_fpkm, fpkm表
     :params: new_fpkm, 新生成的groupfpkm表
@@ -473,38 +473,48 @@ def group_express(old_fpkm, new_fpkm, sample_group_info, rfile, filename, output
     :params: filename, string格式，文件名
     :params: outputfile, 生成文件路径
     """
-    with open(old_fpkm,'r+') as f1, open(new_fpkm, 'w+') as f2:
-        sample = f1.readline().strip().split("\t")
-        print sample
-        group_name = sample_group_info.keys()
-        data= {}
-        for lines in f1:
-            line = lines.strip().split("\t")
-            seq_id = line[0]
-            data[seq_id] = {}
-            for i in range(len(sample)):
-                # try:
+    def group_assembly(old_file_path, new_file_path,sample_group_info):
+        with open(old_file_path,'r+') as f1, open(new_file_path, 'w+') as f2:
+            sample = f1.readline().strip().split("\t")
+            print sample
+            group_name = sample_group_info.keys()
+            data= {}
+            for lines in f1:
+                line = lines.strip().split("\t")
+                seq_id = line[0]
+                data[seq_id] = {}
+                for i in range(len(sample)):
                     print i
                     data[seq_id][sample[i]] = int(float(line[i+1]))
-                # except Exception:
-                    # print line
-                    # print seq_id
-                    # print sample[i]
-                    # print i
-        f2.write("\t"+"\t".join(group_name)+"\n")
-        for keys in data.keys():
-            grp_data = []
-            for grp in group_name:
-                sample_id = sample_group_info[grp]
-                sum_value = 0
-                for sam in sample_id:
-                    sum_value += data[keys][sam]
-                average_value = round(sum_value/len(sample_id), 6)
-                grp_data.append(str(average_value))
-            f2.write(keys+"\t"+"\t".join(grp_data)+"\n")
-    if os.path.exists(new_fpkm):
-        input_matrix = new_fpkm
-        distribution(rfile, input_matrix, outputfile, filename)
+            f2.write("\t"+"\t".join(group_name)+"\n")
+            for keys in data.keys():
+                grp_data = []
+                for grp in group_name:
+                    sample_id = sample_group_info[grp]
+                    sum_value = 0
+                    try:
+                        for sam in sample_id:
+                            for keys1 in data[keys].keys():
+                                m_ = re.search(r'{}'.format(sam),keys1)
+                                if m_:
+                                    sum_value += data[keys][keys1]
+                    except Exception:
+                        print data[keys]
+                        print sam
+                        print sum_value
+                        raise Exception("error！")
+                    average_value = round(sum_value/len(sample_id), 6)
+                    grp_data.append(str(average_value))
+                f2.write(keys+"\t"+"\t".join(grp_data)+"\n")
+
+    group_assembly(old_fpkm, new_fpkm, sample_group_info)
+    group_assembly(old_count, new_count, sample_group_info)
+    # if os.path.exists(new_fpkm):
+    #     input_matrix = new_fpkm
+    #     distribution(rfile, input_matrix, outputfile, filename)
+    # if os.path.exists(new_count):
+    #     input_matrix = new_count
+    #     distribution(rfile, input_matrix,outputfile, filename+"_count")
     print 'end'
     
 if __name__ == "__main__":
@@ -574,10 +584,30 @@ if __name__ == "__main__":
     filename = "transcriptGroup"
     outputfile = "/mnt/ilustre/users/sanger-dev/workspace/20170410/Single_rsem_stringtie_zebra_7/Express/MergeRsem/output"
     group_express(old_fpkm = fpkm_path, new_fpkm = new_fpkm, sample_group_info = sample_group_info, rfile = rfile, filename=filename, outputfile=outputfile)
-    """
+    
     old_express = "/mnt/ilustre/users/sanger-dev/workspace/20170425/Single_merge_rsem_fpkm_9/MergeRsem/output/genes.counts.matrix"
     new_express = "/mnt/ilustre/users/sanger-dev/workspace/20170425/Single_merge_rsem_fpkm_9/MergeRsem/output/new.genes.counts.matrix"
     class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170425/Single_merge_rsem_fpkm_9/MergeRsem/class_code"
     add_gene_name(old_express,new_express,class_code,"gene")
     print 'end'
     
+    fpkm_path = "/mnt/ilustre/users/sanger-dev/workspace/20170504/Single_feature_sample_v2/Featurecounts/output/fpkm_tpm.fpkm.xls"
+    new_fpkm = "/mnt/ilustre/users/sanger-dev/workspace/20170504/Single_feature_sample_v2/Featurecounts/output/new_fpkm.fpkm.xls"
+    sample_group_info = {"B":['sample2_2', 'sample2_1'], "A":['sample1_2', 'sample1_1']}
+    rfile = "/mnt/ilustre/users/sanger-dev/workspace/20170504/Single_feature_group_v3/Featurecounts/express_distribution.r"
+    filename="genes"
+    outputfile = "/mnt/ilustre/users/sanger-dev/workspace/20170504/Single_feature_group_v3/Featurecounts/group"
+    group_express(old_fpkm = fpkm_path, new_fpkm = new_fpkm, sample_group_info = sample_group_info, rfile = rfile, filename=filename, outputfile=outputfile)
+
+    fpkm_path = "/mnt/ilustre/users/sanger-dev/workspace/20170510/Single_feature_Truestringtie_sample_1/Express/Featurecounts/output/fpkm_tpm.fpkm.xls"
+    new_fpkm = "/mnt/ilustre/users/sanger-dev/workspace/20170510/Single_feature_Truestringtie_sample_1/Express/Featurecounts/output/group_fpkm"
+    # compare_column_specimen["CD|HGD"] = [ "CL1", "CL2", "CL5","HGL1", "HGL3","HGL4"]
+    # compare_column_specimen["CD|HFD"] = ["CL1", "CL2", "CL5", "HFL4","HFL6","HFL3"]
+    # compare_column_specimen["HGD|HFD"] = ["HGL1", "HGL3","HGL4","HFL4","HFL6","HFL3"]
+    sample_group_info = {"CD":["CL1", "CL2", "CL5"],"HGD":["HGL1", "HGL3","HGL4"],"HFD":["HFL4","HFL6","HFL3"]}
+    filenames="genes"
+    outputfile = "data"
+    count_path = "/mnt/ilustre/users/sanger-dev/workspace/20170510/Single_feature_Truestringtie_sample_1/Express/Featurecounts/output/count.xls"
+    new_count = "/mnt/ilustre/users/sanger-dev/workspace/20170510/Single_feature_Truestringtie_sample_1/Express/Featurecounts/output/group_count"
+    group_express(fpkm_path,new_fpkm,count_path,new_count, sample_group_info,"rdata",filenames,outputfile)
+    """

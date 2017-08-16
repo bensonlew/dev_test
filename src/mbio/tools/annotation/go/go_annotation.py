@@ -67,9 +67,9 @@ class GoAnnotationAgent(Agent):
             ["./go1234level_statistics.xls", "xls", "Go annotation on 4 levels"],
             ["./go123level_statistics.xls", "xls", "Go annotation on 3 levels"],
             ["./go12level_statistics.xls", "xls", "Go annotation on 2 levels"],
-            ["./go2level.xls", "xls", "Go annotation on level 2"],
-            ["./go3level.xls", "xls", "Go annotation on level 3"],
-            ["./go4level.xls", "xls", "Go annotation on level 4"]
+            # ["./go2level.xls", "xls", "Go annotation on level 2"],
+            # ["./go3level.xls", "xls", "Go annotation on level 3"],
+            # ["./go4level.xls", "xls", "Go annotation on level 4"]
         ])
         super(GoAnnotationAgent, self).end()
 
@@ -78,6 +78,10 @@ class GoAnnotationTool(Tool):
 
     def __init__(self, config):
         super(GoAnnotationTool, self).__init__(config)
+        self.set_environ(JAVA_HOME=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0")
+        self.set_environ(JRE_HOME=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0/jre")
+        self.set_environ(CLASSPATH=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0/lib")
+        self.set_environ(CLASSPATH=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0/jre/lib")
         self._version = "1.0"
         self.b2g_user = "biocluster102"
         self.b2g_password = "sanger-dev-123"
@@ -89,7 +93,7 @@ class GoAnnotationTool(Tool):
     def run_b2g(self):
         self.blast_nr_out = self.work_dir + '/temp_blast_nr.xml'
         self.option("blastout").change_blast_version(self.blast_nr_out)
-        cmd = '/program/sun_jdk1.8.0/bin/java -Xmx15g -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
+        cmd = '/program/sun_jdk1.8.0/bin/java -Xmx20g -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
         cmd += self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/ext/*: es.blast2go.prog.B2GAnnotPipe'
         cmd += ' -in {} -prop {}/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out {}'.format(self.blast_nr_out, self.config.SOFTWARE_DIR, self.work_dir + '/blast2go')
         self.logger.info('运行b2g程序')
@@ -148,7 +152,8 @@ class GoAnnotationTool(Tool):
                 os.link(self.work_dir + '/' + item, linkfile)
         except subprocess.CalledProcessError:
             self.set_error("运行goAnnot.py出错")
-        self.run_gosplit()
+        # self.run_gosplit()
+        self.end()
 
     def run_gosplit(self):
         cmd3 = '{}/program/Python/bin/python {}/bioinfo/annotation/scripts/goSplit.py'.format(

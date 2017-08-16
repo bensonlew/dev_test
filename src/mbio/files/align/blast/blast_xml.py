@@ -69,9 +69,14 @@ class BlastXmlFile(File):
             return True
 
     def convert2table(self, outfile):
-        """调用packages中的xml2table方法来转换到table格式"""
+        """调用packages中的xml2table方法来转换到table格式，结果文件有表头"""
         from mbio.packages.align.blast.xml2table import xml2table
         xml2table(self.path, outfile)
+
+    def convert2blast6default(self, outfile):
+        """调用packages中的xml2blast6方法将xml转换成blast默认的outfmt 6输出格式，结果没有表头"""
+        from mbio.packages.align.blast.xml2table import xml2blast6
+        xml2blast6(self.path, outfile)
 
     def sub_blast_xml(self, genes, new_fp, trinity_mode=False):
         """

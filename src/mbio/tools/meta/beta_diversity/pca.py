@@ -93,8 +93,8 @@ class PcaAgent(Agent):
         """
         设置所需资源
         """
-        self._cpu = 2
-        self._memory = '3G'
+        self._cpu = 4
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -116,8 +116,11 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
     def __init__(self, config):
         super(PcaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
-        self.cmd_path = os.path.join(
-            self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
+        # self.cmd_path = os.path.join(
+        #     self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
+        self.cmd_path = 'bioinfo/statistical/scripts/ordination.pl'
+        self.script_path = "bioinfo/meta/scripts/beta_diver.sh"
+        self.R_path = os.path.join(self.config.SOFTWARE_DIR, 'program/R-3.3.1/bin/R')
 
 
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
@@ -242,19 +245,36 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         if self.option('envtable').is_set:
             cmd += ' -pca_env T -environment %s' % self.env_table
         self.logger.info('运行ordination.pl程序计算pca')
-        try:
-            subprocess.check_output(cmd, shell=True)
-            self.logger.info('生成 cmd.r 文件成功')
-        except subprocess.CalledProcessError:
+        self.logger.info(cmd)
+        cmd1 = self.add_command("cmd.r", cmd).run()
+        self.wait(cmd1)
+        if cmd1.return_code == 0:
+            self.logger.info("生成 cmd.r 文件成功")
+        else:
             self.logger.info('生成 cmd.r 文件失败')
             self.set_error('无法生成 cmd.r 文件')
-        try:
-            subprocess.check_output(self.config.SOFTWARE_DIR +
-                                    '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
-            self.logger.info('pca计算成功')
-        except subprocess.CalledProcessError:
+        cmd_ = self.script_path + ' %s %s' % (self.R_path, self.work_dir + "/cmd.r")
+        self.logger.info(cmd_)
+        cmd2 = self.add_command("pca", cmd_).run()
+        self.wait(cmd2)
+        if cmd2.return_code == 0:
+            self.logger.info("pca计算成功")
+        else:
             self.logger.info('pca计算失败')
             self.set_error('R程序计算pca失败')
+        # try:
+        #     subprocess.check_output(cmd, shell=True)
+        #     self.logger.info('生成 cmd.r 文件成功')
+        # except subprocess.CalledProcessError:
+        #     self.logger.info('生成 cmd.r 文件失败')
+        #     self.set_error('无法生成 cmd.r 文件')
+        # try:
+        #     subprocess.check_output(self.config.SOFTWARE_DIR +
+        #                             '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
+        #     self.logger.info('pca计算成功')
+        # except subprocess.CalledProcessError:
+        #     self.logger.info('pca计算失败')
+        #     self.set_error('R程序计算pca失败')
         self.logger.info('运行ordination.pl程序计算pca完成')
         allfiles = self.get_filesname()
         self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls')

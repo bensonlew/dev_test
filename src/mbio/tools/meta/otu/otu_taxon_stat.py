@@ -77,8 +77,13 @@ class OtuTaxonStatAgent(Agent):
         """
         设置所需要的资源
         """
-        self._cpu = 1
-        self._memory = '3G'
+        self._cpu = 2
+        table_size = self.option("in_otu_table").get_size() / 1024  # 单位K/get_size是b单位
+        if table_size < 1:
+            self._memory = '8G'
+        else:
+            multiple = table_size / 1024.00 / 5.00    # 文件每增加5M，mem增加1G
+            self._memory = str(8 + int(multiple)) + 'G'
 
 
 class OtuTaxonStatTool(Tool):
@@ -122,7 +127,11 @@ class OtuTaxonStatTool(Tool):
                     line = line.rstrip('\n')
                     name = re.split('\t', line)[0]
                     line = re.sub(r'\.0', '', line)
-                    w.write(line + '\t' + otu_tax[name] + "\n")
+                    if name in otu_tax.keys():
+                        w.write(line + '\t' + otu_tax[name] + "\n")
+                    else:
+                        add_line = "d__unclassified;k__unclassified;p__unclassified;c__unclassified;o__unclassified;f__unclassified;g__unclassified;s__unclassified"
+                        w.write(line + '\t' + add_line + "\n")
         taxon_otu_obj = OtuTableFile()
         taxon_otu_obj.set_path(taxon_otu)
         taxon_otu_obj.get_info()

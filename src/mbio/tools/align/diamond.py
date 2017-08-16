@@ -25,7 +25,8 @@ class DiamondAgent(Agent):
             {"name": "blast", "type": "string", "default": "blastp"},  # 设定diamond程序有blastp，blastx
             {"name": "reference", "type": "infile", "format": "sequence.fasta"},  # 参考序列  选择customer时启用
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
-            {"name": "num_threads", "type": "int", "default": 10}  # cpu数
+            {"name": "num_threads", "type": "int", "default": 10},  # cpu数
+            {"name": "sensitive", "type": "int", "default": 2}
             ]
         self.add_option(options)
         self.step.add_steps('diamond')
@@ -48,7 +49,8 @@ class DiamondAgent(Agent):
             raise OptionError('query_type查询序列的类型为nucl(核酸)或者prot(蛋白):{}'.format(self.option('query_type')))
         if not 1 > self.option('evalue') >= 0:
             raise OptionError('E-value值设定必须为[0-1)之间：{}'.format(self.option('evalue')))
-
+        if not 0 <= self.option("sensitive") <= 2:
+            raise OptionError('敏感度设定必须为[0-2]之间：{}'.format(self.option('evalue')))
         return True
 
     def set_resource(self):
@@ -81,7 +83,7 @@ class DiamondTool(Tool):
         db_name = os.path.splitext(os.path.basename(self.option("reference").prop['path']))[0]
         cmd = os.path.join(self.cmd_path, "makedb")
         self.db_path = os.path.join(self.work_dir, 'diamond')
-        cmd += "-makedb -in {} -d {}".format(self.option("reference").prop['path'], db_name)
+        cmd += " makedb -in {} -d {}".format(self.option("reference").prop['path'], db_name)
         self.logger.info("开始创建diamond数据库，生成结果库文件放在工作目录的customer_blastdb下")
         makedb_obj = self.add_command("makedb", cmd).run()
         self.wait(makedb_obj)
@@ -103,40 +105,35 @@ class DiamondTool(Tool):
         cmd = os.path.join(self.cmd_path, "diamond")
         outputfile = os.path.join(self.output_dir, query_name + "_vs_" + db_name)
         outfmt = self.option('outfmt')
-        if self.option('outfmt') == 5:
-            outputfile += '.xml'
-            outfmt = 5
-        elif self.option('outfmt') == 6:
-            outputfile += '.txt'
-            outfmt = 6  # 为了保证table格式输出表头完全一致，输出为6时，选用5xml为输出结果，后面再通过统一的xml2table转换
-        else:
-            pass
-        cmd += " {} -q {} -d {} -o {} -e {} -f {} -p {}".format(
+        # if self.option('outfmt') == 5:
+        outputfile += '.xml'  # outfmt默认为5
+        outfmt = 5
+        cmd += " {} -q {} -d {} -o {} -e {} -f {} -p {} -k 5".format(
             self.blast_type, self.option("query").prop['path'], db, outputfile,
             self.option("evalue"), outfmt, self.option("num_threads"))
+        if self.option("sensitive") == 1:
+            cmd += " --sensitive"
+        elif self.option("sensitive") == 2:
+            cmd += " --more-sensitive"
         self.logger.info("开始运行blast")
         blast_command = self.add_command("diamond", cmd)
         blast_command.run()
         self.wait()
         if blast_command.return_code == 0:
             self.logger.info("运行diamond完成")
-            if self.option('outfmt') == 6:
-                pass
-            if self.option('outfmt') == 5:
-                self.logger.info(outputfile)
-                # self.option('outxml', outputfile)
-                self.change_version(outputfile)
-            # self.end()
-        else:
+            self.logger.info(outputfile)
+            self.change_version(outputfile)
+        elif blast_command.return_code == None:
             self.logger.info("重新运行diamond")
             blast_command.rerun()
-            self.wait()
+            self.wait(blast_command)
             if blast_command.return_code == 0:
                 self.logger.info("重新运行diamond成功")
                 # self.end()
                 self.change_version(outputfile)
-            else:
-                self.set_error("diamond运行出错!")
+        else:
+            self.set_error("diamond运行出错!")
+            raise Exception("diamond运行出错!")
 
     def run(self):
         """
@@ -167,13 +164,21 @@ class DiamondTool(Tool):
         with open(path,"r") as file, open(path + "_new", "w") as fw:
             i = 0
             for line in file:
+                if line.lstrip().startswith("<BlastOutput_db>"):
+                    line = line.replace("<BlastOutput_db>", "<BlastOutput_db>" + self.option("database"))
                 if line.lstrip().startswith("<BlastOutput_version>"):
                     line = line.replace("diamond 0.8.35", "BLASTX 2.3.0+")
                 if line.lstrip().startswith("<Hit_id>"):
                     m = re.match("<Hit_id>(.+)</Hit_id>", line.lstrip())
                     if m:
                         line = line.replace(self.ori[i],self.repl[i])
+                if line.lstrip().startswith("<Hit_def>"):
+                    m = re.match("<Hit_def>(.+)</Hit_def>", line.lstrip())
+                    if m:
+                        line = line.replace(self.repl[i],self.ori[i])
                         i += 1
                 fw.write(line)
-        os.system("mv {} {}".format(path + "_new", path))
+        # os.system("mv {} {}".format(path + "_new", path))
+        os.remove(path)
+        os.link(path + "_new", path)
         self.end()

@@ -54,7 +54,7 @@ class RpkmSaturationAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = '15G'
+        self._memory = '25G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -106,11 +106,16 @@ class RpkmSaturationTool(Tool):
         self.logger.info(cmd)
         cmd = self.add_command("rpkm_plot_{}".format(out_pre.lower()), cmd)
         cmd.run()
-        self.wait()
+        self.wait(cmd)
         if cmd.return_code == 0:
             self.logger.info("运行{}结束!".format(cmd.name))
         else:
-            self.set_error("运行{}出错!".format(cmd.name))
+            self.logger.info("程序出错，开始重新运行")
+            cmd.rerun()
+            if cmd.return_code == 0:
+                self.logger.info("运行{}结束!".format(cmd.name))
+            else:
+                self.set_error("运行{}出错!".format(cmd.name))
         return cmd
 
     def set_output(self):
@@ -151,7 +156,7 @@ class RpkmSaturationTool(Tool):
                 self.set_error("运行RPKM_saturation.py脚本过程出错")
         elif self.option("bam").format == "align.bwa.bam_dir":
             saturation = self.multi_satur(self.option("bam").prop["path"], "satur")
-            self.wait()
+            self.wait(saturation)
             for cmd in saturation:
                 if cmd.return_code == 0:
                     self.logger.info("运行{}结束!".format(cmd.name))

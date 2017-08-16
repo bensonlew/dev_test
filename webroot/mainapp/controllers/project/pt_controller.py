@@ -8,6 +8,7 @@ from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
 import json
 import random
+import datetime
 
 
 class PtController(MetaController):
@@ -21,7 +22,7 @@ class PtController(MetaController):
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
-            return 'pt.update_status'
+            return 'pt.med_report_update'
         else:
             return 'pt.med_report_tupdate'
 
@@ -48,6 +49,7 @@ class PtController(MetaController):
             'stage_id': 0,
             'name': name,
             'type': module_type,
+            'interaction': True,
             'client': self.data.client,
             # 'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,
@@ -63,7 +65,7 @@ class PtController(MetaController):
 
     def set_sheet_data_(self, name, options, module_type="workflow", params=None, to_file=None):
         self._post_data = web.input()
-        new_id = 'pt_{}_{}'.format(random.randint(1000, 10000), random.randint(1, 10000))
+        new_id = '{}_{}'.format(random.randint(1, 1000), datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         print new_id
         self._sheet_data = {
             'id': new_id,

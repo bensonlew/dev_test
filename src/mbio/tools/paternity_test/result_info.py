@@ -15,6 +15,8 @@ class ResultInfoAgent(Agent):
     """
     亲子鉴定的结果输出
     包含家系图，存入报告的图、胎儿浓度等
+    包含脚本：plot.R、convert2png.sh
+    如果结果中有样本有问题（如测序深度过低）的，就不生成结果图片，后续判断为异常家系
     version v1.0
     author: moli.zhou
     last_modify: 2016.11.21
@@ -86,23 +88,32 @@ class ResultInfoTool(Tool):
 
         self.R_path = 'program/R-3.3.1/bin/'
         self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
-        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + 'program/ImageMagick/bin')
-        # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.4.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib')
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ImageMagick/bin')
+        # self.set_environ(PATH= self.config.SOFTWARE_DIR + '/gcc/5.1.0/stage1-x86_64-unknown-linux-gnu/libstdc++-v3/src/.libs')
 
     def run_tf(self):
-        plot_cmd = "{}Rscript {}plot.R {}".\
-            format(self.R_path,self.script_path,self.option("tab_merged").prop['path'])
-        self.logger.info(plot_cmd)
-        self.logger.info("开始运行结果信息图的绘制")
-        cmd = self.add_command("plot_cmd", plot_cmd).run()
-        self.wait(cmd)
-        if cmd.return_code == 0:
-            self.logger.info("运行绘制结果图成功")
+        data_name = self.option("tab_merged").prop['path'].split('/')[-1]
+        dad = data_name.split('_')[0]
+        mom = data_name.split('_')[1]
+        preg = data_name.split('_')[2]
+        if dad!='NA' and mom!='NA'and preg!='NA':
+            plot_cmd = "{}Rscript {}plot.R {}".\
+                format(self.R_path,self.script_path,self.option("tab_merged").prop['path'])
+            self.logger.info(plot_cmd)
+            self.logger.info("开始运行结果信息图的绘制")
+            cmd = self.add_command("plot_cmd", plot_cmd).run()
+            self.wait(cmd)
+
+            if cmd.return_code == 0:
+                self.logger.info("运行绘制结果图成功")
+            else:
+                self.set_error("运行绘制结果图出错")
+                raise Exception("运行绘制结果图出错")
         else:
-            self.logger.info("运行绘制结果图出错")
+            self.logger.info("家系中有样本质控不合格")
 
         path_family = None
         path_fig1 = None
@@ -138,10 +149,12 @@ class ResultInfoTool(Tool):
             self.logger.info("开始运行结果图的转化")
             cmd = self.add_command("convert_cmd", convert_cmd).run()
             self.wait(cmd)
+
             if cmd.return_code == 0:
                 self.logger.info("运行转化结果图成功")
             else:
-                self.logger.info("运行转化结果图出错")
+                self.set_error("运行转化结果图出错")
+                raise Exception("运行转化结果图出错")
 
     def set_output(self):
         """

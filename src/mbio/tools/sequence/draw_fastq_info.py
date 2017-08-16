@@ -44,8 +44,8 @@ class DrawFastqInfoAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 11
-        self._memory = ''
+        self._cpu = 1 # edited by shijin on 20170717
+        self._memory = '4G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -71,7 +71,7 @@ class DrawFastqInfoTool(Tool):
     def fastq_quality_stats(self, fastq, outfile):
         fastq_name = fastq.split("/")[-1]
         fastq_name = fastq_name.lower()
-        cmd = self.fastxtoolkit_path + 'fastx_quality_stats -i {} -o {}'.format(fastq, outfile)
+        cmd = self.fastxtoolkit_path + 'fastx_quality_stats -i {} -Q 33 -o {}'.format(fastq, outfile)
         self.logger.info(cmd)
         self.logger.info("开始运行{}_quality_stats".format(fastq_name))
         command = self.add_command("{}_quality_stats".format(fastq_name), cmd)
@@ -118,8 +118,20 @@ class DrawFastqInfoTool(Tool):
                 self.logger.info("运行{}完成")
                 fastq_qual_stat("qual_stat")
             else:
-                self.set_error("运行{}运行出错!")
-                return False
+                if command.return_code == None:
+                    command.rerun()
+                    self.wait(command)
+                    if command.return_code == 0:
+                        self.logger.info("运行{}完成".format(command.name))
+                        fastq_qual_stat("qual_stat")
+                    else:
+                        self.set_error("运行{}运行出错!".format(command.name))
+                        raise Exception("运行draw_fastq_info出错!")
+                        return False
+                else:
+                    self.set_error("运行{}运行出错!".format(command.name))
+                    raise Exception("运行draw_fastq_info出错!")
+                    return False
         elif self.option("fastq").format == "sequence.fastq_dir":
             commands = self.multi_fastq_quality_stats()
             self.wait()
@@ -132,7 +144,20 @@ class DrawFastqInfoTool(Tool):
                     fastq_qual_stat(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
                 else:
                     # self.logger.info("运行出错")
-                    self.set_error("运行{}出错!".format(cmd.name))
-                    return False
+                    if cmd.return_code == None:
+                        cmd.rerun()
+                        self.wait(cmd)
+                        if cmd.return_code == 0:
+                            self.logger.info("运行{}完成".format(cmd.name))
+                            self.logger.info(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
+                            fastq_qual_stat(os.path.join(self.work_dir, cmd.name[:-14] + "_qual_stat"))
+                        else:
+                            self.set_error("运行{}运行出错!".format(cmd.name))
+                            raise Exception("运行draw_fastq_info出错!")
+                            return False
+                    else:
+                        self.set_error("运行{}运行出错!".format(cmd.name))
+                        raise Exception("运行draw_fastq_info出错!")
+                        return False
         self.set_output()
         self.end()

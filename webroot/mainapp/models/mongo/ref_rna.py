@@ -47,19 +47,26 @@ class RefRna(Meta):
          mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
          collection=mongodb["sg_express"]
          db=collection.find({"task_id":task_id})
-         try:
-             for d in db:
+         new_id = []
+         for d in db:
                  _id = d["_id"]
+                 #print d
                  params=json.loads(d['params'])
+                 """
                  print params
                  print params['type']
                  print params['express_method']
+                 print _type
+                 print express_method
+                 """
                  if _type == params['type'] and express_method == params['express_method'].lower():
                        return _id
                  else: 
                        pass
-         except Exception:
-                 print "没有找到{}和{}对应的express_id".format(_type,express_method)
+         if not new_id:   #没有找到对应的表达量信息
+             return False
+         
+         
     
     def get_class_code_id(self, task_id):
         """
@@ -72,4 +79,97 @@ class RefRna(Meta):
             return db["_id"]
         except Exception:
             print "没有找到task_id: {}对应的class_code_id".format(task_id)
-         
+    
+    def get_control_id(self,main_id):
+        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = mongodb['sg_specimen_group_compare']
+        try:
+            if isinstance(main_id, types.StringTypes):
+                main_id = ObjectId(main_id)
+            elif isinstance(main_id, ObjectId):
+                main_id = main_id
+            else:
+                raise Exception("输入main_id参数必须为字符串或者ObjectId类型!")
+            data = collection.find_one({"_id":main_id})
+            if "compare_names" in data.keys():
+                compare_names = json.loads(data['compare_names'])
+                print compare_names
+                return compare_names
+            else:
+                print "{}没有分组的对照信息！".format(str(main_id))
+    
+        except Exception:
+            print "{}不存在".format(str(main_id))
+
+    def insert_geneset_info(self, geneset_id, col_name, col_id):
+        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = mongodb['sg_geneset']
+        geneset_list = []
+        if not isinstance(geneset_id, types.StringTypes):
+            # geneset_id = ObjectId(geneset_id)
+            raise Exception("输入geneset_id参数必须为字符串类型!")
+        geneset_list.extend([ObjectId(x) for x in geneset_id.split(",")])
+        if isinstance(col_id, types.StringTypes):
+            col_id = ObjectId(col_id)
+        elif isinstance(col_id, ObjectId):
+            pass
+        else:
+            raise Exception("输入col_id参数必须为字符串或者ObjectId类型!")
+        try:
+            for geneset_id in geneset_list:
+                result = collection.find_one({"_id":geneset_id})
+                result["is_use"] = 1
+                collection.find_one_and_update({"_id":geneset_id},{"$set":result})
+        except Exception:
+            print "没有找到geneset_id:{}".format(geneset_id)
+        try:
+            collection = mongodb["col_name"]
+            collection.find_one({"_id":col_id})
+        except:
+            "没有找到col_id:{} in {}".format(col_id, col_name)
+        for geneset_id in geneset_list:
+            opts = {
+                "geneset_id": geneset_id,
+                "col_name": col_name,
+                "col_id": col_id
+            }
+            collection = mongodb["sg_geneset_info"]
+            collection.insert_one(opts)
+        return True
+
+    def delete_geneset(self, geneset_id):
+        if isinstance(geneset_id, types.StringTypes):
+            geneset_id = ObjectId(geneset_id)
+        elif isinstance(data.geneset_id, ObjectId):
+            pass
+        else:
+            raise Exception("输入geneset_id参数必须为字符串或者ObjectId类型!")
+        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = mongodb['sg_geneset_info']
+        results = collection.find({"geneset_id":geneset_id})
+        for result in results:
+            col_name = result["col_name"]
+            col_id = result["col_id"]
+            print col_id
+            col = mongodb[col_name]
+            print col_name
+            try:
+                col_result = col.find_one({"_id":col_id})
+                col_result["params"] = ""
+                col.find_one_and_update({"_id":col_id}, {"$set":col_result})
+            except:
+                print "不能找到对应id{} in {}".format(col_id, col_name)
+        collection = mongodb["sg_geneset"]
+        result = collection.find_one({"_id":geneset_id})
+        if result:
+            collection.remove({"_id":geneset_id})
+        return True
+
+
+
+            
+if __name__ == "__main__":
+    data=RefRna()
+    d = data.get_express_id("tsg_2000","fpkm","featurecounts")
+    #print d
+    data.get_control_id("5924f2a77f8b9a201d8b4567")

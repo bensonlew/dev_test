@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
+import umysqldb
+umysqldb.install_as_MySQLdb()
 import web
+import mainapp.core.auto_load as autoload
 from biocluster.core.function import hostname
 from mainapp.libs.signature import check_sig
 from mainapp.controllers.pipeline import Pipeline, PipelineState, PipelineLog, PipelineStop, PipelineQueue, PipelineStopPause, PipelinePause
 from mainapp.controllers.filecheck import FileCheck, MultiFileCheck
 from mainapp.controllers.report.download_web_pic import DownloadWebPic
+from mainapp.controllers.instant.dataexchange.download_task import DownloadTask
+from mainapp.controllers.instant.dataexchange.upload_task import UploadTask
+
 
 # Meta instant
 from mainapp.controllers.instant.meta.two_group import TwoGroup
 from mainapp.controllers.instant.meta.estimators import Estimators
 from mainapp.controllers.instant.meta.pan_core import PanCore
 from mainapp.controllers.instant.meta.venn import Venn
-from mainapp.controllers.instant.meta.heat_cluster import HeatCluster
-from mainapp.controllers.instant.meta.beta.distance_calc import DistanceCalc
 from mainapp.controllers.instant.meta.beta.hcluster import Hcluster
 from mainapp.controllers.instant.meta.otu_subsample import OtuSubsample
 from mainapp.controllers.instant.meta.two_sample import TwoSample
@@ -42,6 +46,10 @@ from mainapp.controllers.submit.meta.n_pca import NPca
 from mainapp.controllers.submit.meta.environmental_regression import EnvironmentalRegression
 from mainapp.controllers.submit.meta.function_predict import FunctionPredict
 from mainapp.controllers.submit.meta.meta_sourcetracker import MetaSourcetracker
+from mainapp.controllers.submit.meta.pipe import Pipe
+
+# sequence submit
+from mainapp.controllers.submit.sequence.sample_extract import SampleExtract
 
 # Denovo_rna submit
 from mainapp.controllers.submit.denovo_rna.diff_express import DiffExpress
@@ -51,6 +59,10 @@ from mainapp.controllers.submit.denovo_rna.network import Network
 
 # Denovo_rna instant
 from mainapp.controllers.instant.denovo_rna.denovo_venn import DenovoVenn
+
+# med submit
+from mainapp.controllers.submit.paternity_test.pt_datasplit import PtDatasplit
+from mainapp.controllers.submit.paternity_test_new import PaternityTestNew
 
 
 # web.config.debug = False
@@ -68,8 +80,13 @@ urls = (
     "/pipeline/stop_pause", "PipelineStopPause",
     "/download/report/pdf", "DownloadWebPic",
     "/download/report/png", "DownloadWebPic",
+    "/dataexchange/download_task", "DownloadTask",
+    "/app/dataexchange/download_task", "DownloadTask",
+    "/dataexchange/upload_task", "UploadTask",
+    "/app/dataexchange/upload_task", "UploadTask",
 
     # Meta
+    "/meta/pipe", "Pipe",
     "/meta/demo_mongodata_copy", "DemoMongodataCopy",
     "/meta/convert_level", "ConvertLevel",
     "/meta/estimators", "Estimators",
@@ -104,12 +121,19 @@ urls = (
     "/meta/function_predict", "FunctionPredict",
     "/meta/meta_sourcetracker", "MetaSourcetracker",
 
+    # sequence
+    "/sequence/sample_extract", "SampleExtract",
+    
     # denovo_rna
     "/denovo_rna/network", "Network",
     "/denovo_rna/cluster", "Cluster",
     "/denovo_rna/diff_express", "DiffExpress",
     "/denovo_rna/denovo_venn", "DenovoVenn",
-    "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate"
+    "/denovo_rna/go_enrich_regulate", "GoEnrichRegulate",
+
+    # med
+    "/paternity_test/pt_datasplit", "PtDatasplit",
+    "/paternity_test_new", "PaternityTestNew"
 )
 
 

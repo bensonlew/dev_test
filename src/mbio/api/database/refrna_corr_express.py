@@ -21,7 +21,8 @@ class RefrnaCorrExpress(Base):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         print db
     @report_check
-    def add_pca_table(self, pca_path, group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
+    def add_pca_table(self, pca_path, express_level = None,group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         params = {}
         # params ['group_id'] = "58f01bbca4e1af488e52de3d"
         # group_detail = {"A":["58d8a96e719ad0adae70fa14","58d8a96e719ad0adae70fa12"], "B":["58d8a96e719ad0adae70fa11","58d8a96e719ad0adae70fa13"]}
@@ -31,22 +32,42 @@ class RefrnaCorrExpress(Base):
             params['group_detail'] = group_detail
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
+        with open(pca_path + "/pca_importance.xls",'r+') as f1:
+            pc_num = []
+            pc = {}
+            f1.readline()
+            for lines in f1:
+                line = lines.strip().split("\t")
+                pc_num.append(line[0])
+                pc[line[0]]=round(float(line[1]),6)
+        if params:
+            params['submit_location']='express_pca'
+        if express_level:
+            # 默认写死了是rsem软件
+            re_name = "ExpPCA_RSEM_{}_".format(express_level.lower()) + str(
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("add_pca_table需要设置express_level参数!")
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
             "type": seq_type,
-            "name": name if name else "pca_origin_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            "name": name if name else re_name,
             "status": "end",
             "desc": "样本间相关性PCA分析",
             "params": json.dumps(params, sort_keys=True, separators=(',', ':')),
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "express_id": ObjectId(express_id)
+            "express_id": ObjectId(express_id),
+            "pc_num":pc_num
             # "pc_num":["PC1","PC2","PC3","PC4"],
             # "PC1":str(0.54047),
             # "PC2":str(0.25556),
             # "PC3":str(0.20397),
             # "PC4":str(0)
         }
+        if pc:
+            for keys,values in pc.items():
+                insert_data[keys]=values
         collection = db["sg_express_pca"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if detail:
@@ -54,14 +75,15 @@ class RefrnaCorrExpress(Base):
             pca_rotation = os.path.join(pca_path, 'pca_rotation.xls')
             site_file = os.path.join(pca_path, 'pca_sites.xls')
             if os.path.exists(pca_path):
-                self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
-                self.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
-                self.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_sites', correlation_id=inserted_id)
+                # self.add_pca(pca_file=pca_file, correlation_id=inserted_id)
+                #self.add_pca_rotation(input_file=pca_rotation, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
+                self.add_pca_rotation(input_file=site_file, db_name='sg_express_pca_rotation', correlation_id=inserted_id)
         print "pca主表导入成功！{}".format(inserted_id)
         return inserted_id
 
     @report_check
     def add_pca(self, pca_file, correlation_id=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         correlation_id = ObjectId(correlation_id)
         with open(pca_file, "r") as f:
@@ -69,7 +91,7 @@ class RefrnaCorrExpress(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "pca_id": correlation_id,
                     line[0]: line[1]
                 }
                 data_list.append(data)
@@ -83,6 +105,7 @@ class RefrnaCorrExpress(Base):
 
     @report_check
     def add_pca_rotation(self,input_file, db_name, correlation_id=None):
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         correlation_id = ObjectId(correlation_id)
         if db_name == "sg_denovo_pca_rotation":
@@ -94,7 +117,7 @@ class RefrnaCorrExpress(Base):
             for line in f:
                 line = line.strip().split("\t")
                 data = {
-                    "correlation_id": correlation_id,
+                    "pca_id": correlation_id,
                     col_name: line[0]
                 }
                 for n, p in enumerate(pcas):
@@ -109,7 +132,7 @@ class RefrnaCorrExpress(Base):
             print ("导入%s数据成功" % db_name)
     
     @report_check
-    def add_correlation_table(self, correlation, group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
+    def add_correlation_table(self, correlation, express_level=None,group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         correlation_tree = glob.glob("{}/*.tre".format(correlation))
         with open(correlation_tree[0], "r") as t:
@@ -126,13 +149,20 @@ class RefrnaCorrExpress(Base):
         if group_id and group_detail:
             params['group_id']=group_id
             params['group_detail'] = group_detail
+        params['submit_location']='express_corr'
         task_id = self.bind_object.sheet.id
-        project_sn = self.bind_object.sheet.project_sn    
+        project_sn = self.bind_object.sheet.project_sn
+        if express_level:
+            re_name = "ExpCor_RSEM_{}_".format(express_level.lower()) + str(
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("add_correlation_table函数需要设置express_level参数!")
+
         insert_data = {
             "project_sn": project_sn,
             "task_id": task_id,
             "type": seq_type,
-            "name": name if name else "correlation_origin_" + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            "name": name if name else re_name,
             "status": "end",
             "desc": "",
             "correlation_tree": correlation_tree,
@@ -176,7 +206,7 @@ class RefrnaCorrExpress(Base):
             f.close()
             r.close()
             collection_first = db['sg_express_correlation']
-            collection_first.update({"_id": ObjectId(correlation_id)}, {"$set": {"correlation_tree": tree_row, "row_tree": tree_row, "col_tree": tree_col, "tree_list": tree_list}})
+            collection_first.update({"_id": ObjectId(correlation_id)}, {"$set": {"correlation_tree": tree_row, "row_tree": tree_row, "col_tree": tree_col, "specimen": tree_list}})
         try:
             collection = db["sg_express_correlation_detail"]
             collection.insert_many(data_list)
@@ -186,7 +216,7 @@ class RefrnaCorrExpress(Base):
             print ("导入相关系数分析数据成功")
     
     @report_check
-    def add_venn(self, group_id,group_detail, express_id, venn_table=None, venn_graph_path=None, params=None, query_type=None):
+    def add_venn(self, group_id,group_detail, express_id, venn_table=None, venn_graph_path=None, params=None, query_type=None,analysis_name="express"):
         #db = Config().MONGODB + '_ref_rna'\
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
@@ -198,6 +228,7 @@ class RefrnaCorrExpress(Base):
         # group_detail = {"A":["58d8a96e719ad0adae70fa14","58d8a96e719ad0adae70fa12"], "B":["58d8a96e719ad0adae70fa11","58d8a96e719ad0adae70fa13"]}
         # params["group_detail"] = group_detail
         params["type"] = query_type
+        params['submit_location'] = '{}_venn'.format(analysis_name)
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         insert_data = {
@@ -209,16 +240,19 @@ class RefrnaCorrExpress(Base):
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "params": (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
         }
-        collection = db['sg_express_venn']
+        if analysis_name=="express":
+            collection = db['sg_express_venn']
+        if analysis_name =='geneset':
+            collection = db["sg_geneset_venn"]
         inserted_id = collection.insert_one(insert_data).inserted_id
         if venn_table:
-            self.add_venn_detail(venn_table, inserted_id,project='ref')
+            self.add_venn_detail(venn_table, inserted_id,project='ref',analysis_name=analysis_name)
         if venn_graph_path:
-            self.add_venn_graph(venn_graph_path=venn_graph_path, venn_id=inserted_id, project='ref')
+            self.add_venn_graph(venn_graph_path=venn_graph_path, venn_id=inserted_id, project='ref',analysis_name=analysis_name)
         print inserted_id
         return inserted_id
 
-    def add_venn_detail(self, venn_table, venn_id, project = None):
+    def add_venn_detail(self, venn_table, venn_id, project = None,analysis_name="express"):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         if not isinstance(venn_id, ObjectId):
@@ -240,7 +274,10 @@ class RefrnaCorrExpress(Base):
             if project == 'denovo':
                 collection = db["sg_denovo_venn_detail"]
             if project == 'ref':
-                collection = db['sg_express_venn_datail']
+                if analysis_name =="express":
+                    collection = db['sg_express_venn_detail']
+                if analysis_name == "geneset":
+                    collection = db['sg_geneset_venn_detail']
             collection.insert_many(data_list)
             print 'haha1'
         except Exception, e:
@@ -248,7 +285,7 @@ class RefrnaCorrExpress(Base):
         else:
             print ("导入Venn数据成功")
 
-    def add_venn_graph(self,venn_graph_path, venn_id, project='meta'):
+    def add_venn_graph(self,venn_graph_path, venn_id, project='meta',analysis_name="express"):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         data_list = []
         if not isinstance(venn_id, ObjectId):
@@ -265,6 +302,7 @@ class RefrnaCorrExpress(Base):
                     # 'otu_id': ObjectId(otu_id),
                     'category_name': line[0]
                 }
+                print line[0]
                 if project == 'meta':
                     insert_data['otu_names'] = line[1]
                 if project == 'denovo' or project == 'ref':
@@ -276,7 +314,10 @@ class RefrnaCorrExpress(Base):
             if project == 'denovo':
                 collection = db["sg_denovo_venn_graph"]
             if project == 'ref':
-                collection = db['sg_express_venn_graph']
+                if analysis_name == "express":
+                    collection = db['sg_express_venn_graph']
+                if analysis_name == 'geneset':
+                    collection = db['sg_geneset_venn_graph']
             collection.insert_many(data_list)
         except Exception, e:
             print ("导入Venn画图数据出错:%s" % e)

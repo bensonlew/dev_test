@@ -56,16 +56,23 @@ class PpinetworkAnalysisModule(Module):
 
     def ppinetwork_predict_run(self):
         diff_exp_mapped_table = os.path.join(self.work_dir, "PpinetworkMap/output/diff_exp_mapped.txt")
-        self.ppinetwork_predict.set_options({
-            "diff_exp_mapped": diff_exp_mapped_table,
-            "species": self.option("species"),
-            "combine_score": self.option("combine_score")
-        })
-        self.ppinetwork_predict.on('end', self.set_output, 'ppinetwork_predict')
-        self.ppinetwork_predict.on('start', self.set_step, {'start': self.step.ppinetwork_predict})
-        self.ppinetwork_predict.on('end', self.set_step, {'end': self.step.ppinetwork_predict})
-        self.ppinetwork_predict.on('end', self.ppinetwork_topology_run)
-        self.ppinetwork_predict.run()
+        lines = len(open(diff_exp_mapped_table).readlines())
+        if lines < 2:
+            raise Exception("基因集中的基因不能匹配到string数据库中id，请您确认基因id为Ensemble或者Entrez GeneID！")
+            # self.end()
+        elif lines <= 15:
+            raise Exception("能够比对到string数据库中的基因个数过少，无法进行后面的网络预测及分析，请重新选择基因集！")
+        else:
+            self.ppinetwork_predict.set_options({
+                "diff_exp_mapped": diff_exp_mapped_table,
+                "species": self.option("species"),
+                "combine_score": self.option("combine_score")
+            })
+            self.ppinetwork_predict.on('end', self.set_output, 'ppinetwork_predict')
+            self.ppinetwork_predict.on('start', self.set_step, {'start': self.step.ppinetwork_predict})
+            self.ppinetwork_predict.on('end', self.set_step, {'end': self.step.ppinetwork_predict})
+            self.ppinetwork_predict.on('end', self.ppinetwork_topology_run)
+            self.ppinetwork_predict.run()
 
     def ppinetwork_topology_run(self):
         ppi_table = os.path.join(self.work_dir, "PpinetworkPredict/output/interaction.txt")

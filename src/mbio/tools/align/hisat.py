@@ -74,7 +74,7 @@ class HisatAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = '10G'
+        self._memory = '20G'
 
 
 class HisatTool(Tool):
@@ -98,14 +98,23 @@ class HisatTool(Tool):
             self.logger.info("开始运行hisat2-build，进行建索引")
             command = self.add_command("hisat_build", cmd)
             command.run()
+            self.wait(command)
+            if command.return_code == 0:
+                return True
+            else:
+                command.rerun()
+                self.wait(command)
+                if command.return_code == 0:
+                    return True
+                else:
+                    raise Exception("建立索引出错")
         else:
             with open(self.config.SOFTWARE_DIR + "/database/refGenome/ref_genome.json", "r") as f:
                 dict = json.loads(f.read())
                 ref = dict[self.option("ref_genome")]["ref_genome"]
                 index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
                 global index_ref
-                # shutil.copyfile(index_ref, self.work_dir)        
-        self.wait()
+                # shutil.copyfile(index_ref, self.work_dir)
 
     def hisat_mapping(self):
         """
@@ -145,8 +154,15 @@ class HisatTool(Tool):
         self.wait()
         if command.return_code == 0:
             self.sam_bam()
+        elif command.return_code == None:
+            command.rerun()
+            if command.return_code == 0:
+                self.logger.info("hisat运行完成")
+                self.sam_bam()
         else:
-            self.logger.info("生成sam文件这里出错了")
+            self.logger.error("hisat运行出错")
+            self.set_error("hisat运行出错")
+            raise Exception("运行hisat出错")
             
     def sam_bam(self):
         """
@@ -163,25 +179,8 @@ class HisatTool(Tool):
         bam_path = os.path.join(self.work_dir, "accepted_hits.unsorted.bam")
         sort_cmd = "{}samtools sort {} > accepted_hits.bam".format(self.sort_path, bam_path)
         self.logger.info("开始运行samtools sort，将转换的bam文件进行排序")
-        """
-        sort_command = self.add_command("samtools_sort", sort_cmd)
-        sort_command.run()
-        """
         subprocess.check_output(sort_cmd, shell=True)
         self.wait()
-        """
-        if sort_cmd.return_code == 0:
-            os.remove(self.work_dir + "/" + "accepted_hits.unsorted.bam")
-            os.remove(self.work_dir + "/" + "accepted_hits.unsorted.sam")
-            self.logger.info("冗余文件删除完成")
-            output = os.path.join(self.work_dir, "accepted_hits.bam")
-            pre = self.option("sample")
-            if pre.find("_sickele") != -1:
-                pre = pre[:-9]
-            os.link(output, self.output_dir +"/" + pre + ".bam")
-        else:
-            self.logger.info("最后处理完成")
-        """
         output = os.path.join(self.work_dir, "accepted_hits.bam")
         pre = self.option("sample")
         if pre.find("_sickele") != -1:

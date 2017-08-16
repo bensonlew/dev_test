@@ -6,6 +6,7 @@ import datetime
 from mainapp.controllers.project.meta_controller import MetaController
 from mainapp.libs.param_pack import group_detail_sort
 from bson import ObjectId
+from bson import SON
 
 
 class MantelTest(MetaController):
@@ -46,7 +47,7 @@ class MantelTest(MetaController):
             return json.dumps(info)
 
         # group_detail = group_detail_sort(data.group_detail)
-        print(data.group_detail)
+        # print(data.group_detail)
 
         task_name = 'meta.report.mantel_test'
         task_type = 'workflow'
@@ -86,16 +87,17 @@ class MantelTest(MetaController):
             ("level_id", int(data.level_id)),
             ("params", json.dumps(params_json, sort_keys=True, separators=(',', ':')))
         ]
-        main_table_id = self.meta.insert_main_table('sg_species_mantel_check', mongo_data)
+        main_table_id = self.meta.insert_none_table('sg_species_mantel_check')
         update_info = {str(main_table_id): 'sg_species_mantel_check'}
 
         options = {
-                "otu_file": data.otu_id,
-                "env_file": data.env_id,
-                'update_info': json.dumps(update_info),
-                "level": data.level_id,
-                "group_detail": data.group_detail,
-                "mantel_id": str(main_table_id)
+            "otu_file": data.otu_id,
+            "env_file": data.env_id,
+            'update_info': json.dumps(update_info),
+            "level": data.level_id,
+            "group_detail": data.group_detail,
+            "mantel_id": str(main_table_id),
+            'main_table_data': SON(mongo_data)
         }
 
         del params_json["level_id"]
@@ -105,12 +107,13 @@ class MantelTest(MetaController):
         self.set_sheet_data(name=task_name, options=options, main_table_name="MantelTest/" + main_table_name,
                             module_type=task_type, to_file=to_file)
         task_info = super(MantelTest, self).POST()
-        task_info['content'] = {
-            'ids': {
-                'id': str(main_table_id),
-                'name': main_table_name
-            }}
-        print(task_info)
+        if task_info['success']:
+            task_info['content'] = {
+                'ids': {
+                    'id': str(main_table_id),
+                    'name': main_table_name
+                }}
+        # print(task_info)
         return json.dumps(task_info)
 
         # print self.returnInfo

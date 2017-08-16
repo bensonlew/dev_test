@@ -23,9 +23,9 @@ class OrfAgent(Agent):
         options = [
             {"name": "fasta", "type": "infile", "format": "sequence.fasta"},  # 输入文件
             {"name": "search_pfam", "type": "bool", "default": True},  # 是否比对Pfam数据库
-            {"name": "p_length", "type": "int", "default": 100},  # 最小蛋白长度
+            {"name": "p_length", "type": "int", "default": 50},  # 最小蛋白长度
             {"name": "Markov_length", "type": "int", "default": 3000},  # 马尔科夫训练长度
-            {"name": "bed", "type": "outfile", "format": "denovo_rna.gene_structure.bed"},  # 输出结果
+            {"name": "bed", "type": "outfile", "format": "gene_structure.bed"},  # 输出结果
             {"name": "cds", "type": "outfile", "format": "sequence.fasta"},  # 输出结果
             {"name": "pep", "type": "outfile", "format": "sequence.fasta"}  # 输出结果
         ]
@@ -53,7 +53,7 @@ class OrfAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 20
+        self._cpu = 10
         self._memory = '5G'
 
     def end(self):
@@ -166,6 +166,11 @@ class OrfTool(Tool):
         super(OrfTool, self).run()
         if self.option("search_pfam") is True:
             self.td_longorfs()
+            with open(self.work_dir + "/{}.transdecoder_dir/longest_orfs.pep".format(self.fasta_name), "r") as fr:
+                content = fr.read()
+                if not content:
+                    self.logger.info("没有找到orf")
+                    self.end()
             self.hmmscan("{}.transdecoder_dir/longest_orfs.pep".format(self.fasta_name))
             self.td_predict("pfam.domtblout")
         else:

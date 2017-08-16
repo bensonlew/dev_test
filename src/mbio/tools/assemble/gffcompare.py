@@ -18,7 +18,7 @@ class GffcompareAgent(Agent):
     def __init__(self, parent):
         super(GffcompareAgent, self).__init__(parent)
         options = [
-            {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 拼接合并之后的转录本文件
+            {"name": "merged_gtf", "type": "string", "default": ""},  # 拼接合并之后的转录本文件
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
             {"name": "cuff_gtf", "type": "outfile", "format": "gene_structure.gtf"},
         ]
@@ -51,7 +51,7 @@ class GffcompareAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
+        self._cpu = 1
         self._memory = "3G"
 
     def end(self):
@@ -90,7 +90,7 @@ class GffcompareTool(Tool):
         运行gffcompare软件进行新转录本预测
         """
         cmd = self.gffcompare_path + 'gffcompare  {} -o {}cuffcmp -r {} '.format(
-            self.option('merged_gtf').prop['path'], self.work_dir+"/", self.option('ref_gtf').prop['path'])
+            self.option('merged_gtf'), self.work_dir+"/", self.option('ref_gtf').prop['path'])
         self.logger.info('运行gffcompare软件，进行比较')
         command = self.add_command("gffcompare_cmd", cmd).run()
         self.wait(command)
@@ -106,7 +106,7 @@ class GffcompareTool(Tool):
         """
         self.logger.info("设置结果目录")
         try:
-            shutil.copy2(self.work_dir + "/cuffcmp.annotated.gtf", self.output_dir + "/cuffcmp.annotated.gtf")
+            os.link(self.work_dir + "/cuffcmp.annotated.gtf", self.output_dir + "/cuffcmp.annotated.gtf")
             self.option('cuff_gtf').set_path(self.output_dir + "/cuffcmp.annotated.gtf")
             self.logger.info("设置拼接比较结果目录成功")
         except Exception as e:

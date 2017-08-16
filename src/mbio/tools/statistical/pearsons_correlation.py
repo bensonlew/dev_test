@@ -75,13 +75,37 @@ class PearsonsCorrelationAgent(Agent):
         if self.option("top_species") != 0:
             if self.option("top_species") < 2:
                 raise OptionError('至少选择两个物种')
+        if self.option('envtable').is_set:  # add by zhouxuan 20170720
+            env_table = self.option('envtable').prop['path']
+            sample_e = []
+            with open(env_table, 'r') as e:
+                for line in e:
+                    line = line.strip('\n').split('\t')
+                    if line[0] != '#SampleID':
+                        sample_e.append(line[0])
+                        for i in range(1, len(line)):
+                            if float(line[i]) or line[i] == '0':
+                                continue
+                            else:
+                                raise OptionError('环境因子表中存在分类型环境因子')
+            otu_path = self.option("otutable").prop['path']
+            with open(otu_path, 'r') as o:
+                line = o.readline()
+                line = line.strip('\n').split('\t')
+                sample_o = line[1:]
+            for i in sample_o:
+                if i in sample_e:
+                    continue
+                else:
+                    raise OptionError('OTU表中的样本和环境因子表中的样本不一致，请剔除OTU中非法样本！')
+
 
     def set_resource(self):
         """
         设置所需资源
         """
-        self._cpu = 2
-        self._memory = '2G'
+        self._cpu = 5
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -89,7 +113,7 @@ class PearsonsCorrelationAgent(Agent):
             [".", "", "PearsonsCorrelation计算结果输出目录"],
             ["./pearsons_correlation_at_'%s'_level.xls" % self.option('level'), "xls", "PearsonsCorrelation矩阵"],
             ["./pearsons_pvalue_at_'%s'_level.xls" % self.option('level'), "xls", "PearsonsCorrelationPvalues"]
-            ])
+        ])
         super(PearsonsCorrelationAgent, self).end()
 
 
@@ -196,8 +220,8 @@ class PearsonsCorrelationTool(Tool):
     def run_heatmap(self):
         line_num = self.get_name(self.work_dir + "/pearsons_correlation_at_%s_level.xls" % self.option('level'))
         if line_num < 2:
-            raise Exception('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行') #modified by hongdongxuan 20170406
-            # self.set_error('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行')
+            # raise Exception('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行') #modified by hongdongxuan 20170406
+            self.set_error('相关系数矩阵行数/物种数小于2，请尝试切换水平重新运行')
         corr_heatmap(self.work_dir + "/tem.collection.xls", "env_tree.tre", "species_tree.tre",
                      self.option("env_cluster"), self.option("species_cluster"))
         cmd = self.r_path + " run_corr_heatmap.r"

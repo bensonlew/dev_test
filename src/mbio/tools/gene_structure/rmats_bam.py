@@ -32,16 +32,16 @@ class RmatsBamAgent(Agent):
 
         '''
         options = [{"name": "seq_type", "type": "string", "default": "paired"},  # 两个选项：'paired'  or ’single‘
-                   {"name": "analysis_mode", "type": "string", "default": "P"},
+                   {"name": "analysis_mode", "type": "string", "default": "U"},
                    {"name": "read_length", "type": "int", "default": 150},
                    {"name": "A_group_bam", "type": "string", "default": None},  # 一定要设置
                    {"name": "B_group_bam", "type": "string", "default": None},  # 一定要设置
                    {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 一定要设置
                    {"name": "novel_as", "type": "int", "default": 1},  # 是否发现新的AS事件，默认为是
                    {"name": "lib_type", "type": "string", "default": "fr-unstranded"},  # 建库类型
-                   {"name": "as_diff", "type": "float", "default": 0.05},
+                   {"name": "cut_off", "type": "float", "default": 0.0001},
                    {"name": "output_dir", "type": "string", "default": self.output_dir},  # agent默认输出目录
-                   {"name": "keep_temp", "type": "int", "default": 0}
+                   {"name": "keep_temp", "type": "int", "default": 1}
                    ]
         
         self.add_option(options)
@@ -80,7 +80,7 @@ class RmatsBamAgent(Agent):
                 raise OptionError('您在paired分析模式下，指定的A组或B组的样品bam文件不>=3,或者两组样品bam文件个数不相等')
         if not self.option('ref_gtf'):
             raise OptionError('必须设置参考基因组注释文件（ref_genome.gtf）')
-        if self.option('as_diff') < 0 or self.option('as_diff') >= 1:
+        if self.option('cut_off') < 0 or self.option('cut_off') >= 1:
             raise OptionError('差异剪接假设检验的置信度p应该: 0=< p <1')
         if self.option('lib_type') not in ('fr-unstranded', 'fr-firststrand', 'fr-secondstrand'):
             raise OptionError('rMATS识别的建库类型只可设置为fr-unstranded或fr-firststrand或fr-secondstrand')
@@ -141,20 +141,20 @@ class RmatsBamTool(Tool):
         :return:
         """
         if not self.option('keep_temp'):
-            cmd = "{} {}  -b1 {} -b2 {} -gtf {} -o {} rmats_out -t {}  -len {}  -novelSS {}  -analysis {} -c {}  -libType {}".format(
+            cmd = "{} {}  -b1 {} -b2 {} -gtf {} -o {}  -t {}  -len {}  -novelSS {}  -analysis {} -c {}  -libType {}".format(
                 self.Python_path, self.script_path, self.option('A_group_bam'),
                 self.option('B_group_bam'), self.option('ref_gtf').prop["path"], self.output_dir,
                 self.option('seq_type'), self.option('read_length'),
                 self.option('novel_as'), self.option('analysis_mode'),
-                self.option('as_diff'),
+                self.option('cut_off'),
                 self.option('lib_type'))
         else:
-            cmd = "{} {}  -b1 {} -b2 {} -gtf {} -o {} rmats_out -t {}  -len {}  -novelSS {}  -analysis {} -c {}  -libType {} -keepTemp ".format(
+            cmd = "{} {}  -b1 {} -b2 {} -gtf {} -o {}  -t {}  -len {}  -novelSS {}  -analysis {} -c {}  -libType {} -keepTemp ".format(
                 self.Python_path, self.script_path, self.option('A_group_bam'),
                 self.option('B_group_bam'), self.option('ref_gtf').prop["path"], self.output_dir,
                 self.option('seq_type'), self.option('read_length'),
                 self.option('novel_as'), self.option('analysis_mode'),
-                self.option('as_diff'),
+                self.option('cut_off'),
                 self.option('lib_type'))
         self.logger.info('开始运行rmats')
         command = self.add_command("rmats_cmd", cmd).run()

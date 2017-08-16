@@ -8,6 +8,7 @@ from collections import defaultdict
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
+from multiprocessing import Process
 
 
 class SortSamplesAgent(Agent):
@@ -51,7 +52,7 @@ class SortSamplesAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ["taxa.table.xls", "xls", "各样本物种丰度结果表"], # modified by hongdongxuan 20170323 otu_otu 改为taxa.table
-            ["taxa.precents.table.xls", "xls", "各样本物种相对丰度结果表"]  # add by wangzhaoyue 2017.03.06 modified by hongdongxuan 20170323 level_otu_table 改为taxa.precents.table
+            ["taxa.percents.table.xls", "xls", "各样本物种相对丰度结果表"]  # add by wangzhaoyue 2017.03.06 modified by hongdongxuan 20170323 level_otu_table 改为taxa.precents.table
         ])
         super(SortSamplesAgent, self).end()
 
@@ -60,12 +61,13 @@ class SortSamplesAgent(Agent):
         设置所需的资源
         """
         self._cpu = 2
-        self._memory = "3G"
+        self._memory = "5G"
 
 
 class SortSamplesTool(Tool):
     def __init__(self, config):
         super(SortSamplesTool, self).__init__(config)
+        self.logger.info("SortSamples读取分组表开始")
         samples = list()
         with open(self.option("group_table").prop["path"], "rb") as r:
             line = r.next()
@@ -73,6 +75,7 @@ class SortSamplesTool(Tool):
                 line = line.rstrip().split("\t")
                 samples.append(line[0])
         self.samples = samples
+        self.logger.info("SortSamples读取分组表结束")
 
     def filter_samples(self):
         no_zero_otu = os.path.join(self.work_dir, "otu.nozero")
@@ -173,7 +176,7 @@ class SortSamplesTool(Tool):
             final_otu = self.cat_samples(final_otu, self.option("method"))
         out_otu = os.path.join(self.output_dir, "taxa.table.xls") #modified by hongdongxuan 20170323 otu_otu 改为taxa.table
         shutil.copy2(final_otu, out_otu)
-        final_level_percents = os.path.join(self.output_dir, "taxa.precents.table.xls")
+        final_level_percents = os.path.join(self.output_dir, "taxa.percents.table.xls")
         self.percent(out_otu, final_level_percents)
         self.option("level_otu_table").set_path(final_level_percents)   # add 3 lines by wangzhaoyue 2017.03.06
         self.option("out_otu_table").set_path(out_otu)

@@ -25,7 +25,7 @@ class GenesetVennAgent(Agent):
         self.step.add_steps("genesetvenn")
         self.on("start",self.stepstart)
         self.on("end",self.stepfinish)
-    
+
     def stepstart(self):
         self.step.genesetvenn.start()
         self.step.update()
@@ -33,11 +33,11 @@ class GenesetVennAgent(Agent):
     def stepfinish(self):
         self.step.genesetvenn.finish()
         self.step.update()
-    
+
     def check_options(self):
         if not self.option("fpkm").is_set:
             raise Exception("请输入fpkm文件！")
-    
+
     def set_resource(self):
         self._cpu = 10
         self._memory = '100G'
@@ -49,7 +49,7 @@ class GenesetVennAgent(Agent):
             ["./venn_table.xls", "xls", "venn图输出目录2"]
         ])
         super(GenesetVennAgent, self).end()
-        
+
 class GenesetVennTool(Tool):
     def __init__(self, config):
         super(GenesetVennTool, self).__init__(config)
@@ -63,20 +63,26 @@ class GenesetVennTool(Tool):
         self.set_environ(PATH=self.gcc, LD_LIBRARY_PATH=self.gcc_lib)
         self.r_path1 = "/program/R-3.3.1/bin/Rscript "
 
-                
+
     def genesetvenn_run(self):
         rfile=self.work_dir+"/genesetvenn.r"
         ExpressVenn(rfile,self.option("fpkm").prop['path'],self.output_dir)
         cmd1=self.r_path1+rfile
         cmd = self.add_command("genesetvenn", cmd1).run()
-        self.wait()
+        self.wait(cmd)
         if cmd.return_code==0:
             self.logger.info("%s运行完成" % cmd1)
         else:
             self.set_error("%s运行出错" % cmd1)
-        
+
     def set_output(self):
-        shutil.copy2(self.option("fpkm").prop['path'],self.output_dir+"/venn_graph.xls")
+        tmp = self.output_dir + "/tmp"
+        with open(self.option("fpkm").prop['path'],'r+') as f1,open(tmp,'w+') as f2:
+            f2.write("#group_name\tspecies_name\n")
+            for lines in f1:
+                f2.write(lines)
+        shutil.copy2(tmp,self.output_dir+"/venn_graph.xls")
+        os.remove(tmp)
         for files in os.listdir(self.output_dir):
             print files
             if re.search(r'table',files):
@@ -87,6 +93,3 @@ class GenesetVennTool(Tool):
         self.genesetvenn_run()
         self.set_output()
         self.end()
-        
-        
-        

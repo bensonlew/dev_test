@@ -49,7 +49,7 @@ class MetaBaseWorkflow(Workflow):
             {"name": "file_list", "type": "string", "default": "null"},
             {"name": "raw_sequence", "type": "infile", "format": "sequence.raw_sequence_txt"},
             {"name": "workdir_sample", "type": "string", "default": ""},
-            {"name": "if_fungene", "type": "bool", 'default': False}
+            {"name": "if_fungene", "type": "bool", 'default': False}    
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -133,7 +133,7 @@ class MetaBaseWorkflow(Workflow):
                 "in_fastq":  self.option("in_fastq")  # modified by shijin
             }
         self.new_sample_extract.set_options(opts)
-        # self.new_sample_extract.on("start", self.set_step, {'start': self.step.pre_sample_extract})
+        self.new_sample_extract.on("start", self.set_step, {'start': self.step.sample_rename})
         # self.new_sample_extract.on("end", self.set_step, {'end': self.step.pre_sample_extract})
         self.new_sample_extract.run()
 
@@ -144,7 +144,7 @@ class MetaBaseWorkflow(Workflow):
             "file_list": self.option("file_list")  # 对样本进行重命名
         }
         self.sample_rename.set_options(opts)
-        self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
+        # self.sample_rename.on("start", self.set_step, {'start': self.step.sample_rename})
         self.sample_rename.run()
 
     def run_samplecheck(self):  # 样本合并
@@ -365,6 +365,7 @@ class MetaBaseWorkflow(Workflow):
                 "task_type": 'reportTask'
             }
             self.otu_id = api_otu.add_otu_table(otu_path, major=True, rep_path=rep_path, spname_spid=self.spname_spid, params=params)
+            self.updata_status_api.add_meta_status(table_id=str(self.otu_id), type_name='sg_otu')
             api_otu_level = self.api.sub_sample
             api_otu_level.add_sg_otu_detail_level(otu_path, self.otu_id, 9)
             # self.otu_id = str(self.otu_id)
@@ -496,13 +497,13 @@ class MetaBaseWorkflow(Workflow):
         在不同的OTU数目以及不同的样本数量下，有些分析会被跳过不做
         """
         self.update_info = ""
-        self.count_otus = True  # otu/代表序列数量大于等于2
+        self.count_otus = True  # otu/代表序列数量大于3 ,change by wzy from 2 to 3
         self.count_samples = 0  # 样本数量是否大于等于2
         counts = 0
         for i in open(self.otu.output_dir + '/otu_reps.fasta'):
             if i[0] == '>':
                 counts += 1
-                if counts > 1:
+                if counts > 3:    # change from 2 to 3 by wzy
                     break
         else:
             self.count_otus = False
@@ -547,7 +548,10 @@ class MetaBaseWorkflow(Workflow):
             self.stat.on('end', self.run_beta)
             self.on_rely([self.alpha, self.beta], self.end)
             self.run_taxon()
-        self.logger.info("分析结果异常处理：{}".format(self.update_info))
+        if self.update_info:
+            self.logger.info("分析结果异常处理：{}".format(self.update_info))
+            self.step._info += self.update_info
+            self.step._has_state_change = True
 
     def run(self):
         task_info = self.api.api('task_info.task_info')

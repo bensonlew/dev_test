@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zhangpeng'
+# last_modify: 20170516 zhouxuan to roc_new.py(workflow)
 from biocluster.api.database.base import Base, report_check
 import re
 from bson.objectid import ObjectId
@@ -17,8 +18,9 @@ class Roc(Base):
         self._db_name = Config().MONGODB
 
     @report_check
-    def add_roc_curve(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
-        self.bind_object.logger.info('start insert mongo zhangpeng')
+    def add_roc_curve(self, file_path, table_id=None, group_id=None,
+                      from_otu_table=None, level_id=None, major=False, dir_name=None):
+        # self.bind_object.logger.info('start insert mongo zhangpeng')
         if major:
             table_id = self.create_roc(self, params, group_id, from_otu_table, level_id)
         else:
@@ -36,7 +38,11 @@ class Roc(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("roc_id", table_id), ("x", line_data[0]), ("y", line_data[1])]
+                    if dir_name is None:
+                        data = [("roc_id", table_id), ("x", line_data[0]), ("y", line_data[1])]
+                    else:
+                        data = [("roc_id", table_id), ("x", line_data[0]), ("y", line_data[1]),
+                                ("analysis_name", dir_name)]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -49,7 +55,8 @@ class Roc(Base):
         return data_list, table_id
 
     # @report_check
-    def add_roc_auc(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):
+    def add_roc_auc(self, file_path, table_id=None, group_id=None,
+                    from_otu_table=None, level_id=None, major=False, dir_name=None):
         if major:
             table_id = self.create_randomforest(self, params, group_id, from_otu_table, level_id)
         else:
@@ -69,7 +76,10 @@ class Roc(Base):
                 else:
                     line = line.strip('\n')
                     line_data = line.split('\t')
-                    data = [("roc_id", table_id), ("auc", line_data[0])]
+                    if dir_name is None:
+                        data = [("roc_id", table_id), ("auc", line_data[0])]
+                    else:
+                        data = [("roc_id", table_id), ("auc", line_data[0]), ("analysis_name", dir_name)]
                     data_son = SON(data)
                     data_list.append(data_son)
         try:
@@ -80,6 +90,48 @@ class Roc(Base):
         else:
             self.bind_object.logger.info("导入%s信息成功!" % file_path)
         return data_list
+
+    def add_roc_area(self, file_path=None, table_id=None, dir_name=None):
+        """
+        置信度区间信息导表 zhoxuan
+        :param file_path:
+        :param table_id:
+        :param dir_name:
+        :return: nothing
+        """
+        if table_id is None:
+            raise Exception("major为False时需提供table_id!")
+        if not isinstance(table_id, ObjectId):
+            if isinstance(table_id, StringTypes):
+                table_id = ObjectId(table_id)
+        else:
+            raise Exception("table_id必须为ObjectId对象或其对应的字符串!")
+        data_list = []
+        with open(file_path, 'rb') as r:
+            i = 0
+            for line in r:
+                if i == 0:
+                    i = 1
+                else:
+                    line = line.strip('\n')
+                    line_data = line.split('\t')
+                    if dir_name is None:
+                        data = [("roc_id", table_id), ("x", line_data[0]), ("y_min", line_data[1]),
+                                ("y_max", line_data[2])]
+                    else:
+                        data = [("roc_id", table_id), ("x", line_data[0]), ("y_min", line_data[1]),
+                                ("y_max", line_data[2]), ("analysis_name", dir_name)]
+                    data_son = SON(data)
+                    data_list.append(data_son)
+        try:
+            collection = self.db["sg_roc_area"]
+            collection.insert_many(data_list)
+        except Exception, e:
+            self.bind_object.logger.error("导入%s信息出错:%s" % (file_path, e))
+        else:
+            self.bind_object.logger.info("导入%s信息成功!" % file_path)
+
+
 
 
 

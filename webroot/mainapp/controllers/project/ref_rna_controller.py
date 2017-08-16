@@ -32,6 +32,7 @@ class RefRnaController(MetaController):
             self._return_msg = workflow_client.return_msg
             return run_info
         except Exception, e:
+            self.roll_back()
             return {"success": False, "info": "运行出错: %s" % e }
 
     def set_sheet_data(self, name, options, main_table_name, task_id, project_sn, module_type="workflow", params=None, to_file=None):
@@ -51,6 +52,7 @@ class RefRnaController(MetaController):
         self._sheet_data = {
             'id': new_task_id,
             'stage_id': 0,
+            'interaction': True,
             'name': name,  # 需要配置
             'type': module_type,  # 可以配置
             'client': self.data.client,
@@ -58,6 +60,7 @@ class RefRnaController(MetaController):
             'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,
             'UPDATE_STATUS_API': self._update_status_api(),
+            'db_type': '_ref_rna',  # 特殊用途，仅用于basic中判断是哪个数据库
             'options': options  # 需要配置
         }
         if self.instant:

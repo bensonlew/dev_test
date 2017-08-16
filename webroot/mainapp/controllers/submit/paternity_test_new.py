@@ -18,7 +18,8 @@ class PaternityTestNew(PtController):
         data = web.input()
         print data
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        params_name = ['father_id', 'err_min', 'dedup','submit_location']
+        # params_name = ['fathe去除_id', 'err_min', 'dedup','submit_location']
+        params_name = ['father_id', 'err_min', 'dedup']
         for param in params_name:
             if not hasattr(data, param):
                 info = {'success': False, 'info': '缺少{}参数'.format(param)}
@@ -32,9 +33,9 @@ class PaternityTestNew(PtController):
         task_type = 'workflow'
         params_json = {
             'err_min': int(data.err_min),
-            'dedup': int(data.dedup),
-            'submit_location': data.submit_location,
-            'task_type': 'reportTask'
+            'dedup': data.dedup,
+            # 'submit_location': data.submit_location,
+            # 'task_type': 'reportTask'
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
@@ -57,7 +58,7 @@ class PaternityTestNew(PtController):
             "ref_point": str(ref_info['ref_point']),
 
             "err_min": int(data.err_min),
-            "dedup_num": int(data.dedup),
+            "dedup_num": data.dedup,
             "pt_father_id": str(main_table_id),
             "update_info": update_info,
         }
