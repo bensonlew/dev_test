@@ -38,8 +38,12 @@ class GenesetKeggAction(RefRnaController):
 
         table_name = "Kegg"
         collection_name = "sg_geneset_kegg_class"
-        to_file = ['ref_rna.export_multi_gene_list(geneset_kegg)', "ref_rna.export_kegg_table(kegg_table)", "ref_rna.export_kegg_pdf(kegg_pics)", "ref_rna.export_add_info(add_info)"]
-        option = {"geneset_kegg": data.geneset_id, "kegg_table": data.geneset_id.split(",")[0], "kegg_pics": geneset_info['task_id'] + "\t" + data.geneset_type, "add_info":geneset_info['task_id'] + "\t" + data.geneset_type}
+        to_file = ['ref_rna.export_multi_gene_list(geneset_kegg)', "ref_rna.export_kegg_table(kegg_table)",
+                   # "ref_rna.export_kegg_pdf(kegg_pics)",
+                   "ref_rna.export_add_info(add_info)"]
+        option = {"geneset_kegg": data.geneset_id, "kegg_table": data.geneset_id.split(",")[0],
+                  # "kegg_pics": geneset_info['task_id'] + "\t" + data.geneset_type,
+                  "add_info":geneset_info['task_id'] + "\t" + data.geneset_type}
 
         main_table_name = 'Geneset' + table_name + "Class_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
 

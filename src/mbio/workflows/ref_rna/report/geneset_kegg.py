@@ -42,14 +42,14 @@ class GenesetKeggWorkflow(Workflow):
         """
         api_geneset = self.api.ref_rna_geneset
         self.logger.info("开始进行kegg_class的导表")
-        output_file = self.output_dir + '/kegg_stat.xls'
-        pathway_file = self.output_dir + '/pathways'
+        output_file = self.kegg_class.output_dir + '/kegg_stat.xls'
+        pathway_file = self.kegg_class.output_dir + '/pathways'
         api_geneset.add_kegg_regulate_detail(self.option("main_table_id"), output_file)
         api_geneset.add_kegg_regulate_pathway(pathway_file, self.option("main_table_id"))
         self.end()
 
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir = self.add_upload_dir(self.kegg_class.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "基因集KEGG功能分类结果目录"],
         ])
