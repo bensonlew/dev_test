@@ -268,7 +268,7 @@ class RefrnaGeneDetail(Base):
                 line = line.strip('\n').split("\t")
                 if gene_info.get(line[3]) is None:
                     gene_info[line[3]] = {"chr": line[0], "strand": line[5],
-                                          "start": str(int(gene_id)+1), "end": line[2]}
+                                          "start": str(int(line[1])+1), "end": line[2]}
                 else:
                     raise Exception("{}中基因{}在多行出现".format(gene_bed_path, line[3]))
         return gene_info
