@@ -304,7 +304,7 @@ class RefrnaGeneDetail(Base):
         :return: dict, seq_id: sequence
         """
         seq = dict()
-        match_name = re.compile(r'>([\s]+)').match
+        match_name = re.compile(r'>([^\s]+)').match
         with open(fasta_file, 'r+') as fasta:
             j = 0
             seq_id, sequence = '', ''
