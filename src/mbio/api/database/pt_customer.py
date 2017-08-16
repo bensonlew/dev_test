@@ -74,8 +74,8 @@ class PtCustomer(Base):
                             father_type = '全血'
                         else:
                             father_type = row_data[father_type_index]
-                        mom_id = row_data[contrast_num_index] + row_data[family_mom_id].split('-')[0]  # 母本编号
-                        dad_id = row_data[contrast_num_index] + row_data[family_dad_id].split('-')[0]  # 父本编号
+                        mom_id = row_data[contrast_num_index] + '-' + row_data[family_mom_id].split('-')[0]  # 母本编号
+                        dad_id = row_data[contrast_num_index] + '-' + row_data[family_dad_id].split('-')[0]  # 父本编号
                         insert_data = {
                             "pt_datasplit_id": ObjectId(main_id),  # 拆分批次
                             "pt_serial_number": row_data[contrast_num_index],  # 所谓的检案号
