@@ -74,6 +74,8 @@ class PtCustomer(Base):
                             father_type = '全血'
                         else:
                             father_type = row_data[father_type_index]
+                        mom_id = row_data[contrast_num_index] + row_data[family_mom_id].split('-')[0]  # 母本编号
+                        dad_id = row_data[contrast_num_index] + row_data[family_dad_id].split('-')[0]  # 父本编号
                         insert_data = {
                             "pt_datasplit_id": ObjectId(main_id),  # 拆分批次
                             "pt_serial_number": row_data[contrast_num_index],  # 所谓的检案号
@@ -81,13 +83,15 @@ class PtCustomer(Base):
                             "mother_name": row_data[mother_name_index],  #
                             "mother_type": row_data[mother_type_index],
                             "mom_id_": row_data[family_mom_id],
-                            "mom_id": row_data[contrast_num_index] + "-M",  # 母本编号
+                            "mom_id": mom_id,
+                            # "mom_id": row_data[contrast_num_index] + "-M",  # 母本编号
                             "father_name": row_data[father_name_index],
                             "father_type": father_type,  # father_type 不能写 亲子父本全血
                             # "father_type": row_data[father_type_index],
                             "father_type_origin": row_data[father_type_index],  # 保存原始数据
                             "dad_id_": row_data[family_dad_id],
-                            "dad_id": row_data[contrast_num_index] + "-F",  # 父本编号
+                            "dad_id": dad_id,
+                            # "dad_id": row_data[contrast_num_index] + "-F",  # 父本编号
                             "ask_time": row_data[ask_time_index],
                             "F_accept_time": row_data[f_accept_time_index],
                             "F_result_time": row_data[f_result_time_index],
