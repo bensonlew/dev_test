@@ -32,6 +32,8 @@ class RefAnnotationModule(Module):
             {"name": "go_annot", "type": "bool", "default": True},
             {"name": "nr_annot", "type": "bool", "default": False},  # 参考基因组注释不提供缺少nr_xml文件，因此将默认值改为False
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
+            {"name": "link_bgcolor", "type": "string", "default": "green"},  # 通路图链接官网颜色，约定参考基因组为黄色（yellow），新序列为绿色(green), 两者共有为tomato（红）
+            {"name": "png_bgcolor", "type": "string", "default": "#00CD00"},  # 通路图静态图颜色，#00CD00(绿色)，#FFFF00（黄色）
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
@@ -123,7 +125,9 @@ class RefAnnotationModule(Module):
         """
         options = {
             'blastout': self.option('blast_kegg_xml'),
-            'taxonomy': self.option('taxonomy')
+            'taxonomy': self.option('taxonomy'),
+            'link_bgcolor': self.option('link_bgcolor'),
+            'png_bgcolor': self.option('png_bgcolor')
         }
         self.kegg_annot.set_options(options)
         self.kegg_annot.on('start', self.set_step, {'start': self.step.kegg_annot})
@@ -134,7 +138,9 @@ class RefAnnotationModule(Module):
     def run_kegg_upload(self):
         options = {
             'kos_list_upload': self.option('kos_list_upload'),
-            'taxonomy': self.option('taxonomy')
+            'taxonomy': self.option('taxonomy'),
+            'link_bgcolor': self.option('link_bgcolor'),
+            'png_bgcolor': self.option('png_bgcolor')
         }
         self.kegg_upload.set_options(options)
         self.kegg_upload.on('start', self.set_step, {'start': self.step.kegg_upload})
