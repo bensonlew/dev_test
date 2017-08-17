@@ -52,8 +52,8 @@ class KeggClassAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
-        self._memory = '2G'
+        self._cpu = 11
+        self._memory = '10G'
 
     def end(self):
         super(KeggClassAgent, self).end()
@@ -68,6 +68,7 @@ class KeggClassTool(Tool):
         self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
         self.db_path = self.config.SOFTWARE_DIR + "/database/KEGG/xml/"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
+        self.parafly = "/program/parafly-r2013-01-21/bin/bin/ParaFly"
         self.map_dict = {}
 
 
@@ -215,27 +216,46 @@ class KeggClassTool(Tool):
         kos_path=self.output_dir + "/ko"
         out_dir=self.output_dir
         path_list = path_ko.keys()
+        cmd1_list = []
+        cmd2_list = []
         for path in path_list:
             ko_path = kos_path + "/" + path
-            ko = path.replace("map", "ko")
-            cmd = "{} {} {} {} {} {} {}".format(self.r_path, self.map_path, path,
-                                             ko_path, out_dir + "/pathways/" + path + ".png",
-                                             self.db_path + ko + ".xml",
-                                             self.work_dir + "/png/" + path + ".png")
-            try:
-                subprocess.check_output(cmd, shell=True)
+            if os.path.exists(ko_path):
+                ko = path.replace("map", "ko")
+                cmd = "{} {} {} {} {} {} {}".format(self.r_path, self.map_path, path,
+                                                 ko_path, out_dir + "/pathways/" + path + ".png",
+                                                 self.db_path + ko + ".xml",
+                                                 self.work_dir + "/png/" + path + ".png")
+                cmd1_list.append(cmd)
                 pdf_path = out_dir + "/pathways/" + path + ".pdf"
-                cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + out_dir + "/pathways/" + path + ".png" + ' ' + pdf_path
-                subprocess.check_output(cmd, shell=True)
-            except:
-                self.logger.info("{}".format(path))
-                try:
-                    db_png_path =  self.work_dir + "/png/" + path + ".png"
-                    os.link(db_png_path, out_dir + "/pathways/" + path + ".png")
-                    cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + db_png_path + ' ' + out_dir + "/pathways/" + path + ".pdf"
-                    subprocess.check_output(cmd, shell=True)
-                except:
-                    self.logger.info('图片格式png转pdf出错')
+                cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' \
+                      + out_dir + "/pathways/" + path + ".png" + ' ' + pdf_path
+                cmd2_list.append(cmd)
+            else:
+                db_png_path =  self.work_dir + "/png/" + path + ".png"
+                os.link(db_png_path, out_dir + "/pathways/" + path + ".png")
+                cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' \
+                      + db_png_path + ' ' + out_dir + "/pathways/" + path + ".pdf"
+                cmd1_list.append(cmd)
+        self.logger.info("开始生成新kegg图片")
+        with open(self.work_dir + "/cmd1.list", "w") as fw:
+            for i in range(len(cmd1_list)):
+                fw.write(cmd1_list[i] + "\n")
+        cmd = self.parafly + " -c {} -CPU 10".format(self.work_dir + "/cmd1.list")
+        cmd1_obj = self.add_command("cmd1", cmd).run()
+        self.wait(cmd1_obj)
+        if cmd1_obj.return_code == 0:
+            self.logger.info("cmd1 list执行成功")
+        with open(self.work_dir + "/cmd2.list", "w") as fw:
+            for i in range(len(cmd2_list)):
+                fw.write(cmd2_list[i] + "\n")
+        cmd = self.parafly + " -c {} -CPU 10".format(self.work_dir + "/cmd2.list")
+        cmd2_obj = self.add_command("cmd2", cmd).run()
+        self.wait(cmd2_obj)
+        if cmd2_obj.return_code == 0:
+            self.logger.info("cmd2 list执行成功")
+        self.logger.info("kegg图片生成完毕")
+
 
     def get_background_info(self):
         background_links = self.option("background_links")
