@@ -97,6 +97,8 @@ class KeggClassTool(Tool):
         fs = gridfs.GridFS(self.mongo_db)
         annotation_collection = self.mongo_db["sg_annotation_kegg"]
         geneset_collection = self.mongo_db["sg_geneset"]
+        if "," in geneset_id:
+            geneset_id = geneset_id.split(",")[0]
         result = geneset_collection.find_one({"_id": ObjectId(geneset_id)})
         task_id = result["task_id"]
         anno_type = result["type"]
@@ -192,7 +194,7 @@ class KeggClassTool(Tool):
                         color_dict[gene].append("#0000cd")  # 蓝色
                 elif len(self.geneset_gene) ==2:
                     if gene in gene1_list and gene in gene2_list:
-                        color_dict[gene].append("#ff69b4")  # pink
+                        color_dict[gene].append("#0000cd,#ff0000")  # 蓝色,大红
                     elif gene in gene1_list:
                         color_dict[gene].append("#0000cd")  # 蓝色
                     elif gene in gene2_list:
