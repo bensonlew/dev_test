@@ -320,19 +320,19 @@ class KeggClassTool(Tool):
         :param ko: 基因的ko号
         :return:
         """
-        if len(self.geneset_gene) == 1:
-            if ko in self.geneset_gene[self.geneset_gene.keys()[0]]:
+        if len(self.category) == 1:
+            if ko in self.category[self.category.keys()[0]]:
                 return "blue"
             else:
                 return False
-        elif len(self.geneset_gene) == 2:
-            lst = list(self.geneset_gene.keys())  # 基因集列表
+        elif len(self.category) == 2:
+            lst = list(self.category.keys())  # 基因集列表
             lst.sort()
-            if ko in self.geneset_gene[lst[0]] and ko in self.geneset_gene[lst[1]]:
+            if ko in self.category[lst[0]] and ko in self.category[lst[1]]:
                 return "pink"
-            elif ko in self.geneset_gene[lst[0]]:
+            elif ko in self.category[lst[0]]:
                 return "blue"
-            elif ko in self.geneset_gene[lst[1]]:
+            elif ko in self.category[lst[1]]:
                 return "red"
             else:
                 return False
