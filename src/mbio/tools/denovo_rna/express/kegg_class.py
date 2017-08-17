@@ -68,7 +68,7 @@ class KeggClassTool(Tool):
         self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
         self.db_path = self.config.SOFTWARE_DIR + "/database/KEGG/xml/"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
-        self.parafly = "/program/parafly-r2013-01-21/bin/bin/ParaFly"
+        self.parafly = "/program/parafly-r2013-01-21/src/ParaFly"
         self.map_dict = {}
 
 
