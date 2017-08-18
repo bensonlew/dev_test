@@ -68,7 +68,8 @@ class PtAnalysisModule(Module):
                 print "Oops!"
         self.family_analysis.set_options({
             # "tab_merged": self.work_dir + "/FamilyMerge/output/family_joined_tab.Rdata"
-            "tab_merged": self.work_dir+"/FamilyMerge/output/" + rdata
+            # "tab_merged": self.work_dir+"/FamilyMerge/output/" + rdata
+            "tab_merged": os.path.join(self.family_merge.output_dir + rdata),  # modify zhouxuan 20170818
         })
         self.family_analysis.on('end', self.set_output, "family_analysis")
         self.family_analysis.on('end', self.end)
