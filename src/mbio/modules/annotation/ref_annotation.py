@@ -174,7 +174,7 @@ class RefAnnotationModule(Module):
         opts['swissprot_xml'] = self.option('blast_swissprot_xml')
         opts['pfam_domain'] = self.option('pfam_domain')
         # opts['ref_genome_gtf'] = self.option('ref_genome_gtf')
-        if self.option('new_gtf'):
+        if self.option('new_gtf').is_set:
             opts['ref_genome_gtf'] = self.option('new_gtf').prop['path']
         else:
             opts['ref_genome_gtf'] = self.option('ref_genome_gtf').prop['path']
@@ -188,9 +188,9 @@ class RefAnnotationModule(Module):
 
     def run_anno_query(self):
         opts = {'length_path': self.option('length_file').prop['path']}
-        if self.option('ref_genome_gtf'):
+        if self.option('ref_genome_gtf').is_set:
             opts['ref_gtf_path'] = self.option('ref_genome_gtf').prop['path']
-        if self.option('new_gtf'):
+        if self.option('new_gtf').is_set:
             opts['new_gtf_path'] = self.option('new_gtf').prop['path']
         opts['gene_file'] = self.option('gene_file').prop['path']
         nr_path = self.anno_stat.work_dir + "/blast/nr.xls"
