@@ -2,11 +2,64 @@
 # _author_ = "zengjing"
 import collections
 import re
+import regex
 import os
 import gridfs
 import subprocess
+import json
 from biocluster.config import Config
 from itertools import islice
+
+
+class GtfFilt(object):
+    """
+    通过gtf对文件注释进行筛选,提取transcrpt_id对应的基因ID，转录长度，基因名称信息
+    """
+    def get_gtf_information(self, gtf_path, biomart_path):
+        tran_gene, gene_name, tran_length = {}, {}, {}
+        tran_ids, gene_ids = [], []
+        for line in open(gtf_path):
+            content_m = regex.match(
+                r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                line.strip())
+            if content_m:
+                if 'transcript_id' in content_m.captures(6):
+                    tran_id = content_m.captures(7)[0]
+                    gene_id = content_m.captures(10)[0]
+                else:
+                    tran_id = content_m.captures(10)[0]
+                    gene_id = content_m.captures(7)[0]
+                if tran_id not in tran_gene:
+                    tran_gene[tran_id] = gene_id
+                tran_ids.append(tran_id)
+                gene_ids.append(gene_id)
+            m = re.match(r".+gene_id \"(.+?)\"; .*gene_name \"(.+?)\";.*$", line)
+            if m:
+                gene_id = m.group(1)
+                name = m.group(2)
+                gene_name[gene_id] = name
+        tran_ids = list(set(tran_ids))
+        gene_ids = list(set(gene_ids))
+        for line in open(biomart_path):
+            item = line.strip().split("\t")
+            try:
+                tran_id = item[1]
+            except:
+                pass
+            try:
+                length = item[-3]
+            except:
+                pass
+            tran_length[tran_id] = length
+        test = open("tran_information.list", "w")
+        for tran_id in tran_gene:
+            gene_id = tran_gene[tran_id]
+            length = tran_length[tran_id]
+            try:
+                name = gene_name[gene_id]
+            except:
+                name = "\t"
+            test.write(tran_id + "\t" + length + "\t" + gene_id + "\t" + name + "\n")
 
 
 class RefgenomeAnnotation(object):
@@ -15,6 +68,7 @@ class RefgenomeAnnotation(object):
     """
     def __init__(self):
         self.mongodb = Config().biodb_mongo_client.sanger_biodb
+        # self.mongodb = Config().mongo_client.sanger_biodb
         self.cog_string = self.mongodb.COG_String
         self.cog = self.mongodb.COG
         self.gene_coll = self.mongodb.kegg_gene_v1
@@ -55,6 +109,7 @@ class RefgenomeAnnotation(object):
             'Q': 'Secondary metabolites biosynthesis, transport and catabolism',
             'R': 'General function prediction only', 'S': 'Function unknown'
         }
+        no_ids = []
         with open(org_cog, "r") as f, open(cog_summary, "w") as w:
             lines = f.readlines()
             fun_seqs = {"COG": {}, "NOG": {}}
@@ -72,7 +127,7 @@ class RefgenomeAnnotation(object):
                                     fun_seqs['COG'][group] = []
                                 fun_seqs['COG'][group].append(query_id)
                         else:
-                            print "{} 在数据库中不存在,请检查".format(cog_id)
+                            no_ids.append(cog_id)
                 except:
                     pass
                 try:
@@ -86,9 +141,11 @@ class RefgenomeAnnotation(object):
                                     fun_seqs['NOG'][group] = []
                                 fun_seqs['NOG'][group].append(query_id)
                         else:
-                            print "{} 在数据库中不存在，请检查".format(nog_id)
+                            no_ids.append(nog_id)
                 except:
                     pass
+            no_ids = list(set(no_ids))
+            print no_ids
             for first in self.func_type:
                 for g in self.func_type[first]:
                     second = '[' + g + ']' + self.func_decs[g]
@@ -154,7 +211,7 @@ class RefgenomeAnnotation(object):
                     ko_names.append(result['ko_name'])
             kegg_table.write(query_id + "\t" + koids + "\t" + ';'.join(ko_names) + "\t" + link + "\t" + ';'.join(map_paths) + "\n")
 
-    def get_payhway_table(self, org_kegg, pathway_path, link_bgcolor, png_bgcolor, pathwaydir, layerfile):
+    def get_payhway_table(self, org_kegg, pathway_path, link_bgcolor, png_bgcolor, pathwaydir, layerfile, image_magick):
         """
         org_kegg：物种kegg注释文件，ensembl_id\tKO\tpathway\n
         pathway_path: pahtway_table.xls
@@ -229,7 +286,14 @@ class RefgenomeAnnotation(object):
                 for k in ko_ids:
                     w.write(k + "\t" + png_bgcolor + "\t" + fgcolor + "\n")
             png_path = pathwaydir + '/' + map_id + ".png"
+            pdf_path = pathwaydir + '/' + map_id + ".pdf"
             self.get_pic(map_id, kos_path, png_path)
+            if image_magick:
+                cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + png_path + ' ' + pdf_path
+                try:
+                    subprocess.check_output(cmd, shell=True)
+                except subprocess.CalledProcessError:
+                    print '图片格式pdf转png出错'
         with open(layerfile, "w+") as k:
             for i in d:
                 for j in d[i]:
@@ -257,13 +321,13 @@ class RefgenomeAnnotation(object):
             print "{}画图出错".format(path)
             os.system("cp {} {}".format("pathway.png", png_path))
 
-    def kegg_annotation(self, org_kegg, table_path, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile):
+    def kegg_annotation(self, org_kegg, table_path, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile, image_magick):
         """
         参考基因组kegg注释
 
         """
         self.get_kegg_table(org_kegg, table_path)
-        self.get_payhway_table(org_kegg, pathway_path, link_bgcolor, png_bgcolor, pathwaydir, layerfile)
+        self.get_payhway_table(org_kegg, pathway_path, link_bgcolor, png_bgcolor, pathwaydir, layerfile, image_magick)
 
 
 class AnnotationStat(object):
@@ -288,10 +352,10 @@ class AnnotationStat(object):
                         query_ids.append(q)
                 except:
                     pass
-            query_ids = list(set(query_nog))
+            query_ids = list(set(query_ids))
             for q in query_ids:
                 w.write(q + "\n")
-        return len(query_ids)
+        return query_ids
 
     def go_anno_stat(self, gos_list, go_venn):
         query_ids = []
@@ -303,7 +367,7 @@ class AnnotationStat(object):
             query_ids = list(set(query_ids))
             for q in query_ids:
                 w.write(q + "\n")
-        return len(query_ids)
+        return query_ids
 
     def kegg_anno_stat(self, kegg_table, kegg_venn):
         query_ids = []
@@ -315,27 +379,107 @@ class AnnotationStat(object):
             query_ids = list(set(query_ids))
             for q in query_ids:
                 w.write(q + "\n")
-        return len(query_ids)
+        return query_ids
 
-    def ref_anno_stat(self, cog_summary, gos_list, kegg_table, cog_venn, go_venn, kegg_venn, all_stat):
-        cog_count = self.cog_anno_stat(cog_summary, cog_venn)
-        go_count = self.go_anno_stat(gos_list, go_venn)
-        kegg_count = self.kegg_anno_stat(kegg_table, kegg_venn)
+    def ref_anno_stat(self, cog_summary, gene_cog_summary, gos_list, gene_gos_list, kegg_table, gene_kegg_table, venn_dir, all_stat):
+        cog_venn = venn_dir + "/cog_venn.txt"
+        gene_cog_venn = venn_dir + "/gene_cog_venn.txt"
+        kegg_venn = venn_dir + "/kegg_venn.txt"
+        gene_kegg_venn = venn_dir + "/gene_kegg_venn.txt"
+        go_venn = venn_dir + "/go_venn.txt"
+        gene_go_venn = venn_dir + "/gene_go_venn.txt"
+        cog_ids = self.cog_anno_stat(cog_summary, cog_venn)
+        go_ids = self.go_anno_stat(gos_list, go_venn)
+        kegg_ids = self.kegg_anno_stat(kegg_table, kegg_venn)
+        gene_cog_ids = self.cog_anno_stat(gene_cog_summary, gene_cog_venn)
+        gene_go_ids = self.go_anno_stat(gene_gos_list, gene_go_venn)
+        gene_kegg_ids = self.kegg_anno_stat(gene_kegg_table, gene_kegg_venn)
+        anno_ids, gene_anno_ids = [], []
+        for i in cog_ids:
+            anno_ids.append(i)
+        for i in go_ids:
+            anno_ids.append(i)
+        for i in kegg_ids:
+            anno_ids.append(i)
+        for i in gene_cog_ids:
+            gene_anno_ids.append(i)
+        for i in gene_go_ids:
+            gene_anno_ids.append(i)
+        for i in gene_kegg_ids:
+            gene_anno_ids.append(i)
+        anno_ids = list(set(anno_ids))
+        gene_anno_ids = list(set(gene_anno_ids))
+        total_count = 54013
+        gene_total_count = 32833
+        with open(all_stat, "w") as w:
+            w.write("type\ttranscripts\tgenes\ttranscripts_percent\tgenes_percent\n")
+            w.write("cog\t" + str(len(cog_ids)) + "\t" + str(len(gene_cog_ids)) + "\t" + str(round(float(len(cog_ids))/total_count, 4)) + "\t" + str(round(float(len(gene_cog_ids))/gene_total_count, 4)) + "\n")
+            w.write("go\t" + str(len(go_ids)) + "\t" + str(len(gene_go_ids)) + "\t" + str(round(float(len(go_ids))/total_count, 4)) + "\t" + str(round(float(len(gene_go_ids))/total_count, 4)) + "\n")
+            w.write("kegg\t" + str(len(kegg_ids)) + "\t" + str(len(gene_kegg_ids)) + "\t" + str(round(float(len(kegg_ids))/total_count, 4)) + "\t" + str(round(float(len(gene_kegg_ids))/total_count, 4)) + "\n")
+            w.write("total_anno\t" + str(len(anno_ids)) + "\t" + str(len(gene_anno_ids)) + "\t" + str(round(float(len(anno_ids))/total_count, 4)) + "\t" + str(round(float(len(gene_anno_ids))/total_count, 4)) + "\n")
+            w.write("total\t" + str(total_count) + "\t" + str(gene_total_count) + "\t1\t1" + "\n")
 
 
 if __name__ == "__main__":
     test = RefgenomeAnnotation()
-    org_cog = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/cog/mmu_cog.txt"
-    cog_summary = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/cog/cog_summary.xls"
-    go_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/go/mmu_go.txt"
-    out_dir = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/go"
-    org_kegg = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/hsa_kegg.txt"
-    table_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/kegg_table.xls"
-    pathway_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/pathway_table.xls"
-    png_bgcolor = "#FFFF00" # 黄色
-    link_bgcolor = "yellow"
-    pathwaydir = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/pathways1"
-    layerfile = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/kegg_layer.xls"
+    image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
+
+    # org_cog = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/cog_genes.list"
+    # cog_summary = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/COG/refgene_cog_statistics.xls"
     # test.cog_annotation(org_cog, cog_summary)
+    # org_cog = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/cog_trans.list"
+    # cog_summary = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/TransAnnotion/COG/reftrans_cog_statistics.xls"
+    # test.cog_annotation(org_cog, cog_summary)
+
+    # go_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/go_trans.list"
+    # out_dir = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/TransAnnotion/GO/"
     # test.go_annotation(go_list, out_dir)
-    test.kegg_annotation(org_kegg, table_path, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile)
+    # outfiles = ['go1234level_statistics.xls', 'go123level_statistics.xls', 'go12level_statistics.xls']
+    # for item in outfiles:
+    #     linkfile = out_dir + '/reftrans' + item
+    #     if os.path.exists(linkfile):
+    #         os.remove(linkfile)
+    #     os.system("cp " + os.getcwd() + '/' + item + " " + linkfile)
+    # os.system("cp " + go_list + " " + out_dir + "/reftrans_gos.list")
+    # go_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/go_genes.list"
+    # out_dir = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/GO/"
+    # test.go_annotation(go_list, out_dir)
+    # for item in outfiles:
+    #     linkfile = out_dir + '/refgene' + item
+    #     if os.path.exists(linkfile):
+    #         os.remove(linkfile)
+    #     os.system("cp " + os.getcwd() + '/' + item + " " + linkfile)
+    # os.system("cp " + go_list + " " + out_dir + "/refgene_gos.list")
+
+    # png_bgcolor = "#FFFF00" # 黄色
+    # link_bgcolor = "yellow"
+    # org_kegg = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/kegg_trans.list"
+    # table_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/kegg/kegg_table.xls"
+    # pathway_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/kegg/pathway_table.xls"
+    # pathwaydir = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/kegg/pathways"
+    # layerfile = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/kegg/kegg_layer.xls"
+    # test.kegg_annotation(org_kegg, table_path, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile, image_magick)
+    # org_kegg = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/kegg_genes.list"
+    # table_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/anno_stat/kegg_stat/gene_kegg_table.xls"
+    # pathway_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/anno_stat/kegg_stat/gene_pathway_table.xls"
+    # pathwaydir = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/anno_stat/kegg_stat/gene_pathway"
+    # layerfile = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/anno_stat/kegg_stat/gene_kegg_layer.xls"
+    # test.kegg_annotation(org_kegg, table_path, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile, image_magick)
+
+    # stat = AnnotationStat()
+    # cog_summary = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/TransAnnotion/COG/reftrans_cog_statistics.xls"
+    # gene_cog_summary = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/COG/refgene_cog_statistics.xls"
+    # gos_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/TransAnnotion/GO/reftrans_gos.list"
+    # gene_gos_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/GO/refgene_gos.list"
+    # kegg_table = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/TransAnnotion/KEGG/reftrans_kegg_table.xls"
+    # gene_kegg_table = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/KEGG/refgene_kegg_table.xls"
+    # venn_dir = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/venn"
+    # all_stat = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/ref_all_annot_statistics.xls"
+    # stat.ref_anno_stat(cog_summary, gene_cog_summary, gos_list, gene_gos_list, kegg_table, gene_kegg_table, venn_dir, all_stat)
+
+
+    ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/annot_species.json"
+    f = open(ref_json, "r")
+    json_dict = json.loads(f.read())
+    for taxon in json_dict:
+        print taxon
