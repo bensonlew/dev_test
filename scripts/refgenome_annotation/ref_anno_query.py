@@ -2,6 +2,7 @@
 # _author_ = "zengjing"
 import collections
 import re
+import regex
 import os
 import subprocess
 from biocluster.config import Config
@@ -30,13 +31,18 @@ class Transcript(object):
 class RefAnnoQuery(object):
     def __init__(self):
         self.stat_info = {}
-        self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG
-        self.cog_string_v9 = Config().biodb_mongo_client.sanger_biodb.COG_V9
-        self.kegg_ko = Config().biodb_mongo_client.sanger_biodb.kegg_ko_v1
-        self.go = Config().biodb_mongo_client.sanger_biodb.GO
+        # self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG
+        # self.cog_string_v9 = Config().biodb_mongo_client.sanger_biodb.COG_V9
+        # self.kegg_ko = Config().biodb_mongo_client.sanger_biodb.kegg_ko_v1
+        # self.go = Config().biodb_mongo_client.sanger_biodb.GO
+        self.cog_string = Config().mongo_client.sanger_biodb.COG
+        self.cog_string_v9 = Config().mongo_client.sanger_biodb.COG_V9
+        self.kegg_ko = Config().mongo_client.sanger_biodb.kegg_ko_v1
+        self.go = Config().mongo_client.sanger_biodb.GO
         self.gloabl = ["map01100", "map01110", "map01120", "map01130", "map01200", "map01210", "map01212", "map01230", "map01220"]
 
-    def get_anno_stat(self, outpath, cog_list=None, gos_list=None, org_kegg=None, anno_type="transcript"):
+    def get_anno_stat(self, outpath, gtf_path, biomart_path, cog_list=None, gos_list=None, org_kegg=None, anno_type="transcript"):
+        self.get_gtf_information(gtf_path=gtf_path, biomart_path=biomart_path, anno_type=anno_type)
         self.get_cog(cog_list=cog_list)
         self.get_go(gos_list=gos_list)
         self.get_kegg(org_kegg=org_kegg)
@@ -58,6 +64,61 @@ class RefAnnoQuery(object):
                             self.stat_info[name].ko_id, self.stat_info[name].ko_name, self.stat_info[name].pathway, self.stat_info[name].pfam,
                             self.stat_info[name].go, self.stat_info[name].nr, self.stat_info[name].swissprot))
 
+    def get_gtf_information(self, gtf_path, biomart_path, anno_type):
+        for line in open(gtf_path):
+            content_m = regex.match(
+                r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                line.strip())
+            if content_m:
+                if 'transcript_id' in content_m.captures(6):
+                    tran_id = content_m.captures(7)[0]
+                    gene_id = content_m.captures(10)[0]
+                else:
+                    tran_id = content_m.captures(10)[0]
+                    gene_id = content_m.captures(7)[0]
+                if anno_type == "transcript":
+                    if tran_id not in self.stat_info:
+                        query = Transcript()
+                        query.name = tran_id
+                        query.gene_id = gene_id
+                        self.stat_info[tran_id] = query
+                else:
+                    if gene_id not in self.stat_info:
+                        query = Transcript()
+                        query.name = gene_id
+                        query.gene_id = gene_id
+                        self.stat_info[gene_id] = query
+            if anno_type == "transcript":
+                m = re.match(r".+transcript_id \"(.+?)\"; .*gene_name \"(.+?)\";.*$", line)
+                if m:
+                    tran_id = m.group(1)
+                    name = m.group(2)
+                    self.stat_info[tran_id].gene_name = name
+            else:
+                m = re.match(r".+gene_id \"(.+?)\"; .*gene_name \"(.+?)\";.*$", line)
+                if m:
+                    gene_id = m.group(1)
+                    name = m.group(2)
+                    if gene_id in self.stat_info:
+                        self.stat_info[gene_id].gene_name = name
+                    else:
+                        query = Transcript()
+                        query.name = gene_id
+                        query.gene_id = gene_id
+                        self.stat_info[gene_id] = query
+        for line in open(biomart_path):
+            item = line.strip().split("\t")
+            try:
+                tran_id = item[1]
+                length = item[-3]
+                if anno_type == "transcript":
+                    if tran_id in self.stat_info:
+                        self.stat_info[tran_id].length = length
+            except:
+                pass
+        # for name in self.stat_info:
+        #     print name, self.stat_info[name].gene_id, self.stat_info[name].gene_name, self.stat_info[name].length
+
     def get_cog(self, cog_list):
         """找到转录本ID对应的cogID、nogID、kogID及功能分类和描述"""
         with open(cog_list, 'rb') as f:
@@ -72,14 +133,14 @@ class RefAnnoQuery(object):
                     self.stat_info[query_name].nog = self.get_cog_group_categories(nog)[0]
                     self.stat_info[query_name].cog_ids = self.get_cog_group_categories(cog)[1]
                     self.stat_info[query_name].nog_ids = self.get_cog_group_categories(nog)[1]
-                else:
-                    query = Transcript()
-                    query.name = query_name
-                    query.cog = self.get_cog_group_categories(cog)[0]
-                    query.nog = self.get_cog_group_categories(nog)[0]
-                    query.cog_ids = self.get_cog_group_categories(cog)[1]
-                    query.nog_ids = self.get_cog_group_categories(nog)[1]
-                    self.stat_info[query_name] = query
+                # else:
+                #     query = Transcript()
+                #     query.name = query_name
+                #     query.cog = self.get_cog_group_categories(cog)[0]
+                #     query.nog = self.get_cog_group_categories(nog)[0]
+                #     query.cog_ids = self.get_cog_group_categories(cog)[1]
+                #     query.nog_ids = self.get_cog_group_categories(nog)[1]
+                #     self.stat_info[query_name] = query
 
     def get_cog_group_categories(self, group):
         """找到cog/nog/kogID对应的功能分类及功能分类描述、cog描述"""
@@ -116,11 +177,11 @@ class RefAnnoQuery(object):
                 gos = "; ".join(gos)
                 if query_name in self.stat_info:
                     self.stat_info[query_name].go = gos
-                else:
-                    query = Transcript()
-                    query.name = query_name
-                    query.go = gos
-                    self.stat_info[query_name] = query
+                # else:
+                #     query = Transcript()
+                #     query.name = query_name
+                #     query.go = gos
+                #     self.stat_info[query_name] = query
 
     def get_kegg(self, org_kegg):
         "找到转录本ID对应的KO、KO_name、Pathway、Pathway_definition"
@@ -135,7 +196,7 @@ class RefAnnoQuery(object):
                     ko_name = result["ko_name"]
                 else:
                     ko_name = ''
-                    print "没找到ko_id {}".fromat(ko_id)
+                    print "没找到ko_id {}".format(ko_id)
                 pathway = []
                 try:
                     pathways = line[2].split(";")
@@ -164,21 +225,31 @@ class RefAnnoQuery(object):
                     self.stat_info[query_name].ko_id = ko_id
                     self.stat_info[query_name].ko_name = ko_name
                     self.stat_info[query_name].pathway = pathway
-                else:
-                    query = Transcript()
-                    query.name = query_name
-                    query.ko_id = ko_id
-                    query.ko_name = ko_name
-                    query.pathway = pathway
-                    self.stat_info[query_name] = query
+                # else:
+                #     query = Transcript()
+                #     query.name = query_name
+                #     query.ko_id = ko_id
+                #     query.ko_name = ko_name
+                #     query.pathway = pathway
+                #     self.stat_info[query_name] = query
 
     # def get_gene_name(self, )
 
 if __name__ == "__main__":
     Transcript()
     test = RefAnnoQuery()
-    outpath = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/stat/ref_anno.xls"
-    cog_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/cog/mmu_cog.txt"
-    gos_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/go/mmu_go.txt"
-    org_kegg = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/kegg/hsa_kegg.txt"
-    test.get_anno_stat(outpath=outpath, cog_list=cog_list, gos_list=gos_list, org_kegg=org_kegg, anno_type="gene")
+    gtf_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/gtf/Arabidopsis_thaliana.TAIR10.36.gtf"
+    biomart_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/biomart/Arabidopsis_thaliana.TAIR10.biomart.txt"
+    # outpath = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/AnnoOverview/gene_anno_detail.xls"
+    # outpath = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/trans_anno_detail.xls"
+    outpath = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/AnnoOverview/trans_anno_detail.xls"
+    cog_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/cog_trans.list"
+    gos_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/go_trans.list"
+    org_kegg = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/kegg_trans.list"
+    test.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=cog_list, gos_list=gos_list, org_kegg=org_kegg, anno_type="transcript")
+    # outpath = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/Annotation/GeneAnnotation/AnnoOverview/trans_anno_detail.xls"
+    outpath = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/gene_anno_detail.xls"
+    cog_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/cog_genes.list"
+    gos_list = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/go_genes.list"
+    org_kegg = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/kegg_genes.list"
+    # test.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=cog_list, gos_list=gos_list, org_kegg=org_kegg, anno_type="gene")
