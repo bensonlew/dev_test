@@ -3,6 +3,7 @@
 
 from mainapp.config.db import get_mongo_client
 from biocluster.config import Config
+import datetime
 
 
 class SampleExtract(object):
