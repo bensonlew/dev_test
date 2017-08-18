@@ -5,6 +5,7 @@ import json
 import os
 import gevent
 import datetime
+import time
 from bson import ObjectId
 from gevent import Greenlet
 from gevent.monkey import patch_all
@@ -13,9 +14,8 @@ from mainapp.libs.param_pack import group_detail_sort
 
 
 class RefrnaCopyMongo(object):
-    """"""
-    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, new_bam_path, new_ref_gtf, db='tsanger_ref_rna'):
-        self.db = Config().mongo_client[db]
+    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, new_bam_path, new_ref_gtf, db='sanger_ref_rna'):
+        self.db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
         self._new_project_sn = new_project_sn
@@ -445,7 +445,10 @@ class RefrnaCopyMongo(object):
             old_geneset_ids.append(str(i.pop('_id')))
             i['task_id'] = self._new_task_id
             i['project_sn'] = self._new_project_sn
-            i['group_id'] = self.specimen_group_id_dict[str(i['group_id'])]
+            try:
+                i['group_id'] = self.specimen_group_id_dict[str(i['group_id'])]
+            except:
+                print "该基因集没有分组"
             news.append(i)
         if news:
             result = self.db.sg_geneset.insert_many(news)
@@ -623,14 +626,14 @@ class RefrnaCopyMongo(object):
 
 
 if __name__ == '__main__':
-    # copy_task = RefrnaCopyMongo('demo_sj', 'refrna_demo_mouse1', '3072', 'demo_sj')
-    # # # copy_task = RefrnaCopyMongo('tsg_2000', 'demo_zj2', 'demo_zj2', 'demo_zj2')
-    # copy_task.run()
     new_bam_path = "/mnt/ilustre/users/sanger/test/bam/"
     new_ref_gtf = "/mnt/ilustre/users/sanger/test/Mus_musculus.GRCm38.87.gff3.gtf"
-    copy_task = RefrnaCopyMongo('demo_sj', "demo_zzz1", '3072', 'demo_sj', new_bam_path, new_ref_gtf)
-    copy_task.run()
-    # for i in range(0, 101):
-    #     task_id = "refrna_demo_mouse" + str(i)
-    #     copy_task = RefrnaCopyMongo('demo_sj', task_id, '3072', 'demo_sj', new_bam_path)
-    #     copy_task.run()
+    # time.sleep(21600)  # 指定休眠时间
+    start_time =  time.time()
+    num = 1
+    for i in range(num):
+        task_id = "refrna_demo_mouse_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        copy_task = RefrnaCopyMongo('sanger_21455', task_id, 'refrna_demo', 'refrna_demo', new_bam_path, new_ref_gtf)
+        copy_task.run()
+    end_time = time.time()
+    print "total time: {}".format(end_time - start_time)

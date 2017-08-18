@@ -6,6 +6,7 @@ from biocluster.module import Module
 from mbio.files.sequence.file_sample import FileSampleFile
 import glob
 import shutil
+import json
 
 
 class RnaseqMappingModule(Module):
@@ -81,7 +82,6 @@ class RnaseqMappingModule(Module):
         return True
     
     def run(self):
-        # super(RnaseqMappingModule,self).run()
         self.get_opts()
         if self.option("ref_genome") == "customer_mode":
             self.tool_opts.update({
@@ -138,7 +138,6 @@ class RnaseqMappingModule(Module):
                 mapping_tool.set_options(self.tool_opts)
                 self.tools.append(mapping_tool)
         self.on_rely(self.tools, self.set_output, tool)
-        # self.on_rely(self.tools, self.end)
         for tool in self.tools:
             tool.run()
             
@@ -186,8 +185,8 @@ class RnaseqMappingModule(Module):
     def run_star_index(self):
         self.logger.info("开始构建star的索引")
         opts = {
-            "ref_genome": "customer_mode",
-            "ref_genome_custom": self.option("ref_genome_custom"),  # workflow调用star时统一使用customer_mode
+            "ref_genome": self.option("ref_genome"),
+            "ref_genome_custom": self.option("ref_genome_custom"),
             "ref_gtf": self.option("ref_gtf"),
             "seq_method": self.option("seq_method")
         }
@@ -225,7 +224,6 @@ class RnaseqMappingModule(Module):
         elif event["data"] == "hisat":
             self.logger.info("设置hisat输出文件")
             for tool in self.tools:
-                # tophat_dir = tool.work_dir + "/tophat_out"
                 stat_file = os.path.join(tool.work_dir, "hisat_mapping.o")
                 new_file = os.path.join(stat_dir, tool.option("sample") + ".stat")
                 self.logger.info(stat_file)
@@ -261,5 +259,5 @@ class RnaseqMappingModule(Module):
                     os.remove(target)
                 os.link(f_path, target)
         self.option("bam_output").set_path(self.output_dir + "/bam")
-        self.logger.info("done")
+        self.logger.info("设置snp的输出结束")
         self.end()
