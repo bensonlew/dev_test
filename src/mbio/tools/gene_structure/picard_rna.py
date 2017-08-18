@@ -7,10 +7,7 @@ from biocluster.tool import Tool
 import os
 from biocluster.core.exceptions import OptionError
 import shutil 
-import re 
-# import subprocess
-# import glob
-
+import re
 
 class PicardRnaAgent(Agent):
     """
@@ -18,10 +15,6 @@ class PicardRnaAgent(Agent):
     """
     def __init__(self, parent):
         super(PicardRnaAgent, self).__init__(parent)
-        
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "pig", "Fruitfly", "human",
-                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test"]
-        
         options = [
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 用户上传参考基因组文件
             {"name": "ref_genome", "type": "string"},  # 参考基因组模式选项 用户自定义、选择已有生物物种
@@ -62,7 +55,6 @@ class PicardRnaTool(Tool):
 
     def __init__(self, config):
         super(PicardRnaTool, self).__init__(config)
-        # self.picard_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/gene-structure/"
         self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
         self.sample_name = ''
 
@@ -117,7 +109,7 @@ class PicardRnaTool(Tool):
         self.logger.info("运行addorreplacereadgroups")
         if self.option("in_sam").is_set:
             self.addorreplacereadgroups()
-            
+
         self.logger.info("运行MarkDuplicates")
         if os.path.exists(os.path.join(self.work_dir, "add_sorted.bam")):
             bam_path = os.path.join(self.work_dir, "add_sorted.bam") 
