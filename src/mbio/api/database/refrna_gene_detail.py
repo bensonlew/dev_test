@@ -200,16 +200,55 @@ class RefrnaGeneDetail(Base):
         print("共统计出{}条转录本的蛋白序列信息".format(len(pep_dict)))
         return pep_dict
 
-    def get_accession_entrez_id(self, pep_accession):
-        collection = self.db["sg_entrez_id"]
-        data = collection.find_one({"entrez_pep_id": pep_accession})
-        if data:
-            return data["entrez_gene_id"]
-        else:
-            print("没有找到｛｝对应的entrez_id信息".format(pep_accession))
-            return "-"
+    @staticmethod
+    def parse_biomart_enterz(biromart_entrez):
+        """
+        parse *biomart_enterz.txt into dict
+        :param biromart_entrez: example, no header, tab as separator
+        -------------------------------------------------------
+        ENSMUSG00000064341      ENSMUST00000082392      17716
+        ENSMUSG00000064342      ENSMUST00000082393
+        ENSMUSG00000064345      ENSMUST00000082396      17717
+        -------------------------------------------------------
+        :return: {gene_id: set(entrez_id1, en2)}
+        """
+        ensembl2entrez = dict()
+        with open(biromart_entrez) as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                tmp_list = line.strip().split('\t')
+                if len(tmp_list) >= 3:
+                    ensembl2entrez.setdefault(tmp_list[0], set())
+                    ensembl2entrez[tmp_list[0]].add(tmp_list[2])
+        return ensembl2entrez
 
-    def get_new_gene_description_entrez(self, query_id, blast_id=None):
+    @staticmethod
+    def parse_gene2ensembl(gene2ensembl):
+        """
+        parse file gene2ensembl into dict, contain information across species
+        :param gene2ensembl: column info
+        1	#tax_id
+        2	GeneID
+        3	Ensembl_gene_identifier
+        4	RNA_nucleotide_accession.version
+        5	Ensembl_rna_identifier
+        6	protein_accession.version
+        7	Ensembl_protein_identifier
+        :return: dict, {prot: set{entrez_id1,id2,..}}
+        """
+        prot2entrez = dict()
+        with open(gene2ensembl) as f:
+            _ = f.readline()
+            for line in f:
+                if not line.strip():
+                    continue
+                tmp_list = line.strip().split('\t')
+                prot2entrez.setdefault(tmp_list[5], set())
+                prot2entrez[tmp_list[5]].add(tmp_list[1])
+        return prot2entrez
+
+    def query_pep_from_blast_result(self, query_id, blast_id=None):
         """根据新基因nr比对的结果 找出蛋白的accession号，
         同时根据蛋白的accession号从sg_entrez_id中获得基因的entrez_id并添加该entrez_id的ncbi链接
         :param query_id: 查询的基因或转录本的id
@@ -226,31 +265,10 @@ class RefrnaGeneDetail(Base):
         if data:
             hit_name = data["hit_name"]
             pep_accession = hit_name.split("|")[3]
-            entrez_id = self.get_accession_entrez_id(pep_accession)
             description = data['description']
-            return entrez_id, description
+            return pep_accession, description
         else:
             return '-', '-'
-
-    def query_entrezid(self, ensem_gene_id=None, is_new=None, blast_id=None):
-        """
-        只能对参考基因组上的ensembl id查询
-        :param ensem_gene_id:
-        :param is_new:
-        :param blast_id: sg_annotaion_blast_detail中的blast_id，是ObjectId对象
-        :return:
-        """
-        collection = self.db["sg_entrez_id"]
-        if not is_new:
-            data = collection.find_one({"ensem_gene_id": ensem_gene_id})
-            if data:
-                return int(data['geneid'])
-            else:
-                return '-'
-        else:
-            entrez_id, description = self.get_new_gene_description_entrez(query_id=ensem_gene_id,
-                                                                          blast_id=blast_id)
-            return entrez_id, description
 
     @staticmethod
     def gene_location(gene_bed_path):
@@ -274,27 +292,35 @@ class RefrnaGeneDetail(Base):
         return gene_info
 
     @staticmethod
-    def gene2transcript(class_code):
+    def parse_class_code_info(class_code):
         """
         根据输入文件提取基因和转录本对应的关系字典
         :param class_code: 文件名，tab分割，至少包含两列。第一列是转录本，第二列是基因，第一行是header.
         First line will be skipped.
+        -------------------------------------------------------------------------------------
+        #assemble_txpt_id       assemble_gene_id        class_code      ref_gene_name
+        ENSMUST00000166088      ENSMUSG00000009070      =       Rsph14
+        ENSMUST00000192671      ENSMUSG00000038599      =       Capn8
+        ENSMUST00000110582      ENSMUSG00000079083      =       Jrkl
+        --------------------------------------------------------------------------------------
         :return: dict, gene_id:[tid1,tid2]
         """
+        gene2trans_dict = dict()
+        gene2name_dict = dict()
+        trans2class_code = dict()
         with open(class_code, 'r+') as f1:
             f1.readline()
-            gene2trans_dict = {}
-            for lines in f1:
-                if not lines.strip():
+            for line in f1:
+                if not line.strip():
                     continue
-                line = lines.strip('\n').split("\t")
-                gene2trans_dict.setdefault(line[1], list())
-                gene2trans_dict[line[1]].append(line[0])
-            if gene2trans_dict:
-                return gene2trans_dict
-            else:
-                error_info = '没有从{}提取出基因对应的转录本信息'.format(class_code)
-                raise Exception(error_info)
+                line = line.strip('\n').split("\t")
+                gene = line[1]
+                gene2trans_dict.setdefault(gene, list())
+                gene2trans_dict[gene].append(line[0])
+                trans2class_code[line[0]] = line[2]
+                if len(line) >= 4:
+                    gene2name_dict[gene] = line[3]
+        return gene2trans_dict, gene2name_dict, trans2class_code
 
     @staticmethod
     def fasta2dict(fasta_file):
@@ -329,7 +355,6 @@ class RefrnaGeneDetail(Base):
             else:
                 # save the last sequence
                 seq[seq_id] = sequence
-
         if not seq:
             print '提取序列信息为空'
         print "从{}共统计出{}条序列信息".format(fasta_file, len(seq))
@@ -364,196 +389,226 @@ class RefrnaGeneDetail(Base):
         else:
             print("导入%s表成功！" % class_code)
 
-    def add_gene_detail_class_code_detail(self, class_code, biomart_path=None,
-                                          biomart_type="type1", class_code_id=None, blast_id=None,
-                                          gene_location_path=None, trans_location_path=None,
-                                          cds_path=None, pep_path=None, transcript_path=None,
-                                          gene_path=None, species=None):
+    def add_gene_detail_class_code_detail(self, class_code,
+                                          biomart_path=None,
+                                          biomart_type="type1",
+                                          biomart_entrez_path=None,
+                                          gene2ensembl_path=None,
+                                          class_code_id=None,
+                                          blast_id=None,
+                                          gene_location_path=None,
+                                          trans_location_path=None,
+                                          cds_path=None,
+                                          pep_path=None,
+                                          transcript_path=None,
+                                          gene_path=None,
+                                          species=None):
         """
+        :param class_code: class_code文件. "transcript--gene--class_code--gene_name"
         :param biomart_path: 获取已知基因的description和gene_type信息
-        :param biomart_type: biomart_type
-        :param class_code: class_code文件
-        :param class_code_id: class_code_id 的主表, 应该指被添加信息的表的id
+        :param biomart_type: biomart_type, which decide the way to parse biomart_path
+        :param biomart_entrez_path: info from ensembl. For query of a known gene's entrez id.
+        :param gene2ensembl_path: gene2ensembl, info from ncbi. For query of a new gene's entrez id.
+        :param class_code_id: class_code_id 的主表, 应该指被添加信息的主表的id
         :param blast_id: nr统计表 sg_annotation_blast_detail 的导表函数id
-        :param gene_location_path: 基因的bed文件
-        :param trans_location_path: 转录本的bed文件
-        :param cds_path: cds文件路径
-        :param pep_path: pep文件路径
-        :param transcript_path: 转录本的fa文件
-        :param gene_path: 基因的fa文件
+        :param gene_location_path: 基因的bed文件, 计算产生的文件
+        :param trans_location_path: 转录本的bed文件，计算产生的文件
+        :param cds_path: cds文件路径， from biomart
+        :param pep_path: pep文件路径， from biomart
+        :param transcript_path: 转录本的fa文件, 计算产生的文件
+        :param gene_path: 基因的fa文件， 计算产生的文件
         :param species: 物种名称(拉丁文)
+        **: liubinxu make the files: biomart_path, biomart_entrez_path, gene2ensembl_path,
+                                     cds_path, pep_path.
         """
-        start = time.time()
+        start_time = time.time()
+        local_args = locals()
+        for arg in local_args:
+            if local_args[arg] is None:
+                raise Exception('{} must be specified'.format(arg))
+
+        gene2trans, gene2name, trans2class_code = self.parse_class_code_info(class_code)
+        biomart_data = self.biomart(biomart_path, biomart_type=biomart_type)
+        gene_location_info = self.gene_location(gene_location_path)
+        trans_location_info = self.gene_location(trans_location_path)
+        trans_cds_info = self.get_cds_seq(cds_path)
+        trans_pep_info = self.get_pep_seq(pep_path)
+        trans_sequence = self.fasta2dict(transcript_path)
+        gene_sequence_dict = self.fasta2dict(gene_path)
+        prot2entrez = self.parse_gene2ensembl(gene2ensembl_path)
+        ensembl2entrez = self.parse_biomart_enterz(biomart_entrez_path)
+
         data_list = list()
-        gene2trans = self.gene2transcript(class_code)  # 获得基因和转录本的对应关系
-        if gene_location_path:
-            gene_location_info = self.gene_location(gene_location_path)
-        if trans_location_path:
-            trans_location_info = self.gene_location(trans_location_path)
-        if cds_path:
-            trans_cds_info = self.get_cds_seq(cds_path)  # 转录本和cds对应关系
-        if pep_path:
-            trans_pep_info = self.get_pep_seq(pep_path)  # 转录本和pep对应关系
-        if biomart_path:
-            biomart_data = self.biomart(biomart_path, biomart_type=biomart_type)
-        if transcript_path:
-            trans_sequence = self.fasta2dict(transcript_path)  # 提取转录本的fa序列
-        if gene_path:
-            gene_sequence_dict = self.fasta2dict(gene_path)
-        if not species:
-            raise Exception('species must be specified')
-        if not blast_id:
-            raise Exception('需提供nr统计表 sg_annotation_blast_detail 的导表函数id')
+        new_num = 0
+        for gene_id in gene2trans:
+            description, gene_type, gene_name, is_new = '', '', '', False
 
-        gene_id_list = list()
-        line_id = 0
-        with open(class_code) as f1:
-            f1.readline()
-            for line in f1:
-                line_id += 1
-                if line_id % 1000 == 0:
-                    print(line_id)
-                if line.startswith('#') or not line.strip():
-                    continue
-                line = line.strip('\n').split("\t")
-                description, gene_type, gene_name = '', '', ''
-                gene_id = line[1]
-                if gene_id in gene_id_list:
-                    continue
-                gene_id_list.append(gene_id)
-                if line[2] != 'u':
-                    entrez_id = self.query_entrezid(gene_id, is_new=False)  # 获得已知基因的entrez_id
-                    is_new = False
+            # get gene's entrez id
+            trans_list = gene2trans[gene_id]
+            u_appear = [1 for x in trans_list if trans2class_code[x] == "u"]
+            if sum(u_appear) < 1:
+                if ensembl2entrez.get(gene_id):
+                    entrez_ids = ensembl2entrez[gene_id]
                 else:
-                    is_new = True
-                    # 获得新基因的entrez_id
-                    entrez_id, description = self.query_entrezid(gene_id, is_new=True,
-                                                                 blast_id=blast_id)
-
-                trans_list = gene2trans[line[1]]
-                transcript_num = len(trans_list)
-                if not trans_list:
-                    error_info = '{}基因没有对应的转录本信息'.format(gene_id)
-                    raise Exception(error_info)
+                    entrez_ids = '-'
+            else:
+                is_new = True
+                new_num += 1
+                pep_id, description = self.query_pep_from_blast_result(gene_id, blast_id=blast_id)
+                if prot2entrez.get(pep_id):
+                    entrez_ids = prot2entrez[pep_id]
                 else:
-                    transcript = ",".join(trans_list)
+                    entrez_ids = '-'
 
-                transcript_info = OrderedDict()
-                for ind, trans_ll in enumerate(trans_list):
-                    if not re.search('MSTRG', trans_ll) and not re.search(r'TCONS', trans_ll):
-                        # 表示是已知转录本, 已知转录本输入的是cds和pep信息, 其键值索引是转录本的ensembl编号信息
-                        transcript_info[trans_ll] = dict()
-                        count_none = 0
-                        if trans_ll in trans_cds_info.keys():
-                            transcript_info[trans_ll]["cds"] = trans_cds_info[trans_ll]
-                        else:
-                            count_none += 1
-                        if trans_ll in trans_pep_info.keys():
-                            transcript_info[trans_ll]["pep"] = trans_pep_info[trans_ll]
-                        else:
-                            count_none += 1
-                        if trans_ll in trans_sequence.keys():
-                            transcript_info[trans_ll]["sequence"] = trans_sequence[trans_ll]
-                            transcript_info[trans_ll]["length"] = len(trans_sequence[trans_ll])
-                        else:
-                            transcript_info[trans_ll]["length"] = 0
-                            transcript_info[trans_ll]["sequence"] = '-'
-                        if count_none == 2:
-                            transcript_info.pop(trans_ll)
+            # get transcript info
+            trans_list = gene2trans[gene_id]
+            transcript_num = len(trans_list)
+            if not trans_list:
+                error_info = '{}基因没有对应的转录本信息'.format(gene_id)
+                raise Exception(error_info)
+            transcripts = ",".join(trans_list)
+            transcript_info = OrderedDict()
+            new_transcript_info = OrderedDict()
+            for ind, trans_ll in enumerate(trans_list):
+                # as "." is not allowed to be used as key in Mongodb. str(ind) will be used instead.
+                new_ind = str(ind)
+                if ('MSTRG' not in trans_ll) and ('TCONS' not in trans_ll):
+                    transcript_info[new_ind] = dict()
+                    # 已知转录本输入的是cds和pep信息, 其键值索引是转录本的ensembl编号.
+                    if trans_ll in trans_cds_info.keys():
+                        transcript_info[new_ind]["cds"] = trans_cds_info[trans_ll]
                     else:
-                        # 新转录本输入的是其在new_trans_list中的编号信息
-                        if trans_ll in trans_location_info.keys():
-                            # 新转录本的start，end信息
-                            tmp_value = trans_location_info[trans_ll]
-                            transcript_info[str(ind)] = dict(start=tmp_value['start'],
-                                                             end=tmp_value['end'])
-                        else:
-                            print('{} was not found in {}'.format(trans_ll, trans_location_path))
-                        if trans_ll in trans_sequence.keys():
-                            # 新转录本的sequence，length信息
-                            transcript_info[str(ind)]['sequence'] = trans_sequence[trans_ll]
-                            transcript_info[str(ind)]['length'] = len(trans_sequence[trans_ll])
-                        else:
-                            print('{} was not found in {}'.format(trans_ll, transcript_path))
+                        transcript_info[new_ind]["cds"] = '-'
 
-                    if gene_id in biomart_data.keys():
-                        # 获取已知基因的descriptio，gene_type信息
-                        description = biomart_data[gene_id]["description"][0]
-                        gene_type = biomart_data[gene_id]['gene_type'][0]
-                        if len(line[3]) <= 1:
-                            gene_name = biomart_data[gene_id]['gene_name'][0]
-                        else:
-                            gene_name = line[3]
-
-                    if gene_id in gene_location_info.keys():
-                        start = gene_location_info[gene_id]['start']
-                        end = gene_location_info[gene_id]['end']
-                        strand = gene_location_info[gene_id]['strand']
-                        chrom = gene_location_info[gene_id]['chr']
+                    if trans_ll in trans_pep_info.keys():
+                        transcript_info[new_ind]["pep"] = trans_pep_info[trans_ll]
                     else:
-                        start, end, strand, chrom = '-', '-', '-', '-'
+                        transcript_info[new_ind]["pep"] = '-'
 
-                    if gene_id in gene_sequence_dict.keys():
-                        gene_sequence = gene_sequence_dict[gene_id]
-                        gene_length = len(gene_sequence)
+                    if trans_ll in trans_sequence.keys():
+                        transcript_info[new_ind]["sequence"] = trans_sequence[trans_ll]
+                        transcript_info[new_ind]["length"] = len(trans_sequence[trans_ll])
                     else:
-                        gene_sequence = '-'
-                        gene_length = 0
-                        print('{} was not found in {}'.format(gene_id, gene_path))
-                    data = [
-                        ("is_new", is_new),
-                        ("type", "gene_detail"),
-                        ("class_code_id", class_code_id),
-                        ("gene_id", gene_id),
-                        ("entrez_id", entrez_id),
-                        ("description", description),
-                        ("strand", strand),
-                        ("start", start),
-                        ("location", "{}-{}".format(str(start), str(end))),
-                        ("end", end),
-                        ("chrom", chrom),
-                        ("gene_name", gene_name),
-                        ("transcript", transcript),
-                        ("transcript_number", transcript_num),
-                        ("gene_type", gene_type),
-                        ("gene_sequence", gene_sequence),
-                        ("gene_length", gene_length),
-                        ("gene_ncbi", "https://www.ncbi.nlm.nih.gov/gquery/?term={}".format(gene_id)),
-                        ("gene_ensembl", "http://www.ensembl.org/{}/Gene/Summary?g={}".format(species, gene_id)),
+                        transcript_info[new_ind]["length"] = '-'
+                        transcript_info[new_ind]["sequence"] = '-'
+                else:
+                    if trans_ll in trans_location_info.keys():
+                        tmp_value = trans_location_info[trans_ll]
+                        new_transcript_info[new_ind] = dict(start=tmp_value['start'],
+                                                            end=tmp_value['end'])
+                    else:
+                        print('{} was not found in {}'.format(trans_ll, trans_location_path))
+                        new_transcript_info[new_ind] = dict(start='-', end='-')
+
+                    if trans_ll in trans_sequence.keys():
+                        # 新转录本的sequence，length信息
+                        new_transcript_info[new_ind]['sequence'] = trans_sequence[trans_ll]
+                        new_transcript_info[new_ind]['length'] = len(trans_sequence[trans_ll])
+                    else:
+                        print('{} was not found in {}'.format(trans_ll, transcript_path))
+                        new_transcript_info[new_ind]['sequence'] = '-'
+                        new_transcript_info[new_ind]['length'] = '-'
+
+            # get known gene description and gene name
+            if not is_new:
+                if gene_id in biomart_data.keys():
+                    # 获取已知基因的descriptio，gene_type信息
+                    description = biomart_data[gene_id]["description"][0]
+                    gene_type = biomart_data[gene_id]['gene_type'][0]
+                    if len(gene2name[gene_id]) <= 1:
+                        gene_name = biomart_data[gene_id]['gene_name'][0]
+                    else:
+                        gene_name = gene2name[gene_id]
+                else:
+                    print('Warning: known gene {} was not in {}'.format(gene_id, biomart_path))
+
+            # get gene location info
+            if gene_id in gene_location_info.keys():
+                start = gene_location_info[gene_id]['start']
+                end = gene_location_info[gene_id]['end']
+                strand = gene_location_info[gene_id]['strand']
+                chrom = gene_location_info[gene_id]['chr']
+            else:
+                print('{} was not found in {}'.format(gene_id, gene_location_info))
+                start, end, strand, chrom = '-', '-', '-', '-'
+
+            # get sequence info
+            if gene_sequence_dict.get(gene_id):
+                gene_sequence = gene_sequence_dict[gene_id]
+                gene_length = len(gene_sequence)
+            else:
+                print('{} was not found in {}'.format(gene_id, gene_path))
+                gene_sequence, gene_length = '-', '-'
+
+            # format http sites
+            if entrez_ids and (not entrez_ids == "-"):
+                ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term={}'.format(list(entrez_ids)[0])
+            else:
+                ncbi = None
+            ensembl = "http://www.ensembl.org/{}/Gene/Summary?g={}".format(species, gene_id)
+            data = [
+                    ("is_new", is_new),
+                    ("type", "gene_detail"),
+                    ("class_code_id", class_code_id),
+                    ("gene_id", gene_id),
+                    ("entrez_id", ','.join(entrez_ids)),
+                    ("description", description),
+                    ("strand", strand),
+                    ("start", start),
+                    ("location", "{}-{}".format(str(start), str(end))),
+                    ("end", end),
+                    ("chrom", chrom),
+                    ("gene_name", gene_name),
+                    ("transcript", transcripts),
+                    ("transcript_number", transcript_num),
+                    ("gene_type", gene_type),
+                    ("gene_sequence", gene_sequence),
+                    ("gene_length", gene_length),
+                    ("gene_ncbi", ncbi),  # only display one site
+                    ("gene_ensembl", ensembl),
                     ]
-                    if not transcript_info:
-                        data.append(("trans_info", None))
-                    else:
-                        data.append(("trans_info", transcript_info))
-                    # print data
-                    data = SON(data)
-                    data_list.append(data)
+            if transcript_info:
+                data.append(("trans_info", transcript_info))
+            if new_transcript_info:
+                data.append(("new_trans_info", new_transcript_info))
+            data = SON(data)
+            data_list.append(data)
 
-        print("共统计出{}基因".format(len(gene_id_list)))
-        end = time.time()
-        duration = end - start
-        m, s = divmod(duration, 60)
-        h, m = divmod(m, 60)
-        print('整个程序运行的时间为{}h:{}m:{}s'.format(h, m, s))
         try:
             collection = self.db["sg_express_class_code_detail"]
             collection.insert_many(data_list)
+            print("Gene_detail_log: {} genes was dumped into Mongodb. {} are novel genes".format(
+                len(gene2name), new_num))
         except Exception, e:
-            print("导入%s表出错:%s" % (class_code, e))
+            print("Gene detail to Mongodb failed. log:{}".format(e))
         else:
-            print("导入%s表成功！" % class_code)
+            end_time = time.time()
+            duration = end_time - start_time
+            m, s = divmod(duration, 60)
+            h, m = divmod(m, 60)
+            print('导入基因详情表耗时 {}h:{}m:{}s'.format(h, m, s))
 
     def add_class_code(self, assembly_method, name=None, major_gene_detail=False,
                        major_express_diff=False, species=None,
-                       class_code_path=None, gene_location_path=None, trans_location_path=None,
-                       biomart_path=None, biomart_type="type1", cds_path=None, pep_path=None,
-                       transcript_path=None, gene_path=None, blast_id=None, test_this=False):
+                       class_code_path=None,
+                       biomart_entrez_path=None,
+                       gene2ensembl_path=None,
+                       gene_location_path=None,
+                       trans_location_path=None,
+                       biomart_path=None,
+                       biomart_type="type1",
+                       cds_path=None,
+                       pep_path=None,
+                       transcript_path=None,
+                       gene_path=None,
+                       blast_id=None,
+                       test_this=False):
         if not test_this:
             task_id = self.bind_obj.sheet.task_id
             project_sn = self.bind_obj.sheet.project_sn
         else:
-            task_id = 'demo_test_gdq'
-            project_sn = 'demo_test_gdq'
+            print("Begin time: {}".format(''.join(datetime.datetime.now().ctime())))
+            project_sn = task_id = 'gene_detail_test'
         if not species:
             raise Exception('species must be specified')
         if not blast_id:
@@ -563,7 +618,7 @@ class RefrnaGeneDetail(Base):
             ('task_id', task_id),
             ('project_sn', project_sn),
             ('assembly_method', assembly_method),
-            ('desc', 'class_code信息'),
+            ('desc', 'gene_detail_information'),
             ('created_ts', datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
             ('status', 'end'),
             ('name', name if name else 'Classcode_'+datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
@@ -582,15 +637,17 @@ class RefrnaGeneDetail(Base):
         collection = self.db["sg_express_class_code"]
         try:
             class_code_id = collection.insert_one(SON(data)).inserted_id
+            print("导入class_code主表信息完成！")
         except Exception:
             print("导入class_code主表信息错误")
-        else:
-            print("导入class_code主表信息成功!")
+
         if major_gene_detail:
             self.add_gene_detail_class_code_detail(class_code=class_code_path,
                                                    biomart_path=biomart_path,
                                                    biomart_type=biomart_type,
                                                    class_code_id=class_code_id,
+                                                   biomart_entrez_path=biomart_entrez_path,
+                                                   gene2ensembl_path=gene2ensembl_path,
                                                    gene_location_path=gene_location_path,
                                                    trans_location_path=trans_location_path,
                                                    cds_path=cds_path,
@@ -614,8 +671,13 @@ class TestFunction(unittest.TestCase):
         base_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/vertebrates" \
                     "/Mus_musculus/Ensemble_release_89/"
         biomart_path = base_path + "biomart/Mus_musculus.GRCm38.biomart_gene.txt"
+        biomart_type = "type1"
+        biomart_entrez_path = base_path+"NCBI/Mus_musculus.GRCm38.biomart_enterz.txt"
         pep_path = base_path + "cds/Mus_musculus.GRCm38.pep.all.fa"
         cds_path = base_path + "cds/Mus_musculus.GRCm38.cds.all.fa"
+        gene2ensembl_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome" \
+                            "/ncbi_gene2ensembl/gene2ensembl"
+
         gene_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_bed'
         trans_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_trans_bed'
         gene_path = "/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_2/GeneFa/output/gene.fa"
@@ -627,10 +689,21 @@ class TestFunction(unittest.TestCase):
         a = self.TmpRefrnaGeneDetail()
         blast_id = a.db["sg_annotation_blast"].find_one({"task_id": "demo_0711"})
         blast_id = blast_id['_id']
-        a.add_class_code(assembly_method="stringtie", name=None, major_gene_detail=True, major_express_diff=True,
-                         biomart_path=biomart_path, gene_location_path=gene_bed, trans_location_path=trans_bed,
-                         class_code_path=class_code,  cds_path=cds_path, pep_path=pep_path,
-                         species='Mus_musculus', transcript_path=transcript_path, gene_path=gene_path, blast_id=blast_id,
+        a.add_class_code(assembly_method="stringtie", name=None, major_gene_detail=True,
+                         major_express_diff=True,
+                         biomart_path=biomart_path,
+                         biomart_type=biomart_type,
+                         biomart_entrez_path=biomart_entrez_path,
+                         gene2ensembl_path=gene2ensembl_path,
+                         gene_location_path=gene_bed,
+                         trans_location_path=trans_bed,
+                         class_code_path=class_code,
+                         cds_path=cds_path,
+                         pep_path=pep_path,
+                         species='Mus_musculus',
+                         transcript_path=transcript_path,
+                         gene_path=gene_path,
+                         blast_id=blast_id,
                          test_this=True)
 
 if __name__ == '__main__':
