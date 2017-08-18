@@ -942,6 +942,11 @@ class RefrnaWorkflow(Workflow):
             greenlet =  gevent.spawn(self.export_assembly)
             self.all_greenlets.append(greenlet)
             self.logger.info("开始设置assemble的输出目录")
+        if event["data"] == "map_qc":
+            greenlet.spawn(self.move2outputdir, obj.output_dir, 'map_qc')
+            self.logger.info("开始设置质量评估输出目录")
+            greenlet.spawn(self.export_map_assess)
+            self.logger.info("开始进行质量评估导表")
         if event['data'] == 'exp':
             greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'express')
             self.logger.info("开始设置rsem表达量输出目录")
@@ -967,7 +972,6 @@ class RefrnaWorkflow(Workflow):
             self.logger.info("开始移动snp文件夹")
             greenlet = gevent.spawn(self.export_snp)
             self.all_greenlets.append(greenlet)
-
         # if event['data'] == 'network_analysis':
         #     self.move2outputdir(obj.output_dir, 'network_analysis')
         #     self.logger.info("network_analysis文件移动完成")
@@ -1056,7 +1060,7 @@ class RefrnaWorkflow(Workflow):
         self.export_annotation()
         # self.export_assembly()
         # self.export_snp()
-        self.export_map_assess()
+        # self.export_map_assess()
         self.export_exp_rsem_default()
         # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
         # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")

@@ -21,17 +21,15 @@ class SnpRnaModule(Module):
     """
     def __init__(self, work_id):
         super(SnpRnaModule, self).__init__(work_id)
-        self._ref_genome_lst = ["customer_mode", "Chicken", "Tilapia", "Zebrafish", "Cow", "pig", "Fruitfly", "human",
-                                "Mouse", "Rat", "Arabidopsis", "Broomcorn", "Rice", "Zeamays", "Test", "test"]
         options = [
             {"name": "ref_genome", "type": "string"},  # 参考基因组类型
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf,gene_structure.gff3"},  # 基因组gtf文件
-            {"name": "in_sam", "type": "infile", "format": "align.bwa.sam_dir"},
+            # {"name": "in_bam", "type": "infile", "format": "align.bwa.bam_dir"},
             {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
             {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
             {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
-            {"name": "in_sam", "type": "infile", "format": "align.bwa.sam_dir"},  # sam格式文件
+            {"name": "in_bam", "type": "infile", "format": "align.bwa.bam_dir"},  # bam格式文件
             {"name": "seq_method", "type": "string"},  # 比对方式
             {"name": "input_bam", "type": "infile", "format": "align.bwa.bam"}  # bam格式文件,排序过的
         ]
@@ -62,24 +60,14 @@ class SnpRnaModule(Module):
         self.step.update()
 
     def picard_run(self):
-        for i in os.listdir(self.option("in_sam").prop["path"]):
+        for i in os.listdir(self.option("in_bam").prop["path"]):
             self.samples.append(i[:-4])
-            f_path = os.path.join(self.option("in_sam").prop["path"], i)
+            f_path = os.path.join(self.option("in_bam").prop["path"], i)
             self.logger.info(f_path)  # 打印出f_path的信息，是上一步输出文件的路径
             picard = self.add_tool('gene_structure.picard_rna')
-            if self.option("ref_genome") == "customer_mode":
-                ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
-                picard.set_options({
-                    "ref_genome_custom": ref_fasta,
-                    "in_sam": f_path,
-                    "ref_genome": self.option("ref_genome")
-                })
-            else:
-                self.ref_name = self.option("ref_genome")
-                picard.set_options({
-                    "ref_genome": self.ref_name,
-                    "in_sam": f_path
-                })
+            picard.set_options({
+                "in_bam": f_path
+            })
             self.picards.append(picard)
             picard.on("end", self.gatk_run, i[:-4])  # event["data"]传为样本名称
         if len(self.picards) == 1:
@@ -98,9 +86,9 @@ class SnpRnaModule(Module):
                 self.logger.info(f_path)
         gatk = self.add_tool('gene_structure.gatk')
         self.gatks.append(gatk)
-        self.logger.info("llllgatkkkkkkk")
-        self.logger.info(self.ref_name)
-        self.logger.info(self.option("ref_genome"))
+        self.logger.info("gatk start!")
+        # self.logger.info(self.ref_name)
+        # self.logger.info(self.option("ref_genome"))
         if self.option("ref_genome") == "customer_mode":
             ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
             gatk.set_options({

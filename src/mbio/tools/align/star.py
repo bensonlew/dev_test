@@ -262,6 +262,8 @@ class StarTool(Tool):
         for file in os.listdir(self.option("star_index1").prop["path"]):
             old_path = os.path.join(self.option("star_index1").prop["path"], file)
             new_path = os.path.join(self.genomeDir_path1, file)
+            if os.path.exists(new_path):
+                os.remove(new_path)
             os.link(old_path, new_path)
         ref_fa = self.option("ref_genome_custom").prop["path"]
         if self.option("seq_method") == "PE":
@@ -282,9 +284,10 @@ class StarTool(Tool):
     def mv_bam(self):
         if os.path.exists(self.output_dir):
             shutil.rmtree(self.output_dir)
+            os.mkdir(self.output_dir)
         if not os.path.exists(self.output_dir + "/bam"):
-            os.mkdirs(self.output_dir + "/bam")
+            os.mkdir(self.output_dir + "/bam")
         if not os.path.exists(self.output_dir + "/sam"):
-            os.mkdirs(self.output_dir + "/sam")
+            os.mkdir(self.output_dir + "/sam")
         os.link(self.work_dir + "/Aligned.sortedByCoord.out.bam", self.output_dir + "/bam/" + self.option("sample") + ".bam")
         os.link(os.path.join(self.work_dir, "Aligned.out.sam"), self.output_dir + "/sam/" + self.option("sample") + ".sam")
