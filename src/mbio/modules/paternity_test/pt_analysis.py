@@ -60,15 +60,14 @@ class PtAnalysisModule(Module):
 
     def analysis_run(self):
         self.family_analysis = self.add_tool("paternity_test.family_analysis")
-        results = os.listdir(self.work_dir+"/FamilyMerge/output")
+        results = os.listdir(self.family_merge.output_dir)
         for f in results:
             if re.match(r'.*family_joined_tab\.Rdata$', f):
                 rdata = f
             else:
                 print "Oops!"
         self.family_analysis.set_options({
-            # "tab_merged": self.work_dir + "/FamilyMerge/output/family_joined_tab.Rdata"
-            "tab_merged": self.work_dir+"/FamilyMerge/output/" + rdata
+            "tab_merged": os.path.join(self.family_merge.output_dir, rdata)  # modify zhouxuan 20170818
         })
         self.family_analysis.on('end', self.set_output, "family_analysis")
         self.family_analysis.on('end', self.end)
