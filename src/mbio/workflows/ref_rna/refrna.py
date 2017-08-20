@@ -106,7 +106,7 @@ class RefrnaWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.json_path = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
+        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json"
         self.json_dict = self.get_json()
         self.filecheck = self.add_tool("rna.filecheck_ref")
         self.gs = self.add_tool("gene_structure.genome_structure")
@@ -140,7 +140,8 @@ class RefrnaWorkflow(Workflow):
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
         self.anno_path = ""
         if self.option("ref_genome") != "customer_mode":
-            self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+            self.ref_genome = os.path.join(os.path.split(self.json_path)[0],
+                                           self.json_dict[self.option("ref_genome")]["dna_fa"])
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
             self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
@@ -149,11 +150,15 @@ class RefrnaWorkflow(Workflow):
             self.ref_genome = self.option("ref_genome_custom")
             self.taxon_id = ""
         self.gff = ""
-        if self.option("ref_genome") == "customer_mode":
-            if self.option('genome_structure_file').format == "gene_structure.gff3":
-                self.gff = self.option('genome_structure_file').prop["path"]
-        else:
-            self.gff = self.json_dict[self.option("ref_genome")]["gff"]
+        if self.option("ref_genome") != "customer_mode":
+            gtf_path = os.path.join(os.path.split(self.json_path)[0],
+                                           self.json_dict[self.option("ref_genome")]["gtf"])
+            self.option('genome_structure_file', gtf_path)
+        # if self.option("ref_genome") == "customer_mode":
+        #     if self.option('genome_structure_file').format == "gene_structure.gff3":
+        #         self.gff = self.option('genome_structure_file').prop["path"]
+        # else:
+        #     self.gff = self.json_dict[self.option("ref_genome")]["gff"]
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
@@ -413,7 +418,7 @@ class RefrnaWorkflow(Workflow):
     def run_mapping(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": "customer_mode",
+            "ref_genome": self.option("ref_genome"),
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -431,7 +436,7 @@ class RefrnaWorkflow(Workflow):
     def run_star_mapping(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": "customer_mode",
+            "ref_genome": self.option("ref_genome"),
             "mapping_method": "star",
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -1027,7 +1032,6 @@ class RefrnaWorkflow(Workflow):
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        self.filecheck.on("end", self.run_gs)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)

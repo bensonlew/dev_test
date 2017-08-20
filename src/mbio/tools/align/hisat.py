@@ -109,12 +109,12 @@ class HisatTool(Tool):
                 else:
                     raise Exception("建立索引出错")
         else:
-            with open(self.config.SOFTWARE_DIR + "/database/refGenome/ref_genome.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json", "r") as f:
                 dict = json.loads(f.read())
                 rel_index = dict[self.option("ref_genome")]["dna_index"]
-                abs_index = os.path.join(self.config.SOFTWARE_DIR, "database/refGenome", rel_index)
+                index_ref = os.path.join(self.config.SOFTWARE_DIR, "database/Genome_DB_finish", rel_index)
                 # index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
-                global abs_index
+                global index_ref
                 # shutil.copyfile(index_ref, self.work_dir)
 
     def hisat_mapping(self):
