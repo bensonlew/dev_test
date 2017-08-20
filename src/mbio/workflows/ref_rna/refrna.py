@@ -12,6 +12,7 @@ import re
 from collections import OrderedDict
 from gevent.monkey import patch_all
 import gevent
+import time
 
 class RefrnaWorkflow(Workflow):
     def __init__(self, wsheet_object):
@@ -445,12 +446,12 @@ class RefrnaWorkflow(Workflow):
         self.star_mapping.set_options(opts)
         self.genome_status = self.filecheck.option("genome_status")
         if self.genome_status:  # 进行可变剪切分析
-            if self.get_group_from_edger_group():
-                self.star_mapping.on("end", self.run_altersplicing)
-            else:
-                self.logger.info("不进行可变剪切分析")
-                self.altersplicing.start_listener()
-                self.altersplicing.fire("end")
+            # if self.get_group_from_edger_group():
+            self.star_mapping.on("end", self.run_altersplicing)
+            # else:
+            #     self.logger.info("不进行可变剪切分析")
+            #     self.altersplicing.start_listener()
+            #     self.altersplicing.fire("end")
             self.star_mapping.on("end", self.run_snp)
             self.star_mapping.on("end", self.set_output, "mapping")
             self.star_mapping.run()
@@ -892,6 +893,7 @@ class RefrnaWorkflow(Workflow):
         """
         移动一个目录下的所有文件/文件夹到workflow输出文件夹下
         """
+        start = time.time()
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
@@ -917,19 +919,24 @@ class RefrnaWorkflow(Workflow):
                     os.link(oldfiles[i], newfiles[i])
                 else:
                     os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+        end = time.time()
+        duration = end - start
+        self.logger.info("文件夹{}到{}移动耗时{}s".format(olddir, newdir, duration))
 
     def set_output(self, event):
         patch_all()
         obj = event["bind_object"]
         if event['data'] == 'qc':
+            gevent.sleep(0)
             greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat')
-            self.logger.info(type(greenlet))
             self.all_greenlets.append(greenlet)
         if event['data'] == 'qc_stat_before':
+            gevent.sleep(0)
             greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/before_qc')
             self.logger.info("开始设置qc的输出目录")
             self.all_greenlets.append(greenlet)
         if event['data'] == 'qc_stat_after':
+            gevent.sleep(0)
             greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/after_qc')
             self.all_greenlets.append(greenlet)
             greenlet = gevent.spawn(self.export_qc)
