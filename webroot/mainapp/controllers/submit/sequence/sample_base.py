@@ -12,17 +12,16 @@ from mainapp.models.mongo.submit.sequence.sample_base import SampleBase as SB
 from biocluster.config import Config
 
 
-
 class SampleBase(object):
     """
-    检测序列文件，获取序列中的样本信息，序列个类型可能是文件，也可能是文件夹; 序列的格式可能是fastq, 也可能是fasta
+    检测序列文件，获取序列中的样本信息; 序列的格式可能是fastq, 也可能是fasta
     """
     @check_sig
     def POST(self):
         """
         接口参数:
         file_path: 序列文件的路径
-        type: 文件的类型， 值为file或者dir
+        type: 流程类型，值为rna或meta
         format: 序列的格式，值为fasta或者fastq
         """
         data = web.input()
@@ -34,6 +33,7 @@ class SampleBase(object):
                 return json.dumps(info)
         if data.client not in ["client01", "client03"]:
             info = {"success": False, "info": "未知的client：{}".format(data.client)}
+            return json.dumps(info)
         if data.format not in ["sequence.fasta", "sequence.fastq", "sequence.fasta_dir", "sequence.fastq_dir"]:
             info = {"success": False, "info": "参数format的值不正确"}
             return json.dumps(info)
