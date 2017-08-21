@@ -4,6 +4,8 @@ import collections
 import re
 import regex
 import os
+import json
+import gridfs
 import subprocess
 from biocluster.config import Config
 
@@ -513,19 +515,300 @@ class RefAnnotation(object):
             w.write("total_anno\t" + str(len(anno_ids)) + "\t" + str(len(gene_anno_ids)) + "\t" + str(round(float(len(anno_ids))/total_count, 4)) + "\t" + str(round(float(len(gene_anno_ids))/total_count, 4)) + "\n")
             w.write("total\t" + str(total_count) + "\t" + str(gene_total_count) + "\t1\t1" + "\n")
 
+class Transcript(object):
+    def __init__(self):
+        self.name = ''
+        self.gene_id = ''
+        self.gene_name = ''
+        self.length = ''
+        self.cog = ''
+        self.nog = ''
+        self.cog_ids = ''
+        self.nog_ids = ''
+        self.go = ''
+        self.ko_id = ''
+        self.ko_name = ''
+        self.pathway = ''
+        self.pfam = ''
+        self.pfam_evalue = ''
+        self.nr = ''
+        self.swissprot = ''
+
+
+class RefAnnoQuery(object):
+    def __init__(self):
+        self.stat_info = {}
+        # self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG
+        # self.cog_string_v9 = Config().biodb_mongo_client.sanger_biodb.COG_V9
+        # self.kegg_ko = Config().biodb_mongo_client.sanger_biodb.kegg_ko_v1
+        # self.go = Config().biodb_mongo_client.sanger_biodb.GO
+        self.cog_string = Config().mongo_client.sanger_biodb.COG
+        self.cog_string_v9 = Config().mongo_client.sanger_biodb.COG_V9
+        self.kegg_ko = Config().mongo_client.sanger_biodb.kegg_ko_v1
+        self.go = Config().mongo_client.sanger_biodb.GO
+        self.gloabl = ["map01100", "map01110", "map01120", "map01130", "map01200", "map01210", "map01212", "map01230", "map01220"]
+
+    def get_anno_stat(self, outpath, gtf_path, biomart_path, cog_list=None, gos_list=None, org_kegg=None, anno_type="transcript"):
+        self.get_gtf_information(gtf_path=gtf_path, biomart_path=biomart_path, anno_type=anno_type)
+        self.get_cog(cog_list=cog_list)
+        self.get_go(gos_list=gos_list)
+        self.get_kegg(org_kegg=org_kegg)
+        with open(outpath, "w") as w:
+            if anno_type == "transcript":
+                head = 'transcript\tgene_id\tgene_name\tlength\tcog\tnog\tcog_description\tnog_description\tKO_id\tKO_name\tpaths\tpfam\tgo\tnr\tswissprot\n'
+                w.write(head)
+                for name in self.stat_info:
+                    w.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.stat_info[name].name, self.stat_info[name].gene_id, self.stat_info[name].gene_name,
+                            self.stat_info[name].length, self.stat_info[name].cog, self.stat_info[name].nog, self.stat_info[name].cog_ids, self.stat_info[name].nog_ids,
+                            self.stat_info[name].ko_id, self.stat_info[name].ko_name, self.stat_info[name].pathway, self.stat_info[name].pfam,
+                            self.stat_info[name].go, self.stat_info[name].nr, self.stat_info[name].swissprot))
+            if anno_type == "gene":
+                head = 'gene_id\tgene_name\tcog\tnog\tcog_description\tnog_description\tKO_id\tKO_name\tpaths\tpfam\tgo\tnr\tswissprot\n'
+                w.write(head)
+                for name in self.stat_info:
+                    w.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.stat_info[name].name, self.stat_info[name].gene_name,
+                            self.stat_info[name].cog, self.stat_info[name].nog, self.stat_info[name].cog_ids, self.stat_info[name].nog_ids,
+                            self.stat_info[name].ko_id, self.stat_info[name].ko_name, self.stat_info[name].pathway, self.stat_info[name].pfam,
+                            self.stat_info[name].go, self.stat_info[name].nr, self.stat_info[name].swissprot))
+
+    def get_gtf_information(self, gtf_path, biomart_path, anno_type):
+        for line in open(gtf_path):
+            content_m = regex.match(
+                r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                line.strip())
+            if content_m:
+                if 'transcript_id' in content_m.captures(6):
+                    tran_id = content_m.captures(7)[0]
+                    gene_id = content_m.captures(10)[0]
+                else:
+                    tran_id = content_m.captures(10)[0]
+                    gene_id = content_m.captures(7)[0]
+                if anno_type == "transcript":
+                    if tran_id not in self.stat_info:
+                        query = Transcript()
+                        query.name = tran_id
+                        query.gene_id = gene_id
+                        self.stat_info[tran_id] = query
+                else:
+                    if gene_id not in self.stat_info:
+                        query = Transcript()
+                        query.name = gene_id
+                        query.gene_id = gene_id
+                        self.stat_info[gene_id] = query
+            if anno_type == "transcript":
+                m = re.match(r".+transcript_id \"(.+?)\"; .*gene_name \"(.+?)\";.*$", line)
+                if m:
+                    tran_id = m.group(1)
+                    name = m.group(2)
+                    self.stat_info[tran_id].gene_name = name
+            else:
+                m = re.match(r".+gene_id \"(.+?)\"; .*gene_name \"(.+?)\";.*$", line)
+                if m:
+                    gene_id = m.group(1)
+                    name = m.group(2)
+                    if gene_id in self.stat_info:
+                        self.stat_info[gene_id].gene_name = name
+                    else:
+                        query = Transcript()
+                        query.name = gene_id
+                        query.gene_id = gene_id
+                        self.stat_info[gene_id] = query
+        for line in open(biomart_path):
+            item = line.strip().split("\t")
+            try:
+                tran_id = item[1]
+                length = item[-3]
+                if anno_type == "transcript":
+                    if tran_id in self.stat_info:
+                        self.stat_info[tran_id].length = length
+            except:
+                pass
+
+    def get_cog(self, cog_list):
+        """找到转录本ID对应的cogID、nogID、kogID及功能分类和描述"""
+        with open(cog_list, 'rb') as f:
+            lines = f.readlines()
+            for line in lines[1:]:
+                line = line.strip('\n').split('\t')
+                query_name = line[0]
+                cog = line[1]
+                nog = line[2]
+                if query_name in self.stat_info:
+                    self.stat_info[query_name].cog = self.get_cog_group_categories(cog)[0]
+                    self.stat_info[query_name].nog = self.get_cog_group_categories(nog)[0]
+                    self.stat_info[query_name].cog_ids = self.get_cog_group_categories(cog)[1]
+                    self.stat_info[query_name].nog_ids = self.get_cog_group_categories(nog)[1]
+
+    def get_cog_group_categories(self, group):
+        """找到cog/nog/kogID对应的功能分类及功能分类描述、cog描述"""
+        group = group.split(";")
+        funs, ids = [], []
+        for item in group:
+            if item:
+                result = self.cog_string.find_one({'cog_id': item})
+                if result:
+                    group = result["cog_categories"]
+                    group_des = result["categories_description"]
+                    cog_des = result["cog_description"]
+                    cog_fun = item + "(" + group + ":" + group_des + ")"
+                    cog_id = item + "(" + cog_des + ")"
+                    funs.append(cog_fun)
+                    ids.append(cog_id)
+        funs = "; ".join(funs)
+        ids = "; ".join(ids)
+        return funs, ids
+
+    def get_go(self, gos_list):
+        """找到转录本ID对应的goID及term、term_type"""
+        with open(gos_list, 'rb') as r:
+            for line in r:
+                line = line.strip('\n').split('\t')
+                query_name = line[0]
+                go = line[1].split(";")
+                gos = []
+                for i in go:
+                    result = self.go.find_one({"go_id": i})
+                    if result:
+                        item = i + "(" + result["ontology"] + ":" + result["name"] + ")"
+                        gos.append(item)
+                gos = "; ".join(gos)
+                if query_name in self.stat_info:
+                    self.stat_info[query_name].go = gos
+
+    def get_kegg(self, org_kegg):
+        "找到转录本ID对应的KO、KO_name、Pathway、Pathway_definition"
+        with open(org_kegg, 'rb') as f:
+            lines = f.readlines()
+            for line in lines[1:]:
+                line = line.strip('\n').split('\t')
+                query_name = line[0]
+                ko_id = line[1]
+                result = self.kegg_ko.find_one({"ko_id": ko_id})
+                if result:
+                    ko_name = result["ko_name"]
+                else:
+                    ko_name = ''
+                    print "没找到ko_id {}".format(ko_id)
+                pathway = []
+                try:
+                    pathways = line[2].split(";")
+                except:
+                    pathways = []
+                    print "{} 没有pathway".format(query_name)
+                for p in pathways:
+                    m = re.match(r".+(\d{5})", p)
+                    if m:
+                        map_id = "map" + m.group(1)
+                        if map_id not in self.gloabl:
+                            pid = re.sub("map", "ko", map_id)
+                            result = self.kegg_ko.find_one({"pathway_id": {"$in": [pid]}})
+                            if result:
+                                pids = result["pathway_id"]
+                                for index, i in enumerate(pids):
+                                    if i == pid:
+                                        category = result["pathway_category"][index]
+                                        definition = category[2]
+                                        item = map_id + "(" + definition + ")"
+                                        pathway.append(item)
+                            else:
+                                print "{} 没有在mongo中找到该pathway".format(pid)
+                pathway = "; ".join(pathway)
+                if query_name in self.stat_info:
+                    self.stat_info[query_name].ko_id = ko_id
+                    self.stat_info[query_name].ko_name = ko_name
+                    self.stat_info[query_name].pathway = pathway
 
 if __name__ == "__main__":
     test = RefAnnotation()
-    ref_json = ""
+    image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
+    png_bgcolor = "#FFFF00" # 黄色
+    link_bgcolor = "yellow"
+    db_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/"
+    # ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/annot_species.json"
+    ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/ath.json"
     f = open(ref_json, "r")
-    json_dict = json.loads(f.read)
+    json_dict = json.loads(f.read())
+    out = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/taxonomy"
     for taxon in json_dict:
-        gtf_path = json_dict[taxon]["gtf"]
-        biomart_path = json_dict[taxon]["bio_mart_annot"]
-        kegg_db = json_dict[taxon]["kegg"]
-        go_db = json_dict[taxon]["go"]
-        cog_db = json_dict[taxon]["cog"]
-        a.get_gtf_information(gtf_path, biomart_path)
-        a.kegg_filt(kegg_db, outdir)
-        a.go_filt(go_db, outdir)
-        a.cog_filt(cog_db, outdir)
+        gtf_path = db_path + json_dict[taxon]["gtf"]
+        biomart_path = db_path + json_dict[taxon]["bio_mart_annot"]
+        kegg_db = db_path + json_dict[taxon]["kegg"]
+        go_db = db_path + json_dict[taxon]["go"]
+        cog_db = db_path + json_dict[taxon]["cog"]
+        test.get_gtf_information(gtf_path, biomart_path)
+        outdir = out + '/' + taxon + '/Annotation'
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        test.kegg_filt(kegg_db, outdir)
+        test.go_filt(go_db, outdir)
+        test.cog_filt(cog_db, outdir)
+        org_kegg = outdir + "/kegg_trans.list"
+        kegg_path = outdir + "/kegg"
+        if not os.path.exists(kegg_path):
+            os.makedirs(kegg_path)
+        kegg_table = kegg_path + "/kegg_table.xls"
+        pathway_path = kegg_path + "/pathway_table.xls"
+        pathwaydir = kegg_path + "/pathways"
+        layerfile = kegg_path + "/kegg_layer.xls"
+        test.kegg_annotation(org_kegg, kegg_table, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile, image_magick)
+        gene_org_kegg = outdir + "/kegg_genes.list"
+        gene_kegg_path = outdir + "/anno_stat/kegg_stat"
+        if not os.path.exists(gene_kegg_path):
+            os.makedirs(gene_kegg_path)
+        gene_kegg_table = gene_kegg_path + "/gene_kegg_table.xls"
+        pathway_path = gene_kegg_path + "/gene_pathway_table.xls"
+        pathwaydir = gene_kegg_path + "/gene_pathway"
+        layerfile = gene_kegg_path + "/gene_kegg_layer.xls"
+        test.kegg_annotation(gene_org_kegg, gene_kegg_table, link_bgcolor, png_bgcolor, pathway_path, pathwaydir, layerfile, image_magick)
+
+        org_cog = outdir + "/cog_trans.list"
+        cog_path = outdir + "/cog"
+        if not os.path.exists(cog_path):
+            os.makedirs(cog_path)
+        gene_cog_path = outdir + "/anno_stat/cog_stat"
+        if not os.path.exists(gene_cog_path):
+            os.makedirs(gene_cog_path)
+        cog_summary =cog_path + "/cog_summary.xls"
+        test.cog_annotation(org_cog, cog_summary)
+        gene_org_cog = outdir + "/cog_genes.list"
+        gene_cog_summary = gene_cog_path + "/gene_cog_summary.xls"
+        test.cog_annotation(gene_org_cog, gene_cog_summary)
+
+        go_path = outdir + "/go"
+        if not os.path.exists(go_path):
+            os.makedirs(go_path)
+        gene_go_path = outdir + "/anno_stat/go_stat"
+        if not os.path.exists(gene_go_path):
+            os.makedirs(gene_go_path)
+        go_list = outdir + "/go_trans.list"
+        test.go_annotation(go_list, go_path)
+        outfiles = ['go1234level_statistics.xls', 'go123level_statistics.xls', 'go12level_statistics.xls']
+        for item in outfiles:
+            linkfile = go_path + '/' + item
+            if os.path.exists(linkfile):
+                os.remove(linkfile)
+            os.system("cp " + os.getcwd() + '/' + item + " " + linkfile)
+        os.system("cp " + go_list + " " + go_path + "/query_gos.list")
+        go_list = outdir + "/go_genes.list"
+        test.go_annotation(go_list, gene_go_path)
+        for item in outfiles:
+            linkfile = gene_go_path + '/' + item
+            if os.path.exists(linkfile):
+                os.remove(linkfile)
+            os.system("cp " + os.getcwd() + '/' + item + " " + linkfile)
+        os.system("cp " + go_list + " " + gene_go_path + "/gene_gos.list")
+        gos_list = go_path + "/query_gos.list"
+        gene_gos_list = gene_go_path + "/gene_gos.list"
+
+        venn_dir = outdir + "/anno_stat/venn"
+        if not os.path.exists(venn_dir):
+            os.makedirs(venn_dir)
+        all_stat = outdir + "/all_annotation_statistics.xls"
+        test.ref_anno_stat(cog_summary, gene_cog_summary, gos_list, gene_gos_list, kegg_table, gene_kegg_table, venn_dir, all_stat)
+
+        Transcript()
+        query = RefAnnoQuery()
+        outpath = outdir + "/trans_anno_detail.xls"
+        query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=org_cog, gos_list=gos_list, org_kegg=org_kegg, anno_type="transcript")
+        outpath = outdir + "/trans_anno_detail.xls"
+        query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=gene_org_cog, gos_list=gene_gos_list, org_kegg=gene_org_kegg, anno_type="gene")
