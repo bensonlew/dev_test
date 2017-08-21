@@ -138,7 +138,7 @@ class TophatTool(Tool):
             with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json", "r") as f:
                 dict = json.loads(f.read())
                 rel_index = dict[self.option("ref_genome")]["dna_index"]
-                abs_index = os.path.join(self.config.SOFTWARE_DIR , "database/Genome_DB_finish", rel_index)
+                abs_index = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/" +  rel_index
                 # index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
                 self.run_tophat(abs_index)
         self.end()
