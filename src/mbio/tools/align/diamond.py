@@ -4,6 +4,9 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
 import re
+import shutil
+import xml.etree.ElementTree as ET
+from biocluster.config import Config
 from biocluster.core.exceptions import OptionError
 
 
@@ -55,7 +58,7 @@ class DiamondAgent(Agent):
 
     def set_resource(self):
         self._cpu = self.option('num_threads')
-        self._memory = '20G'
+        self._memory = '50G'
 
     def end(self):
         super(DiamondAgent, self).end()
@@ -71,6 +74,7 @@ class DiamondTool(Tool):
             self.blast_type = "blastx"
         else:
             self.blast_type = "blastp"
+        self.mongodb_nr = Config().biodb_mongo_client.sanger_biodb.NR_sequence
         self.ori = []
         self.repl = []
 
@@ -122,6 +126,8 @@ class DiamondTool(Tool):
         if blast_command.return_code == 0:
             self.logger.info("运行diamond完成")
             self.logger.info(outputfile)
+            if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
+                self.get_nrxml_gi_description(outputfile)
             self.change_version(outputfile)
         elif blast_command.return_code == None:
             self.logger.info("重新运行diamond")
@@ -129,7 +135,8 @@ class DiamondTool(Tool):
             self.wait(blast_command)
             if blast_command.return_code == 0:
                 self.logger.info("重新运行diamond成功")
-                # self.end()
+                if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
+                    self.get_nrxml_gi_description(outputfile)
                 self.change_version(outputfile)
         else:
             self.set_error("diamond运行出错!")
@@ -145,6 +152,42 @@ class DiamondTool(Tool):
             self.run_makedb_and_diamond()
         else:
             self.run_diamond(self.option("database"))
+
+    def get_nrxml_gi_description(self, xml_path):
+        """
+        从参考库NR_sequence中找到gi号对应的description
+        """
+        xml = ET.parse(xml_path)
+        root = xml.getroot()
+        BlastOutput_iterations = root.find('BlastOutput_iterations')
+        for one_query in BlastOutput_iterations.findall('Iteration'):
+            iteration_hits = one_query.findall('Iteration_hits')
+            for iteration_hit in iteration_hits:
+                hits = iteration_hit.findall('Hit')
+                for hit in hits:
+                    # hit_id = hit.find('Hit_id')
+                    # hit_def = hit.find('Hit_def')
+                    hit_def = hit.find('Hit_id')
+                    hit_id = hit.find('Hit_def')
+                    hit_id_split = re.split(r'\s', hit_id.text, maxsplit=1)
+                    gi_id = hit_id_split[0].split("|")[1]
+                    result = self.mongodb_nr.find_one({"_id": int(gi_id)})
+                    if result:
+                        desc = result["desc"]
+                        desc = desc.split("|")
+                        description = desc[4]
+                        hit_def.text = description
+                    else:
+                        hits.remove(hit)
+                        print "没找到gid:{}".format(gi_id)
+        xml.write('tmp.txt')
+        with open('tmp.txt', 'rb') as f, open('tmp.xml', 'wb') as w:
+            lines = f.readlines()
+            a = '<?xml version=\"1.0\"?>\n<!DOCTYPE BlastOutput PUBLIC \"-//NCBI//NCBI BlastOutput/EN\" \"http://www.ncbi.nlm.nih.gov/dtd/NCBI_BlastOutput.dtd\">\n'
+            w.write(a)
+            w.writelines(lines)
+        os.remove('tmp.txt')
+        shutil.move('tmp.xml', xml_path)
 
     def change_version(self, outputfile):
         path = outputfile
