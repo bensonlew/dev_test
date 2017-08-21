@@ -12,6 +12,7 @@ import re
 from collections import OrderedDict
 from gevent.monkey import patch_all
 import gevent
+import time
 
 class RefrnaWorkflow(Workflow):
     def __init__(self, wsheet_object):
@@ -106,7 +107,7 @@ class RefrnaWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.json_path = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
+        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json"
         self.json_dict = self.get_json()
         self.filecheck = self.add_tool("rna.filecheck_ref")
         self.gs = self.add_tool("gene_structure.genome_structure")
@@ -140,7 +141,8 @@ class RefrnaWorkflow(Workflow):
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
         self.anno_path = ""
         if self.option("ref_genome") != "customer_mode":
-            self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+            self.ref_genome = os.path.join(os.path.split(self.json_path)[0],
+                                           self.json_dict[self.option("ref_genome")]["dna_fa"])
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
             self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
@@ -149,11 +151,15 @@ class RefrnaWorkflow(Workflow):
             self.ref_genome = self.option("ref_genome_custom")
             self.taxon_id = ""
         self.gff = ""
-        if self.option("ref_genome") == "customer_mode":
-            if self.option('genome_structure_file').format == "gene_structure.gff3":
-                self.gff = self.option('genome_structure_file').prop["path"]
-        else:
-            self.gff = self.json_dict[self.option("ref_genome")]["gff"]
+        if self.option("ref_genome") != "customer_mode":
+            gtf_path = os.path.join(os.path.split(self.json_path)[0],
+                                           self.json_dict[self.option("ref_genome")]["gtf"])
+            self.option('genome_structure_file', gtf_path)
+        # if self.option("ref_genome") == "customer_mode":
+        #     if self.option('genome_structure_file').format == "gene_structure.gff3":
+        #         self.gff = self.option('genome_structure_file').prop["path"]
+        # else:
+        #     self.gff = self.json_dict[self.option("ref_genome")]["gff"]
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
@@ -413,7 +419,7 @@ class RefrnaWorkflow(Workflow):
     def run_mapping(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": "customer_mode",
+            "ref_genome": self.option("ref_genome"),
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -431,7 +437,7 @@ class RefrnaWorkflow(Workflow):
     def run_star_mapping(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": "customer_mode",
+            "ref_genome": self.option("ref_genome"),
             "mapping_method": "star",
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -440,12 +446,12 @@ class RefrnaWorkflow(Workflow):
         self.star_mapping.set_options(opts)
         self.genome_status = self.filecheck.option("genome_status")
         if self.genome_status:  # 进行可变剪切分析
-            if self.get_group_from_edger_group():
-                self.star_mapping.on("end", self.run_altersplicing)
-            else:
-                self.logger.info("不进行可变剪切分析")
-                self.altersplicing.start_listener()
-                self.altersplicing.fire("end")
+            # if self.get_group_from_edger_group():
+            self.star_mapping.on("end", self.run_altersplicing)
+            # else:
+            #     self.logger.info("不进行可变剪切分析")
+            #     self.altersplicing.start_listener()
+            #     self.altersplicing.fire("end")
             self.star_mapping.on("end", self.run_snp)
             self.star_mapping.on("end", self.set_output, "mapping")
             self.star_mapping.run()
@@ -887,6 +893,7 @@ class RefrnaWorkflow(Workflow):
         """
         移动一个目录下的所有文件/文件夹到workflow输出文件夹下
         """
+        start = time.time()
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
@@ -912,19 +919,24 @@ class RefrnaWorkflow(Workflow):
                     os.link(oldfiles[i], newfiles[i])
                 else:
                     os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+        end = time.time()
+        duration = end - start
+        self.logger.info("文件夹{}到{}移动耗时{}s".format(olddir, newdir, duration))
 
     def set_output(self, event):
         patch_all()
         obj = event["bind_object"]
         if event['data'] == 'qc':
+            gevent.sleep(0)
             greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat')
-            self.logger.info(type(greenlet))
             self.all_greenlets.append(greenlet)
         if event['data'] == 'qc_stat_before':
+            gevent.sleep(0)
             greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/before_qc')
             self.logger.info("开始设置qc的输出目录")
             self.all_greenlets.append(greenlet)
         if event['data'] == 'qc_stat_after':
+            gevent.sleep(0)
             greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/after_qc')
             self.all_greenlets.append(greenlet)
             greenlet = gevent.spawn(self.export_qc)
@@ -1027,7 +1039,6 @@ class RefrnaWorkflow(Workflow):
         self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        self.filecheck.on("end", self.run_gs)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
