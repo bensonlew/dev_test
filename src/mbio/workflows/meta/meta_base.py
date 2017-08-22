@@ -497,13 +497,13 @@ class MetaBaseWorkflow(Workflow):
         在不同的OTU数目以及不同的样本数量下，有些分析会被跳过不做
         """
         self.update_info = ""
-        self.count_otus = True  # otu/代表序列数量大于等于3 ,change by wzy from 2 to 3
+        self.count_otus = True  # otu/代表序列数量大于3 ,change by wzy from 2 to 3
         self.count_samples = 0  # 样本数量是否大于等于2
         counts = 0
         for i in open(self.otu.output_dir + '/otu_reps.fasta'):
             if i[0] == '>':
                 counts += 1
-                if counts > 2:    # change from 1 to 2 by wzy
+                if counts > 3:    # change from 2 to 3 by wzy
                     break
         else:
             self.count_otus = False

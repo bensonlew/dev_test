@@ -136,7 +136,8 @@ class PtReportWorkflow(Workflow):
 				"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
 				"ref_point": self.option("ref_point"),
 				"err_min": self.option("err_min"),
-				"father_path": father_data + "/"
+				"father_path": father_data + "/",
+				"dad_id": self.option('dad_id')
 			})
 			self.pt_analysis_dedup.on('end', self.set_output, 'dedup')
 			self.pt_analysis_dedup.on('end', self.end)
@@ -148,7 +149,8 @@ class PtReportWorkflow(Workflow):
 				"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
 				"ref_point": self.option("ref_point"),
 				"err_min": self.option("err_min"),
-				"father_path": self.ref_data
+				"father_path": self.ref_data,
+				"dad_id": self.option('dad_id')
 			})
 			self.pt_analysis_dedup.on('end', self.set_output, 'dedup')
 			self.pt_analysis_dedup.on('end', self.end)
@@ -217,7 +219,7 @@ class PtReportWorkflow(Workflow):
 		mom_id = self.option('mom_id')
 		preg_id = self.option('preg_id')
 		dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
-		dedup_new = mom_id + '_' + preg_id + '.txt'
+		dedup_new = dad_id + "_" + mom_id + '_' + preg_id + '.txt'
 		for f in results:
 			if re.search(dedup, f):
 				api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)

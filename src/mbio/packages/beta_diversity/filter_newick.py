@@ -76,7 +76,7 @@ class Otu(object):
 
 
 class otu_table(object):
-    def __init__(self, table_content):
+    def __init__(self, table_content,samples_in_group=None):
         if isinstance(table_content, types.DictType):
             self.__dict = table_content
         else:
@@ -85,7 +85,10 @@ class otu_table(object):
             except ValueError, e:
                 raise Exception('初始化参数不正确！info:%s' % e)
         self.__mongodb = mongo_client
-        self._samples = self._get_samples_name()
+        if samples_in_group == None:
+            self._samples = self._get_samples_name()
+        else:
+            self._samples = self._get_samples_name(samples_in_group)
         self.otus = self._get_all_otus()
 
     def __getattr__(self, name):
@@ -102,7 +105,7 @@ class otu_table(object):
     def samples(self):
         return self._samples
 
-    def _get_samples_name(self):
+    def _get_samples_name(self,groups=None):      #增加groups参数，根据分组中的样品名称挑选样品
         collection = self.__mongodb[db_name]['sg_otu_specimen']
         specimen_collection = self.__mongodb[db_name]['sg_specimen']
         results = collection.find({'otu_id': self._id})
@@ -112,7 +115,10 @@ class otu_table(object):
                 specimen = specimen_collection.find_one({'_id': i['specimen_id']})
                 if specimen:
                     try:
-                        samples.append(specimen['specimen_name'])
+                        if groups == None:        #如果不提供分组，则挑选全部样品
+                            samples.append(specimen['specimen_name'])
+                        elif specimen['specimen_name'] in groups:        #如果此样品在选择的分组中，则挑选此样品
+                            samples.append(specimen['specimen_name'])
                     except KeyError:
                         raise Exception('样本collection中不存在specimen_name字段：%s' % specimen)
                 else:
@@ -221,7 +227,8 @@ def get_otu_phylo_newick(otu_id, connecter=None, database=db_name,
             return False, '找到id对应数据，但是table或者tree类型不正确'
 
 
-def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, topN=None, bind_obj=None):
+#def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, topN=None, bind_obj=None):
+def get_level_newicktree(otu_id, group=None, level=9, tempdir='./', return_file=False, topN=None, bind_obj=None):  #增加group参数
     collection = mongo_client[db_name]['sg_otu']
     tempdir = tempdir.rstrip('/') + '/'
     temptre = tempdir + 'temp_newick.tre'
@@ -243,9 +250,22 @@ def get_level_newicktree(otu_id, level=9, tempdir='./', return_file=False, topN=
         filter_find = collection.find_one({'_id': otu_id})
     else:
         filter_find = collection.find_one({'_id': ObjectId(otu_id)})
-    filter_otu_table = otu_table(filter_find)  # 生成查询OTU表对象
+    if group == None :
+        filter_otu_table = otu_table(filter_find)  # 生成查询OTU表对象
+    else:
+        filter_otu_table = otu_table(filter_find,group) #生成查询OTU表对象，只包含分组中的样品
     result = collection.find_one({'_id': origin_id[1]})
     this_otu_table = otu_table(result)  # 生成原始表的OTU表对象
+
+    '''#
+    此处将filter_otu_table按分组进行挑选
+    '''#
+#    if group ！= 'All':
+ #       with open(group) as g:
+  #          g.readline()
+   #         sample_group = {}
+
+
     remove_otus = _get_remove_otus(filter_otu_table, this_otu_table)
     wbf = open(temptre, 'wb')
     wbf.write(level_newick[1])
