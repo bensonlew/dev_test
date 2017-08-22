@@ -127,6 +127,7 @@ class StarIndexTool(Tool):
             with open(ref_genome_json, "r") as f:
                 ref_dict = json.loads(f.read())
             rel_index = ref_dict[self.option("ref_genome")]["dna_index"]
-            abs_index = os.path.join(self.config.SOFTWARE_DIR, "/database/Genome_DB_finish", rel_index)
+            abs_index = self.config.SOFTWARE_DIR +  "/database/Genome_DB_finish/" +  rel_index
+            self.logger.info(abs_index)
             self.option("star_index1", abs_index)
         self.end()

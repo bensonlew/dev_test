@@ -948,10 +948,22 @@ class SnpWorkflow(Workflow):
         ref-rna workflow run方法
         :return:
         """
-        self.filecheck.on('end', self.run_qc)
-        self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
-        self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
+        # self.filecheck.on('end', self.run_qc)
+        # self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
+        # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on("end", self.run_star_mapping)
         self.on_rely(self.final_tools, self.end)
-        self.run_filecheck()
-        super(SnpWorkflow, self).run()
+        # self.run_filecheck()
+        # super(SnpWorkflow, self).run()
+        # "ref_genome_custom": self.option("ref_genome_custom"),
+        # "ref_genome": self.option("ref_genome"),
+        # "mapping_method": "star",
+        # "seq_method": self.option("fq_type"),   # PE or SE
+        # "fastq_dir": self.qc.option("sickle_dir"),
+        # "assemble_method": self.option("assemble_method")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/HiseqQc/output/sickle_dir")
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/FilecheckRef/Arabidopsis_thaliana.TAIR10.36.gtf")
+        self.start_listener()
+        self.qc.start_listener()
+        self.qc.fire("end")
+        self.rpc_server.run()
