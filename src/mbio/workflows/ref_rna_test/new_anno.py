@@ -104,7 +104,7 @@ class NewAnnoWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.json_path = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
+        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json"
         self.json_dict = self.get_json()
         self.filecheck = self.add_tool("rna.filecheck_ref")
         self.gs = self.add_tool("gene_structure.genome_structure")
@@ -138,7 +138,8 @@ class NewAnnoWorkflow(Workflow):
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
         self.anno_path = ""
         if self.option("ref_genome") != "customer_mode":
-            self.ref_genome = self.json_dict[self.option("ref_genome")]["ref_genome"]
+            self.ref_genome = os.path.join(os.path.split(self.json_path)[0],
+                                           self.json_dict[self.option("ref_genome")]["dna_fa"])
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
             self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
@@ -147,11 +148,10 @@ class NewAnnoWorkflow(Workflow):
             self.ref_genome = self.option("ref_genome_custom")
             self.taxon_id = ""
         self.gff = ""
-        if self.option("ref_genome") == "customer_mode":
-            if self.option('genome_structure_file').format == "gene_structure.gff3":
-                self.gff = self.option('genome_structure_file').prop["path"]
-        else:
-            self.gff = self.json_dict[self.option("ref_genome")]["gff"]
+        if self.option("ref_genome") != "customer_mode":
+            gtf_path = os.path.join(os.path.split(self.json_path)[0],
+                                           self.json_dict[self.option("ref_genome")]["gtf"])
+            self.option('genome_structure_file', gtf_path)
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
@@ -411,7 +411,7 @@ class NewAnnoWorkflow(Workflow):
     def run_mapping(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": "customer_mode",
+            "ref_genome": self.option("ref_genome"),
             "mapping_method": self.option("seq_method").lower(),  # 比对软件
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -429,7 +429,7 @@ class NewAnnoWorkflow(Workflow):
     def run_star_mapping(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": "customer_mode",
+            "ref_genome": self.option("ref_genome"),
             "mapping_method": "star",
             "seq_method": self.option("fq_type"),   # PE or SE
             "fastq_dir": self.qc.option("sickle_dir"),
@@ -438,12 +438,12 @@ class NewAnnoWorkflow(Workflow):
         self.star_mapping.set_options(opts)
         self.genome_status = self.filecheck.option("genome_status")
         if self.genome_status:  # 进行可变剪切分析
-            if self.get_group_from_edger_group():
-                self.star_mapping.on("end", self.run_altersplicing)
-            else:
-                self.logger.info("不进行可变剪切分析")
-                self.altersplicing.start_listener()
-                self.altersplicing.fire("end")
+            # if self.get_group_from_edger_group():
+            self.star_mapping.on("end", self.run_altersplicing)
+            # else:
+            #     self.logger.info("不进行可变剪切分析")
+            #     self.altersplicing.start_listener()
+            #     self.altersplicing.fire("end")
             self.star_mapping.on("end", self.run_snp)
             self.star_mapping.on("end", self.set_output, "mapping")
             self.star_mapping.run()
@@ -660,6 +660,8 @@ class NewAnnoWorkflow(Workflow):
         mod.on('start', self.set_step, {'start': self.step.express})
         mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
+
+
 
     def run_exp_fc(self):
         self.logger.info("开始运行表达量模块,fc_fpkm")
@@ -948,30 +950,14 @@ class NewAnnoWorkflow(Workflow):
         :return:
         """
         # self.filecheck.on('end', self.run_qc)
-        # self.filecheck.on('end', self.run_seq_abs)
-        # if self.option("blast_method") == "diamond":
-        #     if self.anno_path == "":
-        #         self.seq_abs.on('end', self.run_align, "diamond")
-        #     else:
-        #         self.seq_abs.on('end', self.run_annotation)
-        #     self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
-        # else:
-        #     if self.anno_path == "":
-        #         self.seq_abs.on('end', self.run_align, "blast")
-        #     else:
-        #         self.seq_abs.on('end', self.run_annotation)
-        #     self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "blast")
+        # self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
         # self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
         # self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         # self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
-        # self.filecheck.on("end", self.run_gs)
         # self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         # self.qc.on('end', self.run_mapping)
-        # self.qc.on("end", self.run_star_mapping)
-        # self.map_gene.on("end", self.run_map_assess_gene)
         # self.mapping.on('end', self.run_assembly)
-        # self.mapping.on('end', self.run_map_assess)
         # self.assembly.on("end", self.run_exp_rsem_default)
         # self.assembly.on("end", self.run_exp_fc)
         # self.assembly.on("end", self.run_new_transcripts_abs)
@@ -979,17 +965,33 @@ class NewAnnoWorkflow(Workflow):
         # if self.taxon_id != "":
         #     self.exp.on("end", self.run_network_trans)
         #     self.final_tools.append(self.network_trans)
-        # self.on_rely(self.final_tools, self.run_api_and_set_output)
+        # self.on_rely(self.final_tools, self.end)
         # self.run_filecheck()
-        self.new_gene_abs.option('gene_file', "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/TranscriptAbstract1/output/gene_list.txt")
-        self.new_trans_abs.option("query", "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/TranscriptAbstract2/output/exons.fa")
-        self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
-        self.new_trans_abs.option('length_file', "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/TranscriptAbstract2/output/exons_length.txt")
-        self.new_gene_abs.on("end", self.run_new_align, "diamond")
-        self.start_listener()
-        self.fire("start")
-        self.new_gene_abs.start_listener()
-        self.new_gene_abs.fire("end")
-        # self.run_new_align("diamond")
-        self.rpc_server.run()
         # super(NewAnnoWorkflow, self).run()
+        #########################
+        # self.new_gene_abs.option('gene_file', "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/TranscriptAbstract1/output/gene_list.txt")
+        # self.new_trans_abs.option("query", "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/TranscriptAbstract2/output/exons.fa")
+        # self.assembly.option("new_transcripts_gtf", "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/RefrnaAssemble/output/NewTranscripts/new_transcripts.gtf")
+        # self.new_trans_abs.option('length_file', "/mnt/ilustre/users/sanger-test/workspace/20170725/Refrna_mus_test_9/TranscriptAbstract2/output/exons_length.txt")
+        # self.new_gene_abs.on("end", self.run_new_align, "diamond")
+        # self.start_listener()
+        # self.fire("start")
+        # self.new_gene_abs.start_listener()
+        # self.new_gene_abs.fire("end")
+        # self.run_new_align("diamond")
+        # self.rpc_server.run()
+        ##########################
+        self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170820/NewAnno_arab_test_anno/RnaseqMapping/output/bam")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170820/NewAnno_arab_test_anno/HiseqQc/output/sickle_dir")
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170820/NewAnno_arab_test_anno/FilecheckRef/Arabidopsis_thaliana.TAIR10.36.gtf")
+        self.mapping.on("end", self.run_assembly)
+        self.assembly.on("end", self.run_exp_fc)
+        self.assembly.on("end", self.run_exp_rsem_default)
+        self.assembly.on("end", self.run_new_transcripts_abs)
+        self.assembly.on("end", self.run_new_gene_abs)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.start_listener()
+        self.mapping.start_listener()
+        self.mapping.fire("end")
+        self.rpc_server.run()
+
