@@ -16,15 +16,17 @@ class RefAnnotation(Base):
     def __init__(self, bind_object):
         super(RefAnnotation, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
-        self.map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
-        self.r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
-        self.image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
+        # self.map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
+        # self.r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
+        # self.image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
 
-    def add_annotation(self, name=None, params=None, ref_anno_path=None, new_anno_path=None, pfam_path=None):
+    def add_annotation(self, name=None, params=None, ref_anno_path=None, new_anno_path=None, pfam_path=None, merge_tran_output=None, merge_gene_output=None):
         """
         ref_anno_path: 已知序列注释的结果文件夹
         new_anno_path: 新序列注释的结果文件夹
         pfam_path:转录本的pfam_domain
+        merge_tran_output: 转录本的merge_annot tool输出结果路径
+        merge_gene_output: 基因的merge_annot tool输出结果路径
         """
         new_stat_path = new_anno_path + "/anno_stat/all_annotation_statistics.xls"
         new_venn_path = new_anno_path + "/anno_stat/venn"
@@ -182,14 +184,20 @@ class RefAnnotation(Base):
         n_cate_path = new_anno_path + "/kegg/kegg_layer.xls"
         r_gene_cate_path = ref_anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
         n_gene_cate_path = new_anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
-        r_level_path = ref_anno_path + "/kegg/pathway_table.xls"
-        n_level_path = new_anno_path + "/kegg/pathway_table.xls"
-        r_gene_level_path = ref_anno_path + "/anno_stat/kegg_stat/gene_pathway_table.xls"
-        n_gene_level_path = new_anno_path + "/anno_stat/kegg_stat/gene_pathway_table.xls"
+        # r_level_path = ref_anno_path + "/kegg/pathway_table.xls"
+        # n_level_path = new_anno_path + "/kegg/pathway_table.xls"
+        # r_gene_level_path = ref_anno_path + "/anno_stat/kegg_stat/gene_pathway_table.xls"
+        # n_gene_level_path = new_anno_path + "/anno_stat/kegg_stat/gene_pathway_table.xls"
         self.add_annotation_kegg_categories_all(kegg_id=kegg_id, seq_type="all", anno_type="transcript", r_cate_path=r_cate_path, n_cate_path=n_cate_path)
         self.add_annotation_kegg_categories_all(kegg_id=kegg_id, seq_type="all", anno_type="gene", r_cate_path=r_gene_cate_path, n_cate_path=n_gene_cate_path)
-        self.add_annotation_kegg_level_all(kegg_id=kegg_id, seq_type="all", anno_type="transcript", r_level_path=r_level_path, n_level_path=n_level_path)
-        self.add_annotation_kegg_level_all(kegg_id=kegg_id, seq_type="all", anno_type="gene", r_level_path=r_gene_level_path, n_level_path=n_gene_level_path)
+        pathway_path = merge_tran_output + "/pathway_table.xls"
+        png_path = merge_tran_output + "/all_pathways"
+        gene_pathway_path = merge_gene_output + "/pathway_table.xls"
+        gene_png_path = merge_gene_output + "/all_pathways"
+        self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type="all", anno_type="transcript", level_path=pathway_path, png_dir=png_path)
+        self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type="all", anno_type="gene", level_path=gene_pathway_path, png_dir=gene_png_path)
+        # self.add_annotation_kegg_level_all(kegg_id=kegg_id, seq_type="all", anno_type="transcript", r_level_path=r_level_path, n_level_path=n_level_path)
+        # self.add_annotation_kegg_level_all(kegg_id=kegg_id, seq_type="all", anno_type="gene", r_level_path=r_gene_level_path, n_level_path=n_gene_level_path)
 
 
     @report_check
