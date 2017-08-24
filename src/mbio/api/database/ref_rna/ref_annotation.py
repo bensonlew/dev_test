@@ -7,7 +7,7 @@ from bson.son import SON
 from bson.objectid import ObjectId
 import types
 import gridfs
-import subprocess
+import json
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 
@@ -16,9 +16,6 @@ class RefAnnotation(Base):
     def __init__(self, bind_object):
         super(RefAnnotation, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
-        # self.map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
-        # self.r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
-        # self.image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
 
     def add_annotation(self, name=None, params=None, ref_anno_path=None, new_anno_path=None, pfam_path=None, merge_tran_output=None, merge_gene_output=None):
         """
@@ -81,12 +78,12 @@ class RefAnnotation(Base):
         else:
             raise Exception("已知序列注释统计文件和venn图文件夹不存在")
         query_id = self.add_annotation_query(name=None, params=params, stat_id=stat_id)
-        query_path = ref_anno_path + "/anno_stat/trans_all_annotation.xls"
-        gene_query_path = ref_anno_path + "/anno_stat/genes_all_annotation.xls"
+        query_path = ref_anno_path + "/anno_stat/trans_anno_detail.xls"
+        gene_query_path = ref_anno_path + "/anno_stat/gene_anno_detail.xls"
         self.add_annotation_query_detail(query_id=query_id, query_path=query_path, anno_type="transcript")
         self.add_annotation_gene_query_detail(query_id=query_id, query_path=gene_query_path, anno_type="gene")
-        query_path = new_anno_path + "/anno_stat/trans_all_annotation.xls"
-        gene_query_path = new_anno_path + "/anno_stat/genes_all_annotation.xls"
+        query_path = new_anno_path + "/anno_stat/trans_anno_detail.xls"
+        gene_query_path = new_anno_path + "/anno_stat/gene_anno_detail.xls"
         self.add_annotation_query_detail(query_id=query_id, query_path=query_path, anno_type="transcript")
         self.add_annotation_gene_query_detail(query_id=query_id, query_path=gene_query_path, anno_type="gene")
         cog_id = self.add_annotation_cog(name=name, params=params)
@@ -184,10 +181,6 @@ class RefAnnotation(Base):
         n_cate_path = new_anno_path + "/kegg/kegg_layer.xls"
         r_gene_cate_path = ref_anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
         n_gene_cate_path = new_anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
-        # r_level_path = ref_anno_path + "/kegg/pathway_table.xls"
-        # n_level_path = new_anno_path + "/kegg/pathway_table.xls"
-        # r_gene_level_path = ref_anno_path + "/anno_stat/kegg_stat/gene_pathway_table.xls"
-        # n_gene_level_path = new_anno_path + "/anno_stat/kegg_stat/gene_pathway_table.xls"
         self.add_annotation_kegg_categories_all(kegg_id=kegg_id, seq_type="all", anno_type="transcript", r_cate_path=r_cate_path, n_cate_path=n_cate_path)
         self.add_annotation_kegg_categories_all(kegg_id=kegg_id, seq_type="all", anno_type="gene", r_cate_path=r_gene_cate_path, n_cate_path=n_gene_cate_path)
         pathway_path = merge_tran_output + "/pathway_table.xls"
@@ -196,8 +189,6 @@ class RefAnnotation(Base):
         gene_png_path = merge_gene_output + "/all_pathways"
         self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type="all", anno_type="transcript", level_path=pathway_path, png_dir=png_path)
         self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type="all", anno_type="gene", level_path=gene_pathway_path, png_dir=gene_png_path)
-        # self.add_annotation_kegg_level_all(kegg_id=kegg_id, seq_type="all", anno_type="transcript", r_level_path=r_level_path, n_level_path=n_level_path)
-        # self.add_annotation_kegg_level_all(kegg_id=kegg_id, seq_type="all", anno_type="gene", r_level_path=r_gene_level_path, n_level_path=n_gene_level_path)
 
 
     @report_check
@@ -678,7 +669,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_pfam_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.info("导入pfam注释信息:%s失败！" % pfam_path)
+            raise Exception("导入pfam注释信息:%s失败！" % pfam_path)
         else:
             self.bind_object.logger.info("导入pfam注释信息:%s成功" % pfam_path)
 
@@ -880,7 +871,6 @@ class RefAnnotation(Base):
             for g in func_type[thekey]:
                 detail = func_decs[g]
                 category = '[' + g + ']' + ' ' + detail
-                print category
                 cog_list = list(set(funlist['COG'][g]))
                 nog_list = list(set(funlist['NOG'][g]))
                 data = [
@@ -1648,7 +1638,7 @@ class RefAnnotation(Base):
                 'number_of_seqs': len(seq_list),
                 'seq_list': ";".join(seq_list),
                 'graph_id': pdfid,
-                "hyperlink": link
+                "hyperlink": link,
                 'graph_png_id': graph_png_id
             }
             data_list.append(insert_data)
