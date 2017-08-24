@@ -114,7 +114,7 @@ class MergeAnnotTool(Tool):
                 self.logger.info("合并kegg注释文件完成")
                 r_level_path = self.option("pathway_table_dir").split(";")[0]
                 n_level_path = self.option("pathway_table_dir").split(";")[1]
-                MergeKeggPathway().merge_kegg_pathway(r_level_path=r_level_path, n_level_path=n_level_path, all_level_path="pathway_table.xls", all_pathways=self.output + "/all_pathways")
+                MergeKeggPathway().merge_kegg_pathway(r_level_path=r_level_path, n_level_path=n_level_path, all_level_path="pathway_table.xls", all_pathways=self.output_dir + "/all_pathways")
         files = ["go2level.xls", "query_gos.list", "cog_table.xls", "kegg_table.xls", "pathway_table.xls"]
         for f in files:
             if os.path.exists(f):
