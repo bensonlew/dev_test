@@ -58,7 +58,7 @@ class DiamondAgent(Agent):
 
     def set_resource(self):
         self._cpu = self.option('num_threads')
-        self._memory = '50G'
+        self._memory = '20G'
 
     def end(self):
         super(DiamondAgent, self).end()
