@@ -31,7 +31,7 @@ class HiseqQcModule(Module):
             # {"name": "quality_a", "type": "int", "default": 30},  # 去接头碱基质量
             # {"name": "length_a", "type": "int", "default": 30},  # 去接头碱基长度
             {"name": "quality_q", "type": "int", "default": 20},  # 质量剪切碱基质量
-            {"name": "length_q", "type": "int", "default": 50}  # 质量剪切碱基长度
+            {"name": "length_q", "type": "int", "default": 30}  # 质量剪切碱基长度
         ]
         self.add_option(options)
         self.samples = {}

@@ -176,7 +176,7 @@ class RmatsModule(Module):
                 f_path = os.path.join(rmats_bam_tool.output_dir, f)
                 target = os.path.join(output_dir, f)
                 os.symlink(f_path, target)
-        self.process_rmats_module_result()
+        # self.process_rmats_module_result()
         self.logger.info("set output done")
         self.end()
     
@@ -185,20 +185,20 @@ class RmatsModule(Module):
         super(RmatsModule, self).run()
     
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [r'.', '', 'rmats结果输出目录']
-        ]
-        )
-        result_dir.add_regexp_rules([
-            ["fromGTF\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '可变剪接事件基本表'],
-            ["fromGTF\.novelEvents\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '新发现可变剪接事件基本表'],
-            ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.ReadsOnTargetAndJunctionCounts\.alter_id\.psi_info\.txt", 'txt',
-             '差异事件详情表（ReadsOnTargetAndJunctionCounts证据）'],
-            ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.JunctionCountOnly\.alter_id\.psi_info\.txt", 'txt',
-             '差异事件详情表（JunctionCountOnly证据）'],
-            ['all_events_detail_big_table.txt', 'txt', '全部结果整合大表'],
-            ['config.txt', 'txt', '运行配置详情文件'],
-            ['all_events_detail_big_table.txt', 'txt', '结果综合详情表']
-        ])
+        # result_dir = self.add_upload_dir(self.output_dir)
+        # result_dir.add_relpath_rules([
+        #     [r'.', '', 'rmats结果输出目录']
+        # ]
+        # )
+        # result_dir.add_regexp_rules([
+        #     ["fromGTF\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '可变剪接事件基本表'],
+        #     ["fromGTF\.novelEvents\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '新发现可变剪接事件基本表'],
+        #     ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.ReadsOnTargetAndJunctionCounts\.alter_id\.psi_info\.txt", 'txt',
+        #      '差异事件详情表（ReadsOnTargetAndJunctionCounts证据）'],
+        #     ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.JunctionCountOnly\.alter_id\.psi_info\.txt", 'txt',
+        #      '差异事件详情表（JunctionCountOnly证据）'],
+        #     ['all_events_detail_big_table.txt', 'txt', '全部结果整合大表'],
+        #     ['config.txt', 'txt', '运行配置详情文件'],
+        #     ['all_events_detail_big_table.txt', 'txt', '结果综合详情表']
+        # ])
         super(RmatsModule, self).end()

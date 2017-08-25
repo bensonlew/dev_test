@@ -109,7 +109,7 @@ class HisatTool(Tool):
                 else:
                     raise Exception("建立索引出错")
         else:
-            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
                 dict = json.loads(f.read())
                 rel_index = dict[self.option("ref_genome")]["dna_index"]
                 index_ref = self.config.SOFTWARE_DIR +  "/database/Genome_DB_finish/" +  rel_index

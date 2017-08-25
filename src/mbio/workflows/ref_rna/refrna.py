@@ -1,4 +1,5 @@
-# -*- coding:utf-8 -*-
+# -*- c
+# oding:utf-8 -*-
 # __author__ = 'shijin'
 # last_modified by shijin
 """有参转录一键化工作流"""
@@ -46,8 +47,8 @@ class RefrnaWorkflow(Workflow):
 
             {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
             {"name": "fastq_dir", "type": "infile", 'format': "sequence.fastq_dir"},  # Fastq文件夹
-            {"name": "qc_quality", "type": "int", "default": 30},  # 质量剪切中保留的最小质量值
-            {"name": "qc_length", "type": "int", "default": 50},  # 质量剪切中保留的最短序列长度
+            {"name": "qc_quality", "type": "int", "default": 20},  # 质量剪切中保留的最小质量值
+            {"name": "qc_length", "type": "int", "default": 30},  # 质量剪切中保留的最短序列长度
 
             {"name": "ref_genome", "type": "string", "default": "Custom"},  # 参考基因组
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组
@@ -64,10 +65,10 @@ class RefrnaWorkflow(Workflow):
             {"name": "swissprot_blast_evalue", "type": "float", "default": 1e-3},  # Swissprot比对使用的e值
             {"name": "database", "type": "string", "default": 'go,nr,cog,kegg,swissprot,pfam'},
             # 全部六个注释
-            {"name": "nr_database", "type": "string", "default": "animal"},  # nr库类型
-            {"name": "kegg_database", "type": "string", "default": None},  # kegg注释库类型
+            {"name": "nr_database", "type": "string", "default": "All"},  # nr库类型
+            {"name": "kegg_database", "type": "string", "default": "All"},  # kegg注释库类型
 
-            {"name": "seq_method", "type": "string", "default": "Tophat"},  # 比对方法，Tophat or Hisat
+            {"name": "seq_method", "type": "string", "default": "Hisat"},  # 比对方法，Tophat or Hisat
             {"name": "map_assess_method", "type": "string", "default":
                 "saturation,duplication,distribution,coverage,chr_stat"},
             # 比对质量评估分析
@@ -75,14 +76,14 @@ class RefrnaWorkflow(Workflow):
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
             {"name": "result_reserved", "type": "int", "default": 1},  # 最多保留的比对结果数目
 
-            {"name": "assemble_method", "type": "string", "default": "cufflinks"},
+            {"name": "assemble_method", "type": "string", "default": "stringtie"},
             # 拼接方法，Cufflinks or Stringtie or None
 
             {"name": "express_method", "type": "string", "default": "rsem"},
             # 表达量分析手段: Htseq, Featurecount, Kallisto, RSEM
             {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算
 
-            {"name": "diff_method", "type": "string", "default": "edgeR"},
+            {"name": "diff_method", "type": "string", "default": "DESeq2"},
             # 差异表达分析方法
             {"name": "diff_fdr_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "fc", "type": "float", "default": 2},
@@ -90,13 +91,13 @@ class RefrnaWorkflow(Workflow):
             {"name": "exp_analysis", "type": "string", "default": "cluster,kegg_rich,cog_class,kegg_regulate,go_rich,go_regulate"},
             # 差异表达富集方法,聚类分析, GO富集分析, KEGG富集分析, cog统计分析
 
-            {"name": "human_or_not", "type": "bool", "default": True},  # 是否为人类基因组
-            {"name": "gene_structure_analysis", "type": "string", "default": "alter-splicing,SNP"},
+            #{"name": "human_or_not", "type": "bool", "default": True},  # 是否为人类基因组
+            #{"name": "gene_structure_analysis", "type": "string", "default": "alter-splicing,SNP"},
             # 基因结构分析，分为alter-splicing, SNP, RNA-editing, gene-fusion
-            {"name": "alter_splicing_method", "type": "string", "default": "rMATS"},
+            #{"name": "alter_splicing_method", "type": "string", "default": "rMATS"},
             # 可变剪切分析软件: rMATS, ASprofile, MapSplice, SpliceGrapher, CLASS2
 
-            {"name": "protein_analysis", "type": "string", "default": "network"},
+            #{"name": "protein_analysis", "type": "string", "default": "network"},
             {"name": "combine_score", "type": "int", "default": 300},
             # 蛋白质分析
 
@@ -157,7 +158,6 @@ class RefrnaWorkflow(Workflow):
             self.option('genome_structure_file', gtf_path)
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
         self.genome_status = True
-        self.as_on = False  # 是否进行可变剪切
         self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
         if self.option("ref_genome") == "Custom":
             self.option("ref_genome", "customer_mode")  # 统一转化为customer_mode
@@ -913,6 +913,11 @@ class RefrnaWorkflow(Workflow):
             self.logger.info("开始设置qc的输出目录")
         if event['data'] == 'qc_stat_after':
             self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
+        if event['data'] == 'mapping':
+            self.move2outputdir(obj.output_dir, 'mapping')
+        if event["data"] == "map_qc":
+            self.move2outputdir(obj.output_dir, 'map_qc')
+            self.logger.info("开始设置质量评估输出目录")
         #     gevent.sleep(0)
         #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat')
         #     self.all_greenlets.append(greenlet)

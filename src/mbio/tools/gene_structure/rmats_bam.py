@@ -8,6 +8,7 @@ from biocluster.core.exceptions import OptionError
 import shutil
 import re
 from mbio.files.align.bwa.bam import BamFile
+from mbio.packages.gene_structure.rmats_process_func import process_single_rmats_output_dir
 
 
 class RmatsBamAgent(Agent):
@@ -171,6 +172,7 @@ class RmatsBamTool(Tool):
         """
         super(RmatsBamTool, self).run()
         self.run_rmats()
+        self.process_output()
         # self.set_output()
         self.end()
     
@@ -191,3 +193,7 @@ class RmatsBamTool(Tool):
         except Exception as e:
             self.logger.info("设置rmats结果目录失败：{}".format(e))
             self.set_error("设置rmats结果目录失败：{}".format(e))
+        process_single_rmats_output_dir(root=self.output_dir, )
+
+    def process_output(self):
+        process_single_rmats_output_dir(root=self.output_dir, )

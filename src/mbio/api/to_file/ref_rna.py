@@ -564,15 +564,17 @@ def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_cod
     type= bind_obj.sheet.option('type')
     class_code_type =  bind_obj.sheet.option("class_code_type")
     class_code_detail = db['sg_express_class_code_detail']
-    class_code = db['sg_express_class_code']
-    class_code_main_info = class_code.find_one({"_id":ObjectId(data)})
+    class_code_col = db['sg_express_class_code']
+    class_code_main_info = class_code_col.find_one({"_id":ObjectId(data)})
     task_id = class_code_main_info["task_id"]
     sg_task = db["sg_task"]
     sg_task_info = sg_task.find_one({"task_id":task_id})
     if sg_task_info["is_demo"] == 2:
         demo_id = sg_task_info["demo_id"]  # sanger_21455
-        class_code_demo_info = class_code.find_one({"task_id":demo_id})
+        class_code_demo_info = class_code_col.find_one({"task_id":demo_id})
+        bind_obj.logger.info(class_code_demo_info)
         data = str(class_code_demo_info["_id"])
+    bind_obj.logger.info(data)
     class_code_info = class_code_detail.find({"class_code_id":ObjectId(data),"type":class_code_type})
     with open(class_code,'w+') as f:
         header = ['seq_id','gene_name',"class_code"]
