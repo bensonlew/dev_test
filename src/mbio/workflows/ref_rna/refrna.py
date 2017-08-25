@@ -22,8 +22,7 @@ class RefrnaWorkflow(Workflow):
         self._sheet = wsheet_object
         super(RefrnaWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "workflow_type", "type": "string", "default": "transcriptome"},  # 转录组
-            {"name": "taxonmy", "type":"string", "default": "animal"},
+            {"name": "taxonmy", "type":"string", "default": "Animal"},
             {"name": "assemble_or_not", "type": "bool", "default": True},
             {"name": "blast_method", "type": "string", "default": "diamond"},
             {"name": "genome_structure_file", "type": "infile", "format": "gene_structure.gtf, gene_structure.gff3"},
@@ -50,19 +49,19 @@ class RefrnaWorkflow(Workflow):
             {"name": "qc_quality", "type": "int", "default": 30},  # 质量剪切中保留的最小质量值
             {"name": "qc_length", "type": "int", "default": 50},  # 质量剪切中保留的最短序列长度
 
-            {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
+            {"name": "ref_genome", "type": "string", "default": "Custom"},  # 参考基因组
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组
 
             # 增加evalue参数，再转换为float传给module使用
-            {"name": "nr_evalue", "type": "string", "default": "1e-5"},
-            {"name": "string_evalue", "type": "string", "default": "1e-5"},
-            {"name": "kegg_evalue", "type": "string", "default": "1e-5"},
-            {"name": "swissprot_evalue", "type": "string", "default": "1e-5"},
+            {"name": "nr_evalue", "type": "string", "default": "1e-3"},
+            {"name": "string_evalue", "type": "string", "default": "1e-3"},
+            {"name": "kegg_evalue", "type": "string", "default": "1e-3"},
+            {"name": "swissprot_evalue", "type": "string", "default": "1e-3"},
 
-            {"name": "nr_blast_evalue", "type": "float", "default": 1e-5},  # NR比对e值
-            {"name": "string_blast_evalue", "type": "float", "default": 1e-5},  # String比对使用的e值
-            {"name": "kegg_blast_evalue", "type": "float", "default": 1e-5},  # KEGG注释使用的e值
-            {"name": "swissprot_blast_evalue", "type": "float", "default": 1e-5},  # Swissprot比对使用的e值
+            {"name": "nr_blast_evalue", "type": "float", "default": 1e-3},  # NR比对e值
+            {"name": "string_blast_evalue", "type": "float", "default": 1e-3},  # String比对使用的e值
+            {"name": "kegg_blast_evalue", "type": "float", "default": 1e-3},  # KEGG注释使用的e值
+            {"name": "swissprot_blast_evalue", "type": "float", "default": 1e-3},  # Swissprot比对使用的e值
             {"name": "database", "type": "string", "default": 'go,nr,cog,kegg,swissprot,pfam'},
             # 全部六个注释
             {"name": "nr_database", "type": "string", "default": "animal"},  # nr库类型
@@ -83,7 +82,7 @@ class RefrnaWorkflow(Workflow):
             # 表达量分析手段: Htseq, Featurecount, Kallisto, RSEM
             {"name": "exp_way", "type": "string", "default": "fpkm"}, #默认选择fpkm进行表达量的计算
 
-            {"name": "diff_method", "type": "string", "default": "DESeq2"},
+            {"name": "diff_method", "type": "string", "default": "edgeR"},
             # 差异表达分析方法
             {"name": "diff_fdr_ci", "type": "float", "default": 0.05},  # 显著性水平
             {"name": "fc", "type": "float", "default": 2},
@@ -140,31 +139,29 @@ class RefrnaWorkflow(Workflow):
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
         self.anno_path = ""
-        if self.option("ref_genome") != "customer_mode":
+        if self.option("ref_genome") != "Custom":
             self.ref_genome = os.path.join(os.path.split(self.json_path)[0],
                                            self.json_dict[self.option("ref_genome")]["dna_fa"])
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
-            self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
+            self.anno_path = os.path.join(os.path.split(self.json_path)[0],
+                                          self.json_dict[self.option("ref_genome")]["anno_path"])
             self.logger.info(self.anno_path)
         else:
             self.ref_genome = self.option("ref_genome_custom")
             self.taxon_id = ""
         self.gff = ""
-        if self.option("ref_genome") != "customer_mode":
+        if self.option("ref_genome") != "Custom":
             gtf_path = os.path.join(os.path.split(self.json_path)[0],
                                            self.json_dict[self.option("ref_genome")]["gtf"])
             self.option('genome_structure_file', gtf_path)
-        # if self.option("ref_genome") == "customer_mode":
-        #     if self.option('genome_structure_file').format == "gene_structure.gff3":
-        #         self.gff = self.option('genome_structure_file').prop["path"]
-        # else:
-        #     self.gff = self.json_dict[self.option("ref_genome")]["gff"]
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
         self.genome_status = True
         self.as_on = False  # 是否进行可变剪切
         self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
-        self.all_greenlets = []
+        if self.option("ref_genome") == "Custom":
+            self.option("ref_genome", "customer_mode")  # 统一转化为customer_mode
+        self.logger.info(self.option("ref_genome"))
 
     def check_options(self):
         """
@@ -625,7 +622,7 @@ class RefrnaWorkflow(Workflow):
             "ref_genome":  "customer_mode",
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
-            "in_sam": self.star_mapping.output_dir + "/sam"
+            "in_bam": self.star_mapping.option("bam_output")
         }
         self.snp_rna.set_options(opts)
         self.snp_rna.on("start", self.set_step, {"start": self.step.snp_rna})
@@ -760,17 +757,19 @@ class RefrnaWorkflow(Workflow):
         根据新加入模块操作，修改self.annotation
         :return:
         """
-        gos_dir_trans = self.annotation.output_dir + "/go/query_gos.list" + \
+        if self.option("ref_genome") == "customer_mode":
+            self.anno_path = self.annotation.output_dir
+        gos_dir_trans = self.anno_path + "/go/query_gos.list" + \
             ";" + self.new_annotation.output_dir + "/go/query_gos.list"
-        kegg_table_dir_trans = self.annotation.output_dir + "/kegg/kegg_table.xls" + \
+        kegg_table_dir_trans = self.anno_path + "/kegg/kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/kegg/kegg_table.xls"
-        cog_table_dir_trans = self.annotation.output_dir + "/cog/cog_table.xls" + \
+        cog_table_dir_trans = self.anno_path + "/cog/cog_table.xls" + \
             ";" + self.new_annotation.output_dir + "/cog/cog_table.xls"
-        gos_dir_gene = self.annotation.output_dir + "/anno_stat/go_stat/gene_gos.list" + \
+        gos_dir_gene = self.anno_path + "/anno_stat/go_stat/gene_gos.list" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/go_stat/gene_gos.list"
-        kegg_table_dir_gene = self.annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls" + \
+        kegg_table_dir_gene = self.anno_path + "/anno_stat/kegg_stat/gene_kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls"
-        cog_table_dir_gene = self.annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls" + \
+        cog_table_dir_gene = self.anno_path + "/anno_stat/cog_stat/gene_cog_table.xls" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls"
         trans_opts = {
             "gos_dir": gos_dir_trans,
@@ -1061,7 +1060,8 @@ class RefrnaWorkflow(Workflow):
         task_info.add_task_info()
         self.filecheck.on('end', self.run_qc)
         self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
-        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        # self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        self.new_annotation.on("end", self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计

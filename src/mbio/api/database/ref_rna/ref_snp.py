@@ -50,7 +50,7 @@ class RefSnp(Base):
         indel_pos_stat = {}
         all_depth_stat = {}
         all_freq_stat = {}
-        depth_list = ["<=30", "31-100", "101-200", "201-300", "301-400", "401-500", ">500"]
+        depth_list = ["<=30", "31-100", "101-200", "201-300", "301-400", "401-500", ">501"]
         # graph_data_list = []
         chroms = set()
         distributions = set()
@@ -100,7 +100,7 @@ class RefSnp(Base):
                     depth_num = -1
                     single_and_all = '.'
                     if rate != './.' and rate != '0/0':
-                        single_and_all = rate.split("/")[1] + "/" + line[7]
+                        single_and_all = rate.split("/")[1]
                         mut_rate = round(int(rate.split("/")[0])/int(rate.split("/")[1]), 4)
                         # 统计各样本的突变频率数目
                         if line[5] == "exonic":
