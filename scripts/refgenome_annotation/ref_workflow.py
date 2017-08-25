@@ -181,7 +181,7 @@ class RefAnnotation(object):
                     nogs = ';'.join(list(set(gene_nogs[gene_id])))
                     w2.write(gene_id + "\t" + cogs + "\t" + nogs + "\n")
 
-    def cog_annotation(self, org_cog, cog_summary):
+    def cog_annotation(self, org_cog, cog_summary, cog_table):
         """
         参考基因组cog注释
         org_cog：物种id对应的cog_id、nog_id; cog_summary：cog注释结果文件
@@ -211,7 +211,8 @@ class RefAnnotation(object):
             'R': 'General function prediction only', 'S': 'Function unknown'
         }
         no_ids = []
-        with open(org_cog, "r") as f, open(cog_summary, "w") as w:
+        with open(org_cog, "r") as f, open(cog_summary, "w") as w, open(cog_table, "w") as w1:
+            w1.write('#Query_name\tQuery_length\tHsp_start_of_query\tHsp_end_of_query\tHsp_strand_of_query\tHit_name\tHit_description\tHit_length\tHsp_start_of_hit\tHsp_end_of_hit\tCOG/NOG_group\tCOG/NOG_group_description\tCOG/NOG_group_categoriesr\tCOG/NOG_region_start\tCOG/NOG_region_end\tCoverage_of_COG/NOG_region\tIdentities_of_COG/NOG_region\tPositives_Identities_of_COG/NOG_region\n')
             lines = f.readlines()
             fun_seqs = {"COG": {}, "NOG": {}}
             for line in lines[1:]:
@@ -224,6 +225,8 @@ class RefAnnotation(object):
                         if results.count() > 0:
                             for result in results:
                                 group = result["cog_categories"]
+                                cog_des = result["cog_description"]
+                                w1.write(query_id + "\tNone\tNone\tNone\tNone\tNone\tNone\tNone\tNone\tNone\t" + cog_id + "\t" + cog_des + "\t" + group + "\tNone\tNone\tNone\tNone\tNone" + "\n")
                                 if group not in fun_seqs['COG']:
                                     fun_seqs['COG'][group] = []
                                 fun_seqs['COG'][group].append(query_id)
@@ -238,6 +241,8 @@ class RefAnnotation(object):
                         if results.count() > 0:
                             for result in results:
                                 group = result["cog_categories"]
+                                cog_des = result["cog_description"]
+                                w1.write(query_id + "\tNone\tNone\tNone\tNone\tNone\tNone\tNone\tNone\tNone\t" + nog_id + "\t" + cog_des + "\t" + group + "\tNone\tNone\tNone\tNone\tNone" + "\n")
                                 if group not in fun_seqs['NOG']:
                                     fun_seqs['NOG'][group] = []
                                 fun_seqs['NOG'][group].append(query_id)
@@ -246,7 +251,7 @@ class RefAnnotation(object):
                 except:
                     pass
             no_ids = list(set(no_ids))
-            print no_ids
+            print len(no_ids)
             for first in self.func_type:
                 for g in self.func_type[first]:
                     second = '[' + g + ']' + self.func_decs[g]
@@ -288,12 +293,9 @@ class RefAnnotation(object):
             try:
                 org_paths = item[2].split(";")
                 map_paths = []
-                for org_path in org_paths:
-                    m = re.match(r".+(\d{5})", org_path)
-                    if m:
-                        map_id = "map" + m.group(1)
-                        if map_id not in self.gloabl:
-                            map_paths.append(map_id)
+                for map_id in org_paths:
+                    if map_id not in self.gloabl:
+                        map_paths.append(map_id)
             except:
                 map_paths = []
             map_paths = list(set(map_paths))
@@ -302,7 +304,7 @@ class RefAnnotation(object):
             try:
                 ko_ids = koids.split(";")
                 for ko_id in ko_ids:
-                    result = self.ko_coll.find_one({"ko_id": koid})
+                    result = self.ko_coll.find_one({"ko_id": ko_id})
                     if result:
                         ko_names.append(result['ko_name'])
             except:
@@ -332,18 +334,15 @@ class RefAnnotation(object):
             ko_ids = item[1].split(";")
             try:
                 org_paths = item[2].split(";")
-                for org_path in org_paths:
-                    m = re.match(r".+(\d{5})", org_path)
-                    if m:
-                        map_id = "map" + m.group(1)
-                        if map_id not in self.gloabl:
-                            if map_id not in paths:
-                                path_koids[map_id] = []
-                                path_seqs[map_id] = []
-                                paths.append(map_id)
-                            for ko_id in ko_ids:
-                                path_koids[map_id].append(ko_id)
-                            path_seqs[map_id].append(query_id)
+                for map_id in org_paths:
+                    if map_id not in self.gloabl:
+                        if map_id not in paths:
+                            path_koids[map_id] = []
+                            path_seqs[map_id] = []
+                            paths.append(map_id)
+                        for ko_id in ko_ids:
+                            path_koids[map_id].append(ko_id)
+                        path_seqs[map_id].append(query_id)
             except:
                 pass
         for map_id in paths:
@@ -538,14 +537,10 @@ class Transcript(object):
 class RefAnnoQuery(object):
     def __init__(self):
         self.stat_info = {}
-        # self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG
-        # self.cog_string_v9 = Config().biodb_mongo_client.sanger_biodb.COG_V9
-        # self.kegg_ko = Config().biodb_mongo_client.sanger_biodb.kegg_ko_v1
-        # self.go = Config().biodb_mongo_client.sanger_biodb.GO
-        self.cog_string = Config().mongo_client.sanger_biodb.COG
-        self.cog_string_v9 = Config().mongo_client.sanger_biodb.COG_V9
-        self.kegg_ko = Config().mongo_client.sanger_biodb.kegg_ko_v1
-        self.go = Config().mongo_client.sanger_biodb.GO
+        self.cog_string = Config().biodb_mongo_client.sanger_biodb.COG
+        self.cog_string_v9 = Config().biodb_mongo_client.sanger_biodb.COG_V9
+        self.kegg_ko = Config().biodb_mongo_client.sanger_biodb.kegg_ko_v1
+        self.go = Config().biodb_mongo_client.sanger_biodb.GO
         self.gloabl = ["map01100", "map01110", "map01120", "map01130", "map01200", "map01210", "map01212", "map01230", "map01220"]
 
     def get_anno_stat(self, outpath, gtf_path, biomart_path, cog_list=None, gos_list=None, org_kegg=None, anno_type="transcript"):
@@ -628,7 +623,7 @@ class RefAnnoQuery(object):
         """找到转录本ID对应的cogID、nogID、kogID及功能分类和描述"""
         with open(cog_list, 'rb') as f:
             lines = f.readlines()
-            for line in lines[1:]:
+            for line in lines:
                 line = line.strip('\n').split('\t')
                 query_name = line[0]
                 cog = line[1]
@@ -679,66 +674,79 @@ class RefAnnoQuery(object):
         "找到转录本ID对应的KO、KO_name、Pathway、Pathway_definition"
         with open(org_kegg, 'rb') as f:
             lines = f.readlines()
-            for line in lines[1:]:
+            for line in lines:
                 line = line.strip('\n').split('\t')
                 query_name = line[0]
-                ko_id = line[1]
-                result = self.kegg_ko.find_one({"ko_id": ko_id})
-                if result:
-                    ko_name = result["ko_name"]
-                else:
-                    ko_name = ''
-                    print "没找到ko_id {}".format(ko_id)
-                pathway = []
+                koids = line[1]
+                ko_names = []
                 try:
-                    pathways = line[2].split(";")
+                    ko_ids = koids.split(";")
+                    for ko_id in ko_ids:
+                        result = self.kegg_ko.find_one({"ko_id": ko_id})
+                        if result:
+                            ko_names.append(result['ko_name'])
                 except:
-                    pathways = []
-                    print "{} 没有pathway".format(query_name)
-                for p in pathways:
-                    m = re.match(r".+(\d{5})", p)
-                    if m:
-                        map_id = "map" + m.group(1)
+                    koid = koids
+                    result = self.kegg_ko.find_one({"ko_id": koid})
+                    if result:
+                        ko_names.append(result['ko_name'])
+                try:
+                    org_paths = item[2].split(";")
+                    map_paths = []
+                    for map_id in org_paths:
                         if map_id not in self.gloabl:
-                            pid = re.sub("map", "ko", map_id)
-                            result = self.kegg_ko.find_one({"pathway_id": {"$in": [pid]}})
-                            if result:
-                                pids = result["pathway_id"]
-                                for index, i in enumerate(pids):
-                                    if i == pid:
-                                        category = result["pathway_category"][index]
-                                        definition = category[2]
-                                        item = map_id + "(" + definition + ")"
-                                        pathway.append(item)
-                            else:
-                                print "{} 没有在mongo中找到该pathway".format(pid)
-                pathway = "; ".join(pathway)
+                            map_paths.append(map_id)
+                except:
+                    map_paths = []
+                map_paths = list(set(map_paths))
+                pathway = []
+                if map_id not in self.gloabl:
+                    pid = re.sub("map", "ko", map_id)
+                    result = self.kegg_ko.find_one({"pathway_id": {"$in": [pid]}})
+                    if result:
+                        pids = result["pathway_id"]
+                        for index, i in enumerate(pids):
+                            if i == pid:
+                                category = result["pathway_category"][index]
+                                definition = category[2]
+                                item = map_id + "(" + definition + ")"
+                                pathway.append(item)
+                    else:
+                        print "{} 没有在mongo中找到该pathway".format(pid)
                 if query_name in self.stat_info:
                     self.stat_info[query_name].ko_id = ko_id
-                    self.stat_info[query_name].ko_name = ko_name
-                    self.stat_info[query_name].pathway = pathway
-
+                    self.stat_info[query_name].ko_name = ';'.join(ko_names)
+                    self.stat_info[query_name].pathway = "; ".join(pathway)
 if __name__ == "__main__":
-    test = RefAnnotation()
+    # test = RefAnnotation()
     image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
-    png_bgcolor = "#FFFF00" # 黄色
+    png_bgcolor = "#FFFF00"  # 黄色
     link_bgcolor = "yellow"
     db_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/"
-    # ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/annot_species.json"
-    ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/ath.json"
+    ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/annot_species.complete.json"
+    # ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/ath.json"
+    # ref_json = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/script/ath.json"
     f = open(ref_json, "r")
     json_dict = json.loads(f.read())
-    out = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/taxonomy"
+    # out = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/taxonomy"
     for taxon in json_dict:
+        test = RefAnnotation()
         gtf_path = db_path + json_dict[taxon]["gtf"]
         biomart_path = db_path + json_dict[taxon]["bio_mart_annot"]
         kegg_db = db_path + json_dict[taxon]["kegg"]
         go_db = db_path + json_dict[taxon]["go"]
         cog_db = db_path + json_dict[taxon]["cog"]
+        # outdir = out + '/' + taxon + '/Annotation'
         test.get_gtf_information(gtf_path, biomart_path)
-        outdir = out + '/' + taxon + '/Annotation'
+        outdir = db_path + json_dict[taxon]["gtf"].split("gtf")[0] + 'Annotation'
+        try:
+            json_dict[taxon]["anno_path"] = outdir
+        except:
+            print "设置注释路径出错"
+        json_dict[taxon] = json.dumps(json_dict[taxon], sort_keys=True, separators=(',', ':'))
         if not os.path.exists(outdir):
             os.makedirs(outdir)
+        print outdir
         test.kegg_filt(kegg_db, outdir)
         test.go_filt(go_db, outdir)
         test.cog_filt(cog_db, outdir)
@@ -769,10 +777,11 @@ if __name__ == "__main__":
         if not os.path.exists(gene_cog_path):
             os.makedirs(gene_cog_path)
         cog_summary =cog_path + "/cog_summary.xls"
-        test.cog_annotation(org_cog, cog_summary)
+        cog_table =
+        test.cog_annotation(org_cog, cog_summary, cog_table)
         gene_org_cog = outdir + "/cog_genes.list"
         gene_cog_summary = gene_cog_path + "/gene_cog_summary.xls"
-        test.cog_annotation(gene_org_cog, gene_cog_summary)
+        test.cog_annotation(gene_org_cog, gene_cog_summary, gene_cog_table)
 
         go_path = outdir + "/go"
         if not os.path.exists(go_path):
@@ -803,12 +812,17 @@ if __name__ == "__main__":
         venn_dir = outdir + "/anno_stat/venn"
         if not os.path.exists(venn_dir):
             os.makedirs(venn_dir)
-        all_stat = outdir + "/all_annotation_statistics.xls"
+        all_stat = outdir + "/anno_stat/all_annotation_statistics.xls"
         test.ref_anno_stat(cog_summary, gene_cog_summary, gos_list, gene_gos_list, kegg_table, gene_kegg_table, venn_dir, all_stat)
 
         Transcript()
         query = RefAnnoQuery()
-        outpath = outdir + "/trans_anno_detail.xls"
+        outpath = outdir + "/anno_stat/trans_anno_detail.xls"
         query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=org_cog, gos_list=gos_list, org_kegg=org_kegg, anno_type="transcript")
-        outpath = outdir + "/trans_anno_detail.xls"
+        Transcript()
+        query = RefAnnoQuery()
+        outpath = outdir + "/anno_stat/genes_anno_detail.xls"
         query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=gene_org_cog, gos_list=gene_gos_list, org_kegg=gene_org_kegg, anno_type="gene")
+
+    with open("test_zj.json", "w") as f:
+        json.dump(json_dict, f)

@@ -77,8 +77,8 @@ class RefAnnoQueryTool(Tool):
         self.query_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/new_annotation_query.py"
 
     def run_query(self):
-        tran_outpath = self.output_dir + "/trans_all_annotation.xls"
-        gene_outpath = self.output_dir + "/genes_all_annotation.xls"
+        tran_outpath = self.output_dir + "/trans_anno_detail.xls"
+        gene_outpath = self.output_dir + "/gene_anno_detail.xls"
         ref_gtf_path = self.option("ref_gtf_path")
         new_gtf_path = self.option("new_gtf_path")
         length_path = self.option("length_path")
