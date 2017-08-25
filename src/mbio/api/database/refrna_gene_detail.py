@@ -176,9 +176,9 @@ class RefrnaGeneDetail(Base):
                     if j > 1:
                         seq_len = len(pep_sequence)
                         pep_dict[trans_id] = dict(name=pep_id, sequence=pep_sequence,
-                                                  sequence_lengt=seq_len)
+                                                  sequence_length=seq_len)
                         pep_dict[trans_id_else] = dict(name=pep_id, sequence=pep_sequence,
-                                                       sequence_lengt=seq_len)
+                                                       sequence_length=seq_len)
                     pep_id = pep_pattern.match(line).group(1)
                     trans_id = trans_pattern.search(line).group(1)
                     if '.' in trans_id:
@@ -191,9 +191,9 @@ class RefrnaGeneDetail(Base):
             else:
                 seq_len = len(pep_sequence)
                 pep_dict[trans_id] = dict(name=pep_id, sequence=pep_sequence,
-                                          sequence_lengt=seq_len)
+                                          sequence_length=seq_len)
                 pep_dict[trans_id_else] = dict(name=pep_id, sequence=pep_sequence,
-                                               sequence_lengt=seq_len)
+                                               sequence_length=seq_len)
         if not pep_dict:
             print('提取蛋白序列信息为空')
         print("共统计出{}条转录本的蛋白序列信息".format(len(pep_dict)))
@@ -243,8 +243,9 @@ class RefrnaGeneDetail(Base):
                 if not line.strip():
                     continue
                 tmp_list = line.strip().split('\t')
-                prot2entrez.setdefault(tmp_list[5], set())
-                prot2entrez[tmp_list[5]].add(tmp_list[1])
+                if not tmp_list[5] == '-':
+                    prot2entrez.setdefault(tmp_list[5], set())
+                    prot2entrez[tmp_list[5]].add(tmp_list[1])
         return prot2entrez
 
     def query_pep_from_blast_result(self, query_id=None, blast_xls=None, blast_id=None):
@@ -315,16 +316,16 @@ class RefrnaGeneDetail(Base):
     @staticmethod
     def parse_class_code_info(class_code):
         """
-        根据输入文件提取基因和转录本对应的关系字典
-        :param class_code: 文件名，tab分割，至少包含两列。第一列是转录本，第二列是基因，第一行是header.
-        First line will be skipped.
+        根据输入文件提取基因和转录本对应的关系，gene-id和gene name关系，转录本对应classcode关系。
+        :param class_code: 文件名，tab分割.
+        First line will be skipped. Example：
         -------------------------------------------------------------------------------------
         #assemble_txpt_id       assemble_gene_id        class_code      ref_gene_name
         ENSMUST00000166088      ENSMUSG00000009070      =       Rsph14
         ENSMUST00000192671      ENSMUSG00000038599      =       Capn8
         ENSMUST00000110582      ENSMUSG00000079083      =       Jrkl
         --------------------------------------------------------------------------------------
-        :return: dict, gene_id:[tid1,tid2]
+        :return: 3 dict, gene2trans_dict, gene2name_dict, trans2class_code
         """
         gene2trans_dict = dict()
         gene2name_dict = dict()
@@ -348,7 +349,7 @@ class RefrnaGeneDetail(Base):
         """
         提取gene和transcript序列信息，都会用这个函数
         :param fasta_file:
-        :return: dict, seq_id: sequence
+        :return: dict, ｛seq_id: sequence｝
         """
         seq = dict()
         match_name = re.compile(r'>([^\s]+)').match
@@ -413,7 +414,7 @@ class RefrnaGeneDetail(Base):
         :param gene_path: 基因的fa文件， 计算产生的文件
         :param species: 物种名称(拉丁文)
         :param assembly_method: assemble method, StringTie or Cufflink
-        :param test_this: used for test purpose
+        :param test_this: used for test purpose， and task_id will be "demo_test"
         **: liubinxu provide files: biomart_path, biomart_entrez_path, gene2ensembl_path,
                                      cds_path, pep_path.
             zengjing provide files: blast_xls
@@ -430,7 +431,7 @@ class RefrnaGeneDetail(Base):
             task_id = self.bind_obj.sheet.task_id
             project_sn = self.bind_obj.sheet.project_sn
         else:
-            project_sn = task_id = 'gene_detail_test'
+            project_sn = task_id = 'demo_test'
         all_transcript_length = 0
         with open(transcript_path) as f1:
             for line in f1:
@@ -451,23 +452,23 @@ class RefrnaGeneDetail(Base):
         print("导入Gene_detail主表信息完成！")
         # -----end of creating main table-----
         # -------------------add class code information------------------------
-        class_code_info = list()
-        with open(class_code) as f:
-            for line in f:
-                line = line.strip('\n').split("\t")
-                tmp_data = [('assembly_trans_id', line[0]),
-                            ('assembly_gene_id', line[1]),
-                            ('class_code', line[2]),
-                            ('gene_name', line[3]),
-                            ('class_code_id', class_code_id), ]
-                tmp_data = SON(tmp_data)
-                class_code_info.append(tmp_data)
-        try:
-            collection = self.db["sg_express_class_code_detail"]
-            collection.insert_many(class_code_info)
-            print("导入class_code_information完成")
-        except Exception, e:
-            print("导入class_code_information出错:{}".format(e))
+        # class_code_info = list()
+        # with open(class_code) as f:
+        #     for line in f:
+        #         line = line.strip('\n').split("\t")
+        #         tmp_data = [('assembly_trans_id', line[0]),
+        #                     ('assembly_gene_id', line[1]),
+        #                     ('class_code', line[2]),
+        #                     ('gene_name', line[3]),
+        #                     ('class_code_id', class_code_id), ]
+        #         tmp_data = SON(tmp_data)
+        #         class_code_info.append(tmp_data)
+        # try:
+        #     collection = self.db["sg_express_class_code_detail"]
+        #     collection.insert_many(class_code_info)
+        #     print("导入class_code_information完成")
+        # except Exception, e:
+        #     print("导入class_code_information出错:{}".format(e))
         # -------------------------------------------
         # ----------------add gene detail----------------------------------------
         gene2trans, gene2name, trans2class_code = self.parse_class_code_info(class_code)
@@ -497,18 +498,17 @@ class RefrnaGeneDetail(Base):
         data_list = list()
         new_num = 0
         for gene_id in gene2trans:
-            description, gene_type, gene_name, is_new = '', '', '', False
+            description, gene_type, gene_name, is_new = '-', '-', '-', False
 
             # get gene's entrez id
             trans_list = gene2trans[gene_id]
             u_appear = [1 for x in trans_list if trans2class_code[x] == "u"]
+            entrez_ids = '-'
             if sum(u_appear) < 1:
                 if gene_id.startswith('MSTRG') or gene_id.startswith('TCONS'):
                     print("{} looks like a novel gene, but judged as a known gene".format(gene_id))
                 if ensembl2entrez.get(gene_id):
                     entrez_ids = ensembl2entrez[gene_id]
-                else:
-                    entrez_ids = '-'
             else:
                 is_new = True
                 new_num += 1
@@ -516,9 +516,8 @@ class RefrnaGeneDetail(Base):
                     print("{} looks like a known gene, but judged as a novel one".format(gene_id))
                 pep_id, description = query_pep(query_id=gene_id, blast_id=blast_id)
                 if prot2entrez.get(pep_id):
+                    # print(pep_id)
                     entrez_ids = prot2entrez[pep_id]
-                else:
-                    entrez_ids = '-'
 
             # get transcript info
             trans_list = gene2trans[gene_id]
@@ -601,10 +600,13 @@ class RefrnaGeneDetail(Base):
 
             # format http sites
             if entrez_ids and (not entrez_ids == "-"):
-                ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term={}'.format(list(entrez_ids)[0])
+                ncbi = 'https://www.ncbi.nlm.nih.gov/gene/?term={}'.format(list(entrez_ids)[0])
             else:
                 ncbi = None
-            ensembl = "http://www.ensembl.org/{}/Gene/Summary?g={}".format(species, gene_id)
+            if not is_new:
+                ensembl = "http://www.ensembl.org/{}/Gene/Summary?g={}".format(species, gene_id)
+            else:
+                ensembl = None
             data = [
                     ("is_new", is_new),
                     ("type", "gene_detail"),
