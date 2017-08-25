@@ -316,16 +316,16 @@ class RefrnaGeneDetail(Base):
     @staticmethod
     def parse_class_code_info(class_code):
         """
-        根据输入文件提取基因和转录本对应的关系字典
-        :param class_code: 文件名，tab分割，至少包含两列。第一列是转录本，第二列是基因，第一行是header.
-        First line will be skipped.
+        根据输入文件提取基因和转录本对应的关系，gene-id和gene name关系，转录本对应classcode关系。
+        :param class_code: 文件名，tab分割.
+        First line will be skipped. Example：
         -------------------------------------------------------------------------------------
         #assemble_txpt_id       assemble_gene_id        class_code      ref_gene_name
         ENSMUST00000166088      ENSMUSG00000009070      =       Rsph14
         ENSMUST00000192671      ENSMUSG00000038599      =       Capn8
         ENSMUST00000110582      ENSMUSG00000079083      =       Jrkl
         --------------------------------------------------------------------------------------
-        :return: dict, gene_id:[tid1,tid2]
+        :return: 3 dict, gene2trans_dict, gene2name_dict, trans2class_code
         """
         gene2trans_dict = dict()
         gene2name_dict = dict()
@@ -349,7 +349,7 @@ class RefrnaGeneDetail(Base):
         """
         提取gene和transcript序列信息，都会用这个函数
         :param fasta_file:
-        :return: dict, seq_id: sequence
+        :return: dict, ｛seq_id: sequence｝
         """
         seq = dict()
         match_name = re.compile(r'>([^\s]+)').match
@@ -414,7 +414,7 @@ class RefrnaGeneDetail(Base):
         :param gene_path: 基因的fa文件， 计算产生的文件
         :param species: 物种名称(拉丁文)
         :param assembly_method: assemble method, StringTie or Cufflink
-        :param test_this: used for test purpose
+        :param test_this: used for test purpose， and task_id will be "demo_test"
         **: liubinxu provide files: biomart_path, biomart_entrez_path, gene2ensembl_path,
                                      cds_path, pep_path.
             zengjing provide files: blast_xls
