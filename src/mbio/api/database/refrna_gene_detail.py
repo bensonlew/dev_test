@@ -452,23 +452,24 @@ class RefrnaGeneDetail(Base):
         print("导入Gene_detail主表信息完成！")
         # -----end of creating main table-----
         # -------------------add class code information------------------------
-        # class_code_info = list()
-        # with open(class_code) as f:
-        #     for line in f:
-        #         line = line.strip('\n').split("\t")
-        #         tmp_data = [('assembly_trans_id', line[0]),
-        #                     ('assembly_gene_id', line[1]),
-        #                     ('class_code', line[2]),
-        #                     ('gene_name', line[3]),
-        #                     ('class_code_id', class_code_id), ]
-        #         tmp_data = SON(tmp_data)
-        #         class_code_info.append(tmp_data)
-        # try:
-        #     collection = self.db["sg_express_class_code_detail"]
-        #     collection.insert_many(class_code_info)
-        #     print("导入class_code_information完成")
-        # except Exception, e:
-        #     print("导入class_code_information出错:{}".format(e))
+        class_code_info = list()
+        with open(class_code) as f:
+            for line in f:
+                line = line.strip('\n').split("\t")
+                tmp_data = [('assembly_trans_id', line[0]),
+                            ('assembly_gene_id', line[1]),
+                            ('class_code', line[2]),
+                            ('gene_name', line[3]),
+                            ('class_code_id', class_code_id),
+                            ('type', "express_diff")]
+                tmp_data = SON(tmp_data)
+                class_code_info.append(tmp_data)
+        try:
+            collection = self.db["sg_express_class_code_detail"]
+            collection.insert_many(class_code_info)
+            print("导入class_code_information完成")
+        except Exception, e:
+            print("导入class_code_information出错:{}".format(e))
         # -------------------------------------------
         # ----------------add gene detail----------------------------------------
         gene2trans, gene2name, trans2class_code = self.parse_class_code_info(class_code)
