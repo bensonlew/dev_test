@@ -104,7 +104,7 @@ class SnpWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json"
+        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json"
         self.json_dict = self.get_json()
         self.filecheck = self.add_tool("rna.filecheck_ref")
         self.gs = self.add_tool("gene_structure.genome_structure")
@@ -966,8 +966,8 @@ class SnpWorkflow(Workflow):
         # self.qc.fire("end")
         # self.rpc_server.run()
         #############################################
-        self.star_mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170821/Snp_arab_test_snp_5/RnaseqMapping2/output/bam")
-        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/FilecheckRef/Arabidopsis_thaliana.TAIR10.36.gtf")
-        self.run_snp()
-        self.run_altersplicing()
-        super(SnpWorkflow, self).run()
+        # self.star_mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170821/Snp_arab_test_snp_5/RnaseqMapping2/output/bam")
+        # self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/FilecheckRef/Arabidopsis_thaliana.TAIR10.36.gtf")
+        # self.run_snp()
+        # self.run_altersplicing()
+        # super(SnpWorkflow, self).run()

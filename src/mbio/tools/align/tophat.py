@@ -135,7 +135,7 @@ class TophatTool(Tool):
             self.logger.info("开始运行自定义模式")
             self.run_build_index()
         else:
-            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
                 dict = json.loads(f.read())
                 rel_index = dict[self.option("ref_genome")]["dna_index"]
                 abs_index = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/" +  rel_index

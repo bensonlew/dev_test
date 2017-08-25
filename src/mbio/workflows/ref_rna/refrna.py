@@ -106,7 +106,7 @@ class RefrnaWorkflow(Workflow):
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json"
+        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json"
         self.json_dict = self.get_json()
         self.filecheck = self.add_tool("rna.filecheck_ref")
         self.gs = self.add_tool("gene_structure.genome_structure")
@@ -868,27 +868,7 @@ class RefrnaWorkflow(Workflow):
             self.exp_diff_gene.on('end', self.set_output, 'exp_diff_gene')
             self.exp_diff_gene.run()
 
-    def get_group_from_edger_group(self):  # 用来判断是否进行可变剪切分析
-        group_spname = self.option("group_table").get_group_spname()
-        if self.option("fq_type") == "PE":
-            lst = []
-            for key in group_spname.keys():
-                if len(group_spname[key]) <= 3:
-                    self.logger.info("某分组中样本数小于等于3，将不进行可变剪切分析")
-                    self.as_on = False  # 不进行可变剪切分析
-                    return False
-                else:
-                    lst.append(len(group_spname[key]))
-            if len(set(lst)) != 1:
-                self.as_on = False  # 不进行可变剪切分析
-                return False  # 各分组，样本数不相同
-            self.as_on = True  # 不进行可变剪切分析
-            return True
-        else:
-            self.as_on = True
-            return True
-
-    def move2outputdir(self, olddir, newname, mode='link'):  # 阻塞
+    def move2outputdir(self, olddir, newname, mode='link'):
         """
         移动一个目录下的所有文件/文件夹到workflow输出文件夹下
         """
@@ -897,36 +877,42 @@ class RefrnaWorkflow(Workflow):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
         if not os.path.exists(newdir):
-            if mode == 'link':
-                shutil.copytree(olddir, newdir, symlinks=True)
-            elif mode == 'copy':
-                shutil.copytree(olddir, newdir)
-            else:
-                raise Exception('错误的移动文件方式，必须是\'copy\'或者\'link\'')
-        else:
-            allfiles = os.listdir(olddir)
-            oldfiles = [os.path.join(olddir, i) for i in allfiles]
-            newfiles = [os.path.join(newdir, i) for i in allfiles]
-            self.logger.info(newfiles)
-            for newfile in newfiles:
-                if os.path.isfile(newfile) and os.path.exists(newfile):
-                    os.remove(newfile)
-                elif os.path.isdir(newfile) and os.path.exists(newfile):
-                    shutil.rmtree(newfile)
-            for i in range(len(allfiles)):
-                if os.path.isfile(oldfiles[i]):
-                    os.link(oldfiles[i], newfiles[i])
-                else:
-                    os.system('cp -r {} {}'.format(oldfiles[i], newdir))
+            os.mkdir(newdir)
+        allfiles = os.listdir(olddir)
+        oldfiles = [os.path.join(olddir, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        self.logger.info(newfiles)
+        for newfile in newfiles:
+            if os.path.isfile(newfile) and os.path.exists(newfile):
+                os.remove(newfile)
+            elif os.path.isdir(newfile) and os.path.exists(newfile):
+                shutil.rmtree(newfile)
+        for i in range(len(allfiles)):
+            self.move_file(oldfiles[i], newfiles[i])
         end = time.time()
         duration = end - start
         self.logger.info("文件夹{}到{}移动耗时{}s".format(olddir, newdir, duration))
 
+    def move_file(self, old_file, new_file):
+        if os.path.isfile(old_file):
+            os.link(old_file, new_file)
+        else:
+            os.mkdir(new_file)
+            for file in os.listdir(old_file):
+                file_path = os.path.join(old_file, file)
+                new_path = os.path.join(new_file, file)
+                self.move_file(file_path, new_path)
+
+
     def set_output(self, event):
-        pass
-        # patch_all()
-        # obj = event["bind_object"]
-        # if event['data'] == 'qc':
+        obj = event["bind_object"]
+        if event['data'] == 'qc':
+            self.move2outputdir(obj.output_dir, 'QC_stat')
+        if event['data'] == 'qc_stat_before':
+            self.move2outputdir(obj.output_dir, 'QC_stat/before_qc')
+            self.logger.info("开始设置qc的输出目录")
+        if event['data'] == 'qc_stat_after':
+            self.move2outputdir(obj.output_dir, 'QC_stat/after_qc')
         #     gevent.sleep(0)
         #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat')
         #     self.all_greenlets.append(greenlet)

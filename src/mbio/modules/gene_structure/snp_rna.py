@@ -88,7 +88,7 @@ class SnpRnaModule(Module):
         self.gatks.append(gatk)
         self.logger.info("因为参考数据库中未含有gatk所需dict，gatk使用自定义模式进行")
         if self.option("ref_genome") != "customer_mode":
-            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
                 dict = json.loads(f.read())
                 ref_fasta = dict[self.option("ref_genome")]["dna_fa"]
         gatk.set_options({
