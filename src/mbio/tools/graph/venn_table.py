@@ -72,6 +72,7 @@ class VennTableTool(Tool):
     def __init__(self, config):
         super(VennTableTool, self).__init__(config)
         self.R_path = '/program/R-3.3.1/bin/'
+        self.R_path2 = self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/'  # 循环投递时需要全路径
         self.venn_path = self.config.SOFTWARE_DIR + '/bioinfo/plot/scripts/'
         self.python_path = self.config.SOFTWARE_DIR + '/program/Python/bin/'
         self.software = 'program/parafly-r2013-01-21/bin/bin/ParaFly'
@@ -125,7 +126,7 @@ class VennTableTool(Tool):
                 self.option('group_table').sub_group(sample_dir + '/venn_group_' + str(i+1), select_group)
                 venn_cmd = '%spython %svenn_table.py -i %s -g %s -o %scmd_%s.r' % (self.python_path, self.venn_path, otu_table, sample_dir + '/venn_group_' + str(i+1), sample_dir + '/', i+1)
                 get_cmd_list.append(venn_cmd)  # 存放所有生成cmd.r的命令
-                cmd_list.append(self.R_path + 'Rscript {}cmd_{}.r'.format(sample_dir + '/', i+1))  # 存放所有运行cmd.r的命令
+                cmd_list.append(self.R_path2 + 'Rscript {}cmd_{}.r'.format(sample_dir + '/', i+1))  # 存放所有运行cmd.r的命令
             self.logger.info(cmd_list)
 
             #  循环投递，批量生成cmd.r文件，结果及日志存放在对应分组方案的文件夹下

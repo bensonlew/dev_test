@@ -49,7 +49,7 @@ class VennTable(Base):
                 if f.endswith("venn_table.xls"):
                     f_path = self.output_dir + '/' + f
                     group_name = f.strip().split("venn_table.xls")[0]
-                    venn_otu = self.insert_table(f_path, group_name + '的结果表', group_name + '分组间共有和分组中特有的物种的数量统计')
+                    venn_otu = self.insert_table(f_path, group_name + '的venn结果表', group_name + '分组间共有和分组中特有的物种的数量统计')
                     venn_list.append(venn_otu)
                 else:
                     pass
