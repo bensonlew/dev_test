@@ -272,7 +272,7 @@ class RefAnnotation(object):
         需投递到指定队列：BLAST2GO
         """
         cmd = 'python %s %s %s %s %s' % (self.go_script, go_list, 'localhost', 'biocluster102', 'sanger-dev-123')  # 10.100.203.193
-        # print cmd
+        print cmd
         try:
             subprocess.check_output(cmd, shell=True)
             print "运行goAnnot.py完成"
@@ -718,7 +718,7 @@ class RefAnnoQuery(object):
                     self.stat_info[query_name].ko_name = ';'.join(ko_names)
                     self.stat_info[query_name].pathway = "; ".join(pathway)
 if __name__ == "__main__":
-    test = RefAnnotation()
+    # test = RefAnnotation()
     image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
     png_bgcolor = "#FFFF00"  # 黄色
     link_bgcolor = "yellow"
@@ -730,6 +730,7 @@ if __name__ == "__main__":
     json_dict = json.loads(f.read())
     # out = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/taxonomy"
     for taxon in json_dict:
+        test = RefAnnotation()
         gtf_path = db_path + json_dict[taxon]["gtf"]
         biomart_path = db_path + json_dict[taxon]["bio_mart_annot"]
         kegg_db = db_path + json_dict[taxon]["kegg"]
@@ -743,10 +744,9 @@ if __name__ == "__main__":
         except:
             print "设置注释路径出错"
         json_dict[taxon] = json.dumps(json_dict[taxon], sort_keys=True, separators=(',', ':'))
-        print outdir
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-        # print outdir
+        print outdir
         test.kegg_filt(kegg_db, outdir)
         test.go_filt(go_db, outdir)
         test.cog_filt(cog_db, outdir)
@@ -776,12 +776,11 @@ if __name__ == "__main__":
         gene_cog_path = outdir + "/anno_stat/cog_stat"
         if not os.path.exists(gene_cog_path):
             os.makedirs(gene_cog_path)
-        cog_summary = cog_path + "/cog_summary.xls"
-        cog_table = cog_path + "/cog_table.xls"
+        cog_summary =cog_path + "/cog_summary.xls"
+        cog_table =
         test.cog_annotation(org_cog, cog_summary, cog_table)
         gene_org_cog = outdir + "/cog_genes.list"
         gene_cog_summary = gene_cog_path + "/gene_cog_summary.xls"
-        gene_cog_table = gene_cog_path + "/gene_cog_table.xls"
         test.cog_annotation(gene_org_cog, gene_cog_summary, gene_cog_table)
 
         go_path = outdir + "/go"
@@ -818,11 +817,11 @@ if __name__ == "__main__":
 
         Transcript()
         query = RefAnnoQuery()
-        outpath = outdir + "/anno_stat/trans_anno_detail2.xls"
+        outpath = outdir + "/anno_stat/trans_anno_detail.xls"
         query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=org_cog, gos_list=gos_list, org_kegg=org_kegg, anno_type="transcript")
         Transcript()
         query = RefAnnoQuery()
-        outpath = outdir + "/anno_stat/genes_anno_detail2.xls"
+        outpath = outdir + "/anno_stat/genes_anno_detail.xls"
         query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=gene_org_cog, gos_list=gene_gos_list, org_kegg=gene_org_kegg, anno_type="gene")
 
     with open("test_zj.json", "w") as f:
