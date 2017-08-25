@@ -14,6 +14,8 @@ from gevent.monkey import patch_all
 import gevent
 import time
 
+
+patch_all()
 class RefrnaWorkflow(Workflow):
     def __init__(self, wsheet_object):
         """
@@ -145,7 +147,8 @@ class RefrnaWorkflow(Workflow):
                                            self.json_dict[self.option("ref_genome")]["dna_fa"])
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
-            self.anno_path = self.json_dict[self.option("ref_genome")]["anno_path"]
+            self.anno_path = os.path.join(os.path.split(self.json_path)[0],
+                                          self.json_dict[self.option("ref_genome")]["anno_path"])
             self.logger.info(self.anno_path)
         else:
             self.ref_genome = self.option("ref_genome_custom")
@@ -625,7 +628,7 @@ class RefrnaWorkflow(Workflow):
             "ref_genome":  "customer_mode",
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
-            "in_sam": self.star_mapping.output_dir + "/sam"
+            "in_bam": self.star_mapping.option("bam_output")
         }
         self.snp_rna.set_options(opts)
         self.snp_rna.on("start", self.set_step, {"start": self.step.snp_rna})
@@ -760,17 +763,19 @@ class RefrnaWorkflow(Workflow):
         根据新加入模块操作，修改self.annotation
         :return:
         """
-        gos_dir_trans = self.annotation.output_dir + "/go/query_gos.list" + \
+        if self.option("ref_genome") == "customer_mode":
+            self.anno_path = self.annotation.output_dir
+        gos_dir_trans = self.anno_path + "/go/query_gos.list" + \
             ";" + self.new_annotation.output_dir + "/go/query_gos.list"
-        kegg_table_dir_trans = self.annotation.output_dir + "/kegg/kegg_table.xls" + \
+        kegg_table_dir_trans = self.anno_path + "/kegg/kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/kegg/kegg_table.xls"
-        cog_table_dir_trans = self.annotation.output_dir + "/cog/cog_table.xls" + \
+        cog_table_dir_trans = self.anno_path + "/cog/cog_table.xls" + \
             ";" + self.new_annotation.output_dir + "/cog/cog_table.xls"
-        gos_dir_gene = self.annotation.output_dir + "/anno_stat/go_stat/gene_gos.list" + \
+        gos_dir_gene = self.anno_path + "/anno_stat/go_stat/gene_gos.list" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/go_stat/gene_gos.list"
-        kegg_table_dir_gene = self.annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls" + \
+        kegg_table_dir_gene = self.anno_path + "/anno_stat/kegg_stat/gene_kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls"
-        cog_table_dir_gene = self.annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls" + \
+        cog_table_dir_gene = self.anno_path + "/anno_stat/cog_stat/gene_cog_table.xls" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls"
         trans_opts = {
             "gos_dir": gos_dir_trans,
@@ -924,49 +929,49 @@ class RefrnaWorkflow(Workflow):
         self.logger.info("文件夹{}到{}移动耗时{}s".format(olddir, newdir, duration))
 
     def set_output(self, event):
-        pass
+        # pass
         # patch_all()
-        # obj = event["bind_object"]
-        # if event['data'] == 'qc':
-        #     gevent.sleep(0)
-        #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat')
-        #     self.all_greenlets.append(greenlet)
-        # if event['data'] == 'qc_stat_before':
-        #     gevent.sleep(0)
-        #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/before_qc')
-        #     self.logger.info("开始设置qc的输出目录")
-        #     self.all_greenlets.append(greenlet)
-        # if event['data'] == 'qc_stat_after':
-        #     gevent.sleep(0)
-        #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/after_qc')
-        #     self.all_greenlets.append(greenlet)
-        #     greenlet = gevent.spawn(self.export_qc)
-        #     self.all_greenlets.append(greenlet)
-        #     greenlet = gevent.spawn(self.export_genome_info)
-        #     self.all_greenlets.append(greenlet)
-        #     self.logger.info("开始进行质控部分导表")
-        # if event['data'] == 'mapping':
-        #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'mapping')
-        #     self.logger.info("开始设置mapping的输出目录")
-        #     self.all_greenlets.append(greenlet)
-        # if event['data'] == 'assembly':
-        #     greenlet =  gevent.spawn(self.move2outputdir, obj.output_dir, 'assembly')
-        #     self.all_greenlets.append(greenlet)
-        #     greenlet =  gevent.spawn(self.export_assembly)
-        #     self.all_greenlets.append(greenlet)
-        #     self.logger.info("开始设置assemble的输出目录")
-        # if event["data"] == "map_qc":
-        #     greenlet.spawn(self.move2outputdir, obj.output_dir, 'map_qc')
-        #     self.logger.info("开始设置质量评估输出目录")
-        #     greenlet.spawn(self.export_map_assess)
-        #     self.logger.info("开始进行质量评估导表")
-        # if event['data'] == 'exp':
-        #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'express')
-        #     self.logger.info("开始设置rsem表达量输出目录")
-        #     self.all_greenlets.append(greenlet)
-        # if event["data"] == "exp_alter":
-        #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'exp_alter')
-        #     self.all_greenlets.append(greenlet)
+        obj = event["bind_object"]
+        if event['data'] == 'qc':
+            gevent.sleep(0)
+            greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat')
+            self.all_greenlets.append(greenlet)
+        if event['data'] == 'qc_stat_before':
+            gevent.sleep(0)
+            greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/before_qc')
+            self.logger.info("开始设置qc的输出目录")
+            self.all_greenlets.append(greenlet)
+        if event['data'] == 'qc_stat_after':
+            gevent.sleep(0)
+            greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'QC_stat/after_qc')
+            self.all_greenlets.append(greenlet)
+            greenlet = gevent.spawn(self.export_qc)
+            self.all_greenlets.append(greenlet)
+            greenlet = gevent.spawn(self.export_genome_info)
+            self.all_greenlets.append(greenlet)
+            self.logger.info("开始进行质控部分导表")
+        if event['data'] == 'mapping':
+            greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'mapping')
+            self.logger.info("开始设置mapping的输出目录")
+            self.all_greenlets.append(greenlet)
+        if event['data'] == 'assembly':
+            greenlet =  gevent.spawn(self.move2outputdir, obj.output_dir, 'assembly')
+            self.all_greenlets.append(greenlet)
+            greenlet =  gevent.spawn(self.export_assembly)
+            self.all_greenlets.append(greenlet)
+            self.logger.info("开始设置assemble的输出目录")
+        if event["data"] == "map_qc":
+            greenlet.spawn(self.move2outputdir, obj.output_dir, 'map_qc')
+            self.logger.info("开始设置质量评估输出目录")
+            greenlet.spawn(self.export_map_assess)
+            self.logger.info("开始进行质量评估导表")
+        if event['data'] == 'exp':
+            greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'express')
+            self.logger.info("开始设置rsem表达量输出目录")
+            self.all_greenlets.append(greenlet)
+        if event["data"] == "exp_alter":
+            greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'exp_alter')
+            self.all_greenlets.append(greenlet)
         # if event['data'] == 'exp_fc_all':
         #     greenlet = gevent.spawn(self.move2outputdir, obj.output_dir, 'exp_fc_all')
         #     self.all_greenlets.append(greenlet)
@@ -1061,7 +1066,8 @@ class RefrnaWorkflow(Workflow):
         task_info.add_task_info()
         self.filecheck.on('end', self.run_qc)
         self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
-        self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        # self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
+        self.new_annotation.on("end", self.run_merge_annot)
         self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
         self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
@@ -1086,20 +1092,20 @@ class RefrnaWorkflow(Workflow):
 
 
     def run_api_and_set_output(self):
-        self.set_output_all()
-        # self.IMPORT_REPORT_DATA = True
-        # self.IMPORT_REPORT_AFTER_END = False
-        # task_info = self.api.api('task_info.ref')
-        # task_info.add_task_info()
+        # self.set_output_all()
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_AFTER_END = False
+        task_info = self.api.api('task_info.ref')
+        task_info.add_task_info()
         # self.export_qc()
         # self.export_genome_info()
         self.export_annotation()
-        # self.export_assembly()
-        # self.export_snp()
-        # self.export_map_assess()
+        self.export_assembly()
+        self.export_snp()
+        self.export_map_assess()
         self.export_exp_rsem_default()
-        # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
-        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
+        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.export_gene_set()
         self.export_diff_gene()
         self.export_diff_trans()
@@ -1108,20 +1114,20 @@ class RefrnaWorkflow(Workflow):
         self.export_ref_gene_set()
         self.export_cor()
         self.export_pca()
-        self.export_cluster_gene()
-        self.export_cluster_trans()
-        self.export_go_regulate()
-        self.export_kegg_regulate()
-        self.export_go_enrich()
-        self.export_kegg_enrich()
-        self.export_cog_class()
-        if self.taxon_id != "":
-            with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
-                ft.readline()
-                content = ft.read()
-                if content:
-                    self.export_ppi()
-        self.export_as()
+        # self.export_cluster_gene()
+        # self.export_cluster_trans()
+        # self.export_go_regulate()
+        # self.export_kegg_regulate()
+        # self.export_go_enrich()
+        # self.export_kegg_enrich()
+        # self.export_cog_class()
+        # if self.taxon_id != "":
+        #     with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
+        #         ft.readline()
+        #         content = ft.read()
+        #         if content:
+        #             self.export_ppi()
+        # self.export_as()
         self.end()
 
     def export_genome_info(self):
@@ -1565,12 +1571,20 @@ class RefrnaWorkflow(Workflow):
         ref_anno_path = self.annotation.output_dir
         params = {
             "nr_evalue": self.option("nr_blast_evalue"),
-            "swissprot_evalue": self.option("swissprot_blast_evalue")
+            "nr_similarity": 0,
+            "nr_score": 0,
+            "nr_identity": 0,
+            "swissprot_evalue": self.option("swissprot_blast_evalue"),
+            "swissprot_similarity": 0,
+            "swissprot_score": 0,
+            "swissprot_identity": 0,
         }
-        params = json.dumps(params)
+        params = json.dumps(params, sort_keys=True, separators=(',', ':'))
         new_anno_path = self.new_annotation.output_dir
         pfam_path = self.pfam.output_dir + "/pfam_domain"
-        self.api_anno.add_annotation(name=None, params=params, ref_anno_path=ref_anno_path, new_anno_path=new_anno_path, pfam_path=pfam_path)
+        merge_tran_output = self.merge_trans_annot.output_dir
+        merge_gene_output = self.merge_gene_annot.output_dir
+        self.api_anno.add_annotation(name=None, params=params, ref_anno_path=ref_anno_path, new_anno_path=new_anno_path, pfam_path=pfam_path, merge_tran_output=merge_tran_output, merge_gene_output=merge_gene_output)
 
     def export_as(self):
         self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
