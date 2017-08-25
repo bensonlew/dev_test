@@ -293,7 +293,7 @@ class PtDedupWorkflow(Workflow):
         self.logger.info("test:%s" % self.ref_data)
         n = 0
         for i in range(len(self.family_id)):
-            # dad_id = self.family_id[i][0]
+            dad_id = self.family_id[i][0]
             mom_id = self.family_id[i][1]
             preg_id = self.family_id[i][2]
             # self.logger.info("iiii%s" % dad_id)
@@ -309,6 +309,7 @@ class PtDedupWorkflow(Workflow):
                 self.step.add_steps('dedup_{}'.format(n))
                 pt_analysis_dedup.set_options({
                         # "dad_list": dad_list,  # 数据库的tab文件
+                        "dad_id": dad_id,
                         "mom_tab": self.output_dir + '/' + mom_id + '.tab',
                         "preg_tab": self.output_dir + '/' + preg_id + '.tab',
                         "ref_point": self.option("ref_point"),
@@ -415,7 +416,7 @@ class PtDedupWorkflow(Workflow):
                 self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=n,
                                                            dedup='all')  # 交互表id
                 self.logger.info('pt_father_id:{}'.format(self.pt_father_id))
-                dedup_new = mom_id + '_' + preg_id + '.txt'
+                dedup_new = dad_id + '_' + mom_id + '_' + preg_id + '.txt'
                 dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt$'
                 dedup1 = '.*_NA_' + preg_id + '_family_analysis.txt'
                 dedup2 = '.*' + mom_id + '_NA_family_analysis.txt'

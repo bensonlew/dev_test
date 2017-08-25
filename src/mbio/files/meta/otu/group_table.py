@@ -57,14 +57,16 @@ class GroupTableFile(File):
         with open(self.prop['path'], 'r') as f:
             line = f.readline().rstrip()
             if not re.search("^#", line[0]):
-                raise FileError("该group文件不含表头，group表第一列应该以#号开头")
+                raise FileError("该group（或环境因子）文件不含表头，group（或环境因子）表第一列应该以#号开头")
             line = line.split("\t")
             length = len(line)
             if length < 2:
-                raise FileError('group_table 文件至少应该有两列')
+                raise FileError('分组（或环境因子）文件至少应该有两列')
             for i in line[1:]:
                 if re.search("\s", i):
-                    raise FileError('分组方案名里不可以包含空格')
+                    raise FileError('分组（或环境因子）文件表头必须以字母或数字开头，不能含有空格，支持字母，数字，下划线')
+                if re.search("\.", i):
+                    raise FileError("分组（或环境因子）文件表头必须以字母或数字开头，不能包含'.'，支持字母，数字，下划线")
         with open(self.prop['path'], 'r') as f:
             for line in f:
                 if "#" in line:

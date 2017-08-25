@@ -135,10 +135,13 @@ class PtDatasplitWorkflow(Workflow):
 
     def judge_sample_type(self, file_path):
         n = 0
+        self.pt_sample_name = []
         with open(file_path, 'r') as f:
             for line in f:
                 line = line.strip().split('\t')
-                if re.match('WQ(.+)', line[3]):
+                if re.match('WQ([0-9]{8,})-(M|F|S)(.*)', line[3]):
+                    self.pt_sample_name.append(line[3])
+                if re.match('(.*)WQ(.+)', line[3]):
                     n += 1
                 else:
                     continue
@@ -148,57 +151,47 @@ class PtDatasplitWorkflow(Workflow):
             self.ws_single = 'false'
 
     def judge_sample_name(self):  # 判断样本是否重命名 20170721
-        with open(self.option('message_table').prop['path'], 'r') as m:
-            for line in m:
-                line = line.strip().split('\t')
-                if re.match('WQ([0-9]{8,})-(M|F|S)(.*)', line[3]):
-                    x = self.api_read_tab.tab_exist(line[3])  # 判断是否重名
-                    if x:
-                        self.logger.error('请确认{}样本是否重名'.format(line[3]))
-                        raise Exception('请确认{}样本是否重名'.format(line[3]))
-                else:
-                    continue
-                    # if re.match('WQ([0-9]{8,})-(M|F)(.*)(T)([0-9])', line[3]):  # 如果为重上机，检测是否命名符合规范
-                    #     name = line[3].split('-')
-                    #     family_id_ = name[0]
-                    #     member_id_ = ('-').join(name[1:-1])
-                    #     if re.match('M(.*)', name[1]):
-                    #         member = 'mom'
-                    #     else:
-                    #         member = 'dad'
-                    #     r = self.check_file.check_pt_message(family_id_=family_id_,
-                    #                                          member_id_=member_id_, type=member)
-                    #     if r == 'True':
-                    #         self.logger.info('重上机命名没有问题')
-                    #     else:
-                    #         self.logger.error('重上机命名有问题{}'.format(line[3]))
-                    #         raise Exception('重上机命名有问题{}'.format(line[3]))
+        for i in self.pt_sample_name:
+            x = self.api_read_tab.tab_exist(i)  # 判断是否重名
+            if x:
+                self.logger.error('请确认{}样本是否重名'.format(i))
+                raise Exception('请确认{}样本是否重名'.format(i))
+            else:
+                continue
 
-    def family_search(self):  # 判断样本是否存在于家系表中(包括重上机样本和一般样本)
-        paternity_sample = []
-        pt_customer = self.api.pt_customer
-        with open(self.option('message_table').prop['path'], 'r') as m:
-            for line in m:
-                line = line.strip().split('\t')
-                if re.match('WQ([0-9]{8,})-(M|F)(.*)', line[3]):
-                    paternity_sample.append(line[3])
-        for i in paternity_sample:
-            m = re.match('WQ([0-9]{8,})-(M|F)(.*)', i)  # 家系表里面只有爸爸和妈妈，所以此处只匹配父本和母本的名称
-            pt_number = 'WQ' + m.group(1)
-            if 'T' in m.group(3):
-                n = re.match('(.*)-T(.*)', m.group(3))
-                name = m.group(2) + n.group(1)
-            else:
-                name = m.group(2) + m.group(3)
-            if 'M' in i:
-                result = pt_customer.family_search(family_id=pt_number, mom_id_=name)
-            else:
-                result = pt_customer.family_search(family_id=pt_number, dad_id_=name)
-            if result == 'False':
-                self.logger.error('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
-                raise Exception('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
-            else:
-                self.logger.error('{}该样本存在于家系表中'.format(i))
+    # def family_search(self):  # 判断样本是否存在于家系表中(包括重上机样本和一般样本)
+    #     paternity_sample = []
+    #     pt_customer = self.api.pt_customer
+    #     tab_file = self.api.tab_file
+    #     with open(self.option('message_table').prop['path'], 'r') as m:
+    #         for line in m:
+    #             line = line.strip().split('\t')
+    #             if re.match('WQ([0-9]{8,})-(M|F|S)(.*)', line[3]):
+    #                 paternity_sample.append(line[3])
+    #     for i in paternity_sample:  # 把所有样本照常入库
+    #         tab_file.add_pt_tab(i, self.option('pt_data_split_id'))
+    #     self.family_id = tab_file.family_unanalysised()  # tuple
+    #     check_sample = []
+    #     for i in range(len(self.family_id)):
+    #         check_sample.append(self.family_id[i][0])
+    #         check_sample.append(self.family_id[i][1])
+    #     for i in check_sample:
+    #         m = re.match('WQ([0-9]{8,})-(M|F)(.*)', i)  # 家系表里面只有爸爸和妈妈，所以此处只匹配父本和母本的名称
+    #         pt_number = 'WQ' + m.group(1)
+    #         if 'T' in m.group(3):
+    #             n = re.match('(.*)-T(.*)', m.group(3))
+    #             name = m.group(2) + n.group(1)
+    #         else:
+    #             name = m.group(2) + m.group(3)
+    #         if 'M' in i:
+    #             result = pt_customer.family_search(family_id=pt_number, mom_id_=name)
+    #         else:
+    #             result = pt_customer.family_search(family_id=pt_number, dad_id_=name)
+    #         if result == 'False':
+    #             self.logger.info('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
+    #             raise Exception('{}该样本命名有问题，家系表信息中不存在该样本'.format(i))
+    #         else:
+    #             self.logger.error('{}该样本存在于家系表中'.format(i))
 
     def get_sample(self):
         self.sample_name_wq = []
@@ -420,9 +413,10 @@ class PtDatasplitWorkflow(Workflow):
         self.db_customer()  # 家系表导表，不管是否做过拆分导表都进行一下
         self.judge_sample_type(self.option('message_table').prop['path'])  # 判断ws是否为单端
         db_customer = self.api.pt_customer
-        dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)  # 样本名称错误后要继续再拆分
         if self.option('family_table').is_set:
-            self.family_search()  # 判断样本是否存在于家系表中
+            db_customer.family_search(self.pt_sample_name)  # 判断这些样本能组成的家系是否存在家系信息
+        dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)
+        # 上述记录拆分表是为了再次拆分的时候，上传表格改变就会重新拆分
 
         self.logger.info(dir_list)
         if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
@@ -434,7 +428,7 @@ class PtDatasplitWorkflow(Workflow):
         else:
             self.logger.info('开始进行拆分-------------------')
             if self.option('family_table').is_set:
-                self.judge_sample_name()
+                self.judge_sample_name()  # 确认样本是否重命名只能在拆分的时候进行，当第二次调用的时候可能样本已经入库了 所以不能再进行检查
             self.done_data_split = "true"   # 本次workflow是否进行数据拆分，true为进行
             self.run_data_split()
             super(PtDatasplitWorkflow, self).run()

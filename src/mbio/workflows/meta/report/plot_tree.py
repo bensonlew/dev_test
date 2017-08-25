@@ -48,7 +48,11 @@ class PlotTreeWorkflow(Workflow):
         otu_format = self.work_dir + '/format_otu_table.xls'
         species_format = self.work_dir + '/species_group.xls'
         tree_file = self.work_dir + '/format.tre'
-        self.get_newicktree(tree_file)
+        group = self.sample_in_group()
+        if self.option("group_id") not in ['all','All','ALL',None]:
+            self.get_newicktree(tree_file,group)
+        else:
+            self.get_newicktree(tree_file)
         if self.option('color_level_id'):
             if self.option("group_id") not in ['all', 'All', 'ALL', None]:
                 self.format_group_otu_table(otu_format, species_format)
@@ -61,6 +65,16 @@ class PlotTreeWorkflow(Workflow):
                 self.format_otu_table(otu_format)
 
         self.set_db()
+
+    def sample_in_group(self):                 #增加函数，提取分组中的样品名称为列表，传递给get_netwicktree
+        with open(self.option("sample_group").path) as g:
+            g.readline()
+            group = {}
+            for i in g:
+                split_i = i.strip().split('\t')
+                group[split_i[0]] = split_i[1]
+            sample_list = list(group.keys())
+        return sample_list
 
     def format_group_otu_table(self, out_otu_file, out_species_group_file=None):
         """
@@ -155,8 +169,9 @@ class PlotTreeWorkflow(Workflow):
                     for i in n:
                         w.write(i + '\t' + m + '\n')
 
-    def get_newicktree(self, output_file):
+    def get_newicktree(self, output_file,group=None):   #增加group参数
         tree = get_level_newicktree(self.option("otu_id"),
+                                    group = group,
                                     level=self.option('level'),
                                     tempdir=self.work_dir,
                                     topN=self.option('topN'))
@@ -219,3 +234,6 @@ if __name__ == '__main__':
         return name.split(';')[-1].strip().replace(':', '-')  # replace用于去掉名称中带有冒号
     b = re.sub(r'\'(.+?)\'', simple, a)
     print b
+    #wsheet = Sheet(data=data)
+    #a =  PlotTreeWorkflow(wsheet)
+    #a.run()

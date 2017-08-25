@@ -60,6 +60,7 @@ class SgPaternityTest(Base):
         if result:
             report_status = result['report_status']
             accept = result['accept_time']
+            # m_accept = result['M_accept_time']
             if report_status == '是':
                 report_status = '1'
             else:
@@ -67,6 +68,10 @@ class SgPaternityTest(Base):
         else:
             self.bind_object.logger.info('该家系信息不全，请查看：{}'.format(message_id))
             raise Exception('{}-该家系信息不全，请查看是否是样本名存在问题'.format(message_id))
+        # if f_accept > m_accept:  # 这两个时间格式必须一致目前是2017-08-15
+        #     accept = f_accept
+        # else:
+        #     accept = m_accept
         time = accept.split('-')
         accept_time = datetime.datetime(int(time[0]), int(time[1]), int(time[2]), 0, 0)
         # if re.match('(.*)(C)(.*)', temp_s.group(1)):
