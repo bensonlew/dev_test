@@ -126,8 +126,8 @@ class DiamondTool(Tool):
         if blast_command.return_code == 0:
             self.logger.info("运行diamond完成")
             self.logger.info(outputfile)
-            if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
-                self.get_nrxml_gi_description(outputfile)
+            # if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
+            #     self.get_nrxml_gi_description(outputfile)
             self.change_version(outputfile)
         elif blast_command.return_code == None:
             self.logger.info("重新运行diamond")
@@ -135,8 +135,8 @@ class DiamondTool(Tool):
             self.wait(blast_command)
             if blast_command.return_code == 0:
                 self.logger.info("重新运行diamond成功")
-                if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
-                    self.get_nrxml_gi_description(outputfile)
+                # if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
+                    # self.get_nrxml_gi_description(outputfile)
                 self.change_version(outputfile)
         else:
             self.set_error("diamond运行出错!")
@@ -224,4 +224,7 @@ class DiamondTool(Tool):
         # os.system("mv {} {}".format(path + "_new", path))
         os.remove(path)
         os.link(path + "_new", path)
+        db_name = self.option("database")
+        if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
+                    self.get_nrxml_gi_description(path)
         self.end()

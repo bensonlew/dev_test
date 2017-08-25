@@ -64,7 +64,7 @@ class StarAgent(Agent):
                 raise OptionError("请提供用于比对的单端fastq或fasta文件！")
 
     def set_resource(self):
-        self._cpu = 10
+        self._cpu = 11
         if self.option("ref_genome") == "customer_mode":
             if self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 500:
                 self._memory = '10G'

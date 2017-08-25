@@ -6,7 +6,7 @@ import os
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 # from mbio.files.sequence.file_sample import FileSampleFile
-# import json
+import json
 # from mbio.packages.gene_structure.snp_anno import snp_anno
 
 
@@ -86,22 +86,22 @@ class SnpRnaModule(Module):
                 self.logger.info(f_path)
         gatk = self.add_tool('gene_structure.gatk')
         self.gatks.append(gatk)
-        self.logger.info("gatk start!")
-        # self.logger.info(self.ref_name)
-        # self.logger.info(self.option("ref_genome"))
-        if self.option("ref_genome") == "customer_mode":
-            ref_fasta = self.option('ref_genome_custom')  # 用户上传的基因组路径
-            gatk.set_options({
-                "ref_fa": ref_fasta,
-                "input_bam": f_path,
-                "ref_genome": "customer_mode"
-            })
-        else:
-            self.ref_name = self.option("ref_genome")
-            gatk.set_options({
-                "ref_genome": self.ref_name,
-                "input_bam": f_path
-            })
+        self.logger.info("因为参考数据库中未含有gatk所需dict，gatk使用自定义模式进行")
+        if self.option("ref_genome") != "customer_mode":
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/ath.json", "r") as f:
+                dict = json.loads(f.read())
+                ref_fasta = dict[self.option("ref_genome")]["dna_fa"]
+        gatk.set_options({
+            "ref_fa": ref_fasta,
+            "input_bam": f_path,
+            "ref_genome": "customer_mode"
+        })
+        # else:
+        #     self.ref_name = self.option("ref_genome")
+        #     gatk.set_options({
+        #         "ref_genome": self.ref_name,
+        #         "input_bam": f_path
+        #     })
         gatk.on("end", self.finish_update, 'gatk')
         gatk.on("end", self.snp_anno, event['data'])
         self.logger.info("gatk is running!")

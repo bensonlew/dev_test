@@ -617,12 +617,11 @@ class SnpWorkflow(Workflow):
             "ref_genome":  "customer_mode",
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
-            "in_sam": self.star_mapping.output_dir + "/sam"
+            "in_bam": self.star_mapping.option("bam_output")
         }
         self.snp_rna.set_options(opts)
         self.snp_rna.on("start", self.set_step, {"start": self.step.snp_rna})
         self.snp_rna.on("end", self.set_step, {"end": self.step.snp_rna})
-        # self.final_tools.append(self.snp_rna)
         self.snp_rna.run()
 
     def run_map_assess(self):
@@ -684,8 +683,6 @@ class SnpWorkflow(Workflow):
         mod = self.exp_fc
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp_fc_all")
-        # mod.on('start', self.set_step, {'start': self.step.express})
-        # mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
     def run_network_trans(self):
@@ -951,19 +948,26 @@ class SnpWorkflow(Workflow):
         # self.filecheck.on('end', self.run_qc)
         # self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         # self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
-        self.qc.on("end", self.run_star_mapping)
-        self.on_rely(self.final_tools, self.end)
+        # self.qc.on("end", self.run_star_mapping)
+        # self.on_rely(self.final_tools, self.end)
         # self.run_filecheck()
         # super(SnpWorkflow, self).run()
+        #############################################
         # "ref_genome_custom": self.option("ref_genome_custom"),
         # "ref_genome": self.option("ref_genome"),
         # "mapping_method": "star",
         # "seq_method": self.option("fq_type"),   # PE or SE
         # "fastq_dir": self.qc.option("sickle_dir"),
         # "assemble_method": self.option("assemble_method")
-        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/HiseqQc/output/sickle_dir")
+        # self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/HiseqQc/output/sickle_dir")
+        # self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/FilecheckRef/Arabidopsis_thaliana.TAIR10.36.gtf")
+        # self.start_listener()
+        # self.qc.start_listener()
+        # self.qc.fire("end")
+        # self.rpc_server.run()
+        #############################################
+        self.star_mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170821/Snp_arab_test_snp_5/RnaseqMapping2/output/bam")
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/FilecheckRef/Arabidopsis_thaliana.TAIR10.36.gtf")
-        self.start_listener()
-        self.qc.start_listener()
-        self.qc.fire("end")
-        self.rpc_server.run()
+        self.run_snp()
+        self.run_altersplicing()
+        super(SnpWorkflow, self).run()

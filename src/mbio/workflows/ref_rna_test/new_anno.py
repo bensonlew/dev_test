@@ -47,7 +47,7 @@ class NewAnnoWorkflow(Workflow):
             {"name": "qc_quality", "type": "int", "default": 30},  # 质量剪切中保留的最小质量值
             {"name": "qc_length", "type": "int", "default": 50},  # 质量剪切中保留的最短序列长度
 
-            {"name": "ref_genome", "type": "string", "default": "customer_mode"},  # 参考基因组
+            {"name": "ref_genome", "type": "string", "default": "Custom"},  # 参考基因组
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组
 
             # 增加evalue参数，再转换为float传给module使用
@@ -614,10 +614,10 @@ class NewAnnoWorkflow(Workflow):
         self.logger.info("开始运行snp步骤")
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome":  "customer_mode",
+            "ref_genome":  self.option("ref_genome"),
             "ref_gtf": self.filecheck.option("gtf"),
             "seq_method": self.option("fq_type"),
-            "in_sam": self.star_mapping.output_dir + "/sam"
+            "in_bam": self.star_mapping.option("bam_output")
         }
         self.snp_rna.set_options(opts)
         self.snp_rna.on("start", self.set_step, {"start": self.step.snp_rna})
@@ -982,7 +982,7 @@ class NewAnnoWorkflow(Workflow):
         # self.rpc_server.run()
         ##########################
         self.mapping.option("bam_output", "/mnt/ilustre/users/sanger-dev/workspace/20170820/NewAnno_arab_test_anno/RnaseqMapping/output/bam")
-        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170820/NewAnno_arab_test_anno/HiseqQc/output/sickle_dir")
+        self.qc.option("sickle_dir", "/mnt/ilustre/users/sanger-dev/workspace/20170820/Snp_arab_test_snp/HiseqQc/output/sickle_dir")
         self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170820/NewAnno_arab_test_anno/FilecheckRef/Arabidopsis_thaliana.TAIR10.36.gtf")
         self.mapping.on("end", self.run_assembly)
         self.assembly.on("end", self.run_exp_fc)
