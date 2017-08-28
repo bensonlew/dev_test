@@ -47,13 +47,17 @@ class TabFile(Base):
                         "storage_time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # 入库时间，正确生成tab文件的时间
                     }
                 break
-            m = re.match('WQ([0-9].*)-(M|S)(.+)\.tab', sample)
+            m = re.match('WQ([0-9].*)-(M|S)(.*)', sample_name)
             if m:
                 sample_dad = 'WQ' + m.group(1) + '-F.*'
                 collection = self.database['sg_pt_ref_main']
                 try:
-                    collection.find_one_and_update({"sample_id": {"$regex": sample_dad}},
-                                                   {'$set': {'analysised': 'no'}})
+                    result = collection.find({"sample_id": {"$regex": sample_dad}})
+                    for i in result:
+                        collection.find_one_and_update({"sample_id": i['sample_id']},
+                                                       {'$set': {'analysised': 'no'}})
+                        # collection.find_one_and_update({"sample_id": {"$regex": sample_dad}},
+                        #                                {'$set': {'analysised': 'no'}})
                 except Exception as e:
                     self.bind_object.logger.error('更新重送样父本出错：{}'.format(e))
                 else:
