@@ -65,11 +65,22 @@ class HclusterAgent(Agent):
         self._memory = '3G'
 
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "层次聚类结果目录"],
-            ["./hcluster.tre", "tre", "层次聚类树"]
-        ])
+        if self.option('group_table').is_set:
+            result_dir = self.add_upload_dir(self.output_dir)
+            result_dir.add_relpath_rules([
+                [".", "", "PCA分析结果输出目录"],
+            ])
+            result_dir.add_regexp_rules([
+                [".+/hcluster.tre", "tre", "层次聚类树"],
+                [".+/data_table", 'txt', "数据表"]
+            ])
+        else:
+            result_dir = self.add_upload_dir(self.output_dir)
+            result_dir.add_relpath_rules([
+                [".", "", "层次聚类结果目录"],
+                ["./hcluster.tre", "tre", "层次聚类树"],
+                ["./data_table", 'txt', "数据表"]
+            ])
         super(HclusterAgent, self).end()
 
 
@@ -126,7 +137,7 @@ class HclusterTool(Tool):
         # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         cmd = self.cmd_path
         if self.option('group_table').is_set:
-            cmd += ' -i %s -o %s -m %s -l %s -trans row -m_1 %s ' % \
+            cmd += ' -i %s -o %s -m %s -l %s -trans col -m_1 %s ' % \
                    (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'),
                     self.option('linkage'))
         else:
