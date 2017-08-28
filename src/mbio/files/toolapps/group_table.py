@@ -32,7 +32,8 @@ class GroupTableFile(TableFile):
             self.new_file = self.get_newtable(code_dic['encoding'])
             self.check_info(self.new_file)  # 判断是否符合数据表格的要求
             info = self.get_file_info()
-            self.set_property("group_scheme", info[1])
+            self.set_property("group_scheme", info[1])  # 分组方案中涉及的分组名称
+            self.set_property('sample_name', info[0])  # 分组方案中涉及的样本
         else:
             raise FileError("文件路径不正确，请设置正确的文件路径!")
 
@@ -50,15 +51,15 @@ class GroupTableFile(TableFile):
             else:
                 is_empty = False
             header = list()
-            len_ = len(line)
-            for i in range(1, len_):
+            len_ = len(line)  # 标明group文件有几列
+            for i in range(1, len_):  # 记录列名,也就是记录分组方案的名称
                 header.append(line[i])
             for line in f:
                 line = line.rstrip()
                 line = re.split("\t", line)
                 row += 1
                 if line[0] not in sample:
-                    sample.append(line[0])
+                    sample.append(line[0])  # 记录所有分组方案中的样本名称
             return (sample, header, is_empty)
 
     def sub_group(self, target_path, header):

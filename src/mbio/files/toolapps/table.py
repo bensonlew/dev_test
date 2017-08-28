@@ -10,6 +10,7 @@ import random
 import re
 import subprocess
 
+
 class TableFile(File):
     """
     定义小工具二维表格
@@ -18,7 +19,8 @@ class TableFile(File):
         super(TableFile, self).__init__()
         self.unicode = False
         self.col_number = 0
-        # 写一些需要用到的数据的定义
+        self.col_sample = []
+        self.row_sample = []
 
     def get_info(self):
         if 'path' in self.prop.keys():
@@ -29,34 +31,34 @@ class TableFile(File):
             code_dic = chardet.detect(f.read())
             if code_dic['encoding'] != 'ascii' and code_dic['encoding'] != 'UTF-16LE':
                 raise FileError('文件编码格式不符合要求')
-            new_path = self.get_newtable(code_dic['encoding'])
-            self.set_property("new_table", new_path)
-            self.check_info(new_path)  # 判断是否符合数据表格的要求
+            self.new_path = self.get_newtable(code_dic['encoding'])
+            self.set_property("new_table", self.new_path)
+            self.check_info(self.new_path)  # 判断是否符合数据表格的要求
             self.set_property('sample_num', self.col_number)
+            self.set_property('col_sample', self.col_sample)
+            self.set_property('row_sample', self.row_sample)
         else:
             raise FileError("文件路径不正确，请设置正确的文件路径!")
 
     def get_newtable(self, encoding):
         dos2unix_path = Config().SOFTWARE_DIR + '/bioinfo/hd2u-1.0.0/bin/dos2unix'
         dir_path = Config().WORK_DIR + '/tmp/convert_table'
-        if os.path.exists(dir_path):
+        if os.path.exists(dir_path):  # 刚开始还不存在covert_table这个文件夹
             pass
         else:
             os.mkdir(dir_path)
+
+        # 定义新文件的路径
         new_file_path = os.path.join(dir_path, "{}_{}.txt".format(os.path.basename(self.prop['path']),
-                                                                                   random.randint(1000, 10000)))
-        if encoding == 'ascii':
+                                                                  random.randint(1000, 10000)))
+        if encoding == 'ascii':  # 如果是ASCII码的时候，根据行数判断是否可能是mac的文件，采取不同的转换方式
             with open(self.prop['path'], 'r') as old:
                 line = old.readlines()
             if len(line) == 1:
-                # os.system('dos2unix -c Mac {}'.format(self.prop['path']))  # 转换输入文件
-                # os.system('{} -c Mac {}'.format(dos2unix_path, self.prop['path']))  # 转换输入文件
-                subprocess.check_output(dos2unix_path + ' -c Mac ' + self.prop['path'], shell=True) 
+                subprocess.check_output(dos2unix_path + ' -C ' + self.prop['path'], shell=True)
             else:
                 subprocess.check_output(dos2unix_path + ' ' + self.prop['path'], shell=True)
-                # os.system('{} {}'.format(dos2unix_path, self.prop['path']))  # 转换输入文件
-                # os.system('dos2unix {}'.format(self.prop['path']))  # 转换输入文件
-            with open(self.prop['path'], 'r') as old:
+            with open(self.prop['path'], 'r') as old:  # 转换完以后判断分隔符是否为\t(tab分隔)，如果不是进行转换
                 first_line = old.readline().strip("\n").split("\t")
             if len(first_line) > 1:
                 return self.prop['path']
@@ -72,7 +74,7 @@ class TableFile(File):
                                 continue
                         new.write(('\t').join(new_line) + '\n')
                 return new_file_path
-        else:
+        else:  # 编码格式为utf-16-le时，直接读取另写入新的文件路径中
             fp2 = codecs.open(self.prop['path'], 'r', 'utf-16-le')
             lineList = fp2.readlines()
             with open(new_file_path, 'w') as new:
@@ -91,8 +93,7 @@ class TableFile(File):
                         new.write(('\t').join(line_c) + '\n')
             return new_file_path
 
-    # @staticmethod
-    def check_info(self, file_path):
+    def check_info(self, file_path):  # 判断二维表是否符合要求
         with open(file_path, 'r') as f:
             first_line = f.readline().strip('\r\n').split('\t')
             f1 = set(first_line)
@@ -104,6 +105,7 @@ class TableFile(File):
                 else:
                     raise FileError('列名中只能含数字/字母/下划线_{}'.format(m))
             self.col_number = len(first_line)
+            self.col_sample = first_line[1:]
             for i in first_line:
                 if i.isdigit():
                     raise FileError('列名中不能存在数字_{}'.format(i))
@@ -129,6 +131,27 @@ class TableFile(File):
                         continue
                     else:
                         raise FileError('二维数据表格内容必须为数字_{}'.format(i))
+                self.row_sample = row_name
+
+    @staticmethod
+    def get_table_of_main_table(origin_table, target_path, group):
+        r_sample = []
+        exp = []
+        with open(group, 'r') as g:
+            r = g.readline()
+            for line in g:
+                sample = line.strip().split("\t")[0]
+                r_sample.append(sample)   # 获取分组文件中存在的样本
+        import pandas as pd
+        data = pd.read_table(origin_table, header=0, sep="\t")
+        for i in data.columns[1:]:
+            if i not in r_sample:
+                exp.append(i)  # 获取要去除的样本
+        if len(exp) >= 1:
+            data = data.drop(exp, axis=1)
+        else:
+            pass
+        data.to_csv(target_path, sep="\t", index=False)  # 数据框写入文件
 
     def check(self):
         if super(TableFile, self).check():
