@@ -96,7 +96,9 @@ class VennTableTool(Tool):
         cmd_list = []
         if len(self.option("group_table").prop['group_scheme']) == 1:   # 判断分组方案的个数
             os.link(group_file, self.work_dir + '/group_table')  # venn_table的结果与分组文件的目录一致，所以需要将分组文件放在工作目录下
-            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, otu_table, self.work_dir + '/group_table')
+            self.option("input_table").get_table_of_main_table(otu_table, self.work_dir + '/new_input.xls',
+                                                               group_file)
+            venn_cmd = '%spython %svenn_table.py -i %s -g %s -o cmd.r' % (self.python_path, self.venn_path, self.work_dir + '/new_input.xls', self.work_dir + '/group_table')
             self.logger.info(venn_cmd)
             os.system(venn_cmd)
             self.logger.info('运行venn_cmd')
@@ -124,7 +126,9 @@ class VennTableTool(Tool):
                 os.mkdir(sample_dir)
                 select_group.append(self.option("group_table").prop['group_scheme'][i])
                 self.option('group_table').sub_group(sample_dir + '/venn_group_' + str(i+1), select_group)
-                venn_cmd = '%spython %svenn_table.py -i %s -g %s -o %scmd_%s.r' % (self.python_path, self.venn_path, otu_table, sample_dir + '/venn_group_' + str(i+1), sample_dir + '/', i+1)
+                self.option("input_table").get_table_of_main_table(otu_table, sample_dir + '/input_' + str(i + 1),
+                                                                   group_file)
+                venn_cmd = '%spython %svenn_table.py -i %s -g %s -o %scmd_%s.r' % (self.python_path, self.venn_path, sample_dir + '/input_' + str(i + 1), sample_dir + '/venn_group_' + str(i+1), sample_dir + '/', i+1)
                 get_cmd_list.append(venn_cmd)  # 存放所有生成cmd.r的命令
                 cmd_list.append(self.R_path2 + 'Rscript {}cmd_{}.r'.format(sample_dir + '/', i+1))  # 存放所有运行cmd.r的命令
             self.logger.info(cmd_list)
@@ -191,6 +195,15 @@ class VennTableTool(Tool):
         运行
         """
         super(VennTableTool, self).run()
+        if self.option("group_table").format == 'toolapps.group_table':
+            if self.option('eigenvalue') == 'row':
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otutable').prop['col_sample']:
+                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
+            else:
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otutable').prop['row_sample']:
+                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
         self._create_venn_table()
         self.set_output()
         self.end()
