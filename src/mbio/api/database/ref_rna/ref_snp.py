@@ -188,6 +188,8 @@ class RefSnp(Base):
                 if type(value_dict[s]) is list:
                     data["{}".format(s)] = value_dict[s][n]
                 else:
+                    if ds not in value_dict[s].keys():
+                        value_dict[s][ds] = 0
                     data["{}".format(s)] = value_dict[s][ds]
             stat_data.append(data)
         # print stat_data

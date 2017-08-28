@@ -146,7 +146,8 @@ class RefrnaWorkflow(Workflow):
             gtf_path = os.path.join(os.path.split(self.json_path)[0],
                                            self.json_dict[self.option("ref_genome")]["gtf"])
             self.option('genome_structure_file', gtf_path)
-        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_diff_gene, self.exp_diff_trans, self.exp_fc]
+        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_fc, self.exp, self.merge_trans_annot,
+                            self.merge_gene_annot]
         self.genome_status = True
         self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
         if self.option("ref_genome") == "Custom":
@@ -569,8 +570,9 @@ class RefrnaWorkflow(Workflow):
     def run_new_annotation(self):
         anno_opts = {
             'gene_file': self.new_gene_abs.option('gene_file'),
-            "ref_genome_gtf": self.assembly.option("new_transcripts_gtf"),
-            'length_file': self.new_trans_abs.option('length_file')
+            "ref_genome_gtf": self.filecheck.option("gtf"),
+            'length_file': self.new_trans_abs.option('length_file'),
+            'new_gtf': self.assembly.option("new_transcripts_gtf")
         }
         if 'go' in self.option('database'):
             anno_opts.update({
@@ -760,23 +762,29 @@ class RefrnaWorkflow(Workflow):
             ";" + self.new_annotation.output_dir + "/go/query_gos.list"
         kegg_table_dir_trans = self.anno_path + "/kegg/kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/kegg/kegg_table.xls"
+        pathway_table_dirs_trans = self.anno_path + "/kegg/pathway_table.xls" + \
+            ";" + self.new_annotation.output_dir + "/kegg/pathway_table.xls"
         cog_table_dir_trans = self.anno_path + "/cog/cog_table.xls" + \
             ";" + self.new_annotation.output_dir + "/cog/cog_table.xls"
         gos_dir_gene = self.anno_path + "/anno_stat/go_stat/gene_gos.list" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/go_stat/gene_gos.list"
         kegg_table_dir_gene = self.anno_path + "/anno_stat/kegg_stat/gene_kegg_table.xls" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/kegg_stat/gene_kegg_table.xls"
+        pathway_table_dirs_gene = self.anno_path + "/anno_stat/kegg_stat/gene_pathway_table.xls" + \
+            ";" + self.new_annotation.output_dir + "/anno_stat/kegg_stat/gene_pathway_table.xls"
         cog_table_dir_gene = self.anno_path + "/anno_stat/cog_stat/gene_cog_table.xls" + \
             ";" + self.new_annotation.output_dir + "/anno_stat/cog_stat/gene_cog_table.xls"
         trans_opts = {
             "gos_dir": gos_dir_trans,
             "kegg_table_dir": kegg_table_dir_trans,
-            "cog_table_dir": cog_table_dir_trans
+            "cog_table_dir": cog_table_dir_trans,
+            "pathway_table_dir": pathway_table_dirs_trans
         }
         gene_opts = {
             "gos_dir": gos_dir_gene,
             "kegg_table_dir": kegg_table_dir_gene,
-            "cog_table_dir": cog_table_dir_gene
+            "cog_table_dir": cog_table_dir_gene,
+            "pathway_table_dir": pathway_table_dirs_gene
         }
         self.merge_trans_annot.set_options(trans_opts)
         self.merge_gene_annot.set_options(gene_opts)
@@ -958,15 +966,9 @@ class RefrnaWorkflow(Workflow):
         task_info = self.api.api('task_info.ref')
         task_info.add_task_info()
         self.filecheck.on('end', self.run_qc)
-        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
-        # self.on_rely([self.new_annotation, self.annotation], self.run_merge_annot)
-        self.new_annotation.on("end", self.run_merge_annot)
-        self.on_rely([self.merge_trans_annot, self.exp], self.run_exp_trans_diff)
-        self.on_rely([self.merge_gene_annot, self.exp], self.run_exp_gene_diff)
         self.filecheck.on('end', self.run_qc_stat, False)  # 质控前统计
         self.qc.on('end', self.run_qc_stat, True)  # 质控后统计
         self.qc.on('end', self.run_mapping)
-        # self.qc.on("end", self.run_star_mapping)
         self.mapping.on('end', self.run_assembly)
         self.mapping.on('end', self.run_snp)
         self.mapping.on('end', self.run_altersplicing)
@@ -975,9 +977,8 @@ class RefrnaWorkflow(Workflow):
         self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
-        if self.taxon_id != "":
-            self.exp.on("end", self.run_network_trans)
-            self.final_tools.append(self.network_trans)
+        self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
+        self.new_annotation.on("end", self.run_merge_annot)
         self.on_rely(self.final_tools, self.end)
         self.run_filecheck()
         super(RefrnaWorkflow, self).run()
@@ -987,48 +988,22 @@ class RefrnaWorkflow(Workflow):
 
 
     def run_api_and_set_output(self):
-        # self.set_output_all()
-        # self.IMPORT_REPORT_DATA = True
-        # self.IMPORT_REPORT_AFTER_END = False
-        # task_info = self.api.api('task_info.ref')
-        # task_info.add_task_info()
         self.export_qc()
-        # self.export_genome_info()
         self.export_annotation()
-        # self.export_assembly()
-        # self.export_snp()
-        # self.export_map_assess()
+        self.export_assembly()
+        self.export_snp()
+        self.export_map_assess()
         self.export_exp_rsem_default()
-        # self.exp_alter.mergersem = self.exp_alter.add_tool("rna.merge_rsem")
-        # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        self.export_ref_gene_set()
         self.export_gene_set()
         self.export_diff_gene()
         self.export_diff_trans()
         self.export_ref_diff_gene()
         self.export_ref_diff_trans()
-        self.export_ref_gene_set()
         self.export_cor()
         self.export_pca()
-        # self.export_cluster_gene()
-        # self.export_cluster_trans()
-        # self.export_go_regulate()
-        # self.export_kegg_regulate()
-        # self.export_go_enrich()
-        # self.export_kegg_enrich()
-        # self.export_cog_class()
-        if self.taxon_id != "":
-            with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
-                ft.readline()
-                content = ft.read()
-                if content:
-                    self.export_ppi()
         self.export_as()
         self.end()
-
-    def export_genome_info(self):
-        self.api_gi = self.api.genome_info
-        species_name = self.option("ref_genome")
-        self.api_gi.add_genome_info(species_name, output_dir=self.gs.output_dir, major=True)
 
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc
@@ -1042,7 +1017,6 @@ class RefrnaWorkflow(Workflow):
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="after")
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
-        # self.api_qc.add_gragh_info(quality_stat_before, "before")
         self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
         self.logger.info(self.group_detail)
         self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
@@ -1061,10 +1035,6 @@ class RefrnaWorkflow(Workflow):
 
     def export_map_assess(self):
         self.api_map = self.api.ref_rna_qc
-        # stat_file = self.map_qc.output_dir + "/bam_stat.xls"
-        # self.api_map.add_mapping_stat(stat_file, "genome")
-        # stat_file = self.map_qc_gene.output_dir + "/bam_stat.xls"
-        # self.api_map.add_mapping_stat(stat_file, "gene")
         stat_dir = self.mapping.output_dir + "/stat"
         if self.option("seq_method") == "Topaht":
             self.api_map.add_tophat_mapping_stat(stat_dir)
@@ -1076,11 +1046,6 @@ class RefrnaWorkflow(Workflow):
         self.api_map.add_coverage_table(coverage)
         distribution = self.map_qc.output_dir + "/distribution"
         self.api_map.add_distribution_table(distribution)
-        chrom_distribution = self.map_qc.output_dir + "/chr_stat"
-        self.api_map.add_chorm_distribution_table(chrom_distribution)
-
-    def test_export_map_assess(self):
-        self.api_map = self.api.ref_rna_qc
         chrom_distribution = self.map_qc.output_dir + "/chr_stat"
         self.api_map.add_chorm_distribution_table(chrom_distribution)
 
@@ -1466,12 +1431,24 @@ class RefrnaWorkflow(Workflow):
         ref_anno_path = self.annotation.output_dir
         params = {
             "nr_evalue": self.option("nr_blast_evalue"),
-            "swissprot_evalue": self.option("swissprot_blast_evalue")
+            "nr_similarity": 0,
+            "nr_score": 0,
+            "nr_identity": 0,
+            "swissprot_evalue": self.option("swissprot_blast_evalue"),
+            "swissprot_similarity": 0,
+            "swissprot_score": 0,
+            "swissprot_identity": 0,
         }
-        params = json.dumps(params)
+        params = json.dumps(params, sort_keys=True, separators=(',', ':'))
         new_anno_path = self.new_annotation.output_dir
         pfam_path = self.pfam.output_dir + "/pfam_domain"
-        self.api_anno.add_annotation(name=None, params=params, ref_anno_path=ref_anno_path, new_anno_path=new_anno_path, pfam_path=pfam_path)
+        merge_tran_output = self.merge_trans_annot.output_dir
+        merge_gene_output = self.merge_gene_annot.output_dir
+        self.api_anno.add_annotation(name=None, params=params,
+                                     ref_anno_path=ref_anno_path,
+                                     new_anno_path=new_anno_path,
+                                     pfam_path=pfam_path, merge_tran_output=merge_tran_output,
+                                     merge_gene_output=merge_gene_output)
 
     def export_as(self):
         self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
@@ -1516,29 +1493,7 @@ class RefrnaWorkflow(Workflow):
                 group[key] = "s2"
         outpath = self.altersplicing.output_dir
         self.logger.info(params)
-        if self.as_on:
-            self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
-        else:
-            self.api_as.add_sg_splicing_rmats(params=params, major=False, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
-
-    def export_ppi_test(self):
-        api_ppinetwork = self.api.ppinetwork
-        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(geneset_id), self.option("combine_score"), "trans", self.taxon_id)
-        self.ppi_id = str(self.ppi_id)
-        all_nodes_path = self.network_trans.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
-        interaction_path = self.network_trans.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
-        network_stats_path = self.network_trans.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
-        network_centrality_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
-        network_clustering_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
-        network_transitivity_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
-        degree_distribution_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
-        network_node_degree_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
-        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
-        api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
-        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
-        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path,file3_path=all_nodes_path,table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
-        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, file1_path=all_nodes_path,table_id=self.ppi_id)  # 中心信息
-        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
+        self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
 
     def export_ppi(self):
         api_ppinetwork = self.api.ppinetwork

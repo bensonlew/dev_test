@@ -165,12 +165,16 @@ class DiamondTool(Tool):
             for iteration_hit in iteration_hits:
                 hits = iteration_hit.findall('Hit')
                 for hit in hits:
-                    # hit_id = hit.find('Hit_id')
-                    # hit_def = hit.find('Hit_def')
-                    hit_def = hit.find('Hit_id')
-                    hit_id = hit.find('Hit_def')
+                    hit_id = hit.find('Hit_id')
+                    hit_def = hit.find('Hit_def')
+                    # hit_def = hit.find('Hit_id')
+                    # hit_id = hit.find('Hit_def')
                     hit_id_split = re.split(r'\s', hit_id.text, maxsplit=1)
                     gi_id = hit_id_split[0].split("|")[1]
+                    try:
+                        int(gi_id)
+                    except:
+                        self.logger.info(hit_def)
                     result = self.mongodb_nr.find_one({"_id": int(gi_id)})
                     if result:
                         desc = result["desc"]
@@ -226,5 +230,5 @@ class DiamondTool(Tool):
         os.link(path + "_new", path)
         db_name = self.option("database")
         if db_name in ["nr", "animal", "fungi", "metazoa", "plant", "protist", "vertebrates"]:
-                    self.get_nrxml_gi_description(path)
+            self.get_nrxml_gi_description(path)
         self.end()

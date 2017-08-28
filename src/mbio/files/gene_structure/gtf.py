@@ -49,7 +49,7 @@ class GtfFile(File):
         # self._co_fasta = fasta
         self._contig_info = {}
         self._txpt_gene = {}
-        self.gtf2bed_path = Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.py"
+        self.gtf2bed_path = Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl"
         # self._check_log_file = ''
         # self._structure_hierachy = dict_factory()
     
@@ -187,7 +187,7 @@ class GtfFile(File):
     def to_bed(self):
         bed_path = os.path.split(self.prop['path'])[0]
         bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
-        cmd = "python {} -i {} -o {}".format(self.gtf2bed_path, self.prop["path"], bed)
+        cmd = "perl {} {} > {}".format(self.gtf2bed_path, self.prop["path"], bed)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
