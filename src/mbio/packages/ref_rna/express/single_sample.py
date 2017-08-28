@@ -422,16 +422,15 @@ def filter_ref_gene_or_transcript(input_file, class_code, output_path, query_typ
                     if line[1] not in  class_code_info.keys():
                         class_code_info[line[1]]=line[2]
             if query_type == 'transcript':
-                if line[2] != '=':
+                if line[2] == '=':  # ref transcript
                     if line[0] not in class_code_info.keys():
-                        class_code_info[line[0]] = line[2]
+                        class_code_info[line[0]] = line[2]  # 把transcript 放入class_code_info里面
 
     filename = os.path.basename(input_file)
     if gene_list:
         list_file = open(output_path + "/{}_list".format(query_type), 'w+')
     with open(input_file, 'r+') as f1, open(output_path + "/{}".format(filename), 'w+') as f2:
         f2.write(f1.readline())
-        id_list = []
         for lines in f1:
             line = lines.strip().split("\t")
             if line[0] in class_code_info.keys():

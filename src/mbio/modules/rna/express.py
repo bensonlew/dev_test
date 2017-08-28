@@ -277,30 +277,22 @@ class ExpressModule(Module):
     def mergersem_run(self):
         self.mergersem = self.add_tool("rna.merge_rsem")
         dir_path = self.output_dir + '/rsem'
-        # dir_path = "/mnt/ilustre/users/sanger-dev/workspace/20170621/Single_rsem_stringtie_fpkm_ore_add_gene_location_ref_new_12/Expresstest1/output/rsem/rsem"
         self.logger.info(dir_path)
         if not os.path.exists(dir_path):
             raise Exception("{}文件不存在，请检查！".format(dir_path))
         opts = {
             "rsem_files": dir_path,
-            "exp_way": self.option("exp_way"),
+            "exp_way": self.option("exp_way"),  # fpkm与tpm中的一个，由页面选择产生
             "is_duplicate": self.option("is_duplicate"),
             "gtf_ref": self.option("ref_gtf")
         }
-        # self.gtf_path = "/mnt/ilustre/users/sanger-dev/workspace/20170620/Single_rsem_stringtie_fpkm_ore_add_gene_location_ref_new_9/Expresstest1/ref_new.gtf"
         if self.option("is_class_code"):
             opts["is_class_code"]=self.option("is_class_code")
             opts["gtf_merged"] = self.gtf_path
-            # opts["gtf_merged"] = "/mnt/ilustre/users/sanger-dev/workspace/20170623/Single_rsem_stringtie_fpkm_ore_add_gene_location_ref_merge_1/Expresstest2/ref_new.gtf"
-            # opts["gtf_merged"] = "/mnt/ilustre/users/sanger-dev/workspace/20170622/Single_rsem_stringtie_fpkm_ore_add_gene_location_ref_7/Expresstest2/ref_new.gtf"
-            # opts["gtf_merged"] = self.option("merged_gtf").prop['path']
-            # opts["gtf_merged"] = "/mnt/ilustre/users/sanger-dev/workspace/20170620/Single_rsem_stringtie_fpkm_ore_add_gene_location_ref_new_9/Expresstest1/ref_new.gtf"
         if self.option("is_duplicate"):
             opts.update({
                 "edger_group": self.option("edger_group")
             })
-        self.logger.info(opts)
-        print opts
         self.mergersem.set_options(opts)
         self.mergersem.on('end', self.set_output, 'mergersem')
         self.mergersem.on('end', self.set_step, {'end': self.step.mergersem})
@@ -571,12 +563,6 @@ class ExpressModule(Module):
                 self.logger.info("单个样本只能计算表达量，无法进行样本间相关性评估和差异分析！")
             else:
                 self.feature_count_path = self.featurecounts.output_dir + "/count.xls"
-                if self.option("exp_way") == 'fpkm':
-                    self.feature_fpkm_path = self.featurecounts.output_dir + "/fpkm_tpm.fpkm.xls"
-                    self.diff_Rexp_run(genes_count_path = self.feature_count_path, genes_fpkm_path = self.feature_fpkm_path)
-                if self.option("exp_way") == "tpm":
-                    self.feature_fpkm_path = self.featurecounts.output_dir + "/fpkm_tpm.tpm.xls"
-                    self.diff_Rexp_run(genes_count_path = self.feature_count_path, genes_fpkm_path = self.feature_fpkm_path)
                 if self.option("exp_way") == 'all':
                     self.feature_fpkm_path = self.featurecounts.output_dir + "/fpkm_tpm.fpkm.xls"
                     self.feature_tpm_path = self.featurecounts.output_dir + "/fpkm_tpm.tpm.xls"
@@ -584,8 +570,6 @@ class ExpressModule(Module):
                     self.logger.info("tpm, fpkm开始进行差异分析！")
         elif event['data'] == 'rsem':
             """ 除掉'gene:'、'transcript:' 信息"""
-            # os.system(""" sed -i "s/gene://g" %s """ % (self.output_dir+"/class_code"))
-            # os.system(""" sed -i "s/transcript://g" %s """ % (self.output_dir+"/class_code"))
             rsem_path = os.path.join(self.output_dir, 'rsem')
             if not os.path.exists(rsem_path):
                 os.mkdir(rsem_path)
@@ -609,17 +593,11 @@ class ExpressModule(Module):
                     return True
             class_code = check_class_code()
             rsem_path = self.output_dir + "/rsem"
-            # old_rsem_path = self.output_dir + "/oldrsem"
-            # if not os.path.exists(old_rsem_path):
-            #     os.mkdir(old_rsem_path)
             ss = 0
             for files in os.listdir(obj.output_dir):
                 files_path = os.path.join(obj.output_dir, files)
                 new_files_path = os.path.join(self.output_dir+"/rsem",files)
                 os.link(files_path, new_files_path)
-            # for f in os.listdir(obj.work_dir+"/"+"oldrsem"):
-            #     os.link(obj.work_dir+"/"+"oldrsem/"+f, old_rsem_path+"/"+f)
-            #     self.logger.info("设置gene count 和 fpkm 输出结果成功！")
             self.rsem_genes_count = self.output_dir+'/rsem/genes.counts.matrix'
             self.rsem_transcripts_count = self.output_dir + '/rsem/transcripts.counts.matrix'
             self.rsem_genes_count_ref = obj.work_dir + '/ref_rsem/genes.counts.matrix'
@@ -634,7 +612,6 @@ class ExpressModule(Module):
                 self.rsem_transcripts_fpkm = self.output_dir + '/rsem/transcripts.TMM.EXPR.matrix'
                 self.rsem_genes_fpkm_ref = obj.work_dir + "/ref_rsem/genes.TMM.EXPR.matrix"
                 self.rsem_transcript_fpkm_ref = obj.work_dir + '/ref_rsem/transcripts.TMM.EXPR.matrix'
-            # self.diff_Rexp_run(genes_count_path=self.rsem_genes_count, genes_fpkm_path=self.rsem_genes_fpkm,trans_count_path = self.rsem_transcripts_count, trans_fpkm_path = self.rsem_transcripts_fpkm)
             self.diff_Rexp_run(genes_count_path=self.rsem_genes_count, genes_fpkm_path=self.rsem_genes_fpkm,
                                trans_count_path=self.rsem_transcripts_count, trans_fpkm_path=self.rsem_transcripts_fpkm,
                                ref_genes_count_path=self.rsem_genes_count_ref,
@@ -651,7 +628,6 @@ class ExpressModule(Module):
                 new_files_path = os.path.join(self.output_dir + "/rsem1", files)
                 os.link(files_path, new_files_path)
             self.logger.info("设置mergersem1分析完毕!")
-        # elif re.search(r'genes_diff', event['data']) or re.search(r'trans_diff', event['data']):
         elif event['data'] == 'genes_diff' or event['data'] == 'trans_diff':
             self.logger.info("开始设置差异分析结果目录！")
             if self.option('express_method') == 'rsem':
@@ -714,8 +690,7 @@ class ExpressModule(Module):
                 else:
                     self.logger.info("{}分析没有生成diff_list_dir文件夹！".format(event['data']))
                 self.logger.info("ref差异分析结果目录设置成功！")
-        
-        #elif self.option('express_method').lower() == "featurecounts":
+
         elif event['data'] == 'genes_diff_fpkm' or event['data'] == 'genes_diff_tpm':
                 if not os.path.exists(self.output_dir+"/diff"):
                     os.mkdir(self.output_dir+"/diff")

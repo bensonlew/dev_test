@@ -8,7 +8,7 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from mbio.packages.ref_rna.express.express_distribution import distribution
 import os
-import re, shutil
+import re
 from mbio.packages.ref_rna.express.single_sample import group_express
 from mbio.files.meta.otu.group_table import *
 from mbio.packages.ref_rna.express.cmp_ref_cls import *
@@ -113,8 +113,6 @@ class MergeRsemTool(Tool):
         self.python_path = "program/Python/bin/"
         self.r_path1 = "/program/R-3.3.1/bin/Rscript"
 
-        # self.distribution_path = '/mnt/ilustre/users/sanger-dev/biocluster/src/mbio/packages/denovo_rna/express'
-
     def merge_rsem(self):
         files = os.listdir(self.option('rsem_files').prop['path'])
         if self.option('exp_way') == 'fpkm':
@@ -128,10 +126,6 @@ class MergeRsemTool(Tool):
                 merge_gene_cmd += '{} '.format(self.option('rsem_files').prop['path'] + '/' + f)
             elif re.search(r'isoforms\Wresults$', f):
                 merge_tran_cmd += '{} '.format(self.option('rsem_files').prop['path'] + '/' + f)
-        self.logger.info(merge_tran_cmd)
-        self.logger.info(merge_gene_cmd)
-        self.logger.info("开始运行merge_gene_cmd")
-        self.logger.info("开始运行merge_tran_cmd")
         gene_com = self.add_command("merge_gene_cmd", merge_gene_cmd).run()
         self.wait(gene_com)
         if gene_com.return_code == 0:
@@ -312,7 +306,6 @@ class MergeRsemTool(Tool):
             else:
                 os.remove(ref_rsem_path)
                 os.mkdir(ref_rsem_path)
-        # try:
         ss = 0
         for f in results:
             if re.search(r'^(transcripts\.TMM)(.+)(matrix)$', f):
@@ -375,8 +368,6 @@ class MergeRsemTool(Tool):
                 os.mkdir(self.work_dir+"/new_gene_location")
             new_gene_location(changed_id_gtf=self.option("gtf_merged").prop['path'], output_path=self.work_dir+"/new_gene_location", filename="new_gene_location")
             self.logger.info("提取新基因坐标信息完毕!")
-        # except Exception as e:
-        #     self.logger.info("设置merge_rsem分析结果目录失败{}".format(e))
 
     def run(self):
         super(MergeRsemTool, self).run()
