@@ -126,14 +126,14 @@ class RmatsModule(Module):
             a_group_path_str = ','.join(a_group_path_lst)
             b_group_path_str = ','.join(b_group_path_lst)
             a_b_bam_path_tuple_lst.append((a_group_path_str, b_group_path_str))
-        return a_b_bam_path_tuple_lst
+        return a_b_bam_path_tuple_lst, vs_list
     
     def multi_rmats_bam_run(self):
-        temp_vs_group_path_pair_lst = self.get_group_str()
-        vs_group_path_pair_lst = [temp_vs_group_path_pair_lst[0]]
+        vs_group_path_pair_lst, vs_list = self.get_group_str()
         n = 0
         for vs_pair in vs_group_path_pair_lst:
             rmats_bam = self.add_tool('gene_structure.rmats_bam')
+            vs_name = vs_list[n][0] + "_vs_" + vs_list[n][1]
             n = n + 1
             self.step.add_steps('rmats_bam_{}'.format(n))
             rmats_bam.set_options({
@@ -149,13 +149,14 @@ class RmatsModule(Module):
                 "output_dir": rmats_bam.output_dir,
                 "keep_temp": self.option('keep_temp')
             })
-            
+            rmats_bam.vs_name = vs_name
             step = getattr(self.step, 'rmats_bam_{}'.format(n))
             step.start()
             """绑定下一个将要运行的步骤"""
             rmats_bam.on('end', self.finish_update, 'rmats_bam_{}'.format(n))
-            rmats_bam.on('end', self.set_output, 'rmats_bam_{}'.format(n))
+            # rmats_bam.on('end', self.set_output, 'rmats_bam_{}'.format(n))
             self.rmats_bam_tools.append(rmats_bam)
+        self.on_rely(self.rmats_bam_tools, self.set_output)
         for tool in self.rmats_bam_tools:
             tool.run()
     
@@ -168,7 +169,7 @@ class RmatsModule(Module):
     def set_output(self):
         self.logger.info('set output')
         for rmats_bam_tool in self.rmats_bam_tools:
-            output_dir = os.path.join(self.output_dir, rmats_bam_tool.name)
+            output_dir = os.path.join(self.output_dir, rmats_bam_tool.vs_name)
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
             outfiles = os.listdir(rmats_bam_tool.output_dir)
@@ -176,7 +177,6 @@ class RmatsModule(Module):
                 f_path = os.path.join(rmats_bam_tool.output_dir, f)
                 target = os.path.join(output_dir, f)
                 os.symlink(f_path, target)
-        # self.process_rmats_module_result()
         self.logger.info("set output done")
         self.end()
     
@@ -185,20 +185,4 @@ class RmatsModule(Module):
         super(RmatsModule, self).run()
     
     def end(self):
-        # result_dir = self.add_upload_dir(self.output_dir)
-        # result_dir.add_relpath_rules([
-        #     [r'.', '', 'rmats结果输出目录']
-        # ]
-        # )
-        # result_dir.add_regexp_rules([
-        #     ["fromGTF\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '可变剪接事件基本表'],
-        #     ["fromGTF\.novelEvents\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '新发现可变剪接事件基本表'],
-        #     ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.ReadsOnTargetAndJunctionCounts\.alter_id\.psi_info\.txt", 'txt',
-        #      '差异事件详情表（ReadsOnTargetAndJunctionCounts证据）'],
-        #     ["(RI|A3SS|A5SS|SE|MXE)\.MATS\.JunctionCountOnly\.alter_id\.psi_info\.txt", 'txt',
-        #      '差异事件详情表（JunctionCountOnly证据）'],
-        #     ['all_events_detail_big_table.txt', 'txt', '全部结果整合大表'],
-        #     ['config.txt', 'txt', '运行配置详情文件'],
-        #     ['all_events_detail_big_table.txt', 'txt', '结果综合详情表']
-        # ])
         super(RmatsModule, self).end()

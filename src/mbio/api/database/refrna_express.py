@@ -948,9 +948,8 @@ class RefrnaExpress(Base):
         if not value_type:
             raise Exception("add_express_diff函数需要设置value_type(选择表达量水平fpkm或tpm)参数!")
         if "type" in params.keys() and "diff_method" in params.keys():
-            query_type = params['type'].lower()
             diff_method = params['diff_method'].lower()
-            re_name_info = {"gene": "G", "trans": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
+            re_name_info = {"gene": "G", "transcript": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
                             "featurecounts": "FeaCount", "rsem": "RSEM"}
             re_name = 'DiffExp_{}_{}_{}_{}_'.format(re_name_info[query_type],
                                                     re_name_info[express_method.lower()], value_type.lower(),
