@@ -990,7 +990,6 @@ class RefrnaExpress(Base):
                                                  class_code, query_type)
         return express_diff_id
 
-
     def add_express_diff_detail(self, express_diff_id, name, compare_name, ref_all, diff_stat_path, workflow=False,
                             class_code=None, query_type=None, pvalue_padjust=None):
         """
@@ -1014,8 +1013,20 @@ class RefrnaExpress(Base):
         data_list = []
         with open(diff_stat_path, 'rb') as f:
             head = f.readline().strip().split('\t')
+            sig_ind = head.index('significant')
+            reg_ind = head.index('regulate')
+            reg_status = set()
             for line in f:
                 line = line.strip().split('\t')
+                if line[sig_ind] == "no":
+                    reg_status.add('nosig')
+                else:
+                    if line[reg_ind] == "up":
+                        reg_status.add('up')
+                    elif line[reg_ind] == "down":
+                        reg_status.add("down")
+                    else:
+                        raise Exception('Significant while no regulation ?')
                 data = [
                     ('name', name),
                     ("ref_all", ref_all),
@@ -1071,6 +1082,8 @@ class RefrnaExpress(Base):
             try:
                 collection = db["sg_express_diff_detail"]
                 collection.insert_many(data_list)
+                con = db["sg_express_diff"]
+                con.update({'_id': express_diff_id}, {"$set": {"reg_status": list(reg_status)}})
             except Exception, e:
                 self.bind_object.logger.error("导入基因表达差异统计表：%s信息出错:%s" % (diff_stat_path, e))
             else:
