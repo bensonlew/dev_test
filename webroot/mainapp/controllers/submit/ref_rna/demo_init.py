@@ -3,16 +3,20 @@
 import web
 import json
 import traceback
+import datetime
 from mainapp.libs.signature import check_sig
-from mainapp.controllers.core.basic import Basic
-from biocluster.core.function import filter_error_info
-from mainapp.models.workflow import Workflow
-# from mainapp.models.mongo.ref_rna import RefRna
+from biocluster.workflow import Workflow
 from biocluster.wpm.client import worker_client, wait
 import random
 
 
-class DemoInit(object):
+class DemoInitAction(object):
+    """
+    demo设置
+    """
+    def __init__(self):
+        super(DemoInitAction, self).__init__()
+
     @check_sig
     def POST(self):
         data = web.input()
@@ -20,43 +24,35 @@ class DemoInit(object):
         for i in requires:
             if not (hasattr(data, i)):
                 return json.dumps({"success": False, "info": "缺少%s参数!" % i})
-        workflow_id = self.get_new_id(data.task_id)
+        try:
+            demo_number = data.demo_number
+        except:
+            demo_number = 2
+        workflow_id = "DemoInit_" + "{}_{}".format(data.task_id, datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3])
         if data.type == "ref_rna":
             data = {
               'id': workflow_id,
               'stat_id': 0,
-              'name': , # 需要配置
+              'name': "copy_demo.demo_init",  # 需要配置
               'client': data.client,
+              "IMPORT_REPORT_DATA": False,
+              "IMPORT_REPORT_AFTER_END": False,
               'options': {
                   "task_id": data.task_id,
-                  "setup_type": data.setup_type
+                  "type": data.type,
+                  "setup_type": data.setup_type,
+                  "demo_number": demo_number
               }
             }
-        # workflow_client = Basic(data=data, instant=False)
+        worker = worker_client()
+        info = worker.add_task(data)
         try:
-            worker = workflow_client()
+            worker = worker_client()
             info = worker.add_task(data)
-            # if "success" in info.keys() and info["success"]:
-            #     pass
-            # else:
-            #     return {"success": False, "info": "任务提交失败%s" % (info["info"])}
+            print info
+            if "success" in info.keys() and info["success"]:
+                return {"success": True, "info": "任务提交成功%s" % (info["info"])}
+            else:
+                return {"success": False, "info": "任务提交失败%s" % (info["info"])}
         except:
-            return {"success": False, "info": "任务提交失败%s" % (info["info"])}
-        # except Exception, e:
-        #     exstr = traceback.format_exc()
-        #     print "ERROR:", exstr
-        #     raise Exception("任务提交失败：%s, %s" % (str(e), str(exstr)))
-
-    def get_new_id(self, task_id, otu_id=None):
-        """
-        根据旧的ID生成新的workflowID，固定为旧的后面用“_”，添加两次随机数或者一次otu_id一次随机数
-        """
-        if otu_id:
-            new_id = "{}_{}_{}".format(task_id, otu_id[-4:], random.randint(1, 10000))
-        else:
-            new_id = "{}_{}_{}".format(task_id, random.randint(1000, 10000), random.randint(1, 10000))
-        workflow_module = Workflow()
-        workflow_data = workflow_module.get_by_workflow_id(new_id)
-        if len(workflow_data) > 0:
-            return self.get_new_id(task_id, otu_id)
-        return new_id
+            return {"success": False, "info": "任务提交失败"}
