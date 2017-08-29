@@ -923,8 +923,8 @@ class RefrnaExpress(Base):
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        task_id = self.bind_obj.sheet.task_id
-        project_sn = self.bind_obj.sheet.project_sn
+        task_id = self.bind_object.sheet.task_id
+        project_sn = self.bind_object.sheet.project_sn
         # params.update({
         #     'express_id': express_id,
         #     'group_id': str(group_id),
@@ -942,7 +942,7 @@ class RefrnaExpress(Base):
         if "type" in params.keys() and "diff_method" in params.keys():
             query_type = params['type'].lower()
             diff_method = params['diff_method'].lower()
-            re_name_info = {"gene": "G", "transcript": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
+            re_name_info = {"gene": "G", "trans": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
                             "featurecounts": "FeaCount", "rsem": "RSEM"}
             re_name = 'DiffExp_{}_{}_{}_{}_'.format(re_name_info[query_type],
                                                     re_name_info[express_method.lower()], value_type.lower(),
