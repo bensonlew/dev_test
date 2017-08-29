@@ -13,7 +13,7 @@ from biocluster.config import Config
 class RefAnnotation(object):
     """
     功能：通过gtf对文件注释进行筛选,并进行cog、go、kegg注释、注释统计，功能查询等
-    注：要投递到BLAST2GO节点上
+    注：要投递到BLAST2GO队列上
     """
     def __init__(self):
         self.tran_genes = {}
