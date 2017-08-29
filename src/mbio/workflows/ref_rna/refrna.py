@@ -746,9 +746,6 @@ class RefrnaWorkflow(Workflow):
             opts.update({"seq_type": "single"})
         self.altersplicing.set_options(opts)
         self.altersplicing.on("end", self.set_output, "altersplicing")
-        # self.altersplicing.on('start', self.set_step, {'start': self.step.altersplicing})
-        # self.altersplicing.on('end', self.set_step, {'end': self.step.altersplicing})
-        # self.final_tools.append(self.altersplicing)
         self.altersplicing.run()
 
     def run_merge_annot(self):
@@ -988,8 +985,10 @@ class RefrnaWorkflow(Workflow):
 
 
     def run_api_and_set_output(self):
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_AFTER_END = False
         self.export_qc()
-        self.export_annotation()
+        # self.export_annotation()
         self.export_assembly()
         self.export_snp()
         self.export_map_assess()
@@ -1002,6 +1001,7 @@ class RefrnaWorkflow(Workflow):
         self.export_ref_diff_trans()
         self.export_cor()
         self.export_pca()
+        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170829/Refrna_tsg_8866/FilecheckRef/Oreochromis_niloticus.Orenil1.0.89.gtf")
         self.export_as()
         self.end()
 
@@ -1151,7 +1151,7 @@ class RefrnaWorkflow(Workflow):
         self.api_exp.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate, samples=samples,
                             class_code=class_code, params=params2, major=True, distri_path=distri_path)
 
-    def export_gene_set(self):
+    def export_gene_set(self):  # ref_and_new
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
         path = self.exp.output_dir + "/diff/trans_diff/diff_stat_dir"
@@ -1166,12 +1166,15 @@ class RefrnaWorkflow(Workflow):
                     compare_name = m_.group(2)
                     up_down = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
                                                            group_id=group_id, name=name, compare_name=compare_name,
+                                                           ref_new="ref_and_new",
                                                            express_method="rsem", type="transcript", up_down='up_down', major=True)
                     down_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
                                                            group_id=group_id, name=name,
+                                                          ref_new="ref_and_new",
                                                            compare_name=compare_name, express_method="rsem",
                                                            type="transcript", up_down='down', major=True)
                     up_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
+                                                        ref_new="ref_and_new",
                                                          group_id=group_id, name=name, compare_name=compare_name,
                                                          express_method="rsem", type="transcript", up_down='up', major=True)
                     if up_down:
@@ -1189,12 +1192,15 @@ class RefrnaWorkflow(Workflow):
                     name = m_.group(1)
                     compare_name = m_.group(2)
                     up_down = self.api_geneset.add_geneset(diff_stat_path = path+"/"+files, group_id=group_id,
+                                                           ref_new="ref_and_new",
                                                            name=name, compare_name=compare_name, express_method="rsem",
                                                            type="gene",up_down='up_down', major=True)
                     down_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id,
+                                                           ref_new="ref_and_new",
                                                            name=name, compare_name=compare_name, express_method="rsem",
                                                            type="gene", up_down='down', major=True)
                     up_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id, name=name,
+                                                         ref_new="ref_and_new",
                                                          compare_name=compare_name, express_method="rsem", type="gene",
                                                          up_down='up', major=True)
                     self.up_down_gene_id = str(down_id) + "," + str(up_id)
@@ -1217,13 +1223,14 @@ class RefrnaWorkflow(Workflow):
                     name = m_.group(1)
                     compare_name = m_.group(2)
                     up_down = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
+                                                           ref_new="ref",
                                                            group_id=group_id, name=name, compare_name=compare_name,
                                                            express_method="rsem", type="transcript", up_down='up_down', major=True)
-                    down_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
+                    down_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,ref_new="ref",
                                                            group_id=group_id, name=name,
                                                            compare_name=compare_name, express_method="rsem",
                                                            type="transcript", up_down='down', major=True)
-                    up_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
+                    up_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,ref_new="ref",
                                                          group_id=group_id, name=name, compare_name=compare_name,
                                                          express_method="rsem", type="transcript", up_down='up', major=True)
                     if up_down:
@@ -1241,12 +1248,15 @@ class RefrnaWorkflow(Workflow):
                     name = m_.group(1)
                     compare_name = m_.group(2)
                     up_down = self.api_geneset.add_geneset(diff_stat_path = path+"/"+files, group_id=group_id,
+                                                           ref_new="ref",
                                                            name=name, compare_name=compare_name, express_method="rsem",
                                                            type="gene",up_down='up_down', major=True)
                     down_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id,
+                                                           ref_new="ref",
                                                            name=name, compare_name=compare_name, express_method="rsem",
                                                            type="gene", up_down='down', major=True)
                     up_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id, name=name,
+                                                         ref_new="ref",
                                                          compare_name=compare_name, express_method="rsem", type="gene",
                                                          up_down='up', major=True)
                     self.up_down_gene_id = str(down_id) + "," + str(up_id)
@@ -1413,6 +1423,7 @@ class RefrnaWorkflow(Workflow):
             value = self.group_detail[i].keys()
             group_detail[key] = value
         self.api_cor.add_correlation_table(correlation=correlation, group_id=group_id, group_detail=group_detail,
+                                           express_level=self.option("exp_way"),
                                            express_id=self.express_id, detail=True, seq_type="gene")
 
     def export_pca(self):
@@ -1424,6 +1435,7 @@ class RefrnaWorkflow(Workflow):
             value = self.group_detail[i].keys()
             group_detail[key] = value
         self.api_pca.add_pca_table(pca_path, group_id=str(self.group_id), group_detail=group_detail,
+                                   express_level=self.option("exp_way"),
                                    express_id=self.express_id, detail=True, seq_type="gene")
 
     def export_annotation(self):

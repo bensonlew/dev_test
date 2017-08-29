@@ -923,8 +923,8 @@ class RefrnaExpress(Base):
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        task_id = self.bind_obj.sheet.task_id
-        project_sn = self.bind_obj.sheet.project_sn
+        task_id = self.bind_object.sheet.task_id
+        project_sn = self.bind_object.sheet.project_sn
         # params.update({
         #     'express_id': express_id,
         #     'group_id': str(group_id),
@@ -942,7 +942,7 @@ class RefrnaExpress(Base):
         if "type" in params.keys() and "diff_method" in params.keys():
             query_type = params['type'].lower()
             diff_method = params['diff_method'].lower()
-            re_name_info = {"gene": "G", "transcript": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
+            re_name_info = {"gene": "G", "trans": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
                             "featurecounts": "FeaCount", "rsem": "RSEM"}
             re_name = 'DiffExp_{}_{}_{}_{}_'.format(re_name_info[query_type],
                                                     re_name_info[express_method.lower()], value_type.lower(),
@@ -1024,26 +1024,23 @@ class RefrnaExpress(Base):
                 ]
                 from math import log10
                 for i in range(len(head)):
-                    try:
-                        if i == 0:  # 添加gene_name信息
-                            seq_id = line[0]
-                            if class_code:
-                                if name_seq_id:
-                                    if seq_id in name_seq_id.keys():
-                                        gene_name = name_seq_id[seq_id]["gene_name"]
-                                        data.append(('gene_name', gene_name))
-                                        if query_type == 'transcript':
-                                            gene_id = name_seq_id[seq_id]['gene_id']
-                                            # print '{}对应的gene_id为{}'.format(seq_id,gene_id)
-                                            data.append(("gene_id",gene_id))
-                                    else:
-                                        data.append(('gene_name', '-'))
-                                        if query_type == 'transcript':
-                                            data.append(("gene_id",gene_id))
-                    except Exception:
-                        print '{}'.format(str(i))
-                        print line
-                        print head
+                    if i == 0:  # 添加gene_name信息
+                        seq_id = line[0]
+                        if class_code:
+                            if name_seq_id:
+                                if seq_id in name_seq_id.keys():
+                                    # if "gene_name" not in  name_seq_id[seq_id].keys():
+                                    #     name_seq_id[seq_id]["gene_name"] = ""
+                                    gene_name = name_seq_id[seq_id]["gene_name"]
+                                    data.append(('gene_name', gene_name))
+                                    if query_type == 'transcript':
+                                        gene_id = name_seq_id[seq_id]['gene_id']
+                                        # print '{}对应的gene_id为{}'.format(seq_id,gene_id)
+                                        data.append(("gene_id",gene_id))
+                                else:
+                                    data.append(('gene_name', '-'))
+                                    if query_type == 'transcript':
+                                        data.append(("gene_id",gene_id))
 
                     if re.search(r'fc', head[i]):
                         fc = 2 ** (float(line[i]))
