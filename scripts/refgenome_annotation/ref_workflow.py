@@ -12,7 +12,8 @@ from biocluster.config import Config
 
 class RefAnnotation(object):
     """
-    通过gtf对文件注释进行筛选,提取transcrpt_id对应的基因ID，转录长度，基因名称信息
+    功能：通过gtf对文件注释进行筛选,并进行cog、go、kegg注释、注释统计，功能查询等
+    注：要投递到BLAST2GO节点上
     """
     def __init__(self):
         self.tran_genes = {}
@@ -705,43 +706,41 @@ class RefAnnoQuery(object):
                     map_paths = []
                 map_paths = list(set(map_paths))
                 pathway = []
-                if map_id not in self.gloabl:
-                    pid = re.sub("map", "ko", map_id)
-                    result = self.kegg_ko.find_one({"pathway_id": {"$in": [pid]}})
-                    if result:
-                        pids = result["pathway_id"]
-                        for index, i in enumerate(pids):
-                            if i == pid:
-                                category = result["pathway_category"][index]
-                                definition = category[2]
-                                item = map_id + "(" + definition + ")"
-                                pathway.append(item)
-                    else:
-                        print "{} 没有在mongo中找到该pathway".format(pid)
+                for map_id in map_paths:
+                    if map_id not in self.gloabl:
+                        pid = re.sub("map", "ko", map_id)
+                        result = self.kegg_ko.find_one({"pathway_id": {"$in": [pid]}})
+                        if result:
+                            pids = result["pathway_id"]
+                            for index, i in enumerate(pids):
+                                if i == pid:
+                                    category = result["pathway_category"][index]
+                                    definition = category[2]
+                                    item = map_id + "(" + definition + ")"
+                                    pathway.append(item)
+                        else:
+                            print "{} 没有在mongo中找到该pathway".format(pid)
                 if query_name in self.stat_info:
                     self.stat_info[query_name].ko_id = ko_id
                     self.stat_info[query_name].ko_name = ';'.join(ko_names)
                     self.stat_info[query_name].pathway = "; ".join(pathway)
+
 if __name__ == "__main__":
-    # test = RefAnnotation()
     image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
     png_bgcolor = "#FFFF00"  # 黄色
     link_bgcolor = "yellow"
     db_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/"
     ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/annot_species.complete.json"
-    # ref_json = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/ath.json"
-    # ref_json = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/script/ath.json"
     f = open(ref_json, "r")
     json_dict = json.loads(f.read())
-    # out = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/ref_genome/taxonomy"
     for taxon in json_dict:
+        # if taxon == "Mus_musculus":
         test = RefAnnotation()
         gtf_path = db_path + json_dict[taxon]["gtf"]
         biomart_path = db_path + json_dict[taxon]["bio_mart_annot"]
         kegg_db = db_path + json_dict[taxon]["kegg"]
         go_db = db_path + json_dict[taxon]["go"]
         cog_db = db_path + json_dict[taxon]["cog"]
-        # outdir = out + '/' + taxon + '/Annotation'
         test.get_gtf_information(gtf_path, biomart_path)
         outdir = db_path + json_dict[taxon]["gtf"].split("gtf")[0] + 'Annotation'
         try:
@@ -781,11 +780,12 @@ if __name__ == "__main__":
         gene_cog_path = outdir + "/anno_stat/cog_stat"
         if not os.path.exists(gene_cog_path):
             os.makedirs(gene_cog_path)
-        cog_summary =cog_path + "/cog_summary.xls"
-        cog_table =
+        cog_summary = cog_path + "/cog_summary.xls"
+        cog_table = cog_path + "/cog_table.xls"
         test.cog_annotation(org_cog, cog_summary, cog_table)
         gene_org_cog = outdir + "/cog_genes.list"
         gene_cog_summary = gene_cog_path + "/gene_cog_summary.xls"
+        gene_cog_table = gene_cog_path + "/gene_cog_table.xls"
         test.cog_annotation(gene_org_cog, gene_cog_summary, gene_cog_table)
 
         go_path = outdir + "/go"
@@ -828,6 +828,5 @@ if __name__ == "__main__":
         query = RefAnnoQuery()
         outpath = outdir + "/anno_stat/genes_anno_detail.xls"
         query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=gene_org_cog, gos_list=gene_gos_list, org_kegg=gene_org_kegg, anno_type="gene")
-
-    with open("test_zj.json", "w") as f:
-        json.dump(json_dict, f)
+    # with open("test_zj.json", "w") as f:
+    #     json.dump(json_dict, f)
