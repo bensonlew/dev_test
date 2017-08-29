@@ -7,7 +7,7 @@ import datetime
 from mainapp.libs.signature import check_sig
 from biocluster.workflow import Workflow
 from biocluster.wpm.client import worker_client, wait
-import random
+from biocluster.wpm.workflow import WorkflowWorker
 
 
 class DemoInitAction(object):
@@ -44,8 +44,6 @@ class DemoInitAction(object):
                   "demo_number": demo_number
               }
             }
-        worker = worker_client()
-        info = worker.add_task(data)
         try:
             worker = worker_client()
             info = worker.add_task(data)
