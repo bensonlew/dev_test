@@ -210,7 +210,7 @@ class RefAnnotation(object):
             'Q': 'Secondary metabolites biosynthesis, transport and catabolism',
             'R': 'General function prediction only', 'S': 'Function unknown'
         }
-        no_ids = []
+        no_ids, total_ids = [], []
         with open(org_cog, "r") as f, open(cog_summary, "w") as w, open(cog_table, "w") as w1:
             w1.write('#Query_name\tQuery_length\tHsp_start_of_query\tHsp_end_of_query\tHsp_strand_of_query\tHit_name\tHit_description\tHit_length\tHsp_start_of_hit\tHsp_end_of_hit\tCOG/NOG_group\tCOG/NOG_group_description\tCOG/NOG_group_categoriesr\tCOG/NOG_region_start\tCOG/NOG_region_end\tCoverage_of_COG/NOG_region\tIdentities_of_COG/NOG_region\tPositives_Identities_of_COG/NOG_region\n')
             lines = f.readlines()
@@ -230,6 +230,7 @@ class RefAnnotation(object):
                                 if group not in fun_seqs['COG']:
                                     fun_seqs['COG'][group] = []
                                 fun_seqs['COG'][group].append(query_id)
+                                total_ids.append(query_id)
                         else:
                             no_ids.append(cog_id)
                 except:
@@ -246,12 +247,16 @@ class RefAnnotation(object):
                                 if group not in fun_seqs['NOG']:
                                     fun_seqs['NOG'][group] = []
                                 fun_seqs['NOG'][group].append(query_id)
+                                total_ids.append(query_id)
                         else:
                             no_ids.append(nog_id)
                 except:
                     pass
             no_ids = list(set(no_ids))
             print len(no_ids)
+            total_ids = list(set(total_ids))
+            w.write('#Total seqs with COG/KOG/NOGs:{}'.format(str(len(total_ids))))
+            w.write('#Type\tfunctional_categories\tCOG\tNOG\tCOG list\tNOG list\n')
             for first in self.func_type:
                 for g in self.func_type[first]:
                     second = '[' + g + ']' + self.func_decs[g]
