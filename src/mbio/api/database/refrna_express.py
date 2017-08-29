@@ -31,30 +31,32 @@ class RefrnaExpress(Base):
         :params: 是否工作流根据class_code信息导入基因/转录本名称
         对转录本都加上相应的gene id信息
         """
-        if (query_type is None) or (query_type not in ["gene", "transcript"]):
+        if query_type not in ["gene", "transcript"]:
             raise Exception("query type should be gene or transcript")
         with open(class_code) as f1:
             f1.readline()
             data = dict()
             for lines in f1:
                 line = lines.strip('\n').split("\t")
-                if not line[3]:
-                    line[3] = '-'
-                if not line[1]:
-                    raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
-                if workflow:
-                    if query_type == 'transcript':
-                        data[line[0]] = dict(gene_name=line[3], class_code=line[2], gene_id=line[1])
-                    if query_type == 'gene':
-                        data[line[1]] = dict(gene_name=line[3], class_code=line[2])
+                if query_type == 'transcript':
+                    if not line[3]:
+                        line[3] = '-'
+                    if not line[1]:
+                        raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
+                    t_id, gene_id, class_code_type, gene_name = line
+                    if workflow:
+                        data[t_id] = dict(gene_name=gene_name, gene_id=gene_id, class_code=class_code_type)
+                    else:
+                        data[t_id] = dict(gene_name=gene_name, gene_id=gene_id)
                 else:
-                    if query_type == 'gene':
-                        # data[line[0]] = dict(gene_name=line[1])
-                        data[line[1]] = dict(gene_name=line[3])
-                    if query_type == 'transcript':
-                        # data[line[0]] = dict(gene_name=line[1], gene_id=line[3])
-                        data[line[0]] = dict(gene_id=line[1], gene_name=line[3])
-            return data
+                    if not line[1]:
+                        line[1] = '-'
+                    gene_id, gene_name, class_code_type = line
+                    if workflow:
+                        data[gene_id] = dict(gene_name=gene_name, class_code=class_code_type)
+                    else:
+                        data[gene_id] = dict(gene_name=gene_name)
+        return data
 
     # @report_check
     def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path,
