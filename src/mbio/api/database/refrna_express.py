@@ -46,7 +46,7 @@ class RefrnaExpress(Base):
                     if query_type == 'transcript':
                         data[line[0]] = dict(gene_name=line[3], class_code=line[2], gene_id=line[1])
                     if query_type == 'gene':
-                        data[line[1]] = dict(gane_name=line[3], class_code=line[2])
+                        data[line[1]] = dict(gene_name=line[3], class_code=line[2])
                 else:
                     if query_type == 'gene':
                         # data[line[0]] = dict(gene_name=line[1])
