@@ -826,7 +826,7 @@ if __name__ == "__main__":
         query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=org_cog, gos_list=gos_list, org_kegg=org_kegg, anno_type="transcript")
         Transcript()
         query = RefAnnoQuery()
-        outpath = outdir + "/anno_stat/genes_anno_detail.xls"
+        outpath = outdir + "/anno_stat/gene_anno_detail.xls"
         query.get_anno_stat(outpath=outpath, gtf_path=gtf_path, biomart_path=biomart_path, cog_list=gene_org_cog, gos_list=gene_gos_list, org_kegg=gene_org_kegg, anno_type="gene")
     # with open("test_zj.json", "w") as f:
     #     json.dump(json_dict, f)
