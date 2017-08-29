@@ -38,6 +38,19 @@ class SgPaternityTest(Base):
         name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
         # 信息增加modify by zhouxuan 20170705
 
+# <<<<<<< Updated upstream
+# =======
+#         if re.match('(.*-T)([0-9])', dad):  # -T 表示重上机信息不变
+#             dad_ = ('-').join(dad.split('-')[:-1])
+#         else:
+#             dad_ = dad
+#         if re.match('(.*-T)([0-9])', mom):
+#             mom_ = ('-').join(mom.split('-')[:-1])
+#             temp_m_ = re.search(".*-(M.*)", mom_)
+#         else:
+#             temp_m_ = temp_m
+#         message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
+# >>>>>>> Stashed changes
         pt_collection = self.database["sg_pt_customer"]
         # if re.match(".*-(C.*)", preg):  # 孩子重送样的时候用的是妈妈的重送样的样本(pt医检表里面妈妈的信息会变)
         #     pt_serial_number = preg.split('-')[0]
