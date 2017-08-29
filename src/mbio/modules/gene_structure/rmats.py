@@ -126,15 +126,14 @@ class RmatsModule(Module):
             a_group_path_str = ','.join(a_group_path_lst)
             b_group_path_str = ','.join(b_group_path_lst)
             a_b_bam_path_tuple_lst.append((a_group_path_str, b_group_path_str))
-            vs_name = a_group_name + "\t" + b_group_name
-        return a_b_bam_path_tuple_lst, vs_name
+        return a_b_bam_path_tuple_lst, vs_list
     
     def multi_rmats_bam_run(self):
-        temp_vs_group_path_pair_lst, vs_name = self.get_group_str()
-        vs_group_path_pair_lst = temp_vs_group_path_pair_lst
+        vs_group_path_pair_lst, vs_list = self.get_group_str()
         n = 0
         for vs_pair in vs_group_path_pair_lst:
             rmats_bam = self.add_tool('gene_structure.rmats_bam')
+            vs_name = vs_list[n][0] + "_vs_" + vs_list[n][1]
             n = n + 1
             self.step.add_steps('rmats_bam_{}'.format(n))
             rmats_bam.set_options({
@@ -150,13 +149,14 @@ class RmatsModule(Module):
                 "output_dir": rmats_bam.output_dir,
                 "keep_temp": self.option('keep_temp')
             })
-            rmats_bam.name = vs_name
+            rmats_bam.vs_name = vs_name
             step = getattr(self.step, 'rmats_bam_{}'.format(n))
             step.start()
             """绑定下一个将要运行的步骤"""
             rmats_bam.on('end', self.finish_update, 'rmats_bam_{}'.format(n))
-            rmats_bam.on('end', self.set_output, 'rmats_bam_{}'.format(n))
+            # rmats_bam.on('end', self.set_output, 'rmats_bam_{}'.format(n))
             self.rmats_bam_tools.append(rmats_bam)
+        self.on_rely(self.rmats_bam_tools, self.set_output)
         for tool in self.rmats_bam_tools:
             tool.run()
     
@@ -169,7 +169,7 @@ class RmatsModule(Module):
     def set_output(self):
         self.logger.info('set output')
         for rmats_bam_tool in self.rmats_bam_tools:
-            output_dir = os.path.join(self.output_dir, rmats_bam_tool.name)
+            output_dir = os.path.join(self.output_dir, rmats_bam_tool.vs_name)
             if not os.path.exists(output_dir):
                 os.mkdir(output_dir)
             outfiles = os.listdir(rmats_bam_tool.output_dir)

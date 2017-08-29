@@ -46,7 +46,7 @@ class RefrnaExpress(Base):
                     if query_type == 'transcript':
                         data[line[0]] = dict(gene_name=line[3], class_code=line[2], gene_id=line[1])
                     if query_type == 'gene':
-                        data[line[1]] = dict(gane_name=line[3], class_code=line[2])
+                        data[line[1]] = dict(gene_name=line[3], class_code=line[2])
                 else:
                     if query_type == 'gene':
                         # data[line[0]] = dict(gene_name=line[1])
@@ -948,9 +948,8 @@ class RefrnaExpress(Base):
         if not value_type:
             raise Exception("add_express_diff函数需要设置value_type(选择表达量水平fpkm或tpm)参数!")
         if "type" in params.keys() and "diff_method" in params.keys():
-            query_type = params['type'].lower()
             diff_method = params['diff_method'].lower()
-            re_name_info = {"gene": "G", "trans": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
+            re_name_info = {"gene": "G", "transcript": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
                             "featurecounts": "FeaCount", "rsem": "RSEM"}
             re_name = 'DiffExp_{}_{}_{}_{}_'.format(re_name_info[query_type],
                                                     re_name_info[express_method.lower()], value_type.lower(),

@@ -9,9 +9,6 @@ import os
 import json
 import shutil
 import re
-from collections import OrderedDict
-from gevent.monkey import patch_all
-import gevent
 import time
 
 class RefrnaWorkflow(Workflow):
@@ -100,44 +97,38 @@ class RefrnaWorkflow(Workflow):
         self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json"
         self.json_dict = self.get_json()
         self.filecheck = self.add_tool("rna.filecheck_ref")
-        self.gs = self.add_tool("gene_structure.genome_structure")
         self.qc = self.add_module("sequence.hiseq_qc")
         self.qc_stat_before = self.add_module("sequence.hiseq_reads_stat")
         self.qc_stat_after = self.add_module("sequence.hiseq_reads_stat")
         self.mapping = self.add_module("rna.rnaseq_mapping")
         self.altersplicing = self.add_module("gene_structure.rmats")
         self.map_qc = self.add_module("denovo_rna.mapping.map_assessment")
-        self.map_qc_gene = self.add_module("denovo_rna.mapping.map_assessment")
-        self.map_gene = self.add_module("rna.rnaseq_mapping")
-        self.star_mapping = self.add_module("rna.rnaseq_mapping")
         self.assembly = self.add_module("assemble.refrna_assemble")
         self.exp = self.add_module("rna.express")
-        self.exp_alter = self.add_module("rna.express")
         self.exp_fc = self.add_module("rna.express")
-        self.exp_diff_trans = self.add_module("denovo_rna.express.diff_analysis")
-        self.exp_diff_gene = self.add_module("denovo_rna.express.diff_analysis")
         self.snp_rna = self.add_module("gene_structure.snp_rna")
-        self.seq_abs = self.add_tool("annotation.transcript_abstract")
         self.new_gene_abs = self.add_tool("annotation.transcript_abstract")
         self.new_trans_abs = self.add_tool("annotation.transcript_abstract")
-        self.para_anno = self.add_module("rna.parallel_anno")
-        self.annotation = self.add_module('annotation.ref_annotation')
         self.new_annotation = self.add_module('annotation.ref_annotation')
-        self.network_trans = self.add_module("protein_regulation.ppinetwork_analysis")
-        self.network_gene = self.add_module("protein_regulation.ppinetwork_analysis")
-        self.tf = self.add_tool("protein_regulation.TF_predict")
         self.merge_trans_annot = self.add_tool("annotation.merge_annot")
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
-        self.anno_path = ""
         if self.option("ref_genome") != "Custom":
             self.ref_genome = os.path.join(os.path.split(self.json_path)[0],
                                            self.json_dict[self.option("ref_genome")]["dna_fa"])
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
+            if "anno_path" not in self.json_dict[self.option("ref_genome")]:
+                self.logger.warning("json文件中不存在注释文件，程序退出")
+                self.start_listener()
+                self.fire("end")
+            elif not os.path.exists(self.json_dict[self.option("ref_genome")]["anno_path"]):
+                self.logger.warning("不存在注释文件，程序退出")
+                self.start_listener()
+                self.fire("end")
             self.anno_path = os.path.join(os.path.split(self.json_path)[0],
                                           self.json_dict[self.option("ref_genome")]["anno_path"])
-            self.logger.info(self.anno_path)
+            self.logger.info("注释文件路径为： " + self.anno_path)
         else:
             self.ref_genome = self.option("ref_genome_custom")
             self.taxon_id = ""
@@ -146,13 +137,15 @@ class RefrnaWorkflow(Workflow):
             gtf_path = os.path.join(os.path.split(self.json_path)[0],
                                            self.json_dict[self.option("ref_genome")]["gtf"])
             self.option('genome_structure_file', gtf_path)
+        else:
+            if self.option("genome_structure_file").format == "gene_structure.gff3":
+                self.gff = self.option('genome_structure_file').prop["path"]
         self.final_tools = [self.snp_rna, self.altersplicing, self.exp_fc, self.exp, self.merge_trans_annot,
                             self.merge_gene_annot]
         self.genome_status = True
         self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
         if self.option("ref_genome") == "Custom":
             self.option("ref_genome", "customer_mode")  # 统一转化为customer_mode
-        self.logger.info(self.option("ref_genome"))
 
     def check_options(self):
         """
@@ -241,23 +234,6 @@ class RefrnaWorkflow(Workflow):
         self.filecheck.on('end', self.set_step, {'end': self.step.filecheck})
         self.filecheck.run()
 
-    def run_gs(self):
-        opts = {
-            "in_fasta": self.option("ref_genome_custom"),
-            "ref_genome": self.option("ref_genome")
-            # "in_gtf": self.filecheck.option("gtf")
-        }
-        if self.gff != "":
-            opts.update({
-                "in_gff": self.gff
-            })
-        else:
-            opts.update({
-                "in_gtf": self.filecheck.option("gtf")
-            })
-        self.gs.set_options(opts)
-        self.gs.run()
-
     def run_qc(self):
         self.qc.set_options({
             'fastq_dir': self.option('fastq_dir'),
@@ -267,110 +243,6 @@ class RefrnaWorkflow(Workflow):
         self.qc.on('start', self.set_step, {'start': self.step.rna_qc})
         self.qc.on('end', self.set_step, {'end': self.step.rna_qc})
         self.qc.run()
-
-    def run_seq_abs(self):
-        opts = {
-            "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome_gtf": self.filecheck.option("gtf")
-        }
-        self.seq_abs.set_options(opts)
-        self.seq_abs.run()
-
-    def run_align(self, event):
-        method = event["data"]
-        self.blast_modules = []
-        self.gene_list = self.seq_abs.option('gene_file')
-        if int(self.seq_abs.option('query').prop['seq_number']) == 0:
-            self.logger.info('.......blast_lines:0')
-            self.new_annotation.start_listener()
-            self.new_annotation.fire("end")
-            return
-        blast_lines = int(self.seq_abs.option('query').prop['seq_number']) / 10 + 1
-        self.logger.info('.......blast_lines:%s' % blast_lines)
-        blast_opts = {
-            'query': self.seq_abs.option('query'),
-            'query_type': 'nucl',
-            'database': None,
-            'blast': 'blastx',
-            'evalue': None,
-            'outfmt': 5,
-            'lines': blast_lines,
-        }
-        # go注释参数设置
-        self.blast_nr = self.add_module('align.' + method)
-        blast_opts.update(
-            {
-                'database': self.option("nr_database"),
-                'evalue': self.option('nr_blast_evalue')
-            }
-        )
-        self.blast_nr.set_options(blast_opts)
-        self.blast_modules.append(self.blast_nr)
-        self.blast_nr.on('end', self.set_output, 'nrblast')
-        # cog注释参数设置
-        self.blast_string = self.add_module('align.' + method)
-        blast_opts.update(
-            {'database': 'string', 'evalue': self.option('string_blast_evalue')}
-        )
-        self.blast_string.set_options(blast_opts)
-        self.blast_modules.append(self.blast_string)
-        self.blast_string.on('end', self.set_output, 'stringblast')
-        # kegg注释参数设置
-        self.blast_kegg = self.add_module('align.' + method)
-        blast_opts.update(
-            {'database': 'kegg', 'evalue': self.option('kegg_blast_evalue')}
-        )
-        self.blast_kegg.set_options(blast_opts)
-        self.blast_modules.append(self.blast_kegg)
-        self.blast_kegg.on('end', self.set_output, 'keggblast')
-        # 运行run方法
-        self.on_rely(self.blast_modules, self.run_para_anno, True)
-        self.blast_string.run()
-        self.blast_kegg.run()
-        self.blast_nr.run()
-
-    def run_para_anno(self):
-        opts = {
-            "string_align_dir": self.blast_string.catblast.option("blastout"),
-            "nr_align_dir": self.blast_nr.catblast.option("blastout"),
-            "kegg_align_dir": self.blast_kegg.catblast.option("blastout"),
-            "gene_file": self.seq_abs.option("gene_file"),
-            "length_file": self.seq_abs.option("length_file"),
-            "ref_genome_gtf": self.filecheck.option("gtf")
-        }
-        self.para_anno.set_options(opts)
-        self.para_anno.on("end", self.run_annotation)
-        self.para_anno.run()
-
-    def run_annotation(self):
-        # 读入上传表格文件进行注释
-        opts = {
-            "gos_list_upload": self.para_anno.option("out_go"),
-            "kos_list_upload": self.para_anno.option("out_kegg"),
-            "blast_string_table": self.para_anno.option("out_cog"),
-            "gene_file": self.seq_abs.option("gene_file"),
-            "ref_genome_gtf": self.filecheck.option("gtf"),
-            "taxonomy": self.option("kegg_database"),
-            "nr_annot": False,
-            "length_file": self.seq_abs.option("length_file")
-        }
-        if self.anno_path != "":  # 本地参考基因组注释文件
-            opts.update({
-                "gos_list_upload": self.anno_path + "/go.list",
-                "kos_list_upload": self.anno_path + "/kegg.list",
-                "blast_string_table": self.anno_path + "/cog.list",
-            })
-        if self.option("go_upload_file").is_set:
-            opts.update({
-                "gos_list_upload": self.option("go_upload_file")
-            })
-        if self.option("kegg_upload_file").is_set:
-            opts.update({
-                "kos_list_upload": self.option("kegg_upload_file")
-            })
-        self.annotation.set_options(opts)
-        self.annotation.on("end", self.set_output, "annotation")
-        self.annotation.run()
 
     def run_qc_stat(self, event):
         if event['data']:
@@ -390,31 +262,6 @@ class RefrnaWorkflow(Workflow):
             self.qc_stat_before.on('end', self.set_output, 'qc_stat_before')
             self.qc_stat_before.run()
 
-    def run_map_assess_gene(self):
-        opts = {
-            "bam": self.map_gene.option("bam_output"),
-            "bed": self.filecheck.option("bed")
-        }
-        self.map_qc_gene.set_options(opts)
-        self.map_qc_gene.on("end", self.set_output, "map_qc_gene")
-        self.map_qc_gene.run()
-
-    def run_map_gene(self):
-        opts = {
-            "ref_genome_custom": self.seq_abs.option("query"),
-            "ref_genome": "customer_mode",
-            "mapping_method": self.option("seq_method").lower(),  # 比对软件
-            "seq_method": self.option("fq_type"),   # PE or SE
-            "fastq_dir": self.qc.option("sickle_dir"),
-            "assemble_method": self.option("assemble_method"),
-            "mate_std": self.option("mate_std"),
-            "mid_dis": self.option("mid_dis"),
-            "result_reserved": self.option("result_reserved")
-        }
-        self.map_gene.set_options(opts)
-        self.map_gene.on("end", self.set_output, "map_gene")
-        self.map_gene.run()
-
     def run_mapping(self):
         opts = {
             "ref_genome_custom": self.option("ref_genome_custom"),
@@ -432,29 +279,6 @@ class RefrnaWorkflow(Workflow):
         self.mapping.on("start", self.set_step, {"start": self.step.mapping})
         self.mapping.on("end", self.set_step, {"end": self.step.mapping})
         self.mapping.run()
-
-    def run_star_mapping(self):
-        opts = {
-            "ref_genome_custom": self.option("ref_genome_custom"),
-            "ref_genome": self.option("ref_genome"),
-            "mapping_method": "star",
-            "seq_method": self.option("fq_type"),   # PE or SE
-            "fastq_dir": self.qc.option("sickle_dir"),
-            "assemble_method": self.option("assemble_method")
-        }
-        self.star_mapping.set_options(opts)
-        self.genome_status = self.filecheck.option("genome_status")
-        if self.genome_status:  # 进行可变剪切分析
-            self.star_mapping.on("end", self.run_altersplicing)
-            self.star_mapping.on("end", self.run_snp)
-            self.star_mapping.on("end", self.set_output, "mapping")
-            self.star_mapping.run()
-        else:
-            self.logger.info("不进行snp分析与可变剪切分析")
-            self.snp_rna.start_listener()
-            self.snp_rna.fire("end")
-            self.altersplicing.start_listener()
-            self.altersplicing.fire("end")
 
     def run_assembly(self):
         self.logger.info("开始运行拼接步骤")
@@ -626,7 +450,6 @@ class RefrnaWorkflow(Workflow):
         self.snp_rna.on("start", self.set_step, {"start": self.step.snp_rna})
         self.snp_rna.on("end", self.set_step, {"end": self.step.snp_rna})
         self.snp_rna.on("end", self.set_output, "snp")
-        # self.final_tools.append(self.snp_rna)
         self.snp_rna.run()
 
     def run_map_assess(self):
@@ -688,45 +511,7 @@ class RefrnaWorkflow(Workflow):
         mod = self.exp_fc
         mod.set_options(opts)
         mod.on("end", self.set_output, "exp_fc_all")
-        # mod.on('start', self.set_step, {'start': self.step.express})
-        # mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
-
-    def run_network_trans(self):
-        with open(self.exp.option("network_diff_list").prop["path"], "r") as ft:
-            ft.readline()
-            content = ft.read()
-        if not content:
-            self.logger.info("无差异转录本，不进行网络分析")
-            self.network_trans.start_listener()
-            self.network_trans.fire("end")
-        else:
-            opts = {
-                "diff_exp_gene": self.exp.option("network_diff_list"),
-                "species": int(self.taxon_id),
-                "combine_score": self.option("combine_score")
-            }
-            self.network_trans.set_options(opts)
-            self.network_trans.on("end", self.set_output, "network_analysis")
-            self.network_trans.run()
-
-    def run_network_gene(self):
-        with open(self.exp.output_dir + "/diff/genes_diff/network_diff_list", "r") as fg:
-            fg.readline()
-            content = fg.read()
-        if not content:
-            self.logger.info("无差异基因，不进行网络分析")
-            self.network_gene.start_listener()
-            self.network_gene.fire("end")
-        else:
-            opts = {
-                "diff_exp_gene": self.exp.output_dir + "/diff/genes_diff/network_diff_list",
-                "species": int(self.taxon_id),
-                "combine_score": self.option("combine_score")
-            }
-            self.network_gene.set_options(opts)
-            self.network_gene.on("end", self.set_output, "network_analysis")
-            self.network_gene.run()
 
     def run_altersplicing(self):
         if self.option("strand_specific"):
@@ -787,88 +572,6 @@ class RefrnaWorkflow(Workflow):
         self.merge_gene_annot.set_options(gene_opts)
         self.merge_trans_annot.run()
         self.merge_gene_annot.run()
-
-    def run_exp_trans_diff(self):
-        with open(self.exp.output_dir + "/diff/trans_diff/diff_list", "r") as f:
-            content = f.read()
-        if not content:
-            self.logger.info("无差异转录本，不进行差异分析")
-            self.exp_diff_trans.start_listener()
-            self.exp_diff_trans.fire("end")
-        else:
-            exp_diff_opts = {
-                'diff_fpkm': self.exp.output_dir + "/diff/trans_diff/diff_fpkm",
-                'analysis': self.option('exp_analysis'),
-                'diff_list': self.exp.output_dir + "/diff/trans_diff/diff_list",
-                "is_genelist": True,
-                "diff_list_dir": self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
-            }
-            if 'kegg_rich' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'gene_kegg_table': self.merge_trans_annot.option('kegg_table'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_stat_dir",
-                     # 'kegg_all_list': self.exp.output_dir + "/rsem/trans_list",
-                })
-            if 'go_rich' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'gene_go_list': self.merge_trans_annot.option('golist_out'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
-                    # 'go_all_list': self.exp.output_dir + "/rsem/trans_list",
-                    'gene_go_level_2': self.merge_trans_annot.option('go2level_out')
-                })
-            if 'cog_class' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'cog_table': self.merge_trans_annot.option('cog_table'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/trans_diff/diff_list_dir",
-                })
-            if 'kegg_regulate' in self.option('exp_analysis') or 'go_regulate' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'diff_stat_dir': self.exp.output_dir + "/diff/trans_diff/diff_stat_dir"
-                })
-            self.exp_diff_trans.set_options(exp_diff_opts)
-            self.exp_diff_trans.on('end', self.set_output, 'exp_diff_trans')
-            self.exp_diff_trans.run()
-
-    def run_exp_gene_diff(self):
-        with open(self.exp.output_dir + "/diff/genes_diff/diff_list", "r") as f:
-            content = f.read()
-        if not content:
-            self.logger.info("无差异基因，不进行差异分析")
-            self.exp_diff_gene.start_listener()
-            self.exp_diff_gene.fire("end")
-        else:
-            exp_diff_opts = {
-                'diff_fpkm': self.exp.output_dir + "/diff/genes_diff/diff_fpkm",
-                'analysis': self.option('exp_analysis'),
-                'diff_list': self.exp.output_dir + "/diff/genes_diff/diff_list",
-                "is_genelist": True,
-                "diff_list_dir": self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-            }
-            if 'kegg_rich' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'gene_kegg_table': self.merge_gene_annot.option('kegg_table'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-                     # 'kegg_all_list': self.exp.output_dir + "/rsem/gene_list",
-                })
-            if 'go_rich' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'gene_go_list': self.merge_gene_annot.option('golist_out'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-                    # 'go_all_list': self.exp.output_dir + "/rsem/gene_list",
-                    'gene_go_level_2': self.merge_gene_annot.option('go2level_out')
-                })
-            if 'cog_class' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'cog_table': self.merge_gene_annot.option('cog_table'),
-                    'diff_list_dir': self.exp.output_dir + "/diff/genes_diff/diff_list_dir",
-                })
-            if 'kegg_regulate' in self.option('exp_analysis') or 'go_regulate' in self.option('exp_analysis'):
-                exp_diff_opts.update({
-                    'diff_stat_dir': self.exp.output_dir + "/diff/genes_diff/diff_stat_dir"
-                })
-            self.exp_diff_gene.set_options(exp_diff_opts)
-            self.exp_diff_gene.on('end', self.set_output, 'exp_diff_gene')
-            self.exp_diff_gene.run()
 
     def move2outputdir(self, olddir, newname, mode='link'):
         """
@@ -981,14 +684,17 @@ class RefrnaWorkflow(Workflow):
         super(RefrnaWorkflow, self).run()
 
     def end(self):
+        self.run_api_and_set_output()
         super(RefrnaWorkflow, self).end()
 
 
     def run_api_and_set_output(self):
-        self.IMPORT_REPORT_DATA = True
-        self.IMPORT_REPORT_AFTER_END = False
+        # self.IMPORT_REPORT_DATA = True
+        # self.IMPORT_REPORT_AFTER_END = False
+        # 需设置gtf路径
         self.export_qc()
-        # self.export_annotation()
+        self.export_as()
+        self.export_annotation()
         self.export_assembly()
         self.export_snp()
         self.export_map_assess()
@@ -1001,9 +707,6 @@ class RefrnaWorkflow(Workflow):
         self.export_ref_diff_trans()
         self.export_cor()
         self.export_pca()
-        self.filecheck.option("gtf", "/mnt/ilustre/users/sanger-dev/workspace/20170829/Refrna_tsg_8866/FilecheckRef/Oreochromis_niloticus.Orenil1.0.89.gtf")
-        self.export_as()
-        self.end()
 
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc
@@ -1016,9 +719,8 @@ class RefrnaWorkflow(Workflow):
         qc_stat = self.qc_stat_after.output_dir
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="after")
         self.api_qc.add_gragh_info(quality_stat_after, "after")
-        quality_stat_before = self.qc_stat_before.output_dir + "/qualityStat"  # 将qc前导表加于该处
         self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
-        self.logger.info(self.group_detail)
+        self.logger.info("group_detail为：" + self.group_detail)
         self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
         self.api_qc.add_bam_path(self.mapping.output_dir)
 
@@ -1031,7 +733,6 @@ class RefrnaWorkflow(Workflow):
             all_gtf_path = self.assembly.output_dir + "/Stringtie"
             merged_path = self.assembly.output_dir + "/StringtieMerge"
         self.api_assembly.add_assembly_result(all_gtf_path=all_gtf_path, merged_path=merged_path, Statistics_path=self.assembly.output_dir + "/Statistics")
-
 
     def export_map_assess(self):
         self.api_map = self.api.ref_rna_qc
@@ -1083,35 +784,6 @@ class RefrnaWorkflow(Workflow):
         class_code = self.exp.mergersem.work_dir + "/class_code"
         self.express_id = self.api_exp.add_express(rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
                                                    class_code=class_code, samples=samples, params=params, major=True, distri_path=distri_path)
-
-    def export_exp_rsem_alter(self):
-        self.api_exp = self.api.refrna_express
-        rsem_dir = self.exp_alter.output_dir + "/rsem"
-        if self.option("is_duplicate"):
-            group_fpkm_path = self.exp_alter.mergersem.work_dir + "/group"
-            is_duplicate = True
-        else:
-            group_fpkm_path = None
-            is_duplicate = False
-        with open(rsem_dir + "/genes.counts.matrix") as f:
-            samples = f.readline().strip().split("\t")
-        params={}
-        params["express_method"] = "rsem"
-        if self.option("exp_way") == "fpkm":
-            params["type"] = "tpm"
-        else:
-            params["type"] = "fpkm"
-        params["group_id"] = str(self.group_id)
-        params['group_detail'] = dict()
-        for i in range(len(self.group_category)):
-            key = self.group_category[i]
-            value = self.group_detail[i].keys()
-            params['group_detail'][key] = value
-        self.logger.info(params['group_detail'])
-        distri_path = self.exp_alter.mergersem.work_dir
-        class_code = self.exp.mergersem.work_dir + "/class_code"
-        self.api_exp.add_express(rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
-                             class_code=class_code, samples=samples, params=params, major=True, distri_path=distri_path)
 
     def export_exp_fc(self):
         self.api_exp = self.api.refrna_express
@@ -1412,7 +1084,6 @@ class RefrnaWorkflow(Workflow):
                                             class_code=class_code,workflow=True)
 
 
-
     def export_cor(self):
         self.api_cor = self.api.refrna_corr_express
         correlation = self.exp.output_dir + "/correlation/genes_correlation"
@@ -1440,7 +1111,7 @@ class RefrnaWorkflow(Workflow):
 
     def export_annotation(self):
         self.api_anno = self.api.api("ref_rna.ref_annotation")
-        ref_anno_path = self.annotation.output_dir
+        ref_anno_path = self.anno_path
         params = {
             "nr_evalue": self.option("nr_blast_evalue"),
             "nr_similarity": 0,
@@ -1489,339 +1160,26 @@ class RefrnaWorkflow(Workflow):
             "submit_location": "splicingrmats",
             "task_type": ""
         }
-        if len(self.group_category) > 2:
-            self.logger.info("出现两组以上对照组，取前两组进行导表")
-        params['group_detail'] = dict()
-        group = dict()
-        for i in range(len(self.group_category)):
-            if i == 2:
-                break
-            key = self.group_category[i]
-            value = self.group_detail[i].keys()
-            params['group_detail'][key] = value
-            if i == 0:
-                group[key] = "s1"
-            else:
-                group[key] = "s2"
-        outpath = self.altersplicing.output_dir
-        self.logger.info(params)
-        self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group, ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
-
-    def export_ppi(self):
-        api_ppinetwork = self.api.ppinetwork
-        if self.transet_id == []:
-            return
-        geneset_id = None
-        file_name = self.network_trans.option("diff_exp_gene").prop["path"]
-        name = os.path.split(os.path.basename(file_name))[0]
-        if name.startswith("network_"):
-            name = name.split("network_")[1]
-            for key in self.trans_gs_id_name.keys():
-                if self.trans_gs_id_name[key] == name:
-                    geneset_id = key
-                    break
-        if not geneset_id:
-            self.logger.info("没找到对应的基因集")
-            return
-        self.ppi_id = api_ppinetwork.add_ppi_main_id(str(geneset_id), self.option("combine_score"), "trans", self.taxon_id)
-        self.ppi_id = str(self.ppi_id)
-        all_nodes_path = self.network_trans.output_dir + '/ppinetwork_predict/all_nodes.txt'   # 画图节点属性文件
-        interaction_path = self.network_trans.output_dir + '/ppinetwork_predict/interaction.txt'  # 画图的边文件
-        network_stats_path = self.network_trans.output_dir + '/ppinetwork_predict/network_stats.txt'  # 网络全局属性统计
-        network_centrality_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_centrality.txt'
-        network_clustering_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_clustering.txt'
-        network_transitivity_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_transitivity.txt'
-        degree_distribution_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_degree_distribution.txt'
-        network_node_degree_path = self.network_trans.output_dir + '/ppinetwork_topology/protein_interaction_network_node_degree.txt'
-        api_ppinetwork.add_node_table(file_path=all_nodes_path, table_id=self.ppi_id)   # 节点的属性文件（画网络图用）
-        api_ppinetwork.add_edge_table(file_path=interaction_path, table_id=self.ppi_id)  # 边信息
-        api_ppinetwork.add_network_attributes(file1_path=network_transitivity_path, file2_path=network_stats_path, table_id=self.ppi_id)  # 网络全局属性
-        api_ppinetwork.add_network_cluster_degree(file1_path=network_node_degree_path,file2_path=network_clustering_path,file3_path=all_nodes_path,table_id=self.ppi_id)  # 节点的聚类与degree，画折线图
-        api_ppinetwork.add_network_centrality(file_path=network_centrality_path, file1_path=all_nodes_path, table_id=self.ppi_id)  # 中心信息
-        api_ppinetwork.add_degree_distribution(file_path=degree_distribution_path, table_id=self.ppi_id)  # 度分布
-
+        for file in os.listdir(self.altersplicing.output_dir):
+            tmp_group_list = file.split("_vs_")
+            group_a = tmp_group_list[0]
+            group_b = tmp_group_list[1]
+            params['group_detail'] = {}
+            group = dict()
+            for i in range(len(self.group_category)):
+                value = self.group_detail[i].keys()
+                if self.group_category[i] == group_a:
+                    params['group_detail'][group_a] = value
+                elif self.group_category[i] == group_b:
+                    params['group_detail'][group_b] = value
+            group[group_a] = "s1"
+            group[group_b] = "s2"
+            self.logger.info(params)
+            outpath = os.path.join(self.altersplicing.output_dir, file)
+            self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group,
+                                          ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
 
     def export_snp(self):
         self.api_snp = self.api.api("ref_rna.ref_snp")
         snp_anno = self.snp_rna.output_dir
         self.api_snp.add_snp_main(snp_anno)
-
-    def export_cluster_trans(self):
-        api_cluster = self.api.denovo_cluster  # #不确定,增加一个database
-        my_param = dict()
-        my_param['submit_location']="geneset_cluster_trans"
-        my_param['type']= "transcript"
-        # my_param['distance_method']=data.distance_method # 距离算法
-        my_param['method']= "hclust"
-        my_param['log']= 10
-        my_param['level']= self.option("exp_way")
-        my_param['sub_num']= 5
-        my_param['group_id']= str(self.group_id)
-        tmp = dict()
-        for i in range(len(self.group_category)):
-            key = self.group_category[i]
-            value = self.group_detail[i].keys()
-            tmp[key] = value
-        my_param['group_detail'] = self.group_detail_sort(tmp)
-        my_param['express_method']= "rsem"
-        my_param['geneset_id']= str(self.geneset_id[0])
-        my_param['genes_distance_method'] = "complete"
-        my_param['samples_distance_method'] = "complete"
-        self.logger.info("开始导mongo表！")
-        hclust_path = os.path.join(self.exp_diff_gene.output_dir, "cluster/hclust")
-        sub_clusters = os.listdir(hclust_path)
-        with open(self.exp_diff_gene.cluster.work_dir + '/hc_gene_order') as r:
-            genes = [i.strip('\n') for i in r.readlines()]
-        with open(self.exp_diff_gene.cluster.work_dir + '/hc_sample_order') as r:
-            specimen = [i.strip('\n') for i in r.readlines()]
-        sample_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/samples_tree.txt"
-        gene_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/genes_tree.txt"
-        id = api_cluster.add_cluster(my_param, express_id=self.express_id, sample_tree=sample_tree, gene_tree=gene_tree, samples=specimen, genes=genes, project='ref')
-        for sub_cluster in sub_clusters:
-            if re.match('subcluster', sub_cluster):  # 找到子聚类的文件进行迭代
-                sub = sub_cluster.split("_")[1]
-                sub_path = os.path.join(hclust_path, sub_cluster)
-                api_cluster.add_cluster_detail(cluster_id=id, sub=sub, sub_path=sub_path,project='ref')
-                self.logger.info("开始导子聚类函数！")
-            if re.search('samples_tree', sub_cluster):  # 找到sample_tree
-                self.logger.info("sample_tree产生")
-
-            if re.search('genes_tree', sub_cluster):  # 找到gene_tree
-                self.logger.info("gene_tree产生")
-
-    def export_cluster_gene(self):
-        api_cluster = self.api.denovo_cluster  # #不确定,增加一个database
-        my_param = dict()
-        my_param['submit_location']="geneset_cluster_gene"
-        my_param['type'] = "gene"
-        # my_param['distance_method']=data.distance_method # 距离算法
-        my_param['method'] = "hclust"
-        my_param['log'] = 10
-        my_param['level'] = self.option("exp_way")
-        my_param['sub_num'] = 5
-        my_param['group_id'] = str(self.group_id)
-        tmp = dict()
-        for i in range(len(self.group_category)):
-            key = self.group_category[i]
-            value = self.group_detail[i].keys()
-            tmp[key] = value
-        my_param['group_detail'] = self.group_detail_sort(tmp)
-        my_param['express_method'] = "rsem"
-        my_param['geneset_id'] = str(self.geneset_id[0])
-        my_param['genes_distance_method'] = "complete"
-        my_param['samples_distance_method'] = "complete"
-        self.logger.info("开始导mongo表！")
-        hclust_path = os.path.join(self.exp_diff_gene.output_dir, "cluster/hclust")
-        sub_clusters = os.listdir(hclust_path)
-        with open(self.exp_diff_gene.cluster.work_dir + '/hc_gene_order') as r:
-            genes = [i.strip('\n') for i in r.readlines()]
-        with open(self.exp_diff_gene.cluster.work_dir + '/hc_sample_order') as r:
-            specimen = [i.strip('\n') for i in r.readlines()]
-        sample_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/samples_tree.txt"
-        gene_tree = self.exp_diff_gene.output_dir + "/cluster/hclust/genes_tree.txt"
-        id = api_cluster.add_cluster(my_param, express_id=self.express_id, sample_tree=sample_tree, gene_tree=gene_tree, samples=specimen, genes=genes, project='ref')
-        for sub_cluster in sub_clusters:
-            if re.match('subcluster', sub_cluster):  # 找到子聚类的文件进行迭代
-                sub = sub_cluster.split("_")[1]
-                sub_path = os.path.join(hclust_path, sub_cluster)
-                api_cluster.add_cluster_detail(cluster_id=id, sub=sub, sub_path=sub_path,project='ref')
-                self.logger.info("开始导子聚类函数！")
-            if re.search('samples_tree', sub_cluster):  # 找到sample_tree
-                self.logger.info("sample_tree产生")
-            if re.search('genes_tree', sub_cluster):  # 找到gene_tree
-                self.logger.info("gene_tree产生")
-
-    @staticmethod
-    def group_detail_sort(detail):
-        if isinstance(detail, dict):
-            table_dict = detail
-        else:
-            table_dict = json.loads(detail)
-        if not isinstance(table_dict, dict):
-            raise Exception("传入的table_dict不是一个字典")
-        for keys in table_dict.keys():
-            table_dict[keys] = sorted(table_dict[keys])
-        sort_key = OrderedDict(sorted(table_dict.items(), key=lambda t: t[0]))
-        table_dict = sort_key
-        return table_dict
-
-    def export_go_regulate(self):
-        self.logger.info("正在导出go调控数据")
-        self.api_regulate = self.api.ref_rna_geneset
-        trans_dir = self.exp_diff_trans.output_dir
-        gene_dir = self.exp_diff_gene.output_dir
-        trans_go_regulate_dir = trans_dir + "/go_regulate"
-        gene_go_regulate_dir = gene_dir + "/go_regulate"
-        for trans_id in self.trans_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(trans_id)
-            params["anno_type"] = "go"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "transcript"
-            inserted_id = self.api_regulate.add_main_table(collection_name = "sg_geneset_go_class", params =params, name = "go_regulate_main_table")
-            for dir in os.listdir(trans_go_regulate_dir):
-                if self.trans_gs_id_name[trans_id] in dir:
-                    dir_path = os.path.join(trans_go_regulate_dir, dir)
-                    self.logger.info(dir_path)
-                    self.api_regulate.add_go_regulate_detail(go_regulate_dir=dir_path + "/GO_regulate.xls", go_regulate_id=str(inserted_id))
-        for gene_id in self.gene_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(gene_id)
-            params["anno_type"] = "go"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "gene"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_go_class", params=params, name="go_regulate_main_table")
-            for dir in os.listdir(gene_go_regulate_dir):
-                if self.gene_gs_id_name[gene_id] in dir:
-                    dir_path = os.path.join(trans_go_regulate_dir, dir)
-                    self.logger.info(dir_path)
-                    self.api_regulate.add_go_regulate_detail(go_regulate_dir=dir_path + "/GO_regulate.xls", go_regulate_id=str(inserted_id))
-
-    def export_go_enrich(self):
-        self.logger.info("正在导出go富集的数据")
-        self.api_regulate = self.api.ref_rna_geneset
-        trans_dir = self.exp_diff_trans.output_dir
-        gene_dir = self.exp_diff_gene.output_dir
-        trans_go_regulate_dir = trans_dir + "/go_rich"
-        gene_go_regulate_dir = gene_dir + "/go_rich"
-        for trans_id in self.trans_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(trans_id)
-            params["method"] = "fdr"
-            params["anno_type"] = "go"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "transcript"
-            inserted_id = self.api_regulate.add_main_table(collection_name = "sg_geneset_go_enrich", params =params, name = "go_enrich_main_table")
-            for dir in os.listdir(trans_go_regulate_dir):
-                if self.trans_gs_id_name[trans_id] in dir:
-                    dir_path = os.path.join(trans_go_regulate_dir, dir)
-                    self.api_regulate.add_go_enrich_detail(go_enrich_dir=dir_path + "/go_enrich_{}.xls".format(self.trans_gs_id_name[trans_id]), go_enrich_id=str(inserted_id))
-        for gene_id in self.gene_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(gene_id)
-            params["anno_type"] = "go"
-            params["method"] = "fdr"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "gene"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_go_enrich", params=params, name="go_enrich_main_table")
-            for dir in os.listdir(gene_go_regulate_dir):
-                if self.gene_gs_id_name[str(gene_id)] in dir:
-                    dir_path = os.path.join(trans_go_regulate_dir, dir)
-                    self.api_regulate.add_go_enrich_detail(go_enrich_dir=dir_path + "/go_enrich_{}.xls".format(self.gene_gs_id_name[gene_id]), go_enrich_id=str(inserted_id))
-
-    def export_kegg_regulate(self):
-        self.logger.info("正在导出kegg调控的数据")
-        self.api_regulate = self.api.ref_rna_geneset
-        trans_dir = self.exp_diff_trans.output_dir
-        gene_dir = self.exp_diff_gene.output_dir
-        trans_kegg_regulate_dir = trans_dir + "/kegg_regulate"
-        gene_kegg_regulate_dir = gene_dir + "/kegg_regulate"
-        for trans_id in self.trans_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(trans_id)
-            params["anno_type"] = "kegg"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "transcript"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
-            self.logger.info(inserted_id)
-            for dir in os.listdir(trans_kegg_regulate_dir):
-                if self.trans_gs_id_name[str(trans_id)] in dir:
-                    dir_path = os.path.join(trans_kegg_regulate_dir, dir)
-                    self.api_regulate.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
-                    self.api_regulate.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
-        for gene_id in self.gene_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(gene_id)
-            params["anno_type"] = "kegg"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "gene"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_class", params=params, name="kegg_class_main_table")
-            for dir in os.listdir(gene_kegg_regulate_dir):
-                if self.gene_gs_id_name[str(gene_id)] in dir:
-                    dir_path = os.path.join(gene_kegg_regulate_dir, dir)
-                    self.api_regulate.add_kegg_regulate_detail(kegg_regulate_table=dir_path + "/kegg_regulate_stat.xls", regulate_id=str(inserted_id))
-                    self.api_regulate.add_kegg_regulate_pathway(pathway_dir=dir_path + "/pathways", regulate_id=str(inserted_id))
-
-    def export_kegg_enrich(self):
-        self.logger.info("正在导出kegg富集的数据")
-        self.api_regulate = self.api.ref_rna_geneset
-        trans_dir = self.exp_diff_trans.output_dir
-        gene_dir = self.exp_diff_gene.output_dir
-        trans_kegg_regulate_dir = trans_dir + "/kegg_rich"
-        gene_kegg_regulate_dir = gene_dir + "/kegg_rich"
-        for trans_id in self.trans_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(trans_id)
-            params["anno_type"] = "kegg"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "transcript"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_enrich", params=params, name="kegg_enrich_main_table")
-            for dir in os.listdir(trans_kegg_regulate_dir):
-                if self.trans_gs_id_name[str(trans_id)] in dir:
-                    for tool in self.exp_diff_trans.kegg_rich_tool:
-                        list_path = tool.option('diff_list').prop["path"]
-                        if dir in list_path:
-                            geneset_list_path = list_path
-                            break
-                    dir_path = os.path.join(trans_kegg_regulate_dir, dir)
-                    self.logger.info(dir_path)
-                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.DE.list.kegg_enrichment.xls".format(
-                        self.trans_gs_id_name[str(trans_id)]), enrich_id=str(inserted_id))
-        for gene_id in self.gene_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(gene_id)
-            params["anno_type"] = "kegg"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "gene"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_kegg_enrich", params=params, name="kegg_enrich_main_table")
-            for dir in os.listdir(gene_kegg_regulate_dir):
-                if self.gene_gs_id_name[str(gene_id)] in dir:
-                    for tool in self.exp_diff_gene.kegg_rich_tool:
-                        list_path = tool.option('diff_list').prop["path"]
-                        if dir in list_path:
-                            geneset_list_path = list_path
-                            break
-                    dir_path = os.path.join(gene_kegg_regulate_dir, dir)
-                    self.logger.info(dir_path)
-                    self.api_regulate.add_kegg_enrich_detail(kegg_enrich_table=dir_path + "/{}.DE.list.kegg_enrichment.xls".format(
-                        self.gene_gs_id_name[gene_id]), enrich_id=str(inserted_id))
-
-    def export_cog_class(self):
-        self.logger.info("正在导出cog分类的数据")
-        self.api_regulate = self.api.ref_rna_geneset
-        trans_dir = self.exp_diff_trans.output_dir
-        gene_dir = self.exp_diff_gene.output_dir
-        trans_cog_class_dir = trans_dir + "/cog_class"
-        gene_cog_class_dir = gene_dir + "/cog_class"
-        for trans_id in self.trans_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(trans_id)
-            params["anno_type"] = "cog"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "transcript"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="CogClass_transcript")
-            for dir in os.listdir(trans_cog_class_dir):
-                if self.trans_gs_id_name[trans_id] in dir:
-                    dir_path = os.path.join(trans_cog_class_dir, dir)
-                    self.api_regulate.add_geneset_cog_detail(geneset_cog_table=dir_path + "/cog_summary.xls", geneset_cog_id=inserted_id)
-        for gene_id in self.gene_gs_id_name.keys():
-            params = dict()
-            params["geneset_id"] = str(gene_id)
-            params["anno_type"] = "kegg"
-            params["submit_location"] = "geneset_class"
-            params["task_type"] = ""
-            params["geneset_type"] = "gene"
-            inserted_id = self.api_regulate.add_main_table(collection_name="sg_geneset_cog_class", params=params, name="CogClass_gene")
-            for dir in os.listdir(gene_cog_class_dir):
-                if self.gene_gs_id_name[str(gene_id)] in dir:
-                    dir_path = os.path.join(gene_cog_class_dir, dir)
-                    self.api_regulate.add_geneset_cog_detail(geneset_cog_table=dir_path + "/cog_summary.xls", geneset_cog_id=inserted_id)
