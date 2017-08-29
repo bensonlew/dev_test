@@ -65,7 +65,7 @@ class RefrnaCopyDelete(object):
         self.remove_collection(task_id=task_id, main_coll="sg_transcripts", detatil_coll=["sg_transcripts_seq_type", "sg_transcripts_step", "sg_transcripts_relations"], change_option="transcripts_id")
 
     def find_task_id(self, task_id):
-        results = self.db["sg_task"].find({"task_id": {"$regex": "demo_zj"}})
+        results = self.db["sg_task"].find({"task_id": {"$regex": task_id + "_"}})
         for result in results:
             target_task_id = result["task_id"]
             self.remove(target_task_id)
