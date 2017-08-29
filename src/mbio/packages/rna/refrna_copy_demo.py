@@ -319,6 +319,12 @@ class RefrnaCopyMongo(object):
         find['member_id'] = self._new_member_id
         find.pop('_id')
         find['project_sn'] = self._new_project_sn
+        find['is_demo'] = 2
+        try:
+            find['demo_id'] = self._old_task_id
+        except:
+            find.pop('demo_id')
+            find['demo_id'] = self._old_task_id
         self.db["sg_task"].insert_one(find)
 
     def copy_sg_specimen(self):
