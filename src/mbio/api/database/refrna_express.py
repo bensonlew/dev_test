@@ -17,6 +17,7 @@ import glob
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import math
+from math import log10
 
 
 class RefrnaExpress(Base):
@@ -30,21 +31,29 @@ class RefrnaExpress(Base):
         :params: 是否工作流根据class_code信息导入基因/转录本名称
         对转录本都加上相应的gene id信息
         """
-        with open(class_code, 'r+') as f1:
+        if (query_type is None) or (query_type not in ["gene", "transcript"]):
+            raise Exception("query type should be gene or transcript")
+        with open(class_code) as f1:
             f1.readline()
-            data = {}
+            data = dict()
             for lines in f1:
-                line = lines.strip().split("\t")
+                line = lines.strip('\n').split("\t")
+                if not line[3]:
+                    line[3] = '-'
+                if not line[1]:
+                    raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
                 if workflow:
                     if query_type == 'transcript':
-                        data[line[0]] = {"gene_name": line[3], "class_code": line[2],"gene_id":line[1]}
+                        data[line[0]] = dict(gene_name=line[3], class_code=line[2], gene_id=line[1])
                     if query_type == 'gene':
-                        data[line[1]] = {"gane_name": line[3], "class_code": line[2]}
+                        data[line[1]] = dict(gane_name=line[3], class_code=line[2])
                 else:
                     if query_type == 'gene':
-                        data[line[0]] = {"gene_name": line[1]}
+                        # data[line[0]] = dict(gene_name=line[1])
+                        data[line[1]] = dict(gene_name=line[3])
                     if query_type == 'transcript':
-                        data[line[0]] = {"gene_name": line[1],'gene_id':line[3]}
+                        # data[line[0]] = dict(gene_name=line[1], gene_id=line[3])
+                        data[line[0]] = dict(gene_id=line[1], gene_name=line[3])
             return data
 
     # @report_check
@@ -477,8 +486,7 @@ class RefrnaExpress(Base):
 
     # @report_check
     def add_express_detail(self, express_id, path, class_code=None, query_type=None, value_type=None,
-                                   method=None,
-                                   sample_group=None, diff=True):
+                                   method=None, sample_group=None, diff=True):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
@@ -990,7 +998,6 @@ class RefrnaExpress(Base):
                                                  class_code, query_type)
         return express_diff_id
 
-
     def add_express_diff_detail(self, express_diff_id, name, compare_name, ref_all, diff_stat_path, workflow=False,
                             class_code=None, query_type=None, pvalue_padjust=None):
         """
@@ -1010,37 +1017,55 @@ class RefrnaExpress(Base):
             raise Exception('diff_stat_path所指定的路径:{}不存在，请检查！'.format(diff_stat_path))
         if class_code:
             if os.path.exists(class_code):
-                name_seq_id = self.get_gene_name(class_code, query_type, workflow=workflow)
+                name_seq_id = self.get_gene_name(class_code, query_type=query_type, workflow=workflow)
+            else:
+                raise Exception("{} not exist".format(class_code))
         data_list = []
         with open(diff_stat_path, 'rb') as f:
             head = f.readline().strip().split('\t')
+            sig_ind = head.index('significant')
+            reg_ind = head.index('regulate')
+            reg_status = set()
             for line in f:
                 line = line.strip().split('\t')
+                if line[sig_ind] == "no":
+                    reg_status.add('nosig')
+                else:
+                    if line[reg_ind] == "up":
+                        reg_status.add('up')
+                    elif line[reg_ind] == "down":
+                        reg_status.add("down")
+                    else:
+                        raise Exception('Significant while no regulation ?')
                 data = [
                     ('name', name),
                     ("ref_all", ref_all),
                     ('compare_name', compare_name),
                     ('express_diff_id', express_diff_id)
                 ]
-                from math import log10
                 for i in range(len(head)):
                     if i == 0:  # 添加gene_name信息
                         seq_id = line[0]
-                        if class_code:
-                            if name_seq_id:
-                                if seq_id in name_seq_id.keys():
-                                    # if "gene_name" not in  name_seq_id[seq_id].keys():
-                                    #     name_seq_id[seq_id]["gene_name"] = ""
-                                    gene_name = name_seq_id[seq_id]["gene_name"]
-                                    data.append(('gene_name', gene_name))
-                                    if query_type == 'transcript':
-                                        gene_id = name_seq_id[seq_id]['gene_id']
-                                        # print '{}对应的gene_id为{}'.format(seq_id,gene_id)
-                                        data.append(("gene_id",gene_id))
-                                else:
-                                    data.append(('gene_name', '-'))
-                                    if query_type == 'transcript':
-                                        data.append(("gene_id",gene_id))
+                        if query_type == "gene":
+                            gene_name = name_seq_id[seq_id]['gene_name']
+                            gene_id = seq_id
+                        else:
+                            gene_name = name_seq_id[seq_id]["gene_name"]
+                            gene_id = name_seq_id[seq_id]["gene_id"]
+                        data.append(('gene_name', gene_name))
+                        data.append(('gene_id', gene_id))
+
+                            # if name_seq_id:
+                            #     if seq_id in name_seq_id.keys():
+                            #         gene_name = name_seq_id[seq_id]["gene_name"]
+                            #         data.append(('gene_name', gene_name))
+                            #         if query_type == 'transcript':
+                            #             gene_id = name_seq_id[seq_id]['gene_id']
+                            #             data.append(("gene_id", gene_id))
+                            #     else:
+                            #         data.append(('gene_name', '-'))
+                            #         if query_type == 'transcript':
+                            #             data.append(("gene_id", seq_id))
 
                     if re.search(r'fc', head[i]):
                         fc = 2 ** (float(line[i]))
@@ -1068,6 +1093,8 @@ class RefrnaExpress(Base):
             try:
                 collection = db["sg_express_diff_detail"]
                 collection.insert_many(data_list)
+                con = db["sg_express_diff"]
+                con.update({'_id': express_diff_id}, {"$set": {"reg_status": list(reg_status)}})
             except Exception, e:
                 self.bind_object.logger.error("导入基因表达差异统计表：%s信息出错:%s" % (diff_stat_path, e))
             else:
