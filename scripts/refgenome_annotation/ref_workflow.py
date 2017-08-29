@@ -510,8 +510,8 @@ class RefAnnotation(object):
             gene_anno_ids.append(i)
         anno_ids = list(set(anno_ids))
         gene_anno_ids = list(set(gene_anno_ids))
-        total_count = 54013
-        gene_total_count = 32833
+        total_count = len(self.tran_ids)
+        gene_total_count = len(self.gene_ids)
         with open(all_stat, "w") as w:
             w.write("type\ttranscripts\tgenes\ttranscripts_percent\tgenes_percent\n")
             w.write("cog\t" + str(len(cog_ids)) + "\t" + str(len(gene_cog_ids)) + "\t" + str(round(float(len(cog_ids))/total_count, 4)) + "\t" + str(round(float(len(gene_cog_ids))/gene_total_count, 4)) + "\n")
