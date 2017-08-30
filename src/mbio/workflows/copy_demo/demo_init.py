@@ -17,8 +17,8 @@ class DemoInitWorkflow(Workflow):
         options = [
             {"name": "task_id", "type": "string", "default": ""},  # 要设置为demo或取消的demo的task_id
             {"name": "type", "type": "string", "default": "ref_rna"},  # demo的类型
-            {"name": "setup_type", "type": "string", "default": ""},  # 对demo进行的操作，设置为demo，取消删除demo
-            {"name": "demo_number", "type": "int", "default": 1}  # demo备份的数量
+            {"name": "setup_type", "type": "string", "default": "setup"},  # 对demo进行的操作，设置为demo，取消删除demo
+            {"name": "demo_number", "type": "int", "default": 10}  # demo备份的数量
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
