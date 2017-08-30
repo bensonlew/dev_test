@@ -285,12 +285,12 @@ class RefAnnotationModule(Module):
                 self.option('gene_go_list').set_path(self.output_dir + '/anno_stat/go_stat/gene_gos.list')
                 self.option('gene_go_level_2').set_path(self.output_dir + '/anno_stat/go_stat/gene_go12level_statistics.xls')
         elif event['data'] == 'anno_query':
-            if os.path.exists(self.output_dir + "/trans_all_annotation.xls"):
-                os.remove(self.output_dir + "/trans_all_annotation.xls")
-            os.link(self.anno_query.output_dir + "/trans_all_annotation.xls", self.output_dir + "/anno_stat/trans_all_annotation.xls")
-            if os.path.exists(self.output_dir + "/genes_all_annotation.xls"):
-                os.remove(self.output_dir + "/genes_all_annotation.xls")
-            os.link(self.anno_query.output_dir + "/genes_all_annotation.xls", self.output_dir + "/anno_stat/genes_all_annotation.xls")
+            if os.path.exists(self.output_dir + "/trans_anno_detail.xls"):
+                os.remove(self.output_dir + "/trans_anno_detail.xls")
+            os.link(self.anno_query.output_dir + "/trans_anno_detail.xls", self.output_dir + "/anno_stat/trans_anno_detail.xls")
+            if os.path.exists(self.output_dir + "/gene_anno_detail.xls"):
+                os.remove(self.output_dir + "/gene_anno_detail.xls")
+            os.link(self.anno_query.output_dir + "/gene_anno_detail.xls", self.output_dir + "/anno_stat/gene_anno_detail.xls")
             self.end()
         else:
             pass
