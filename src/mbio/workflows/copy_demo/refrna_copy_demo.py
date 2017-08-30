@@ -72,6 +72,7 @@ class RefrnaCopyDemoWorkflow(Workflow):
                 return old_task_id
 
     def update_task_id(self, old_task_id, new_task_id):
+        time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         col_list = []
         for col_name in db.collection_names():
@@ -87,6 +88,7 @@ class RefrnaCopyDemoWorkflow(Workflow):
             results = col.find({"task_id": old_task_id})
             for result in results:
                 col.update_one({"_id": result["_id"]}, {"$set": {"task_id": new_task_id}})
+                col.update_one({"_id": result["_id"]}, {"$set": {"created_ts": time}})
 
     def end(self):
         super(RefrnaCopyDemoWorkflow, self).end()
