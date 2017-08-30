@@ -26,7 +26,7 @@ class DemoInitAction(object):
             demo_number = data.demo_number
         except:
             demo_number = 10
-        workflow_id = "DemoInit_" + "{}_{}".format(data.task_id, datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3])
+        workflow_id = "DemoInit_" + "{}_{}".format(data.task_id, datetime.datetime.now().strftime("%H%M%S%f")[:-3])
         # if data.type == "ref_rna":
         data = {
           'id': workflow_id,
