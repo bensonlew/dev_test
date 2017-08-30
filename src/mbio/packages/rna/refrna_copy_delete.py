@@ -66,9 +66,15 @@ class RefrnaCopyDelete(object):
 
     def find_task_id(self, task_id):
         results = self.db["sg_task"].find({"task_id": {"$regex": task_id + "_"}})
-        for result in results:
-            target_task_id = result["task_id"]
-            self.remove(target_task_id)
+        if results:
+            for result in results:
+                target_task_id = result["task_id"]
+                self.remove(target_task_id)
+        else:
+            results = self.db["sg_express"].find({"task_id": {"$regex": task_id + "_"}})
+            for result in results:
+                target_task_id = result["task_id"]
+                self.remove(target_task_id)
 
 
 if __name__ == "__main__":
