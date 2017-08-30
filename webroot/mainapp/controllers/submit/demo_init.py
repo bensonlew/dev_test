@@ -7,6 +7,7 @@ from mainapp.libs.signature import check_sig
 from biocluster.wpm.client import worker_client, wait
 
 
+PACKAGE_URL = "demo_init"
 class DemoInitAction(object):
     """
     demo设置
