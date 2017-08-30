@@ -7,6 +7,7 @@ from mainapp.controllers.core.basic import Basic
 from biocluster.core.function import filter_error_info
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.ref_rna import RefRna
+from biocluster.config import Config
 import random
 
 
@@ -49,9 +50,13 @@ class DemoMongodataCopy(object):
                     "target_member_id": data.target_member_id
                 }
             }
-            if not RefRna().check_assest_for_demo():
-                info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
-                return json.dumps(info)
+            mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+            collection = mongodb['sg_task']
+            nums = collection.count({"task_id": {"$regex": self.option(data.task_id)}})
+            if nums:
+                if nums <= 2:
+                    info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
+                    return json.dumps(info)
         workflow_client = Basic(data=data, instant=True)
         try:
             run_info = workflow_client.run()
