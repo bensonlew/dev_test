@@ -4,12 +4,12 @@
 """
 拉取有参RNA demo数据
 """
-
 from biocluster.workflow import Workflow
 import pymongo
 from biocluster.config import Config
 from biocluster.wpm.client import *
 import datetime
+
 
 class RefrnaCopyDemoWorkflow(Workflow):
     """
@@ -47,11 +47,11 @@ class RefrnaCopyDemoWorkflow(Workflow):
             "name": "copy_demo.demo_backup",
             "IMPORT_REPORT_DATA": True,
             "IMPORT_REPORT_AFTER_END": False,
-            "options":{
+            "options": {
                 "task_id": "sanger_21455",
-                "target_task_id" : "refrna_on_" + id,
+                "target_task_id": self.option("task_id") + '_' + id,
                 "target_project_sn": "refrna_demo",
-                "target_member_id" : "refrna_demo"
+                "target_member_id": "refrna_demo"
             }
         }
         info = worker.add_task(json_obj)
