@@ -24,24 +24,24 @@ class DemoInitAction(object):
         try:
             demo_number = data.demo_number
         except:
-            demo_number = 2
+            demo_number = 10
         workflow_id = "DemoInit_" + "{}_{}".format(data.task_id, datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3])
-        if data.type == "ref_rna":
-            data = {
-              'id': workflow_id,
-              'stat_id': 0,
-              "type": "workflow",
-              'name': "copy_demo.demo_init",  # 需要配置
-              'client': data.client,
-              "IMPORT_REPORT_DATA": False,
-              "IMPORT_REPORT_AFTER_END": False,
-              'options': {
-                  "task_id": data.task_id,
-                  "type": data.type,
-                  "setup_type": data.setup_type,
-                  "demo_number": demo_number
-              }
-            }
+        # if data.type == "ref_rna":
+        data = {
+          'id': workflow_id,
+          'stat_id': 0,
+          "type": "workflow",
+          'name': "copy_demo.demo_init",  # 需要配置
+          'client': data.client,
+          "IMPORT_REPORT_DATA": False,
+          "IMPORT_REPORT_AFTER_END": False,
+          'options': {
+              "task_id": data.task_id,
+              "type": data.type,
+              "setup_type": data.setup_type,
+              "demo_number": demo_number
+          }
+        }
         try:
             worker = worker_client()
             info = worker.add_task(data)
