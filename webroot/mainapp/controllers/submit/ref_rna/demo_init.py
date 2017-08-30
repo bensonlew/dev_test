@@ -2,12 +2,9 @@
 # __author__ = 'zengjing'
 import web
 import json
-import traceback
 import datetime
 from mainapp.libs.signature import check_sig
-from biocluster.workflow import Workflow
 from biocluster.wpm.client import worker_client, wait
-from biocluster.wpm.workflow import WorkflowWorker
 
 
 class DemoInitAction(object):
@@ -33,6 +30,7 @@ class DemoInitAction(object):
             data = {
               'id': workflow_id,
               'stat_id': 0,
+              "type": "workflow",
               'name': "copy_demo.demo_init",  # 需要配置
               'client': data.client,
               "IMPORT_REPORT_DATA": False,
