@@ -32,6 +32,8 @@ class DemoBackupWorkflow(Workflow):
         from mbio.packages.rna.refrna_copy_demo import RefrnaCopyMongo
         new_bam_path = "/mnt/ilustre/users/sanger/test/bam/"
         new_ref_gtf = "/mnt/ilustre/users/sanger/test/Mus_musculus.GRCm38.87.gff3.gtf"
+        new_bam_path = None
+        new_ref_gtf = None
         copy_task = RefrnaCopyMongo(old_task_id=self.option("task_id"),
                                     new_task_id=self.option("target_task_id"),
                                     new_project_sn=self.option("target_project_sn"),
