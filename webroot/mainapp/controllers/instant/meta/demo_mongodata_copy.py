@@ -20,6 +20,7 @@ class DemoMongodataCopy(object):
             if not (hasattr(data, i)):
                 return json.dumps({"success": False, "info": "缺少%s参数!" % i})
         workflow_id = self.get_new_id(data.task_id)
+        task_id1 = data.task_id
         if data.type == 'meta':
             data = {
                 'id': workflow_id,
@@ -52,7 +53,7 @@ class DemoMongodataCopy(object):
             }
             mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             collection = mongodb['sg_task']
-            nums = collection.count({"task_id": {"$regex": self.option(data.task_id)}})
+            nums = collection.count({"task_id": {"$regex": task_id1}})
             if nums:
                 if nums <= 2:
                     info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
