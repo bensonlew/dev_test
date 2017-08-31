@@ -1038,7 +1038,7 @@ class RefrnaExpress(Base):
             if 'up' in reg_list:
                 sig_status.append('up')
         sig_pvalues = diff_table[pvalue_padjust][diff_table['significant'] == "yes"]
-        log10_pvalue_list = sorted([-log10(x) for x in sig_pvalues if x != 0])
+        log10_pvalue_list = sorted([-log10(x) for x in sig_pvalues if x > 0])
 
         if len(sig_pvalues) > 2000:
             log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.85)]
@@ -1072,6 +1072,8 @@ class RefrnaExpress(Base):
             row_dict['fc'] = round(2**log2fc, 3)
 
             pvalue = row_dict[pvalue_padjust]
+            if pvalue <= 0:
+                pvalue = 1e-100
             if -log10(pvalue) > log10_pvalue_cutoff:
                 log10_pvalue = log10_pvalue_cutoff
             else:
