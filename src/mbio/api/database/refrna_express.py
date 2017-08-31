@@ -1048,6 +1048,12 @@ class RefrnaExpress(Base):
             log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.95)]
         elif len(sig_pvalues) > 250:
             log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.99)]
+        elif len(sig_pvalues) == 0:
+            tmp_list = sorted([-log10(x) for x in diff_table[pvalue_padjust] if x > 0])
+            if len(tmp_list) == 0:
+                log10_pvalue_cutoff = 100
+            else:
+                log10_pvalue_cutoff = tmp_list[int(len(tmp_list)*0.9)]
         else:
             log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.8)]
 
