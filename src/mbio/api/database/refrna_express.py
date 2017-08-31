@@ -1051,7 +1051,7 @@ class RefrnaExpress(Base):
         elif len(sig_pvalues) == 0:
             tmp_list = sorted([-log10(x) for x in diff_table[pvalue_padjust] if x > 0])
             if len(tmp_list) == 0:
-                log10_pvalue_cutoff = 100
+                log10_pvalue_cutoff = 10000
             else:
                 log10_pvalue_cutoff = tmp_list[int(len(tmp_list)*0.9)]
         else:
@@ -1094,7 +1094,8 @@ class RefrnaExpress(Base):
             collection = db["sg_express_diff_detail"]
             collection.insert_many(target_dict_list)
             con = db["sg_express_diff"]
-            con.update({'_id': express_diff_id}, {"$set": {"reg_status": sig_status}})
+            sig_status_name = name+'_vs_'+compare_name+'_'+ref_all+'_status'
+            con.update({'_id': express_diff_id}, {"$set": {sig_status_name: sig_status}})
         except Exception, e:
             self.bind_object.logger.error("导入基因表达差异统计表：%s出错:%s" % (diff_stat_path, e))
         else:
