@@ -303,16 +303,16 @@ class ExpressModule(Module):
         elif self.option("express_method").lower() == 'featurecounts':
             """fpkm、tpm表达量相关性/pca"""
             self.fpkm_corr.set_options({"fpkm": self.feature_fpkm_path})
-            self.fpkm_pca.set_options({"otutable": self.feature_fpkm_path})
             self.fpkm_corr.on("end",self.set_output,"fpkm_correlation")
-            self.fpkm_pca.on("end",self.set_output,"fpkm_pca")
             self.fpkm_corr.run()
             self.tpm_corr.set_options({"fpkm": self.feature_tpm_path})
-            self.tpm_pca.set_options({"otutable": self.feature_tpm_path})
             self.tpm_corr.on("end",self.set_output,"tpm_correlation")
-            self.tpm_pca.on("end",self.set_output,"tpm_pca")
             self.tpm_corr.run()
             if self.get_list() > 2:
+                self.fpkm_pca.set_options({"otutable": self.feature_fpkm_path})
+                self.fpkm_pca.on("end",self.set_output,"fpkm_pca")
+                self.tpm_pca.set_options({"otutable": self.feature_tpm_path})
+                self.tpm_pca.on("end",self.set_output,"tpm_pca")
                 self.fpkm_pca.run()
                 self.tpm_pca.run()
             else:
