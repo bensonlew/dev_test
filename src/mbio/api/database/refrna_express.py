@@ -1079,7 +1079,7 @@ class RefrnaExpress(Base):
 
             pvalue = row_dict[pvalue_padjust]
             if pvalue <= 0:
-                pvalue = 1e-100
+                pvalue = 1e-10000
             if -log10(pvalue) > log10_pvalue_cutoff:
                 log10_pvalue = log10_pvalue_cutoff
             else:
