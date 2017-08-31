@@ -3,7 +3,7 @@
 from biocluster.workflow import Workflow
 import pymongo
 from biocluster.config import Config
-# from biocluster.wpm.client import *
+from biocluster.wpm.client import *
 import datetime
 
 
@@ -31,16 +31,10 @@ class DemoInitWorkflow(Workflow):
                 from mbio.packages.rna.refrna_copy_demo import RefrnaCopyMongo
                 target_project_sn = "refrna_demo"
                 target_member_id = "refrna_demo"
-                num = 1
-                for i in range(num):
+                for i in range(self.option("demo_number")):
                     target_task_id = self.option("task_id") + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
                     copy_task = RefrnaCopyMongo(self.option("task_id"), target_task_id, target_project_sn, target_member_id)
                     copy_task.run()
-                    if num < int(self.option("demo_number")):
-                        num += 1
-                        continue
-                    else:
-                        break
             if self.option("setup_type") in ["cancel", "delete"]:
                 from mbio.packages.rna.refrna_copy_delete import RefrnaCopyDelete
                 RefrnaCopyDelete().find_task_id(task_id=self.option("task_id"))

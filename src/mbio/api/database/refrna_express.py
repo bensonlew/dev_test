@@ -18,6 +18,7 @@ from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import math
 from math import log10
+import pandas as pd
 
 
 class RefrnaExpress(Base):
@@ -1021,88 +1022,77 @@ class RefrnaExpress(Base):
                 name_seq_id = self.get_gene_name(class_code, query_type=query_type, workflow=workflow)
             else:
                 raise Exception("{} not exist".format(class_code))
-        data_list = []
-        with open(diff_stat_path, 'rb') as f:
-            head = f.readline().strip().split('\t')
-            sig_ind = head.index('significant')
-            reg_ind = head.index('regulate')
-            reg_status = set()
-            for line in f:
-                line = line.strip().split('\t')
-                if line[sig_ind] == "no":
-                    reg_status.add('nosig')
-                else:
-                    if line[reg_ind] == "up":
-                        reg_status.add('up')
-                    elif line[reg_ind] == "down":
-                        reg_status.add("down")
-                    else:
-                        raise Exception('Significant while no regulation ?')
-                data = [
-                    ('name', name),
-                    ("ref_all", ref_all),
-                    ('compare_name', compare_name),
-                    ('express_diff_id', express_diff_id)
-                ]
-                for i in range(len(head)):
-                    if i == 0:  # 添加gene_name信息
-                        seq_id = line[0]
-                        if query_type == "gene":
-                            gene_name = name_seq_id[seq_id]['gene_name']
-                            gene_id = seq_id
-                        else:
-                            gene_name = name_seq_id[seq_id]["gene_name"]
-                            gene_id = name_seq_id[seq_id]["gene_id"]
-                        data.append(('gene_name', gene_name))
-                        data.append(('gene_id', gene_id))
+        if pvalue_padjust not in ['padjust', 'pvalue']:
+            raise ValueError('pvalue_padjust must be padjust or pvalue')
 
-                            # if name_seq_id:
-                            #     if seq_id in name_seq_id.keys():
-                            #         gene_name = name_seq_id[seq_id]["gene_name"]
-                            #         data.append(('gene_name', gene_name))
-                            #         if query_type == 'transcript':
-                            #             gene_id = name_seq_id[seq_id]['gene_id']
-                            #             data.append(("gene_id", gene_id))
-                            #     else:
-                            #         data.append(('gene_name', '-'))
-                            #         if query_type == 'transcript':
-                            #             data.append(("gene_id", seq_id))
+        # dump data of diff_stat_path into mongodb
+        diff_table = pd.read_table(diff_stat_path)
+        sig_status = list()
+        sig_mark = list(diff_table['significant'])
+        reg_list = list(diff_table['regulate'])
+        if 'no' in sig_mark:
+            sig_status.append('nosig')
+        if 'yes' in sig_mark:
+            if 'down' in reg_list:
+                sig_status.append('down')
+            if 'up' in reg_list:
+                sig_status.append('up')
+        sig_pvalues = diff_table[pvalue_padjust][diff_table['significant'] == "yes"]
+        log10_pvalue_list = sorted([-log10(x) for x in sig_pvalues if x > 0])
 
-                    if re.search(r'fc', head[i]):
-                        fc = 2 ** (float(line[i]))
-                        data.append(("fc", round(float(fc), 3)))
-                    if pvalue_padjust:
-                        if re.search(r'{}'.format(pvalue_padjust), head[i].lower()):
-                            if float(line[i]) <= 10e-5:
-                                log10_padjust = -(float(log10(float(10e-5))))
-                            else:
-                                log10_padjust = -(float(log10(float(line[i]))))
-                            data.append(('log10_{}'.format(pvalue_padjust), log10_padjust))
+        if len(sig_pvalues) > 2000:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.85)]
+        elif len(sig_pvalues) > 1000:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.90)]
+        elif len(sig_pvalues) > 500:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.95)]
+        elif len(sig_pvalues) > 250:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.99)]
+        else:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.8)]
 
-                    if line[i] == 0:
-                        data.append((head[i], float(line[i])))
-                    elif re.match(r'^(\d+)|.(\d+)$', line[i]) or re.match(r'-(\d+)|.(\d+)$', line[i]):
-                        data.append((head[i], float(line[i])))
-                    else:
-                        data.append((head[i], line[i]))
+        self.bind_object.logger.info("log10_pvalue_cutoff: {}".format(log10_pvalue_cutoff))
 
-                # print data
-                data = SON(data)
-                # print data
-                # print "aaaaaaaaaaaaaaaaaaaaaaa"
-                data_list.append(data)
-            try:
-                collection = db["sg_express_diff_detail"]
-                collection.insert_many(data_list)
-                con = db["sg_express_diff"]
-                con.update({'_id': express_diff_id}, {"$set": {"reg_status": list(reg_status)}})
-            except Exception, e:
-                self.bind_object.logger.error("导入基因表达差异统计表：%s信息出错:%s" % (diff_stat_path, e))
+        target_dict_list = list()
+        marker_info = dict(name=name, ref_all=ref_all, compare_name=compare_name,
+                           express_diff_id=express_diff_id)
+
+        row_dict_list = diff_table.to_dict('records')
+        for row_dict in row_dict_list:
+            seq_id = row_dict['seq_id']
+            if query_type == "gene":
+                gene_name = name_seq_id[seq_id]['gene_name']
+                gene_id = seq_id
             else:
-                self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
-                # else:
-                # raise Exception("请输入class_code信息！")
+                gene_name = name_seq_id[seq_id]["gene_name"]
+                gene_id = name_seq_id[seq_id]["gene_id"]
+            row_dict.update(dict(gene_name=gene_name, gene_id=gene_id))
 
+            log2fc = row_dict['log2fc']
+            row_dict['fc'] = round(2**log2fc, 3)
+
+            pvalue = row_dict[pvalue_padjust]
+            if pvalue <= 0:
+                pvalue = 1e-100
+            if -log10(pvalue) > log10_pvalue_cutoff:
+                log10_pvalue = log10_pvalue_cutoff
+            else:
+                log10_pvalue = -log10(pvalue)
+            row_dict['log10_'+pvalue_padjust] = log10_pvalue
+
+            row_dict.update(marker_info)
+
+            target_dict_list.append(row_dict)
+
+        try:
+            collection = db["sg_express_diff_detail"]
+            collection.insert_many(target_dict_list)
+            con = db["sg_express_diff"]
+            con.update({'_id': express_diff_id}, {"$set": {"reg_status": sig_status}})
+        except Exception, e:
+            self.bind_object.logger.error("导入基因表达差异统计表：%s出错:%s" % (diff_stat_path, e))
+        else:
+            self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
 
     def add_diff_summary_detail(self, diff_express_id, count_path, ref_all,query_type=None, class_code=None,workflow=False):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]

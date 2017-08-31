@@ -14,7 +14,7 @@ from mainapp.libs.param_pack import group_detail_sort
 
 
 class RefrnaCopyMongo(object):
-    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, new_bam_path, new_ref_gtf, db='sanger_ref_rna'):
+    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, new_bam_path=None, new_ref_gtf=None, db='sanger_ref_rna'):
         self.db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
@@ -339,7 +339,8 @@ class RefrnaCopyMongo(object):
             old_bam_path = os.path.basename(i["bam_path"])
             i['task_id'] = self._new_task_id
             i['project_sn'] = self._new_project_sn
-            i['bam_path'] = os.path.join(self._new_bam_path, old_bam_path)
+            if self._new_bam_path:
+                i['bam_path'] = os.path.join(self._new_bam_path, old_bam_path)
             news.append(i)
         if news:
             result = self.db["sg_specimen"].insert_many(news)
@@ -590,7 +591,8 @@ class RefrnaCopyMongo(object):
             """
             finds = self.db["sg_splicing_rmats"].find({"task_id": self._new_task_id})
             for i in finds:
-                self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"ref_gtf": self._new_ref_gtf}})
+                if self._new_ref_gtf:
+                    self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"ref_gtf": self._new_ref_gtf}})
                 if 'params' in i:
                     params_str = i['params']
                     try:
