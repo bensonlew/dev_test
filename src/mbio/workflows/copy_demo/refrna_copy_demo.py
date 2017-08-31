@@ -34,9 +34,10 @@ class RefrnaCopyDemoWorkflow(Workflow):
     def run(self):
         self.start_listener()
         self.fire("start")
-        old_task_id = self.old_task_id()
+        time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        old_task_id = self.old_task_id(time)
         self.logger.info(old_task_id)
-        self.update_task_id(old_task_id, self.option("target_task_id"))
+        self.update_task_id(old_task_id, self.option("target_task_id"), time)
         self.logger.info("替换旧task_id完毕")
         worker = worker_client()
         id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
@@ -58,21 +59,21 @@ class RefrnaCopyDemoWorkflow(Workflow):
         self.logger.info(info)
         self.end()
 
-    def old_task_id(self):
+    def old_task_id(self, time):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         col = db["sg_task"]
         results = col.find()
         for result in results:
             old_task_id = result["task_id"]
-            if old_task_id.startswith("refrna_demo_mouse"):
+            if old_task_id.startswith("refrna_demo_mouse"):  # refrna_demo_mouse用完后改为self.option("task_id") + "_"
                 col.find_one_and_update({"_id": result["_id"]}, {"$set": {"task_id": self.option("target_task_id")}})
                 col.find_one_and_update({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
                 col.find_one_and_update({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
                 col.find_one_and_update({"_id": result["_id"]}, {"$set": {"is_demo": 2}})
+                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"created_ts": time}})
                 return old_task_id
 
-    def update_task_id(self, old_task_id, new_task_id):
-        time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    def update_task_id(self, old_task_id, new_task_id, time):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         col_list = []
         for col_name in db.collection_names():
