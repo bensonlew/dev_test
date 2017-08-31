@@ -10,7 +10,6 @@ class GenesetKeggWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        self.rpc = False
         super(GenesetKeggWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "geneset_kegg", "type": "string"},

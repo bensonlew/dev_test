@@ -701,10 +701,10 @@ class RefrnaWorkflow(Workflow):
         self.export_exp_rsem_default()
         self.export_ref_gene_set()
         self.export_gene_set()
-        self.export_diff_gene()
-        self.export_diff_trans()
         self.export_ref_diff_gene()
         self.export_ref_diff_trans()
+        self.export_diff_gene()
+        self.export_diff_trans()
         self.export_cor()
         self.export_pca()
 
@@ -827,9 +827,6 @@ class RefrnaWorkflow(Workflow):
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
         path = self.exp.output_dir + "/diff/trans_diff/diff_stat_dir"
-        self.transet_id = list()
-        self.trans_gs_id_name = dict()
-        self.gene_gs_id_name = dict()
         for files in os.listdir(path):
             if re.search(r'edgr_stat.xls',files):
                 m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
@@ -838,21 +835,8 @@ class RefrnaWorkflow(Workflow):
                     compare_name = m_.group(2)
                     up_down = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
                                                            group_id=group_id, name=name, compare_name=compare_name,
-                                                           ref_new="ref_and_new",
+                                                           ref_new="refandnew",
                                                            express_method="rsem", type="transcript", up_down='up_down', major=True)
-                    down_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
-                                                           group_id=group_id, name=name,
-                                                          ref_new="ref_and_new",
-                                                           compare_name=compare_name, express_method="rsem",
-                                                           type="transcript", up_down='down', major=True)
-                    up_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,
-                                                        ref_new="ref_and_new",
-                                                         group_id=group_id, name=name, compare_name=compare_name,
-                                                         express_method="rsem", type="transcript", up_down='up', major=True)
-                    if up_down:
-                        self.transet_id.append(up_down)
-                        self.trans_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
-                        self.up_down_trans_id = str(down_id) + "," + str(up_id)
                 else:
                     self.logger.info("转录本name和compare_name匹配错误")
         path = self.exp.output_dir + "/diff/genes_diff/diff_stat_dir"
@@ -864,20 +848,9 @@ class RefrnaWorkflow(Workflow):
                     name = m_.group(1)
                     compare_name = m_.group(2)
                     up_down = self.api_geneset.add_geneset(diff_stat_path = path+"/"+files, group_id=group_id,
-                                                           ref_new="ref_and_new",
+                                                           ref_new="refandnew",
                                                            name=name, compare_name=compare_name, express_method="rsem",
                                                            type="gene",up_down='up_down', major=True)
-                    down_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id,
-                                                           ref_new="ref_and_new",
-                                                           name=name, compare_name=compare_name, express_method="rsem",
-                                                           type="gene", up_down='down', major=True)
-                    up_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id, name=name,
-                                                         ref_new="ref_and_new",
-                                                         compare_name=compare_name, express_method="rsem", type="gene",
-                                                         up_down='up', major=True)
-                    self.up_down_gene_id = str(down_id) + "," + str(up_id)
-                    self.geneset_id.append(up_down)
-                    self.gene_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
                 else:
                     self.logger.info("基因name和compare_name匹配错误")
 
@@ -885,9 +858,6 @@ class RefrnaWorkflow(Workflow):
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
         path = self.exp.output_dir + "/ref_diff/trans_ref_diff/diff_stat_dir"
-        self.ref_transet_id = list()
-        self.trans_gs_id_name = dict()
-        self.gene_gs_id_name = dict()
         for files in os.listdir(path):
             if re.search(r'edgr_stat.xls',files):
                 m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
@@ -898,17 +868,6 @@ class RefrnaWorkflow(Workflow):
                                                            ref_new="ref",
                                                            group_id=group_id, name=name, compare_name=compare_name,
                                                            express_method="rsem", type="transcript", up_down='up_down', major=True)
-                    down_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,ref_new="ref",
-                                                           group_id=group_id, name=name,
-                                                           compare_name=compare_name, express_method="rsem",
-                                                           type="transcript", up_down='down', major=True)
-                    up_id= self.api_geneset.add_geneset(diff_stat_path=path+"/"+files,ref_new="ref",
-                                                         group_id=group_id, name=name, compare_name=compare_name,
-                                                         express_method="rsem", type="transcript", up_down='up', major=True)
-                    if up_down:
-                        self.ref_transet_id.append(up_down)
-                        self.trans_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
-                        self.up_down_trans_id = str(down_id) + "," + str(up_id)
                 else:
                     self.logger.info("转录本name和compare_name匹配错误")
         path = self.exp.output_dir + "/ref_diff/genes_ref_diff/diff_stat_dir"
@@ -923,17 +882,6 @@ class RefrnaWorkflow(Workflow):
                                                            ref_new="ref",
                                                            name=name, compare_name=compare_name, express_method="rsem",
                                                            type="gene",up_down='up_down', major=True)
-                    down_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id,
-                                                           ref_new="ref",
-                                                           name=name, compare_name=compare_name, express_method="rsem",
-                                                           type="gene", up_down='down', major=True)
-                    up_id = self.api_geneset.add_geneset(diff_stat_path=path+"/"+files, group_id=group_id, name=name,
-                                                         ref_new="ref",
-                                                         compare_name=compare_name, express_method="rsem", type="gene",
-                                                         up_down='up', major=True)
-                    self.up_down_gene_id = str(down_id) + "," + str(up_id)
-                    self.geneset_id.append(up_down)
-                    self.gene_gs_id_name[str(up_down)] = name + "_vs_" + compare_name
                 else:
                     self.logger.info("基因name和compare_name匹配错误")
 
