@@ -292,14 +292,15 @@ class ExpressModule(Module):
             self.trans_corr.set_options({"fpkm": self.rsem_transcripts_fpkm})
             self.trans_corr.on("end", self.set_output,"trans_correlation")
             self.trans_corr.run()
-            self.genes_pca.set_options({"otutable": self.rsem_genes_fpkm})
-            self.genes_pca.on("end", self.set_output, "genes_pca")
             if self.get_list() > 2:
+                self.genes_pca.set_options({"otutable": self.rsem_genes_fpkm})
+                self.genes_pca.on("end", self.set_output, "genes_pca")
                 self.genes_pca.run()
-            self.trans_pca.set_options({"otutable": self.rsem_transcripts_fpkm})
-            self.trans_pca.on("end", self.set_output, "trans_pca")
-            if self.get_list() > 2:
+                self.trans_pca.set_options({"otutable": self.rsem_transcripts_fpkm})
+                self.trans_pca.on("end", self.set_output, "trans_pca")
                 self.trans_pca.run()
+            else:
+                self.logger.info("样本数目小于等于2，跳过进行样本间pca分析！")
         elif self.option("express_method").lower() == 'featurecounts':
             """fpkm、tpm表达量相关性/pca"""
             self.fpkm_corr.set_options({"fpkm": self.feature_fpkm_path})
@@ -316,7 +317,7 @@ class ExpressModule(Module):
                 self.fpkm_pca.run()
                 self.tpm_pca.run()
             else:
-                self.logger.info("样本数目小于等于2，无法进行样本间pca分析！")
+                self.logger.info("样本数目小于等于2，跳过进行样本间pca分析！")
 
     def diff_Rexp_run(self, genes_count_path=None, trans_count_path=None, genes_fpkm_path=None,
                           trans_fpkm_path=None, ref_genes_count_path=None,

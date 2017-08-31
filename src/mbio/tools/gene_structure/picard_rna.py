@@ -59,7 +59,7 @@ class PicardRnaTool(Tool):
     def addorreplacereadgroups(self):
         self.sample_name = os.path.basename(self.option("in_bam").prop["path"])[:-4]
         self.logger.info(self.sample_name)
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 SM={}".format(self.picard_path, self.option("in_bam").prop["path"], "add_sorted.bam", self.sample_name)
+        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 VALIDATION_STRINGENCY=SILENT SM={}".format(self.picard_path, self.option("in_bam").prop["path"], "add_sorted.bam", self.sample_name)
         self.logger.info("使用picard对sam文件进行加头和排序")
         command = self.add_command("addorreplacereadgroups", cmd)
         command.run()
