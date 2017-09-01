@@ -589,6 +589,15 @@ class RefrnaCopyMongo(object):
             """
             更新sg_splicing_rmats的ref_gtf和params里的splicing_id
             """
+            find = self.db["sg_splicing_rmats"].find_one({"task_id": self._new_task_id})  # 同一个task_id里params里的splcing_id皆为第一个主表的_id
+            if 'params' in find:
+                params_str = find['params']
+                try:
+                    params = json.loads(params_str)
+                except Exception:
+                    raise Exception("sg_splicing_rmats表的params非json格式")
+                if 'splicing_id' in params:
+                    splicing_id = str(find['_id'])
             finds = self.db["sg_splicing_rmats"].find({"task_id": self._new_task_id})
             for i in finds:
                 if self._new_ref_gtf:
@@ -600,7 +609,7 @@ class RefrnaCopyMongo(object):
                     except Exception:
                         raise Exception("sg_splicing_rmats表的params非json格式")
                     if 'splicing_id' in params:
-                        params['splicing_id'] = str(i['_id'])
+                        params['splicing_id'] = splicing_id
                     new_params = json.dumps(params, sort_keys=True, separators=(',', ':'))
                     self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"params": new_params}})
 
