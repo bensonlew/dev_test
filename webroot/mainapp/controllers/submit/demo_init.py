@@ -46,10 +46,10 @@ class DemoInitAction(object):
         try:
             worker = worker_client()
             info = worker.add_task(data)
-            print info
             if "success" in info.keys() and info["success"]:
-                return {"success": True, "info": "任务提交成功%s" % (info["info"])}
+                return {"success": True, "info": "demo备份任务提交成功,请两个小时后进行此demo的拉取或取消demo设置操作"}
             else:
-                return {"success": False, "info": "任务提交失败%s" % (info["info"])}
+                return {"success": False, "info": "demo备份任务提交失败,请重新设置"}
         except:
-            return {"success": False, "info": "任务提交失败"}
+            print "2222222222222"
+            return {"success": False, "info": "demo备份任务提交失败,请重新设置"}
