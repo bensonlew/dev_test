@@ -83,7 +83,7 @@ class HisatTool(Tool):
 
     def __init__(self, config):
         super(HisatTool, self).__init__(config)
-        self.hisat_path = 'bioinfo/align/hisat2/hisat2-2.0.0-beta/'
+        self.hisat_path = 'bioinfo/align/hisat2/hisat2-2.1.0/'
         self.samtools_path = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
         self.sort_path = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
 
