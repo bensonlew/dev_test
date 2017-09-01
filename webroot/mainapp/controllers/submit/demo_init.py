@@ -19,13 +19,14 @@ class DemoInitAction(object):
     def POST(self):
         data = web.input()
         requires = ['type', 'task_id', 'setup_type']
+        print data
         for i in requires:
             if not (hasattr(data, i)):
                 return json.dumps({"success": False, "info": "缺少%s参数!" % i})
         try:
             demo_number = data.demo_number
         except:
-            demo_number = 10
+            demo_number = 3
         workflow_id = "DemoInit_" + "{}_{}".format(data.task_id, datetime.datetime.now().strftime("%H%M%S%f")[:-3])
         # if data.type == "ref_rna":
         data = {
@@ -46,6 +47,7 @@ class DemoInitAction(object):
         try:
             worker = worker_client()
             info = worker.add_task(data)
+            print info
             if "success" in info.keys() and info["success"]:
                 return {"success": True, "info": "demo备份任务提交成功,请两个小时后进行此demo的拉取或取消demo设置操作"}
             else:
