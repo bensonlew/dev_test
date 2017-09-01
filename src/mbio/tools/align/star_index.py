@@ -121,26 +121,13 @@ class StarIndexTool(Tool):
             genomeDir_path1 = os.path.join(self.work_dir, "ref_star_index1")   # 准备第一次建索引的路径
             if self.option("is_indexed") is False:
                 self.star_index1(genomeDir_path1, ref_fa)  # 第一步：建索引，传入第一步索引的文件夹（此时是空文件夹）
+            self.option("star_index1", genomeDir_path1)
         else:  # 参考基因组来自数据库
-            ref_genome_json = self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json"
+            ref_genome_json = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json"
             with open(ref_genome_json, "r") as f:
                 ref_dict = json.loads(f.read())
-                ref_fa = ref_dict[self.option("ref_genome")]["ref_genome"]
-                # 在此添加基因组文件夹，如果存在有基因组文件夹，那么我们不进行建立索引的操作
-                index_path = os.path.basename(ref_fa) + "/ref_index1"
-                genomeDir_path1 = os.path.join(self.work_dir, "ref_star_index1")
-            if not os.path.exists(genomeDir_path1):
-                os.mkdir(genomeDir_path1)
-            if os.path.exists(index_path):
-                tmp = os.listdir(index_path)
-                if not len(tmp) == 8:
-                    self.star_index1(genomeDir_path1, ref_fa)
-                else:
-                    for file in tmp:
-                        file_path = os.path.join(index_path, file)
-                        new_path = os.path.join(genomeDir_path1, file)
-                        os.link(file_path, new_path)
-            else:
-                self.star_index1(genomeDir_path1, ref_fa)
-        self.option("star_index1", genomeDir_path1)
+            rel_index = ref_dict[self.option("ref_genome")]["dna_index"]
+            abs_index = self.config.SOFTWARE_DIR +  "/database/Genome_DB_finish/" +  rel_index
+            self.logger.info(abs_index)
+            self.option("star_index1", abs_index)
         self.end()

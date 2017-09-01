@@ -30,7 +30,7 @@ class ExpressCorrWorkflow(Workflow):
             {"name":"update_info","type":"string"},
             {"name":"type","type":"string","default":"gene"}, #传给to_file 参数
             {"name":"method","type":"string","default":"pearson"}, #聚类方法
-            {"name":"hclust_method",'type':"string",'default':'complete'}, #层次聚类方式
+            # {"name":"hclust_method",'type':"string",'default':'complete'}, #层次聚类方式
             {"name":"express_level","type":"string"}, #对应fpkm/tpm
             {"name":"corr_pca","type":"string"} #pca 或 correlation分析
         ]
@@ -58,8 +58,7 @@ class ExpressCorrWorkflow(Workflow):
             new_fpkm = self.fpkm(specimen)
         opts = {
             "fpkm":new_fpkm,
-            "method":self.option('method'),
-            "hclust_method":self.option("hclust_method")
+            "method":self.option('method')
         }
         self.corr.set_options(opts)
         self.corr.on('end', self.set_db)
@@ -129,7 +128,7 @@ class ExpressCorrWorkflow(Workflow):
             self.logger.info(self.corr.output_dir)
             # _id = api_corr.add_correlation_table(self.corr.output_dir,express_id="58ef0bcba4e1af740ec4c14c",\
                 # detail=False, seq_type="gene")
-            api_corr.add_correlation_detail(self.corr.output_dir,self.option("correlation_id"),updata_tree=True)
+            api_corr.add_correlation_detail(self.corr.output_dir, self.option("correlation_id"),updata_tree=True)
 
         if self.option('corr_pca') == 'pca':
             self.logger.info(self.pca.output_dir)
@@ -171,7 +170,18 @@ class ExpressCorrWorkflow(Workflow):
             self.run_pca()
         super(ExpressCorrWorkflow, self).run()
 
-        
-        
-        
-        
+    def end(self):
+        if self.option('corr_pca') == 'corr':
+            output1_dir = self.corr.output_dir
+            result = self.add_upload_dir(output1_dir)
+            result.add_relpath_rules([
+                [".", "", "表达量相关性分析结果文件"],
+            ])
+        if self.option('corr_pca') == 'pca':
+            output2_dir = self.pca.output_dir
+            result2 = self.add_upload_dir(output2_dir)
+            result2.add_relpath_rules([[".", "", "表达量PCA分析结果文件"], ])
+        super(ExpressCorrWorkflow, self).end()
+
+
+

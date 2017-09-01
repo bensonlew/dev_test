@@ -19,7 +19,8 @@ class KeggRichAgent(Agent):
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},  # 只含有基因的kegg table结果文件
             {"name": "diff_list", "type": "infile", "format": "rna.gene_list"},  # gene名字文件
             # {"name": "diff_stat", "type": "infile", "format": "rna.diff_stat_table"},  # 改为输入状态表文件
-            {"name": "correct", "type": "string", "default": "BH"}  # 多重检验校正方法
+            {"name": "correct", "type": "string", "default": "BH"},  # 多重检验校正方法
+            {"name": "add_info", "type": "string", "default": None},  # 底图文件地址
         ]
         self.add_option(options)
         self.step.add_steps("kegg_rich")
@@ -83,6 +84,8 @@ class KeggRichTool(Tool):
         self.script_path = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/"
         self.k2e = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/K2enzyme.tab"
         self.brite = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/br08901.txt"
+        self.map_dict = dict()  # 获得背景色连接
+        self.front_dict = dict()
 
     def run(self):
         """
@@ -95,6 +98,10 @@ class KeggRichTool(Tool):
         # else:
         #     self.run_web_kegg()
         self.run_kegg_rich()
+        self.run_identify()
+        if self.option("add_info"):
+            self.run_add_info()
+        self.end()
 
     def run_kegg_rich(self):
         """
@@ -118,7 +125,7 @@ class KeggRichTool(Tool):
         except Exception as e:
             self.set_error("kegg富集第一步运行出错:{}".format(e))
             self.logger.info("kegg富集第一步运行出错:{}".format(e))
-        self.run_identify()
+        # self.run_identify()
 
     def run_identify(self):
         deg_path = self.work_dir + "/" + os.path.basename(self.option('diff_list').prop["path"]) + ".DE.list"
@@ -129,17 +136,95 @@ class KeggRichTool(Tool):
         bgn = self.bgn
         k2e = self.k2e
         brite = self.brite
-        cmd_2 = self.python + 'python {}kegg_enrichment.py -deg {} -g2p {} -g2k {} -bgn {} -k2e {} -brite {} --FDR -dn 20'.format(self.script_path, deg_path, g2p_path, g2k_path, bgn, k2e, brite)
+        # correct method:
+        correct = self.option("correct")
+        correct_method = 3
+        if correct.lower() == "bh":
+            correct_method = 3
+        elif correct.lower() == 'bonferroni':
+            correct_method = 1
+        elif correct.lower() == 'holm':
+            correct_method = 2
+        elif correct.lower() == 'by':
+            correct_method = 4
+        else:
+            print('correct method not exist, BH will be used')
+
+        # end of correct method
+        cmd_2 = self.python + 'python {}kegg_enrichment.py ' \
+                              '-deg {} -g2p {} -g2k {} -bgn {} -k2e {} -brite {} --FDR -dn 20 ' \
+                              '-correct {}'.format(self.script_path, deg_path, g2p_path, g2k_path,
+                                                   bgn, k2e, brite, correct_method)
         self.logger.info('开始运行kegg富集第二步：进行kegg富集分析')
         command_2 = self.add_command("cmd_2", cmd_2).run()
         self.wait(command_2)
         if command_2.return_code == 0:
             self.logger.info("kegg富集分析运行完成")
+            self.output_name = kofile + '.kegg_enrichment.xls'
             self.set_output(kofile + '.kegg_enrichment.xls')
-            self.end()
+            # self.end()
         else:
             self.set_error("kegg富集分析运行出错!")
             raise Exception("kegg富集分析运行出错")
+
+    def run_add_info(self):
+        background_links = self.option("add_info")
+        if not os.path.exists(background_links):
+            self.logger.info("不存在背景信息文件，程序退出")
+            return
+        with open(background_links) as r:
+            r.readline()
+            for line in r:
+                tmp = line.strip().split("\t")
+                pathway = tmp[0]
+                links = tmp[1].split("?")[1].split("/")
+                links.pop(0)  # 去除掉map
+                dict = {}
+                for link in links:
+                    ko = link.split("%09")[0]  # K06101
+                    color = link.split("%09")[1]  # tomato
+                    dict[ko] = color
+                self.map_dict[pathway] = dict  # self.map_dict["map05340"] = {"K10887": "yellow"}
+        with open(self.output_name, "r") as file, open(self.output_name + "_new", "w") as fw:
+            line = file.readline()
+            fw.write(line)
+            for line in file:
+                tmp = line.strip().split("\t")
+                links = tmp[9]
+                pathway = tmp[3]
+                links_ko = links.split("?")[1].split("/")
+                links_ko.pop(0)  # 去除掉map
+                lnk = links.split("?")[0] + "?map=" + pathway + "&multi_query="
+                # self.front_dict[pathway] = []
+                # for link in links_ko:
+                #     ko = link.split("%09")[0]
+                #     self.front_dict[pathway].append(ko)
+                #     if pathway in self.map_dict:
+                ko_tmp = [x.split("%09")[0] for x in links_ko]  # ko gene_list
+                if pathway in self.map_dict:
+                    for ko in self.map_dict[pathway].keys():  # 对背景色中的所有项进行循环
+                        self.logger.info(ko)
+                        if ko == "":
+                            continue
+                        if ko in ko_tmp:  # 当背景色在富集得出的表中时
+                            lnk += ko + "+{},{}%0d%0a".format(self.map_dict[pathway][ko], "blue")  # 有背景色，前景色为蓝
+                        else:
+                            lnk += ko + "+{}%0d".format(self.map_dict[pathway][ko])  # 只有背景色
+                    # tmp[9] = lnk
+                    # str_ = "\t".join(tmp) + "\n"
+                    # fw.write(str_)
+                else:
+                    for ko in ko_tmp:
+                        if ko == "":
+                            continue
+                        lnk += ko + "+{},{}%0d%0a".format("white", "blue")  # 只有背景色
+                tmp[9] = lnk
+                str_ = "\t".join(tmp) + "\n"
+                fw.write(str_)
+        os.link(self.output_name, self.output_name + "_bak")
+        os.remove(self.output_name)
+        os.link(self.output_name + "_new", self.output_name)
+        self.set_output(self.output_name)
 
     def set_output(self, linkfile):
         """

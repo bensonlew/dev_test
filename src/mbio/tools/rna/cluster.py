@@ -27,8 +27,9 @@ class ClusterAgent(Agent):
             {"name": "log", "type": "int", "default": 10},  # 画热图时对原始表进行取对数处理，底数为10或2
             {"name": "method", "type": "string", "default": "hclust"},  # 聚类方法选择
             {"name": "sub_num", "type": "int", "default": 10},  # 子聚类的数目
-            {"name":"is_genelist","type":"bool","default":False}, #是否设置gene_list参数
-            {"name":"diff_list_dir","type":"infile", 'format':"rna.gene_list_dir"}  #
+            {"name": "is_genelist","type":"bool","default":False}, #是否设置gene_list参数
+            {"name": "diff_list_dir","type":"infile", 'format':"rna.gene_list_dir"},
+            {"name": "diff_list", "type": "outfile", "format": "rna.gene_list"}
 
         ]
         self.add_option(options)
@@ -59,7 +60,7 @@ class ClusterAgent(Agent):
             raise OptionError("所选方法不在范围内")
         if not isinstance(self.option("sub_num"), int):
             raise OptionError("子聚类数目必须为整数")
-        if not (self.option("sub_num") >= 3 and self.option("sub_num") <= 35):
+        if not (self.option("sub_num") >= 1 and self.option("sub_num") <= 35):
             raise OptionError("子聚类数目范围必须在3-35之间！")
 
     def set_resource(self):
@@ -184,6 +185,7 @@ class ClusterTool(Tool):
                             self.file_path.append(diff_path)
                 if self.file_path:
                     fpkm_path = self.filter_gene(self.file_path[0])
+                    self.option("diff_list").set_path(self.file_path[0])
                     self.run_cluster(fpkm_path)
                 else:
                     self.logger.info("{}没有生成差异基因集，无法根据差异基因进行聚类分析！".format(self.option("diff_list_dir").prop['path']))

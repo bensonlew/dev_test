@@ -16,6 +16,7 @@ from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from mbio.api.to_file.ref_rna import *
 from mainapp.models.mongo.submit.ref_rna import *
 
+
 class DiffExpressAction(RefRnaController):
     def __init__(self):
         super(DiffExpressAction, self).__init__()
@@ -40,7 +41,7 @@ class DiffExpressAction(RefRnaController):
                 info = {"success":False,"info":'+'.join(return_control_id_group_detail)}
                 return json.dumps(info)
 
-        task_type = 'workflow'
+        task_type = ''
         task_name = 'ref_rna.report.diff_express'
 
         my_param['express_id'] = data.express_id
@@ -52,9 +53,13 @@ class DiffExpressAction(RefRnaController):
         my_param['pvalue'] = data.pvalue
         my_param['diff_method'] = data.diff_method
         my_param['type'] = data.type  #基因还是转录本
-        my_param['task_type']= task_type
+        my_param['task_type'] = task_type
         my_param['submit_location'] = data.submit_location
+        my_param['task_id'] = data.task_id
 
+        if data.pvalue ==0 and data.fc == 1:
+            info = {"success":False,"info":'{}值为0和fc为1不能同时存在!'.format(data.pvalue_padjust)}
+            return json.dumps(info)
         params = json.dumps(my_param, sort_keys=True, separators=(',', ':'))
         express_info = self.ref_rna.get_main_info(data.express_id, 'sg_express')
         task_info = self.ref_rna.get_task_info(express_info['task_id'])
@@ -82,7 +87,7 @@ class DiffExpressAction(RefRnaController):
                 ('status', 'start'),
                 ('desc',"表达量差异主表"),
                 ('name', main_table_name),
-                ("value_type",value_type),
+                ("value_type",express_level),
                 ("express_id",ObjectId(data.express_id)),
                 ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
                 ("params", json.dumps(my_param, sort_keys=True, separators=(',', ':')))
@@ -167,7 +172,7 @@ class DiffExpressAction(RefRnaController):
                 success.append("传入的id：{}不是一个ObjectId对象或字符串类型".format(ids))
         return success
 
-    def check_group_id_control_id(self,control_id,group_detail):
+    def check_group_id_control_id(self, control_id, group_detail):
         """检测control_id的样本分组信息是否和group_detail表一一对应"""
         compare_names = self.ref_rna.get_control_id(control_id)
         group_names = group_detail.keys()

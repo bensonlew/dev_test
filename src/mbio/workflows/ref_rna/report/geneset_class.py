@@ -73,21 +73,62 @@ class GenesetClassWorkflow(Workflow):
         with open(self.option("geneset_kegg"), "r") as f:
             for line in f:
                 line = line.strip().split("\t")
-                regulate_gene[line[0]] = line[1].split(",")
+                regulate_gene[line[0]] = line[1].split(",")  # multi_geneset_list
         pathways = self.output_dir + '/pathways'
         if not os.path.exists(pathways):
             os.mkdir(pathways)
         self.logger.info(ko_genes)
+        self.get_kegg_pics(ko_genes=ko_genes, catgory=regulate_gene, out_dir=pathways)
         # kegg.get_pictrue(path_ko=path_ko, out_dir=pathways, regulate_dict=regulate_gene)  # 颜色
-        kegg.get_pictrue(path_ko=path_ko, out_dir=pathways)
-        kegg.get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output=self.output_dir + '/kegg_stat.xls')
+        # kegg.get_pictrue(path_ko=path_ko, out_dir=pathways)  # edited by shijin on 20170728
+        # kegg.get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output=self.output_dir + '/kegg_stat.xls')
+
+    def get_kegg_pics(self, ko_genes, catgory, out_dir):
+        kos = ko_genes.keys()
+        genes = set()
+        for ko in kos:
+            genes.update(ko_genes[ko])
+        gene_list = list(genes)
+        color_dict = {}
+        for gene in gene_list:
+            color_dict[gene] = []
+            # for catg in catgory.values():
+            if len(catgory) == 1:
+                if gene in catgory.values()[0]:
+                    color_dict[gene].append("#00CD00")  # 绿色
+            elif len(catgory) ==2:
+                if gene in catgory.values()[1]:
+                    color_dict[gene].append("#00CD00")  # 绿色
+                elif gene in catgory.values()[2]:
+                    color_dict[gene].append("#9932CC")  # 基佬紫
+            else:
+                pass
+        ko_fg = {}
+        for ko in kos:
+            ko_fg[ko] = []
+            for gene in ko_genes[ko]:
+                ko_fg[ko].expand(color_dict[gene])
+                ko_fg[ko] = list(set(ko_fg[ko]))
+        with open(out_dir + "/kos", "w") as fw:
+            fw.write("#KO\tbg\tfg\n")
+            for ko in ko_fg.keys():
+                fw.write(ko + "\tFF00FF\t" + ko_fg[ko] + "\n")
+        self.logger.info("ko文件生成完毕")
+
+        # pass
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "基因集功能分类结果目录"],
-            # ["./estimators.xls", "xls", "alpha多样性指数表"]
-        ])
+        if self.option("anno_type") == "go":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集GO分类结果文件"],
+                # ["./estimators.xls", "xls", "alpha多样性指数表"]
+            ])
+        elif self.option("anno_type") == "cog":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集COG分类结果文件"],
+                # ["./estimators.xls", "xls", "alpha多样性指数表"]
+            ])
         # print self.get_upload_files()
         self.set_end()
         self.fire('end')

@@ -8,6 +8,7 @@ import types
 import json
 import re
 from types import StringTypes
+import gridfs
 
 
 # client = Config().mongo_client
@@ -47,7 +48,7 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
     for result in stat_result:
         task_id = result["task_id"]
     blast_collection = db["sg_annotation_blast"]
-    blast_result = blast_collection.find({"task_id": task_id})
+    blast_result = blast_collection.find({"task_id": task_id, "stat_id": ObjectId(data)})
     if not blast_result.count():
         raise Exception("stat_id:{}在sg_annotation_blast表中未找到".format(data))
     for result in blast_result:
@@ -152,6 +153,26 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
     return kegg_path
 
+def export_kegg_pdf(data, option_name, dir_path, bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    fs = gridfs.GridFS(db)
+    annotation_collection = db["sg_annotation_kegg"]
+    task_id = data.split("\t")[0]
+    anno_type = data.split("\t")[1]
+    main_id = annotation_collection.find_one({"task_id":task_id})["_id"]
+    kegg_level_collection = db["sg_annotation_kegg_level"]
+    results = kegg_level_collection.find({"kegg_id":main_id, "seq_type":"all", "anno_type":anno_type})
+    anno_path = dir_path + "/png"
+    if not os.path.exists(anno_path):
+        os.mkdir(anno_path)
+    for result in results:
+        graph_id = result["graph_png_id"]
+        pathway_id = result["pathway_id"]
+        bind_obj.logger.info("正在导出{}的png文件".format(pathway_id))
+        with open(anno_path + "/" + pathway_id + ".png", "w") as fw:
+            content = fs.get(graph_id).read()
+            fw.write(content)
+    return anno_path
 
 def export_all_list(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
@@ -231,35 +252,34 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
     cog_collection = db["sg_annotation_cog"]
     cog_detail_collection = db["sg_annotation_cog_detail"]
     cog_id = cog_collection.find_one({"task_id": task_id})["_id"]
-    cog_results = cog_detail_collection.find({'cog_id': cog_id})
+    # cog_results = cog_detail_collection.find({'cog_id': cog_id})
+    cog_results = cog_detail_collection.find({'cog_id': cog_id, 'seq_type': 'all', 'anno_type': geneset_type})
     new_table_title = []
     for tt in table_title:
-        new_tt = [tt + "_COG", tt + "_NOG", tt + "_KOG", tt + "_COG_list", tt + "_NOG_list", tt + "_KOG_list"]
+        # new_tt = [tt + "_COG", tt + "_NOG", tt + "_KOG", tt + "_COG_list", tt + "_NOG_list", tt + "_KOG_list"]
+        new_tt = [tt + "_COG", tt + "_NOG", tt + "_COG_list", tt + "_NOG_list"]
         new_table_title = new_table_title + new_tt
     bind_obj.logger.debug(table_title)
     with open(cog_path, "wb") as w:
         w.write("Type\tFunctional Categoris\t" + "\t".join(new_table_title) + "\n")
         for cr in cog_results:
-            kog_list = set(cr["kog_list"].split(";") if cr["kog_list"] else [])
-            nog_list = set(cr["nog_list"].split(";") if cr["kog_list"] else [])
-            cog_list = set(cr["cog_list"].split(";") if cr["kog_list"] else [])
-            # print kog_list
-            # write_line_key = cr["type"] + "\t" + cr["function_categories"]
+            kog_list = set([])
+            nog_list = set(cr["nog_list"].split(";") if cr["nog_list"] else [])
+            cog_list = set(cr["cog_list"].split(";") if cr["cog_list"] else [])
             write_line = {}
             for gt in genesets:
-                kog_count = list(kog_list & genesets[gt][1])
+                # kog_count = list(kog_list & genesets[gt][1])
                 nog_count = list(nog_list & genesets[gt][1])
                 cog_count = list(cog_list & genesets[gt][1])
-                if not len(kog_count) + len(nog_count) + len(cog_count) == 0:
-                    write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count)), ";".join(cog_count), ";".join(nog_count), ";".join(kog_count)]
+                # if not len(kog_count) + len(nog_count) + len(cog_count) == 0:
+                #     write_line[gt] = [str(len(cog_count)), str(len(nog_count)), str(len(kog_count)), ";".join(cog_count), ";".join(nog_count), ";".join(kog_count)]
+                if not len(nog_count) + len(cog_count) == 0:
+                    write_line[gt] = [str(len(cog_count)), str(len(nog_count)), ";".join(cog_count), ";".join(nog_count)]
             if len(write_line) > 0:
                 w.write("{}\t{}\t".format(cr["type"], cr["function_categories"]))
                 for tt in table_title:
-                    w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\t0\tnone\tnone\tnone\t")
-                # print write_line
+                    w.write("\t".join(write_line[tt]) + "\t") if tt in write_line else w.write("0\t0\tnone\tnone\t")
                 w.write("\n")
-            # else:
-            #     raise Exception("没有找到基因集的COG注释信息")
     return cog_path
 
 
@@ -267,76 +287,64 @@ def get_geneset_detail(data):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     geneset_collection = db["sg_geneset"]
     genesets = {}
-    table_title = []
+    names = []
     print data.split(",")
     task_id = ""
     geneset_type = "gene"
     for geneset_id in data.split(","):
-        # geneset_id = ObjectId(geneset_id)
         geneset_result = geneset_collection.find_one({"_id": ObjectId(geneset_id)})
         if not geneset_result:
             raise Exception("意外错误:未找到基因集_id为{}的基因集信息".format(geneset_id))
         task_id = geneset_result["task_id"]
         geneset_type = geneset_result["type"]
         geneset_name = geneset_result["name"]
-        table_title.append(geneset_name)
+        names.append(geneset_name)
         genesets[geneset_name] = [geneset_type]
-        # geneset_names = set()
         collection = db['sg_geneset_detail']
         results = collection.find_one({"geneset_id": ObjectId(geneset_id)})
         geneset_names = set(results["gene_list"])
-        #for result in results["gene_list"]:
-            #gene_id = result['gene_name']
-            #geneset_names.add(gene_id)
         genesets[geneset_name].append(geneset_names)
-    return genesets, table_title, task_id, geneset_type
+    return genesets, names, task_id, geneset_type
 
 
 def export_go_class(data, option_name, dir_path, bind_obj=None):
     db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     go_path = os.path.join(dir_path, 'go_class_table.xls')
     bind_obj.logger.debug("正在导出{}".format(go_path))
-    genesets, table_title, task_id, seq_type = get_geneset_detail(data)
-    # bind_obj.logger.debug(seq_type)
-    # bind_obj.logger.debug(genesets)
+    genesets, names, task_id, seq_type = get_geneset_detail(data)
     go_collection = db["sg_annotation_go"]
-    go_level_collection = db["sg_annotation_go_level"]
+    # go_level_collection = db["sg_annotation_go_level"]
+    go_level_collection = db["sg_annotation_go_detail"]
     go_id = go_collection.find_one({"task_id": task_id})["_id"]
-    # go_results = go_level_collection.find({'go_id': go_id, "level": 2})
-    # bind_obj.logger.debug(go_id)
-    go_results = go_level_collection.find({'go_id': go_id, "level": 2, "anno_type": seq_type})
-    one_record = go_level_collection.find_one({'go_id': go_id, "level": 2, "anno_type": seq_type})
+    # go_results = go_level_collection.find({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
+    one_record = go_level_collection.find_one({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
     if not one_record:
         raise Exception("意外错误:未找到go_id为{}的基因集信息".format(go_id))
-    # print table_title
     new_table_title = []
-    for tt in table_title:
-        new_table_title.append(tt + " num")
-        new_table_title.append(tt + " percent")
-        new_table_title.append(tt + " list")
+    for gt in genesets:
+        new_table_title.append(gt + " num")
+        new_table_title.append(gt + " percent")
+        new_table_title.append(gt + " list")
     bind_obj.logger.debug(new_table_title)
     with open(go_path, "wb") as w:
         w.write("Term type\tTerm\tGO\t" + "\t".join(new_table_title) + "\n")
-        for gr in go_results:
-            seq_list = set(gr["seq_list"].split(";"))
-            # seq_list = set(re.findall(r"(.*?)\(.*?\);", gr["seq_list"]))
-            # bind_obj.logger.debug(seq_list)
-            write_line = {}
-            for gt in genesets:
-                total_gene_num = len(genesets[gt][1])
-                go_count = list(seq_list & genesets[gt][1])
-                # print len(go_count)
-                # bind_obj.logger.debug(go_count)
-                if not len(go_count) == 0:
-                    write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
-            if len(write_line):
-                w.write("{}\t{}\t{}\t".format(gr["parent_name"], gr["term_type"], gr["go"]))
-                for tt in table_title:
-                    # bind_obj.logger.debug(tt)
-                    w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\tnone\t")
-                # print write_line
-                # w.write("\t".join(write_line[write_line_key]))
-                w.write("\n")
+        term_list = ["biological_process", "cellular_component", "molecular_function"]
+        for item in term_list:
+            go_results = go_level_collection.find({'go_id': go_id, "level": 2, "seq_type": "all", "anno_type": seq_type})
+            for gr in go_results:
+                if gr["goterm"] == item:
+                    seq_list = set(gr["seq_list"].split(";"))
+                    write_line = {}
+                    for gt in genesets:
+                        total_gene_num = len(genesets[gt][1])
+                        go_count = list(seq_list & genesets[gt][1])
+                        if not len(go_count) == 0:
+                            write_line[gt] = str(len(go_count)) + "\t" + str(len(go_count)/total_gene_num) + "(" + str(len(go_count)) + "/" + str(total_gene_num) + ")" + "\t" + ";".join(go_count)
+                    if len(write_line):
+                        w.write("{}\t{}\t{}\t".format(gr["goterm"], gr["goterm_2"], gr["goid_2"]))
+                        for tt in genesets:
+                            w.write(write_line[tt] + "\t") if tt in write_line else w.write("0\t0\tnone\t")
+                        w.write("\n")
     return go_path
 
 
@@ -556,6 +564,17 @@ def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_cod
     type= bind_obj.sheet.option('type')
     class_code_type =  bind_obj.sheet.option("class_code_type")
     class_code_detail = db['sg_express_class_code_detail']
+    class_code_col = db['sg_express_class_code']
+    class_code_main_info = class_code_col.find_one({"_id":ObjectId(data)})
+    task_id = class_code_main_info["task_id"]
+    sg_task = db["sg_task"]
+    sg_task_info = sg_task.find_one({"task_id":task_id})
+    if sg_task_info["is_demo"] == 2:
+        demo_id = sg_task_info["demo_id"]  # sanger_21455
+        class_code_demo_info = class_code_col.find_one({"task_id":demo_id})
+        bind_obj.logger.info(class_code_demo_info)
+        data = str(class_code_demo_info["_id"])
+    bind_obj.logger.info(data)
     class_code_info = class_code_detail.find({"class_code_id":ObjectId(data),"type":class_code_type})
     with open(class_code,'w+') as f:
         header = ['seq_id','gene_name',"class_code"]
@@ -567,6 +586,25 @@ def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_cod
                 _write = d['assembly_trans_id']+"\t"+d['gene_name']+"\t" + d["class_code"] + "\t" + d["assembly_gene_id"] + "\n"
             f.write(_write)
     return class_code
+
+def export_add_info(data,option_name,dir_path,bind_obj=None):
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    task_id = data.split("\t")[0]
+    anno_type = data.split("\t")[1]
+    add_info = os.path.join(dir_path, '{}.txt'.format(option_name))
+    bind_obj.logger.debug("正在导出add_info信息")
+    col = db["sg_annotation_kegg"]
+    result = col.find_one({"task_id":task_id})
+    insert_id = result["_id"]
+    print insert_id
+    print anno_type
+    col = db["sg_annotation_kegg_level"]
+    results = col.find({"kegg_id":insert_id, "seq_type":"all", "anno_type":anno_type})
+    with open(add_info, "w") as fw:
+        fw.write("pathway\thyperlink\n")
+        for result in results:
+            fw.write(result["pathway_id"] + "\t" + result["hyperlink"] + "\n")
+    return add_info
 
 if __name__ == "__main__":
     data = "5909a269a4e1af11112543e2"

@@ -15,16 +15,13 @@ class Transcript(object):
         self.swissprot = ''
         self.cog = ''
         self.nog = ''
-        self.kog = ''
         self.cog_ids = ''
         self.nog_ids = ''
-        self.kog_ids = ''
         self.go = ''
         self.ko_id = ''
         self.ko_name = ''
         self.pathway = ''
-        self.pfam = ''
-        self.pfam_evalue = ''
+        self.pfam = []
 
 
 class AllAnnoStat(object):
@@ -39,7 +36,7 @@ class AllAnnoStat(object):
         传入各个数据库的部分注释结果文件，统计功能注释信息表（即应注释查询模块的功能注释信息表）
         outpath：输出结果路径：功能注释信息表的文件路径
         gtf_path：gtf文件，提取转录本对应的基因ID和基因名称
-        cog_list：string2cog注释tool统计得到的cog_list.xls,提取cog/nog/kog及对应的功能分类信息
+        cog_list：string2cog注释tool统计得到的cog_list.xls,提取cog/nog及对应的功能分类信息
         kegg_table：kegg_annotation注释tool统计得到的kegg_table.xls
         gos_list：go_annotation注释tool统计得到的query_gos.list
         blast_nr_table：blast比对nr库得到的结果文件(blast输出文件格式为6：table)
@@ -64,12 +61,12 @@ class AllAnnoStat(object):
         if length_path:
             self.get_length(length_path=length_path)
         with open(outpath, 'wb') as w:
-            head = 'transcript\tgene_id\tgene_name\tlength\tcog\tnog\tkog\tcog_description\tnog_description\tkog_description\tKO_id\tKO_name\tpaths\tpfam\tgo\tnr\tswissprot\n'
+            head = 'transcript\tgene_id\tgene_name\tlength\tcog\tnog\tcog_description\tnog_description\tKO_id\tKO_name\tpaths\tpfam\tgo\tnr\tswissprot\n'
             w.write(head)
             for name in self.stat_info:
-                w.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.stat_info[name].name, self.stat_info[name].gene_id, self.stat_info[name].gene_name,
-                        self.stat_info[name].length, self.stat_info[name].cog, self.stat_info[name].nog, self.stat_info[name].kog, self.stat_info[name].cog_ids, self.stat_info[name].nog_ids,
-                        self.stat_info[name].kog_ids, self.stat_info[name].ko_id, self.stat_info[name].ko_name, self.stat_info[name].pathway, self.stat_info[name].pfam,
+                w.write('{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format(self.stat_info[name].name, self.stat_info[name].gene_id, self.stat_info[name].gene_name,
+                        self.stat_info[name].length, self.stat_info[name].cog, self.stat_info[name].nog, self.stat_info[name].cog_ids, self.stat_info[name].nog_ids,
+                        self.stat_info[name].ko_id, self.stat_info[name].ko_name, self.stat_info[name].pathway, '; '.join(self.stat_info[name].pfam),
                         self.stat_info[name].go, self.stat_info[name].nr, self.stat_info[name].swissprot))
 
     def get_gene(self, gtf_path):
@@ -141,8 +138,11 @@ class AllAnnoStat(object):
                 gos = []
                 for i in go:
                     result = self.go.find_one({"go_id": i})
-                    item = i + "(" + result["ontology"] + ":" + result["name"] + ")"
-                    gos.append(item)
+                    if result:
+                        item = i + "(" + result["ontology"] + ":" + result["name"] + ")"
+                        gos.append(item)
+                    else:
+                        print "数据库没找到go_id：{}".format(i)
                 gos = "; ".join(gos)
                 if query_name in self.stat_info:
                     self.stat_info[query_name].go = gos
@@ -161,23 +161,18 @@ class AllAnnoStat(object):
                 query_name = line[0]
                 cog = line[1]
                 nog = line[2]
-                kog = line[3]
                 if query_name in self.stat_info:
                     self.stat_info[query_name].cog = self.get_cog_group_categories(cog)[0]
                     self.stat_info[query_name].nog = self.get_cog_group_categories(nog)[0]
-                    self.stat_info[query_name].kog = self.get_cog_group_categories(kog)[0]
                     self.stat_info[query_name].cog_ids = self.get_cog_group_categories(cog)[1]
                     self.stat_info[query_name].nog_ids = self.get_cog_group_categories(nog)[1]
-                    self.stat_info[query_name].kog_ids = self.get_cog_group_categories(kog)[1]
                 else:
                     query = Transcript()
                     query.name = query_name
                     query.cog = self.get_cog_group_categories(cog)[0]
                     query.nog = self.get_cog_group_categories(nog)[0]
-                    query.kog = self.get_cog_group_categories(kog)[0]
                     query.cog_ids = self.get_cog_group_categories(cog)[1]
                     query.nog_ids = self.get_cog_group_categories(nog)[1]
-                    query.kog_ids = self.get_cog_group_categories(kog)[1]
                     self.stat_info[query_name] = query
 
     def get_cog_group_categories(self, group):
@@ -258,22 +253,19 @@ class AllAnnoStat(object):
                 query_name = line[0]
                 pfam_id = line[2]
                 domain = line[3]
-                pfam_evalue = line[-1]
                 domain_description = line[4]
                 pfam = pfam_id + "(" + domain + ":" + domain_description + ")"
                 if query_name in self.stat_info:
-                    if self.stat_info[query_name].pfam_evalue:
-                        evalue = float(self.stat_info[query_name].pfam_evalue)
-                    else:
-                        evalue = 0
-                    if evalue < float(pfam_evalue):
-                        self.stat_info[query_name].pfam = pfam
-                        self.stat_info[query_name].pfam_evalue = pfam_evalue
+                    if pfam not in self.stat_info[query_name].pfam:
+                        pfams = self.stat_info[query_name].pfam
+                        pfams.append(pfam)
+                        self.stat_info[query_name].pfam = pfams
                 else:
                     query = Transcript()
                     query.name = query_name
-                    query.pfam = pfam
-                    query.pfam_evalue = pfam_evalue
+                    pfams = []
+                    pfams.append(pfam)
+                    query.pfam = pfams
                     self.stat_info[query_name] = query
 
     def get_length(self, length_path):

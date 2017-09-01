@@ -53,6 +53,7 @@ class KeggTableFile(File):
         return ko_gene, path_ko
 
     def get_gene2K(self, outdir):
+        gene2K = defaultdict(lambda: [])
         with open(self.prop['path'], 'rb') as r, open(outdir + '/gene2K.info', 'wb') as w:
             r.readline()
             head = 'Query\tKo id(Gene id)\n'
@@ -61,7 +62,10 @@ class KeggTableFile(File):
                 if line.startswith("#"):
                     continue
                 line = line.strip('\n').split('\t')
-                w.write('{}\t{}\n'.format(line[0], line[1]))
+                if not line[1] in gene2K[line[0]]:
+                    gene2K[line[0]].append(line[1])
+            for key in gene2K.keys():
+                w.write('{}\t{}\n'.format(key, ";".join(gene2K[key])))
 
     def get_gene2path(self, outdir):
         with open(self.prop['path'], 'rb') as r, open(outdir + '/gene2path.info', 'wb') as w:
@@ -70,6 +74,6 @@ class KeggTableFile(File):
             w.write(head)
             for line in r:
                 line = line.strip('\n').split('\t')
-                if not line[-1].startswith("path"):
+                if not line[-1]:
                     continue
                 w.write('{}\t{}\n'.format(line[0], line[-1]))

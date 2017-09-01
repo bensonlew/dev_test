@@ -8,6 +8,7 @@ from biocluster.core.exceptions import OptionError
 import shutil
 import re
 from mbio.files.align.bwa.bam import BamFile
+from mbio.packages.gene_structure.rmats_process_func import process_single_rmats_output_dir
 
 
 class RmatsBamAgent(Agent):
@@ -73,11 +74,11 @@ class RmatsBamAgent(Agent):
         # 在paired分析模式下，指定的A组或B组的样品bam文件必须>=3,且两组样品bam文件个数必须相等
         paired = bool(self.option('analysis_mode') == 'P')
         group_size_equal = bool(A_group_size == B_group_size)
-        group_size_ok = bool(A_group_size >= 3 and B_group_size >= 3)
-        paired_mode_ok = bool(group_size_equal and group_size_ok)
+        group_size_ok = bool(A_group_size >= 2 and B_group_size >= 2)
+        # paired_mode_ok = bool(group_size_equal and group_size_ok)
         if paired:
-            if not paired_mode_ok:
-                raise OptionError('您在paired分析模式下，指定的A组或B组的样品bam文件不>=3,或者两组样品bam文件个数不相等')
+            if not group_size_ok:
+                raise OptionError('您在paired分析模式下，指定的A组或B组的样品bam文件不>=2')
         if not self.option('ref_gtf'):
             raise OptionError('必须设置参考基因组注释文件（ref_genome.gtf）')
         if self.option('cut_off') < 0 or self.option('cut_off') >= 1:
@@ -171,6 +172,7 @@ class RmatsBamTool(Tool):
         """
         super(RmatsBamTool, self).run()
         self.run_rmats()
+        self.process_output()
         # self.set_output()
         self.end()
     
@@ -191,3 +193,7 @@ class RmatsBamTool(Tool):
         except Exception as e:
             self.logger.info("设置rmats结果目录失败：{}".format(e))
             self.set_error("设置rmats结果目录失败：{}".format(e))
+        process_single_rmats_output_dir(root=self.output_dir, )
+
+    def process_output(self):
+        process_single_rmats_output_dir(root=self.output_dir, )

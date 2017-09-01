@@ -48,6 +48,8 @@ class DiffExpAgent(Agent):
         self.on('start', self.stepstart)
         self.on('end', self.stepfinish)
         self.diff_gene = False
+        #self.logger.info("打印pvalue值:{}".format(str(self.option("diff_fdr_ci"))))
+        #self.logger.info("打印fc值:{}".format(str(self.option("fc"))))
 
     def stepstart(self):
         self.step.diff_exp.start()
@@ -62,16 +64,18 @@ class DiffExpAgent(Agent):
         重写参数检测函数
         :return:
         """
+        self.logger.info("打印pvalue值:{}".format(str(self.option("diff_fdr_ci"))))
+        self.logger.info("打印fc值:{}".format(str(self.option("fc"))))
         if not self.option("count").is_set:
             raise OptionError("必须设置输入文件:基因计数表")
         if not self.option("fpkm").is_set:
             raise OptionError("必须设置输入文件:基因表达量表")
         if not self.option('control_file').is_set:
             raise OptionError("必须设置输入文件：上下调对照组参考文件")
-        if self.option("diff_ci") >= 1 or self.option("diff_ci") < 0:
-            raise OptionError("显著性水平不在[0,1)范围内")
-        if self.option("diff_fdr_ci") >= 1 or self.option("diff_fdr_ci") < 0:
-            raise OptionError("显著性水平不在[0,1)范围内")
+        if self.option("diff_ci") > 1 or self.option("diff_ci") < 0:
+            raise OptionError("显著性水平不在(0,1]范围内")
+        if self.option("diff_fdr_ci") > 1 or self.option("diff_fdr_ci") < 0:
+            raise OptionError("显著性水平不在(0,1]范围内")
         if self.option("fc") < 0:
             raise OptionError("显著性水平不能负数")
         if self.option("diff_rate") > 1 or self.option("diff_rate") <= 0:
@@ -103,17 +107,17 @@ class DiffExpAgent(Agent):
         self.diff_gene = True
 
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        relpath = [[".", "", "结果输出目录"]]
-        if self.diff_gene:
-            relpath += [
-                ["diff_fpkm", "xls", "差异基因表达量表"],
-                ["diff_count", "xls", "差异基因计数表"]
-            ]
-        result_dir.add_regexp_rules([
-            [r"_edgr_stat\.xls$", "xls", "edger统计结果文件"]
-        ])
-        result_dir.add_relpath_rules(relpath)
+        # result_dir = self.add_upload_dir(self.output_dir)
+        # relpath = [[".", "", "结果输出目录"]]
+        # if self.diff_gene:
+        #     relpath += [
+        #         ["diff_fpkm", "xls", "差异基因表达量表"],
+        #         ["diff_count", "xls", "差异基因计数表"]
+        #     ]
+        # result_dir.add_regexp_rules([
+        #     [r"_edgr_stat\.xls$", "xls", "edger统计结果文件"]
+        # ])
+        # result_dir.add_relpath_rules(relpath)
         super(DiffExpAgent, self).end()
 
 
@@ -136,27 +140,40 @@ class DiffExpTool(Tool):
         self.diff_gene = False
         self.regulate_stat = self.work_dir + '/regulate_edgrstat_result'
 
+    def stat_samples_size(self):
+        with open(self.option('count').prop['path'],'r+') as f1:
+            tmp_data = f1.read()
+            tmp_line = len(tmp_data.split("\n"))-1
+            if tmp_line <=100:
+                min_rowSum_counts = 1
+            elif tmp_line >100 and tmp_line <1000:
+                min_rowSum_counts = 5
+            else:
+                min_rowSum_counts = self.option("min_rowsum_counts")
+        return min_rowSum_counts
+
     def run_edger(self, dispersion=None):
+        min_rowsum_counts = self.stat_samples_size()
         if self.option('edger_group').is_set:
             self.option('edger_group').get_edger_group([self.option('gname')], './edger_group')
-            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'),self.option('dispersion'), './edger_group', self.option('min_rowsum_counts'))
+            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --samples_file %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'),self.option('dispersion'), './edger_group', min_rowsum_counts)  #min_rowsum_counts 这个参数暂时没有什么用处
         else:
-            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('method'), self.option('dispersion'), self.option('min_rowsum_counts'))
-            restart_edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), dispersion, self.option('min_rowsum_counts'))
-        self.logger.info("开始运行edger_cmd")
+            edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'], self.option('method'), self.option('dispersion'), min_rowsum_counts)  #min_rowsum_counts 这个参数暂时没有什么用处
+            restart_edger_cmd = self.edger + " --matrix %s --method %s --dispersion %s --output edger_result --min_rowSum_counts %s" % (self.option('count').prop['path'],self.option('method'), dispersion, min_rowsum_counts) #min_rowsum_counts 这个参数暂时没有什么用处
+        self.logger.info("开始运行差异分析命令行")
         if self.restart_edger:
-            self.logger.info("开始运行重运行edger_cmd，校正dispersion")
+            self.logger.info("重运行差异分析-校正dispersion")
             shutil.rmtree(self.work_dir + '/diff_list_dir/')
             edger_com = self.add_command("restart_edger_cmd", restart_edger_cmd).run()
         else:
             edger_com = self.add_command("edger_cmd", edger_cmd).run()
         self.wait(edger_com)
         if edger_com.return_code == 0:
-            self.logger.info("运行edger_cmd成功")
+            self.logger.info("运行差异分析命令成功")
             self.cat_diff_list(self.work_dir + '/edger_result/', self.work_dir + '/diff_list_dir/')
         else:
-            self.set_error("运行edger_cmd出错")
-            self.logger.info("运行edger_cmd出错")
+            self.set_error("差异分析命令运行出错")
+            self.logger.info("差异分析命令运行出错")
 
     def cat_diff_list(self, edger_dir, output_dir):
         edger = os.listdir(edger_dir)
@@ -242,7 +259,6 @@ class DiffExpTool(Tool):
             #print files
             #print edger_results_path
             file_path = os.path.join(edger_results_path, files)
-            print 'aaaaaaaaaaaaa'
             _sample_name = str(files.split("_edgr_stat.xls")[0])
             #print _sample_name
             sample_name.append(_sample_name)
@@ -287,8 +303,6 @@ class DiffExpTool(Tool):
                     #if i = 0:
                         #i = 1
                         #f3.write("Gene_ID" + "\t"+"\t".join(sample_name) + "\n")
-                
-
 
     def R_merge(self):
         cmd = '{}/program/perl/perls/perl-5.24.0/bin/perl {}/bioinfo/statistical/scripts/merge.pl '.format(self.config.SOFTWARE_DIR, self.config.SOFTWARE_DIR)
@@ -332,12 +346,12 @@ class DiffExpTool(Tool):
                     if not os.path.getsize(self.work_dir + '/diff_list_dir/' + f):
                         os.remove(self.work_dir + '/diff_list_dir/' + f)
                 self.option('diff_list_dir', self.work_dir + '/diff_list_dir/')
-                self.logger.info("设置edger分析结果目录成功")
+                self.logger.info("设置差异分析结果目录成功")
             else:
                 self.logger.info('输入的fpkm表没有检测到差异基因')
         except Exception as e:
-            self.set_error("设置edger分析结果目录失败{}".format(e))
-            self.logger.info("设置edger分析结果目录失败{}".format(e))
+            self.set_error("设置差异分析结果目录失败{}".format(e))
+            self.logger.info("设置差异分析结果目录失败{}".format(e))
 
     def run(self):
         super(DiffExpTool, self).run()

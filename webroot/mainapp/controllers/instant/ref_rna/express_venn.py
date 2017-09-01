@@ -13,6 +13,9 @@ from bson import ObjectId
 class ExpressVennAction(RefRnaController):
     def __init__(self):
         super(ExpressVennAction, self).__init__(instant=True)
+    
+    def GET(self):
+        return 'khl'
 
     def POST(self):
         data = web.input()

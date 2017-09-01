@@ -54,7 +54,7 @@ class GenomeInfo(Base):
                     }
                     insert_data_list.append(insert_data)
         else:
-            with open("gene.stat.xls", "r") as fr:
+            with open("{}/gene.stat.xls".format(output_dir), "r") as fr:
                 fr.readline()
                 for line in fr:
                     tmp = line.strip().split("\t")

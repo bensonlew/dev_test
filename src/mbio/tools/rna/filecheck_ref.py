@@ -173,10 +173,13 @@ class FilecheckRefTool(Tool):
             self.option("gtf").set_path(new_gff_path + ".gtf")
             self.option("bed").set_path(self.option("gtf").prop["path"] + ".bed")
         else:
-            gtf = self.option("in_gtf").prop["path"]
-            self.option("gtf").set_path(gtf)
-            gtf.to_bed()
-            self.option("bed").set_path(os.path.split(gtf)[1] + ".bed")
+            new_gtf = self.work_dir + "/" + os.path.basename(self.option("in_gtf").prop["path"])
+            if os.path.exists(new_gtf):
+                os.remove(new_gtf)
+            os.link(self.option("in_gtf").prop["path"], new_gtf)
+            self.option("gtf").set_path(new_gtf)
+            self.option("gtf").to_bed()
+            self.option("bed").set_path(self.option("gtf").prop["path"] + ".bed")
 
     def check_fasta(self):
         self.logger.info("对fasta文件进行检查略过")

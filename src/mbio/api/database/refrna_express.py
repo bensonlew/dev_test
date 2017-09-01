@@ -17,6 +17,8 @@ import glob
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 import math
+from math import log10
+import pandas as pd
 
 
 class RefrnaExpress(Base):
@@ -30,22 +32,32 @@ class RefrnaExpress(Base):
         :params: 是否工作流根据class_code信息导入基因/转录本名称
         对转录本都加上相应的gene id信息
         """
-        with open(class_code, 'r+') as f1:
+        if query_type not in ["gene", "transcript"]:
+            raise Exception("query type should be gene or transcript")
+        with open(class_code) as f1:
             f1.readline()
-            data = {}
+            data = dict()
             for lines in f1:
-                line = lines.strip().split("\t")
-                if workflow:
-                    if query_type == 'transcript':
-                        data[line[0]] = {"gene_name": line[3], "class_code": line[2],"gene_id":line[1]}
-                    if query_type == 'gene':
-                        data[line[1]] = {"gane_name": line[3], "class_code": line[2]}
+                line = lines.strip('\n').split("\t")
+                if query_type == 'transcript':
+                    if not line[3]:
+                        line[3] = '-'
+                    if not line[1]:
+                        raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
+                    t_id, gene_id, class_code_type, gene_name = line
+                    if workflow:
+                        data[t_id] = dict(gene_name=gene_name, gene_id=gene_id, class_code=class_code_type)
+                    else:
+                        data[t_id] = dict(gene_name=gene_name, gene_id=gene_id)
                 else:
-                    if query_type == 'gene':
-                        data[line[0]] = {"gene_name": line[1]}
-                    if query_type == 'transcript':
-                        data[line[0]] = {"gene_name": line[1],'gene_id':line[3]}
-            return data
+                    if not line[1]:
+                        line[1] = '-'
+                    gene_id, gene_name, class_code_type = line
+                    if workflow:
+                        data[gene_id] = dict(gene_name=gene_name, class_code=class_code_type)
+                    else:
+                        data[gene_id] = dict(gene_name=gene_name)
+        return data
 
     # @report_check
     def add_express_gragh(self, express_id, distribution_path_log2, distribution_path_log10, distribution_path,
@@ -110,11 +122,11 @@ class RefrnaExpress(Base):
         express_method = params['express_method']
         print "value_type"
         print value_type
+        re_name = "ExpStat_RSEM_{}_".format(value_type.lower()) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'ExpressStat_' + str(
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}_{}".format(express_method,value_type),
+            'name': name if name else re_name,
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
@@ -297,11 +309,11 @@ class RefrnaExpress(Base):
         if 'express_method' not in params.keys():
             raise Exception("请在params中设置express_method参数!")
         express_method = params['express_method']
+        re_name = "ExpStat_FeaCount_{}_".format(value_type.lower()) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'ExpressStat_' + str(
-                datetime.datetime.now().strftime("%Y%m%d_%H%M%S")) + "_{}_{}".format(express_method, value_type),
+            'name': name if name else re_name,
             'desc': '表达量计算主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (
@@ -351,8 +363,8 @@ class RefrnaExpress(Base):
                                    sample_group="sample", query_type="gene", value_type='count')
             self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene",
                                  value_type=value_type)
-            self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
-                                 value_type='count')
+            #self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
+            #                     value_type='count')
             if is_duplicate:
                 if value_type == 'fpkm':
                     fpkm_group_path = group_fpkm_path + "/group.fpkm.xls"
@@ -429,6 +441,7 @@ class RefrnaExpress(Base):
         with open(group_fpkm_path, 'r+') as f1:
             data_list = []
             group_name = f1.readline().strip().split("\t")
+            group_name.sort()
             group_num = len(group_name)
             if not query_type:
                 raise Exception("请设置query_type参数！")
@@ -451,15 +464,17 @@ class RefrnaExpress(Base):
                 ]
                 fpkm_data = line[1:]
                 for i in range(len(fpkm_data)):
-                    if fpkm_data[i] <1e-02 or fpkm_data[i] > 1e+06:
-                        continue
-                    else:
+                    if float(fpkm_data[i]) >= 1e-02 and float(fpkm_data[i]) <= 1e+06:
+                        # print '{}fpkm_data{}符合要求'.format(seq_id, str(float(fpkm_data[i])))
                         data_log2 = log(float(fpkm_data[i])) / log(2)
                         data_log10 = log(float(fpkm_data[i])) / log(10)
                         insert_data += [
                             ('{}_log2'.format(group_name[i]), float(data_log2)),
                             ('{}_log10'.format(group_name[i]), float(data_log10))
                         ]
+                    else:
+                        continue
+
                 insert_data = SON(insert_data)
                 data_list.append(insert_data)
         try:
@@ -474,8 +489,7 @@ class RefrnaExpress(Base):
 
     # @report_check
     def add_express_detail(self, express_id, path, class_code=None, query_type=None, value_type=None,
-                                   method=None,
-                                   sample_group=None, diff=True):
+                                   method=None, sample_group=None, diff=True):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
@@ -570,7 +584,13 @@ class RefrnaExpress(Base):
                     data += [
                         ("is_new", _class)
                     ]
+                if query_type == 'transcript':
+                    data += [("gene_id", _gene_id)]
                 for i in range(len(samples)):
+                    log2_line_fpkm = math.log(float(fpkm[i]) + 1) / math.log(2)
+                    log10_line_fpkm = math.log(float(fpkm[i]) + 1) / math.log(10)
+                    data += [('{}_line_log2'.format(samples[i]), float(log2_line_fpkm))]
+                    data += [('{}_line_log10'.format(samples[i]), float(log10_line_fpkm))]
                     if float(fpkm[i]) < (1e-02) or float(fpkm[i]) > (1e+06):
                         data += [('{}'.format(samples[i]), float(fpkm[i]))]
                         continue
@@ -582,11 +602,6 @@ class RefrnaExpress(Base):
                             data += [('{}_log2'.format(samples[i]), float(log2_fpkm))]
                         if float(log10_fpkm) >= min_log10 and float(log10_fpkm) <= max_log10:
                             data += [('{}_log10'.format(samples[i]), float(log10_fpkm))]
-                        # data += [
-                        #     ('{}'.format(samples[i]), float(fpkm[i])),
-                        #     ('{}_log2'.format(samples[i]), float(log2_fpkm)),
-                        #     ('{}_log10'.format(samples[i]), float(log10_fpkm)),
-                        # ]
                 data = SON(data)
                 data_list.append(data)
         try:
@@ -907,7 +922,7 @@ class RefrnaExpress(Base):
     def add_express_diff(self, params, samples, compare_column, compare_column_specimen=None, ref_all=None,
                                 workflow=True,is_duplicate=None, value_type="fpkm", express_method=None, diff_exp_dir=None,
                                 class_code=None,query_type=None, express_id=None, name=None, group_id=None, group_detail=None,
-                                control_id=None,major=True,pvalue_padjust = None):
+                                control_id=None,major=True,pvalue_padjust = None,diff_method = None):
 
         # group_id, group_detail, control_id只供denovobase初始化时更新param使用
         """
@@ -919,8 +934,8 @@ class RefrnaExpress(Base):
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        task_id = self.bind_obj.sheet.task_id
-        project_sn = self.bind_obj.sheet.project_sn
+        task_id = self.bind_object.sheet.task_id
+        project_sn = self.bind_object.sheet.project_sn
         # params.update({
         #     'express_id': express_id,
         #     'group_id': str(group_id),
@@ -931,10 +946,24 @@ class RefrnaExpress(Base):
             params['group_detail'] = {'all': group_detail}
         if params:
             params.update({"submit_location": "express_diff"})
+        if not express_method:
+            raise Exception("add_express_diff函数需要设置express_method(选择表达量计算软件rsem或featurecounts)参数!")
+        if not value_type:
+            raise Exception("add_express_diff函数需要设置value_type(选择表达量水平fpkm或tpm)参数!")
+        if "type" in params.keys() and "diff_method" in params.keys():
+            diff_method = params['diff_method'].lower()
+            re_name_info = {"gene": "G", "transcript": "T", "edger": "ER", "deseq2": "DS", "degseq": "DG",
+                            "featurecounts": "FeaCount", "rsem": "RSEM"}
+            re_name = 'DiffExp_{}_{}_{}_{}_'.format(re_name_info[query_type],
+                                                    re_name_info[express_method.lower()], value_type.lower(),
+                                                    re_name_info[diff_method]) + str(
+                datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("params是字典格式，需要分别设置type和diff_method键值对!")
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'ExpressDiffStat_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else re_name,
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (
@@ -971,7 +1000,6 @@ class RefrnaExpress(Base):
                                                  class_code, query_type)
         return express_diff_id
 
-
     def add_express_diff_detail(self, express_diff_id, name, compare_name, ref_all, diff_stat_path, workflow=False,
                             class_code=None, query_type=None, pvalue_padjust=None):
         """
@@ -991,74 +1019,87 @@ class RefrnaExpress(Base):
             raise Exception('diff_stat_path所指定的路径:{}不存在，请检查！'.format(diff_stat_path))
         if class_code:
             if os.path.exists(class_code):
-                name_seq_id = self.get_gene_name(class_code, query_type, workflow=workflow)
-        data_list = []
-        with open(diff_stat_path, 'rb') as f:
-            head = f.readline().strip().split('\t')
-            for line in f:
-                line = line.strip().split('\t')
-                data = [
-                    ('name', name),
-                    ("ref_all", ref_all),
-                    ('compare_name', compare_name),
-                    ('express_diff_id', express_diff_id)
-                ]
-                from math import log10
-                for i in range(len(head)):
-                    try:
-                        if i == 0:  # 添加gene_name信息
-                            seq_id = line[0]
-                            if class_code:
-                                if name_seq_id:
-                                    if seq_id in name_seq_id.keys():
-                                        gene_name = name_seq_id[seq_id]["gene_name"]
-                                        data.append(('gene_name', gene_name))
-                                        if query_type == 'transcript':
-                                            gene_id = name_seq_id[seq_id]['gene_id']
-                                            # print '{}对应的gene_id为{}'.format(seq_id,gene_id)
-                                            data.append(("gene_id",gene_id))
-                                    else:
-                                        data.append(('gene_name', '-'))
-                                        if query_type == 'transcript':
-                                            data.append(("gene_id",gene_id))
-                    except Exception:
-                        print '{}'.format(str(i))
-                        print line
-                        print head
-
-                    if re.search(r'fc', head[i]):
-                        fc = 2 ** (float(line[i]))
-                        data.append(("fc", round(float(fc), 3)))
-                    if pvalue_padjust:
-                        if re.search(r'{}'.format(pvalue_padjust), head[i].lower()):
-                            if float(line[i]) <= 10e-5:
-                                log10_padjust = -(float(log10(float(10e-5))))
-                            else:
-                                log10_padjust = -(float(log10(float(line[i]))))
-                            data.append(('log10_{}'.format(pvalue_padjust), log10_padjust))
-
-                    if line[i] == 0:
-                        data.append((head[i], float(line[i])))
-                    elif re.match(r'^(\d+)|.(\d+)$', line[i]) or re.match(r'-(\d+)|.(\d+)$', line[i]):
-                        data.append((head[i], float(line[i])))
-                    else:
-                        data.append((head[i], line[i]))
-
-                # print data
-                data = SON(data)
-                # print data
-                # print "aaaaaaaaaaaaaaaaaaaaaaa"
-                data_list.append(data)
-            try:
-                collection = db["sg_express_diff_detail"]
-                collection.insert_many(data_list)
-            except Exception, e:
-                self.bind_object.logger.error("导入基因表达差异统计表：%s信息出错:%s" % (diff_stat_path, e))
+                name_seq_id = self.get_gene_name(class_code, query_type=query_type, workflow=workflow)
             else:
-                self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
-                # else:
-                # raise Exception("请输入class_code信息！")
+                raise Exception("{} not exist".format(class_code))
+        if pvalue_padjust not in ['padjust', 'pvalue']:
+            raise ValueError('pvalue_padjust must be padjust or pvalue')
 
+        # dump data of diff_stat_path into mongodb
+        diff_table = pd.read_table(diff_stat_path)
+        sig_status = list()
+        sig_mark = list(diff_table['significant'])
+        reg_list = list(diff_table['regulate'])
+        if 'no' in sig_mark:
+            sig_status.append('nosig')
+        if 'yes' in sig_mark:
+            if 'down' in reg_list:
+                sig_status.append('down')
+            if 'up' in reg_list:
+                sig_status.append('up')
+        sig_pvalues = diff_table[pvalue_padjust][diff_table['significant'] == "yes"]
+        log10_pvalue_list = sorted([-log10(x) for x in sig_pvalues if x > 0])
+
+        if len(sig_pvalues) > 2000:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.85)]
+        elif len(sig_pvalues) > 1000:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.90)]
+        elif len(sig_pvalues) > 500:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.95)]
+        elif len(sig_pvalues) > 250:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.99)]
+        elif len(sig_pvalues) == 0:
+            tmp_list = sorted([-log10(x) for x in diff_table[pvalue_padjust] if x > 0])
+            if len(tmp_list) == 0:
+                log10_pvalue_cutoff = 10000
+            else:
+                log10_pvalue_cutoff = tmp_list[int(len(tmp_list)*0.9)]
+        else:
+            log10_pvalue_cutoff = log10_pvalue_list[int(len(log10_pvalue_list)*0.8)]
+
+        self.bind_object.logger.info("log10_pvalue_cutoff: {}".format(log10_pvalue_cutoff))
+
+        target_dict_list = list()
+        marker_info = dict(name=name, ref_all=ref_all, compare_name=compare_name,
+                           express_diff_id=express_diff_id)
+
+        row_dict_list = diff_table.to_dict('records')
+        for row_dict in row_dict_list:
+            seq_id = row_dict['seq_id']
+            if query_type == "gene":
+                gene_name = name_seq_id[seq_id]['gene_name']
+                gene_id = seq_id
+            else:
+                gene_name = name_seq_id[seq_id]["gene_name"]
+                gene_id = name_seq_id[seq_id]["gene_id"]
+            row_dict.update(dict(gene_name=gene_name, gene_id=gene_id))
+
+            log2fc = row_dict['log2fc']
+            row_dict['fc'] = round(2**log2fc, 3)
+
+            pvalue = row_dict[pvalue_padjust]
+            if pvalue <= 0:
+                pvalue = 1e-10000
+            if -log10(pvalue) > log10_pvalue_cutoff:
+                log10_pvalue = log10_pvalue_cutoff
+            else:
+                log10_pvalue = -log10(pvalue)
+            row_dict['log10_'+pvalue_padjust] = log10_pvalue
+
+            row_dict.update(marker_info)
+
+            target_dict_list.append(row_dict)
+
+        try:
+            collection = db["sg_express_diff_detail"]
+            collection.insert_many(target_dict_list)
+            con = db["sg_express_diff"]
+            sig_status_name = name+'_vs_'+compare_name+'_'+ref_all+'_status'
+            con.update({'_id': express_diff_id}, {"$set": {sig_status_name: sig_status}})
+        except Exception, e:
+            self.bind_object.logger.error("导入基因表达差异统计表：%s出错:%s" % (diff_stat_path, e))
+        else:
+            self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
 
     def add_diff_summary_detail(self, diff_express_id, count_path, ref_all,query_type=None, class_code=None,workflow=False):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
@@ -1083,16 +1124,16 @@ class RefrnaExpress(Base):
                 if i == 0:
                     i = 1
                 else:
-                    l = line.strip().split('\t')
-                    gene_id = l[0]
-                    alen = len(l)
-                    blen = alen - 2
-                    alen = alen - 1
-                    fpkm = l[1:alen]
-                    if not re.search(r'yes',"_".join(fpkm)):
+                        l = line.strip().split('\t')
+                        gene_id = l[0]
+                        alen = len(l)
+                        blen = alen - 2
+                        alen = alen - 1
+                        fpkm = l[1:alen]
+                        #if not re.search(r'yes',"_".join(fpkm)):
                         # add by khl 20170623 只取出含有yes的信息，否则过滤掉
-                        continue
-                    else:
+                        #    continue
+                        #else:
                         sum_1 = l[alen]
                         data = [
                             ("seq_id", gene_id),
@@ -1123,93 +1164,115 @@ class RefrnaExpress(Base):
         else:
             self.bind_object.logger.info("导入差异分析summary表成功!")
 
-    # @report_check
-
-
 
 if __name__ == "__main__":
-    # pass
     ####################################################################################################################################
     ##################----------------------rsem fpkm 导表
     ####################################################################################################################################
-    rsem_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/rsem"
-    is_duplicate = True
-    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code"
-    sample = "samples"
-    distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/"
-    params = {}
-    params["group_id"] = "5955f5e1edcb253a204f8988"
-    params["group_detail"] = {
-        "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
-        "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
-        "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
-    params["express_method"] = "rsem"
-    params["type"] = "fpkm"
-    group_fpkm_path = distri_path + "/group"
-    samples = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
-    a = RefrnaExpress()
-    a.add_express(rsem_dir=rsem_dir, is_duplicate=True, group_fpkm_path=group_fpkm_path, samples=samples,
-                  class_code=class_code,
-                  params=params, major=True, distri_path=distri_path)
-    print 'end!'
+    # rsem_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/rsem"
+    # rsem_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/output'
+    # rsem_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/output'
+    # rsem_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170702/Single_rsem_stringtie_mouse_total_1/Express/MergeRsem1/output'
+    # rsem_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/output"
+    # is_duplicate = True
+    # # class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/class_code'
+    # # class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170702/Single_rsem_stringtie_mouse_total_1/Express/MergeRsem1/class_code"
+    # class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/class_code'
+    # sample = "samples"
+    # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1/'
+    # # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem'
+    # # distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem1"
+    # # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170702/Single_rsem_stringtie_mouse_total_1/Express/MergeRsem1/'
+    # # distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem'
+    # params = {}
+    # params["group_id"] = "596452d7edcb255322d9e66e"
+    # params['group_detail'] = {
+    #     "A":['596452d7edcb255322d9dbe1','596452d7edcb255322d9dbdf','596452d7edcb255322d9dbe0'],
+    #     "C":['596452d7edcb255322d9dbdd','596452d7edcb255322d9dbde','596452d7edcb255322d9dbdc'],
+    #     "B":['596452d7edcb255322d9dbda','596452d7edcb255322d9dbdb','596452d7edcb255322d9dbd9']
+    # }
+    # # params['group_id'] = '5955f5e1edcb253a204f8988'
+    # # params["group_detail"] = {
+    # #     "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
+    # #     "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
+    # #     "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
+    # params["express_method"] = "rsem"
+    # params["type"] = "fpkm"
+    # group_fpkm_path = distri_path + "/group"
+    # samples = ['A_1', 'A_2', 'A_3', 'B_1', 'B_2', 'B_3', 'C_1', 'C_2', 'C_3']
+    # # samples = ["X1_1","X1_2","X1_3","B1_1","B1_2","B1_3","Z1_1","Z1_2","Z1_3"]
+    # a = RefrnaExpress2()
+    # a.add_express(rsem_dir=rsem_dir, is_duplicate=True, group_fpkm_path=group_fpkm_path, samples=samples,
+    #               class_code=class_code,
+    #               params=params, major=True, distri_path=distri_path)
+    # print 'end!'
 
     #####################################################################################################################################
     #################------------------------featurecounts 导表
     #####################################################################################################################################
-    feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/output/featurecounts"
-    group_fpkm_path = '/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts/group'
-
+    feature_dir = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts'
+    distri_path = '/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts'
+    # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/output/featurecounts"
+    # feature_dir = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/output/featurecounts"
+    # distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_feature_stringtie_mouse_1/Express/Featurecounts/"
+    group_fpkm_path = distri_path + "/group"
+    # group_fpkm_path = '/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts/group'
     is_duplicate = True
-    samples = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
+    samples = ['A_1', 'A_2', 'A_3', 'B_1', 'B_2', 'B_3', 'C_1', 'C_2', 'C_3']
     params = {}
 
-    params["group_id"] = "5955f5e1edcb253a204f8988"
-    params["group_detail"] = {
-        "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
-        "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
-        "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
-    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code"
+    params["group_id"] = "596452d7edcb255322d9e66e"
+    params['group_detail'] = {
+        "A": ['596452d7edcb255322d9dbe1', '596452d7edcb255322d9dbdf', '596452d7edcb255322d9dbe0'],
+        "C": ['596452d7edcb255322d9dbdd', '596452d7edcb255322d9dbde', '596452d7edcb255322d9dbdc'],
+        "B": ['596452d7edcb255322d9dbda', '596452d7edcb255322d9dbdb', '596452d7edcb255322d9dbd9']
+    }
+    class_code = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/MergeRsem/class_code"
     params["type"] = "fpkm"
     params["express_method"] = "featurecounts"
-    distri_path = "/mnt/ilustre/users/sanger-dev/workspace/20170629/Single_feature_stringtie_mouse_3/Express/Featurecounts"
-    a = RefrnaExpress()
+
+    a = RefrnaExpress2()
     a.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, class_code=class_code,
                           is_duplicate=True, samples=samples,
                           params=params, major=True, distri_path=distri_path)
     print 'end!'
+    ####################################################################################################
+
 
     ####################################################################################################################################
     ######################-------------gene set 导表 ref_new的参数有两种选择  ref和refandnew
     ####################################################################################################################################
-    a = RefrnaExpress()
-    group_id = '5955f5e1edcb253a204f8988'
-    # path = "/mnt/ilustre/users/sanger-dev/workspace/20170527/DiffExpress_deno222_7450_1534/DiffExp/output"
-    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/genes_diff/diff_stat_dir'
-    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/genes_ref_diff/diff_stat_dir'
-    path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/trans_ref_diff/diff_stat_dir'
-    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
-    for files in os.listdir(path):
-        if re.search(r'edgr_stat.xls', files):
-            print files
-            m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
-            if m_:
-                name = m_.group(1)
-                compare_name = m_.group(2)
-                up_down = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name,
-                                        compare_name=compare_name, ref_new='ref', express_method="rsem",
-                                        type="transcript", major=True,
-                                        up_down='up_down')
-                down_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
-                                        compare_name=compare_name, ref_new="ref", express_method="rsem",
-                                        type="transcript", up_down='down')
-                up_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
-                                      compare_name=compare_name, ref_new='ref', express_method="rsem",
-                                      type="transcript", up_down='up')
-
-                print up_id
-                print down_id
-                print name, compare_name
-            print 'end'
+    # a = RefrnaExpress2()
+    # group_id = '596452d7edcb255322d9e66e'
+    # # group_id = '5955f5e1edcb253a204f8988'
+    # # path = "/mnt/ilustre/users/sanger-dev/workspace/20170527/DiffExpress_deno222_7450_1534/DiffExp/output"
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/genes_diff/diff_stat_dir'
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/genes_ref_diff/diff_stat_dir'
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/ref_diff/trans_ref_diff/diff_stat_dir'
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/output/diff/trans_diff/diff_stat_dir'
+    # path = "/mnt/ilustre/users/sanger-dev/workspace/20170707/Single_rsem_stringtie_mouse_total_2/Expresstest2/output/ref_diff/genes_ref_diff/diff_stat_dir"
+    # # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
+    # for files in os.listdir(path):
+    #     if re.search(r'edgr_stat.xls', files):
+    #         print files
+    #         m_ = re.search(r'(\w+?)_vs_(\w+?).edgr_stat.xls', files)
+    #         if m_:
+    #             name = m_.group(1)
+    #             compare_name = m_.group(2)
+    #             up_down = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name,
+    #                                     compare_name=compare_name, ref_new='ref', express_method="rsem",
+    #                                     type="gene", major=True, up_down='up_down')
+    #             down_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
+    #                                     compare_name=compare_name, ref_new="ref", express_method="rsem",
+    #                                     type="gene", up_down='down')
+    #             up_id = a.add_geneset(diff_stat_path=path + "/" + files, group_id=group_id, name=name, major=True,
+    #                                   compare_name=compare_name, ref_new='ref', express_method="rsem",
+    #                                   type="gene", up_down='up')
+    #
+    #             print up_id
+    #             print down_id
+    #             print name, compare_name
+    #         print 'end'
 
     ####################################################################################################################################
     ######################-------------差异分析 导表
@@ -1218,37 +1281,37 @@ if __name__ == "__main__":
     # path = "/mnt/ilustre/users/sanger-dev/workspace/20170524/Single_rsem_stringtie_fpkm_5/Express/output/diff/genes_diff/diff_stat_dir"
     # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/genes_diff/diff_stat_dir'
     # path = '/mnt/ilustre/users/sanger-dev/workspace/20170630/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
-    path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
-    is_duplicate = True
-    sample = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
-    compare_column = ["X1|B1", "X1|Z1", "B1|Z1"]
-    params = {}
-    class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code'
-    merge_path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/merge.xls'
-    params['control_id'] = '5955f821f2e3f7fddea08f6e'
-    params["group_id"] = "5955f5e1edcb253a204f8988"
-    params["group_detail"] = {
-        "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
-        "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
-        "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
-    params['express_id'] = str("59560618a4e1af1ae5309bf3")
-    params['fc'] = 0.1
-    params['pvalue_padjust'] = 'padjust'
-    params['pvalue'] = 0.5
-    params['type'] = 'transcript'
-    params['diff_method'] = 'DESeq2'
-    compare_column_specimen = {"X1|B1": ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3'],
-                               "X1|Z1": ['X1_1', 'X1_2', 'X1_3', 'Z1_1', 'Z1_2', 'Z1_3'],
-                               "B1|Z1": ['B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']}
-    a = RefrnaExpress()
-    diff_express_id = a.add_express_diff(params=params, samples=sample, compare_column=compare_column, ref_all='all',
-                                         class_code=class_code, is_duplicate=True,
-                                         diff_exp_dir=path, query_type="transcript",
-                                         express_id=ObjectId("592e26fba4e1af397f263b38"),
-                                         compare_column_specimen=compare_column_specimen,
-                                         major=True, group_id=params["group_id"], workflow=True,
-                                         pvalue_padjust='padjust')
-    a.add_diff_summary_detail(diff_express_id, merge_path, ref_all='all', query_type='transcript',
-                              class_code=class_code, workflow=True)
-    print 'end'
-    print "diff_express_id:ObjectId({})".format(str(diff_express_id))
+    # path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/diff_stat_dir'
+    # is_duplicate = True
+    # sample = ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']
+    # compare_column = ["X1|B1", "X1|Z1", "B1|Z1"]
+    # params = {}
+    # class_code = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/MergeRsem/class_code'
+    # merge_path = '/mnt/ilustre/users/sanger-dev/workspace/20170701/Single_rsem_stringtie_mouse_fpkm_2_diff_stat_2/Expresstest3/output/diff/trans_diff/merge.xls'
+    # params['control_id'] = '5955f821f2e3f7fddea08f6e'
+    # params["group_id"] = "5955f5e1edcb253a204f8988"
+    # params["group_detail"] = {
+    #     "X1": ["5955f5deedcb253a204f7ef5", "5955f5deedcb253a204f7ef4", "5955f5deedcb253a204f7ef3"],
+    #     "B1": ["5955f5deedcb253a204f7efb", "5955f5deedcb253a204f7ef9", "5955f5deedcb253a204f7efa"],
+    #     "Z1": ["5955f5deedcb253a204f7ef7", "5955f5deedcb253a204f7ef6", "5955f5deedcb253a204f7ef8"]}
+    # params['express_id'] = str("59560618a4e1af1ae5309bf3")
+    # params['fc'] = 0.1
+    # params['pvalue_padjust'] = 'padjust'
+    # params['pvalue'] = 0.5
+    # params['type'] = 'transcript'
+    # params['diff_method'] = 'DESeq2'
+    # compare_column_specimen = {"X1|B1": ['X1_1', 'X1_2', 'X1_3', 'B1_1', 'B1_2', 'B1_3'],
+    #                            "X1|Z1": ['X1_1', 'X1_2', 'X1_3', 'Z1_1', 'Z1_2', 'Z1_3'],
+    #                            "B1|Z1": ['B1_1', 'B1_2', 'B1_3', 'Z1_1', 'Z1_2', 'Z1_3']}
+    # a = RefrnaExpress2()
+    # diff_express_id = a.add_express_diff(params=params, samples=sample, compare_column=compare_column, ref_all='all',
+    #                                      class_code=class_code, is_duplicate=True,
+    #                                      diff_exp_dir=path, query_type="transcript",
+    #                                      express_id=ObjectId("592e26fba4e1af397f263b38"),
+    #                                      compare_column_specimen=compare_column_specimen,
+    #                                      major=True, group_id=params["group_id"], workflow=True,
+    #                                      pvalue_padjust='padjust',express_method = 'rsem',value_type='fpkm')
+    # a.add_diff_summary_detail(diff_express_id, merge_path, ref_all='all', query_type='transcript',
+    #                           class_code=class_code, workflow=True)
+    # print 'end'
+    # print "diff_express_id:ObjectId({})".format(str(diff_express_id))

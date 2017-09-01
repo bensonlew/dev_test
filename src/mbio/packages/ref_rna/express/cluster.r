@@ -34,7 +34,7 @@ if(lognorm!=0){
     }
     hc_genes = agnes(final_data, diss=FALSE, method = genes_distance_method, metric=genes_distance_algorithm) # method: default-complete-linkage metric: default-euclidean cluster genes
     if(is.null(samples_distance_method)){
-        samples_distance_method = 'complete'
+        samples_distance_method = 'pearson'
     }
     hc_samples = hclust(as.dist(1-cor(final_data, method=samples_distance_algorithm)), method=samples_distance_method) # cluster conditions
 }

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
-# last_modify:20161027
 # modify by khl
 
 from biocluster.api.database.base import Base, report_check
@@ -57,10 +56,18 @@ class DenovoCluster(Base):
             with open(sample_tree, 'rb') as s:
                 sample_tree = s.readlines()[0].strip('\n')
         params['diff_fpkm'] = str(express_id)
+        if 'express_method' in params.keys() and 'level' in params.keys() and 'type' in params.keys() and 'log' in params.keys():
+            express_method = params['express_method']
+            express_level = params['express_level']
+            query_type = params['query_type']
+            log_info = params['log']
+            re_name = 'GSetCluster_{}_{}_{}_{}_'.format(express_method, express_level, query_type, log_info) + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            raise Exception("params需要有express_method、level、type、log字段!")
         insert_data = {
             'project_sn': project_sn,
             'task_id': task_id,
-            'name': name if name else 'cluster_table_' + str(datetime.datetime.now().strftime("%Y%m%d_%H%M%S")),
+            'name': name if name else re_name,
             'desc': '基因集聚类分析主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'params': (json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),

@@ -101,7 +101,9 @@ class KeggRegulate(object):
             colors_l = ['#CC0000', '#EEEE00', '#388E3C', "#EE6AA7", '#9B30FF', '#7B68EE']
             same_colors = "#FF9800"
             for path in path_ko:
+                # path = path.replace("map","ko")
                 koid = path_ko[path]
+                path = path.replace("map","ko")
                 l = {}
                 kgml_path = out_dir + '/kgml_tmp.kgml'
                 png_path = out_dir + '/{}.png'.format(path)
@@ -143,3 +145,17 @@ class KeggRegulate(object):
                             subprocess.check_output(cmd, shell=True)
                         except subprocess.CalledProcessError:
                             print '图片格式pdf转png出错'
+
+
+if __name__ == "__main__":
+    kegg = KeggRegulate()
+    from mbio.files.annotation.kegg.kegg_table import KeggTableFile
+    a = KeggTableFile()
+    # a.set_path("/mnt/ilustre/users/sanger-dev/workspace/20170802/GenesetKegg_demo_0711_5922_9801/gene_kegg_table.xls")
+    pathways = "/mnt/ilustre/users/sanger-dev/workspace/20170727/GenesetKegg_demo_0711_8933_190/output/pathways"
+    # a.get_regulate_table
+    # ko_genes, path_ko = a.get_pathway_koid()
+    # for key in path_ko.keys():
+    #     print key + "\t" + ";".join(path_ko[key])
+    #     print "***************"
+    # kegg.get_pictrue(path_ko=path_ko, out_dir=pathways)

@@ -210,3 +210,9 @@ class GenesetClusterWorkflow(Workflow):
     def run(self):
         self.run_cluster()
         super(GenesetClusterWorkflow, self).run()
+
+    def end(self):
+        output1_dir = self.output_dir
+        result = self.add_upload_dir(output1_dir)
+        result.add_relpath_rules([[".", "", "基因集聚类分析结果文件"], ])
+        super(GenesetClusterWorkflow, self).end()

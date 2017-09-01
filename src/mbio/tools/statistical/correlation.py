@@ -22,8 +22,8 @@ class CorrelationAgent(Agent):
         super(CorrelationAgent, self).__init__(parent)
         options = [
             {"name": "fpkm", "type": "infile", "format": "rna.express_matrix"},  # Fpkm矩阵表
-            {"name":"method", "type":"string", "default":"pearson"}, #聚类方式
-            {"name":"hclust_method", "type":"string", "default":"complete"} #层次聚类方法
+            {"name":"method", "type":"string", "default":"pearson"}, #聚类方式 默认是pearson相关性算法 
+            # {"name":"hclust_method", "type":"string", "default":"complete"} #层次聚类方法,此参数已被删除 20170713
             # {"name": "", "type": "outfile", "format": "denovo_rna.gene_structure.bed"}  # bed格式文件
         ]
         self.add_option(options)
@@ -51,7 +51,7 @@ class CorrelationAgent(Agent):
         所需资源
         """
         self._cpu = 10
-        self._memory = '2G'
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -82,7 +82,7 @@ class CorrelationTool(Tool):
         self.logger.info(self.work_dir + '/correlation_matrix.xls')
         correlation(self.fpkm_path, self.work_dir + '/correlation_matrix.xls', self.work_dir + '/pvalue_matrix.xls',
                     self.work_dir + '/tvalue_matrix.xls', self.work_dir + '/correlation_heatmap.pdf',
-                    self.work_dir + '/corr_col.tre', self.work_dir + '/corr_row.tre',self.option('method'),self.option('hclust_method'))
+                    self.work_dir + '/corr_col.tre', self.work_dir + '/corr_row.tre',self.option('method'))
         cmd = self.r_path + "Rscript run_correlation.r"
         self.logger.info("开始运行correlation检验")
         command = self.add_command("correlation", cmd)

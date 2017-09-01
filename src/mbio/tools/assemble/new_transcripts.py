@@ -88,7 +88,7 @@ class NewTranscriptsTool(Tool):
         self.perl_path = '/program/perl/perls/perl-5.24.0/bin/perl '
         self.Python_path = 'program/Python/bin/python '
         self.newtranscripts_gtf_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/assembly_stat.py'
-        self.change_id_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/gtfmerge_new.pl'
+        self.change_id_path = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/gtfmerge.pl'
         self.gffread_path = "bioinfo/rna/cufflinks-2.2.1/"
 
     def run(self):
@@ -98,11 +98,11 @@ class NewTranscriptsTool(Tool):
         """
         super(NewTranscriptsTool, self).run()
         self.run_change_id()
-        self.run_change_id_fa()
+        # self.run_change_id_fa()
         self.run_newtranscripts_gtf()
         self.run_change_newtranscripts_gtf()
-        self.run_newtranscripts_fa()
-        self.run_gene_fa()
+        # self.run_newtranscripts_fa()
+        # self.run_gene_fa()
         # self.run_ref_add()
         self.set_output()
         self.end()
@@ -262,18 +262,18 @@ class NewTranscriptsTool(Tool):
             os.link(self.work_dir + "/changed/new_genes.gtf", self.output_dir + "/new_genes.gtf")
             os.link(self.work_dir + "/merged/old_trans.gtf", self.output_dir + "/old_trans.gtf")
             os.link(self.work_dir + "/merged/old_genes.gtf", self.output_dir + "/old_genes.gtf")
-            os.link(self.work_dir + "/new_transcripts.fa", self.output_dir + "/new_transcripts.fa")
-            os.link(self.work_dir + "/new_genes.fa", self.output_dir + "/new_genes.fa")
+            # os.link(self.work_dir + "/new_transcripts.fa", self.output_dir + "/new_transcripts.fa")
+            # os.link(self.work_dir + "/new_genes.fa", self.output_dir + "/new_genes.fa")
             os.link(self.work_dir + "/change_id_merged.gtf", self.output_dir + "/change_id_merged.gtf")
             os.link(self.work_dir + "/add_code_merged.gtf", self.output_dir + "/add_code_merged.gtf")
-            os.link(self.work_dir + "/change_id_merged.fa", self.output_dir + "/change_id_merged.fa")
+            # os.link(self.work_dir + "/change_id_merged.fa", self.output_dir + "/change_id_merged.fa")
             self.option('new_trans_gtf').set_path(self.output_dir + "/new_transcripts.gtf")
             self.option('new_genes_gtf').set_path(self.output_dir + "/new_genes.gtf")
-            self.option('new_trans_fa').set_path(self.output_dir + "/new_transcripts.fa")
-            self.option('new_genes_fa').set_path(self.output_dir + "/new_genes.fa")
+            # self.option('new_trans_fa').set_path(self.output_dir + "/new_transcripts.fa")
+            # self.option('new_genes_fa').set_path(self.output_dir + "/new_genes.fa")
             self.option('add_code_gtf').set_path(self.output_dir + "/add_code_merged.gtf")
             self.option('change_id_gtf').set_path(self.output_dir + "/change_id_merged.gtf")
-            self.option('change_id_fa').set_path(self.output_dir + "/change_id_merged.fa")
+            # self.option('change_id_fa').set_path(self.output_dir + "/change_id_merged.fa")
             self.logger.info("设置拼接比较结果目录成功")
 
         except Exception as e:

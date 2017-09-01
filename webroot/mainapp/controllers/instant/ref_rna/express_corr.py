@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'xuting'  last modify by qindanhua 20170110
+# __author__ = 'khl'  
 import web
 import json
 import datetime
@@ -14,10 +14,12 @@ from bson import ObjectId
 class ExpressCorrAction(RefRnaController):
     def __init__(self):
         super(ExpressCorrAction, self).__init__(instant=True)
-
+    def GET(self):
+        return 'khl'
     def POST(self):
         data = web.input()
-        postArgs = ['group_id', 'group_detail', 'submit_location', 'express_id', 'method', 'hclust_method']
+        postArgs = ['group_id', 'group_detail', 'submit_location', 'express_id', 'method']
+        # postArgs删除了 hclust_method 参数
         for args in postArgs:
             if not hasattr(data, args):
                 info = {'success': False, 'info': '%s参数缺少!' % args}
@@ -30,9 +32,28 @@ class ExpressCorrAction(RefRnaController):
         my_param['group_id'] = data.group_id
         my_param['group_detail'] = group_detail_sort(data.group_detail)
         my_param['method'] = data.method
-        my_param['hclust_method'] = data.hclust_method
+        # my_param['hclust_method'] = data.hclust_method
         my_param['submit_location'] = data.submit_location
         my_param["task_type"] = task_type
+        group_detail = my_param["group_detail"]
+        if data.group_id in ["all", "ALL", "All"]:
+            sample_num = len(group_detail.values()[0])
+            if sample_num<2:
+                info = {'success': False, 'info': '表达量相关性分析至少选择两个样本!'}
+                return json.dumps(info)
+        else:
+            sample_total = []
+            for keys,values in group_detail.items():
+                for sam in values:
+                    if sam not in sample_total:
+                        sample_total.append(sam)
+                    else:
+                        info = {'success': False, 'info': '不同分组中有重复的样本名字!'}
+                        return json.dumps(info)
+            if len(sample_total)<2:
+                info = {'success': False, 'info': '表达量相关性分析至少选择两个样本!'}
+                return json.dumps(info)
+
         if express_info:
             # task_info = self.ref_rna.get_task_info(express_info['task_id'])
             # print task_info
@@ -62,7 +83,6 @@ class ExpressCorrAction(RefRnaController):
             options = {
                 "express_file": data.express_id,
                 "method": data.method,
-                "hclust_method": data.hclust_method,
                 "correlation_id": str(main_table_id),
                 "group_id": data.group_id,
                 "group_detail": data.group_detail,

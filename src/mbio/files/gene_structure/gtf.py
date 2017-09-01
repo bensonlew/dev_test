@@ -49,14 +49,16 @@ class GtfFile(File):
         # self._co_fasta = fasta
         self._contig_info = {}
         self._txpt_gene = {}
-        self.gtf2bed_path = Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.py"
+        self.gtf2bed_path = Config().SOFTWARE_DIR + "/bioinfo/rna/scripts/gtf2bed.pl"
         # self._check_log_file = ''
         # self._structure_hierachy = dict_factory()
     
     def check(self):
         super(GtfFile, self).check()
-        self.__check_skechy()
-        self._check_chars()
+        if self.prop["path"].endswith("gtf"):
+            return True
+        # self.__check_skechy()  # edited by shijin on 20170721 不适于第三列为gene的情况
+        # self._check_chars()
     
     def check_format(self, fasta, so_file):
         
@@ -116,8 +118,8 @@ class GtfFile(File):
                 r'^([^#]\S*?)\t+((\S+)\t+){7}((.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*)$',
                 line.strip())
             if not (comment_m or content_m):
-                raise FileError(
-                    'line {} is illegal in gtf file {}: it is not comment line(start with #) or tab-delimeted 9 colomuns line(the No9 line must contain gene_id txptid ) ')
+
+                raise FileError(line)
             
             if content_m:
                 contig = content_m.captures(1)[0]
@@ -185,7 +187,7 @@ class GtfFile(File):
     def to_bed(self):
         bed_path = os.path.split(self.prop['path'])[0]
         bed = os.path.join(bed_path, os.path.split(self.prop['path'])[1] + ".bed")
-        cmd = "python {} -i {} -o {}".format(self.gtf2bed_path, self.prop["path"], bed)
+        cmd = "perl {} {} > {}".format(self.gtf2bed_path, self.prop["path"], bed)
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:

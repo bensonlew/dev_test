@@ -22,6 +22,8 @@ class StringtieAgent(Agent):
             {"name": "ref_fa", "type": "infile", "format": "sequence.fasta"},  # 参考基因文件
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因的注释文件
             {"name": "cpu", "type": "int", "default": 10},  # stringtie软件所分配的cpu数量
+            {"name": "fr_stranded", "type": "string", "default": "fr-unstranded"},  # 是否链特异性
+            {"name": "strand_direct", "type": "string", "default": "none"},  # 链特异性时选择正负链
             {"name": "sample_gtf", "type": "outfile", "format": "gene_structure.gtf"}  # 输出的gtf文件
         ]
         self.add_option(options)
@@ -73,7 +75,8 @@ class StringtieTool(Tool):
     def __init__(self, config):
         super(StringtieTool, self).__init__(config)
         self._version = "v1.0.1"
-        self.stringtie_path = 'bioinfo/rna/stringtie-1.2.4/'
+        # self.stringtie_path = 'bioinfo/rna/stringtie-1.2.4/'
+        self.stringtie_path = 'bioinfo/rna/stringtie-1.3.3b/'
         self.gffread_path = "bioinfo/rna/cufflinks-2.2.1/"
 
     def run(self):
@@ -92,9 +95,18 @@ class StringtieTool(Tool):
         运行stringtie软件，进行拼接组装
         """
         sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-        cmd = self.stringtie_path + 'stringtie %s -p %s -G %s -s %s -o ' % (
-            self.option('sample_bam').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'],
-            self.option('ref_fa').prop['path'])+sample_name+"_out.gtf"
+        if self.option("fr_stranded") == "fr-unstranded":  # 判断连特异性
+            cmd = self.stringtie_path + 'stringtie %s -p %s -G %s  -o ' % (
+                self.option('sample_bam').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'])+sample_name+"_out.gtf"
+        else:
+            if self.option("strand_direct") == "firststrand":
+                cmd = self.stringtie_path + 'stringtie %s --rf -p %s -G %s  -o ' % (
+                    self.option('sample_bam').prop['path'], self.option('cpu'),
+                    self.option('ref_gtf').prop['path']) + sample_name + "_out.gtf"
+            else:
+                cmd = self.stringtie_path + 'stringtie %s --fr -p %s -G %s  -o ' % (
+                    self.option('sample_bam').prop['path'], self.option('cpu'),
+                    self.option('ref_gtf').prop['path']) + sample_name + "_out.gtf"
         self.logger.info('运行stringtie软件，进行组装拼接')
         command = self.add_command("stringtie_cmd", cmd).run()
         self.wait(command)

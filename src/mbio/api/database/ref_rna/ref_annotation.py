@@ -7,6 +7,7 @@ from bson.son import SON
 from bson.objectid import ObjectId
 import types
 import gridfs
+import json
 from biocluster.api.database.base import Base, report_check
 from biocluster.config import Config
 
@@ -16,19 +17,18 @@ class RefAnnotation(Base):
         super(RefAnnotation, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_ref_rna'
 
-    def add_annotation(self, name=None, params=None, ref_anno_path=None, new_anno_path=None, pfam_path=None):
+    def add_annotation(self, name=None, params=None, ref_anno_path=None, new_anno_path=None, pfam_path=None, merge_tran_output=None, merge_gene_output=None):
         """
         ref_anno_path: 已知序列注释的结果文件夹
         new_anno_path: 新序列注释的结果文件夹
         pfam_path:转录本的pfam_domain
+        merge_tran_output: 转录本的merge_annot tool输出结果路径
+        merge_gene_output: 基因的merge_annot tool输出结果路径
         """
         new_stat_path = new_anno_path + "/anno_stat/all_annotation_statistics.xls"
         new_venn_path = new_anno_path + "/anno_stat/venn"
         stat_id = self.add_annotation_stat(name=None, params=params, seq_type="new", database="nr,swissprot,pfam,cog,go,kegg")
-        if os.path.exists(new_stat_path) and os.path.exists(new_venn_path):
-            self.add_annotation_stat_detail(stat_id=stat_id, stat_path=new_stat_path, venn_path=new_venn_path)
-        else:
-            raise Exception("新序列注释统计文件和venn图文件夹不存在")
+        self.add_annotation_stat_detail(stat_id=stat_id, stat_path=new_stat_path, venn_path=new_venn_path)
         blast_id = self.add_annotation_blast(name=None, params=params, stat_id=stat_id)
         blast_path = new_anno_path + "/anno_stat/blast"
         if os.path.exists(blast_path):
@@ -78,41 +78,28 @@ class RefAnnotation(Base):
         else:
             raise Exception("已知序列注释统计文件和venn图文件夹不存在")
         query_id = self.add_annotation_query(name=None, params=params, stat_id=stat_id)
-        query_path = ref_anno_path + "/anno_stat/all_annotation.xls"
-        if os.path.exists(query_path):
-            self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
-        else:
-            raise Exception("已知序列注释查询文件all_annotation.xls不存在")
-        query_path = new_anno_path + "/anno_stat/all_annotation.xls"
-        if os.path.exists(query_path):
-            self.add_annotation_query_detail(query_id=query_id, query_path=query_path)
-        else:
-            raise Exception("新序列注释查询文件all_annotation.xls不存在")
+        query_path = ref_anno_path + "/anno_stat/trans_anno_detail.xls"
+        gene_query_path = ref_anno_path + "/anno_stat/gene_anno_detail.xls"
+        self.add_annotation_query_detail(query_id=query_id, query_path=query_path, anno_type="transcript")
+        self.add_annotation_gene_query_detail(query_id=query_id, query_path=gene_query_path, anno_type="gene")
+        query_path = new_anno_path + "/anno_stat/trans_anno_detail.xls"
+        gene_query_path = new_anno_path + "/anno_stat/gene_anno_detail.xls"
+        self.add_annotation_query_detail(query_id=query_id, query_path=query_path, anno_type="transcript")
+        self.add_annotation_gene_query_detail(query_id=query_id, query_path=gene_query_path, anno_type="gene")
         cog_id = self.add_annotation_cog(name=name, params=params)
-        sum_path = ref_anno_path + "/cog/cog_summary.xls"
-        table_path = ref_anno_path + "/cog/cog_table.xls"
-        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=sum_path, seq_type="ref", anno_type="transcript")
-        self.add_annotation_cog_table(cog_id=cog_id, table_path=table_path, seq_type="ref", anno_type="transcript")
-        gene_sum_path = ref_anno_path + "/anno_stat/cog_stat/gene_cog_summary.xls"
-        gene_table_path = ref_anno_path + "/anno_stat/cog_stat/gene_cog_table.xls"
-        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=gene_sum_path, seq_type="ref", anno_type="gene")
-        self.add_annotation_cog_table(cog_id=cog_id, table_path=gene_table_path, seq_type="ref", anno_type="gene")
-        sum_path = new_anno_path + "/cog/cog_summary.xls"
-        table_path = new_anno_path + "/cog/cog_table.xls"
-        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=sum_path, seq_type="new", anno_type="transcript")
-        self.add_annotation_cog_table(cog_id=cog_id, table_path=table_path, seq_type="new", anno_type="transcript")
-        gene_sum_path = new_anno_path + "/anno_stat/cog_stat/gene_cog_summary.xls"
-        gene_table_path = new_anno_path + "/anno_stat/cog_stat/gene_cog_table.xls"
-        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=gene_sum_path, seq_type="new", anno_type="gene")
-        self.add_annotation_cog_table(cog_id=cog_id, table_path=gene_table_path, seq_type="new", anno_type="gene")
+        r_sum_path = ref_anno_path + "/cog/cog_summary.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=r_sum_path, seq_type="ref", anno_type="transcript")
+        r_gene_sum_path = ref_anno_path + "/anno_stat/cog_stat/gene_cog_summary.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=r_gene_sum_path, seq_type="ref", anno_type="gene")
+        n_sum_path = new_anno_path + "/cog/cog_summary.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=n_sum_path, seq_type="new", anno_type="transcript")
+        n_gene_sum_path = new_anno_path + "/anno_stat/cog_stat/gene_cog_summary.xls"
+        self.add_annotation_cog_detail(cog_id=cog_id, cog_path=n_gene_sum_path, seq_type="new", anno_type="gene")
+        self.add_annotation_cog_detail_all(cog_id=cog_id, r_cog_path=r_sum_path, n_cog_path=n_sum_path, seq_type="all", anno_type="transcript")
+        self.add_annotation_cog_detail_all(cog_id=cog_id, r_cog_path=r_gene_sum_path, n_cog_path=n_gene_sum_path, seq_type="all", anno_type="gene")
 
         def add_go(go_id, go_path, gene_go_path, seq_type):
             if os.path.exists(go_path) and os.path.exists(gene_go_path):
-                # for i in range(2, 5):
-                #     level = go_path + "/go{}level.xls".format(i)
-                #     gene_level = gene_go_path + "/gene_go{}level.xls".format(i)
-                #     self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="transcript", level=i, level_path=level)
-                #     self.add_annotation_go_level(go_id=go_id, seq_type=seq_type, anno_type="gene", level=i, level_path=gene_level)
                 stat_level2 = go_path + "/go12level_statistics.xls"
                 stat_level3 = go_path + "/go123level_statistics.xls"
                 stat_level4 = go_path + "/go1234level_statistics.xls"
@@ -146,6 +133,24 @@ class RefAnnotation(Base):
         go_path = new_anno_path + "/go"
         gene_go_path = new_anno_path + "/anno_stat/go_stat"
         add_go(go_id=go_id, go_path=go_path, gene_go_path=gene_go_path, seq_type="new")
+        r_stat_level2 = ref_anno_path + "/go/go12level_statistics.xls"
+        r_stat_level3 = ref_anno_path + "/go/go123level_statistics.xls"
+        r_stat_level4 = ref_anno_path + "/go/go1234level_statistics.xls"
+        n_stat_level2 = new_anno_path + "/go/go12level_statistics.xls"
+        n_stat_level3 = new_anno_path + "/go/go123level_statistics.xls"
+        n_stat_level4 = new_anno_path + "/go/go1234level_statistics.xls"
+        r_gene_stat_level2 = ref_anno_path + "/anno_stat/go_stat/gene_go12level_statistics.xls"
+        r_gene_stat_level3 = ref_anno_path + "/anno_stat/go_stat/gene_go123level_statistics.xls"
+        r_gene_stat_level4 = ref_anno_path + "/anno_stat/go_stat/gene_go1234level_statistics.xls"
+        n_gene_stat_level2 = new_anno_path + "/anno_stat/go_stat/gene_go12level_statistics.xls"
+        n_gene_stat_level3 = new_anno_path + "/anno_stat/go_stat/gene_go123level_statistics.xls"
+        n_gene_stat_level4 = new_anno_path + "/anno_stat/go_stat/gene_go1234level_statistics.xls"
+        self.add_annotation_go_all(go_id=go_id, seq_type="all", anno_type="transcript", level=2, r_go_path=r_stat_level2, n_go_path=n_stat_level2)
+        self.add_annotation_go_all(go_id=go_id, seq_type="all", anno_type="transcript", level=3, r_go_path=r_stat_level3, n_go_path=n_stat_level3)
+        self.add_annotation_go_all(go_id=go_id, seq_type="all", anno_type="transcript", level=4, r_go_path=r_stat_level4, n_go_path=n_stat_level4)
+        self.add_annotation_go_all(go_id=go_id, seq_type="all", anno_type="gene", level=2, r_go_path=r_gene_stat_level2, n_go_path=n_gene_stat_level2)
+        self.add_annotation_go_all(go_id=go_id, seq_type="all", anno_type="gene", level=3, r_go_path=r_gene_stat_level3, n_go_path=n_gene_stat_level3)
+        self.add_annotation_go_all(go_id=go_id, seq_type="all", anno_type="gene", level=4, r_go_path=r_gene_stat_level4, n_go_path=n_gene_stat_level4)
 
         def add_kegg(kegg_id, kegg_path, gene_kegg_path, seq_type):
             if os.path.exists(kegg_path) and os.path.exists(gene_kegg_path):
@@ -172,6 +177,19 @@ class RefAnnotation(Base):
         kegg_path = new_anno_path + "/kegg"
         gene_kegg_path = new_anno_path + "/anno_stat/kegg_stat"
         add_kegg(kegg_id=kegg_id, kegg_path=kegg_path, gene_kegg_path=gene_kegg_path, seq_type="new")
+        r_cate_path = ref_anno_path + "/kegg/kegg_layer.xls"
+        n_cate_path = new_anno_path + "/kegg/kegg_layer.xls"
+        r_gene_cate_path = ref_anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
+        n_gene_cate_path = new_anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
+        self.add_annotation_kegg_categories_all(kegg_id=kegg_id, seq_type="all", anno_type="transcript", r_cate_path=r_cate_path, n_cate_path=n_cate_path)
+        self.add_annotation_kegg_categories_all(kegg_id=kegg_id, seq_type="all", anno_type="gene", r_cate_path=r_gene_cate_path, n_cate_path=n_gene_cate_path)
+        pathway_path = merge_tran_output + "/pathway_table.xls"
+        png_path = merge_tran_output + "/all_pathways"
+        gene_pathway_path = merge_gene_output + "/pathway_table.xls"
+        gene_png_path = merge_gene_output + "/all_pathways"
+        self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type="all", anno_type="transcript", level_path=pathway_path, png_dir=png_path)
+        self.add_annotation_kegg_level(kegg_id=kegg_id, seq_type="all", anno_type="gene", level_path=gene_pathway_path, png_dir=gene_png_path)
+
 
     @report_check
     def add_annotation_stat(self, name=None, params=None, seq_type=None, database=None):
@@ -295,8 +313,8 @@ class RefAnnotation(Base):
             ('gene', len(gene_nr_ids)),
             ('transcript_percent', round(float(len(nr_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_nr_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_nr_ids)),
-            ('transcript_list', ";".join(nr_ids))
+            ('gene_list', ",".join(gene_nr_ids)),
+            ('transcript_list', ",".join(nr_ids))
         ]
         data = SON(data)
         data_list.append(data)
@@ -309,8 +327,8 @@ class RefAnnotation(Base):
             ('gene', len(gene_sw_ids)),
             ('transcript_percent', round(float(len(sw_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_sw_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_sw_ids)),
-            ('transcript_list', ";".join(sw_ids))
+            ('gene_list', ",".join(gene_sw_ids)),
+            ('transcript_list', ",".join(sw_ids))
         ]
         data = SON(data)
         data_list.append(data)
@@ -328,13 +346,9 @@ class RefAnnotation(Base):
             lines = f.readlines()
             for line in lines[1:]:
                 line = line.strip().split("\t")
-                try:
-                    ids = line[2].split(";")
-                except:
-                    ids = []
-                for i in ids:
-                    if i not in id_list:
-                        id_list.append(i)
+                q_id = line[5]
+                id_list.append(q_id)
+        id_list = list(set(id_list))
         return id_list
 
     @report_check
@@ -545,6 +559,7 @@ class RefAnnotation(Base):
         self.bind_object.logger.info("add sg_annotation_swissprot!")
         return swissprot_id
 
+    @report_check
     def add_annotation_swissprot_pie(self, swissprot_id, evalue_path, similar_path, seq_type, anno_type):
         """
         """
@@ -654,7 +669,7 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_pfam_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            self.bind_object.logger.info("导入pfam注释信息:%s失败！" % pfam_path)
+            raise Exception("导入pfam注释信息:%s失败！" % pfam_path)
         else:
             self.bind_object.logger.info("导入pfam注释信息:%s成功" % pfam_path)
 
@@ -741,8 +756,7 @@ class RefAnnotation(Base):
                     ('type', line[0]),
                     ('function_categories', line[1]),
                     ('cog', int(line[2])),
-                    ('nog', int(line[3])),
-                    ('kog', int(line[4]))
+                    ('nog', int(line[3]))
                 ]
                 try:
                     data.append(('cog_list', line[5]))
@@ -752,10 +766,6 @@ class RefAnnotation(Base):
                     data.append(('nog_list', line[6]))
                 except:
                     data.append(('nog_list', None))
-                try:
-                    data.append(('kog_list', line[7]))
-                except:
-                    data.append(('kog_list', None))
                 data = SON(data)
                 data_list.append(data)
         try:
@@ -766,6 +776,125 @@ class RefAnnotation(Base):
         else:
             self.bind_object.logger.info("导入cog注释信息：%s成功!" % (cog_path))
 
+    @report_check
+    def add_annotation_cog_detail_all(self, cog_id, r_cog_path, n_cog_path, seq_type, anno_type):
+        '''
+        r_cog_path: cog_summary.xls(ref)
+        n_cog_path: cog_summary.xls(new)
+        '''
+        if not isinstance(cog_id, ObjectId):
+            if isinstance(cog_id, types.StringTypes):
+                cog_id = ObjectId(cog_id)
+            else:
+                raise Exception('cog_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(r_cog_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(r_cog_path))
+        if not os.path.exists(n_cog_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(n_cog_path))
+        first = ['INFORMATION STORAGE AND PROCESSING', 'CELLULAR PROCESSES AND SIGNALING', 'METABOLISM', 'POORLY CHARACTERIZED']
+        func_type = {
+            'INFORMATION STORAGE AND PROCESSING': sorted(['J', 'A', 'K', 'L', 'B']),
+            'CELLULAR PROCESSES AND SIGNALING': sorted(['D', 'Y', 'V', 'T', 'M', 'N', 'Z', 'W', 'U', 'O']),
+            'METABOLISM': sorted(['C', 'G', 'E', 'F', 'H', 'I', 'P', 'Q']),
+            'POORLY CHARACTERIZED': sorted(['R', 'S']),
+        }
+        func_decs = {
+            'J': 'Translation, ribosomal structure and biogenesis',
+            'A': 'RNA processing and modification', 'K': 'Transcription',
+            'L': 'Replication, recombination and repair',
+            'B': 'Chromatin structure and dynamics',
+            'D': 'Cell cycle control, cell division, chromosome partitioning',
+            'Y': 'Nuclear structure', 'V': 'Defense mechanisms', 'T': 'Signal transduction mechanisms',
+            'M': 'Cell wall/membrane/envelope biogenesis',
+            'N': 'Cell motility', 'Z': 'Cytoskeleton', 'W': 'Extracellular structures',
+            'U': 'Intracellular trafficking, secretion, and vesicular transport',
+            'O': 'Posttranslational modification, protein turnover, chaperones',
+            'C': 'Energy production and conversion', 'G': 'Carbohydrate transport and metabolism',
+            'E': 'Amino acid transport and metabolism', 'F': 'Nucleotide transport and metabolism',
+            'H': 'Coenzyme transport and metabolism', 'I': 'Lipid transport and metabolism',
+            'P': 'Inorganic ion transport and metabolism',
+            'Q': 'Secondary metabolites biosynthesis, transport and catabolism',
+            'R': 'General function prediction only', 'S': 'Function unknown'
+        }
+        data_list = list()
+        cate = {}
+        funlist = {'COG': {}, 'NOG': {}}
+        cog_fun, nog_fun = {}, {}
+        with open(r_cog_path, 'r') as f, open(n_cog_path, 'r') as n:
+            lines = f.readlines()
+            items = n.readlines()
+            for line in lines[2:]:
+                line = line.strip().split('\t')
+                m = re.match(r"\[(.+)\].+$", line[1])
+                if m:
+                    fun1 = m.group(1)
+                    try:
+                        funlist['COG'][fun1] = line[4].split(";")
+                    except:
+                        funlist['COG'][fun1] = []
+                    try:
+                        funlist['NOG'][fun1] = line[5].split(";")
+                    except:
+                        funlist['NOG'][fun1] = []
+            for item in items[2:]:
+                item = item.strip().split('\t')
+                m = re.match(r"\[(.+)\].+$", item[1])
+                if m:
+                    fun1 = m.group(1)
+                    if fun1 in funlist['COG']:
+                        try:
+                            cog_ids = item[4].split(";")
+                            for cog in cog_ids:
+                                if cog not in funlist['COG'][fun1]:
+                                    funlist['COG'][fun1].append(cog)
+                        except:
+                            pass
+                    else:
+                        try:
+                            funlist['COG'][fun1] = item[4].split(";")
+                        except:
+                            funlist['COG'][fun1] = []
+                    if fun1 in funlist['NOG']:
+                        try:
+                            nog_ids = item[5].split(";")
+                            for nog in nog_ids:
+                                if nog not in funlist['NOG'][fun1]:
+                                    funlist['NOG'][fun1].append(nog)
+                        except:
+                            pass
+                    else:
+                        try:
+                            funlist['NOG'][fun1] = item[5].split(";")
+                        except:
+                            funlist['NOG'][fun1] = []
+        for thekey in first:
+            for g in func_type[thekey]:
+                detail = func_decs[g]
+                category = '[' + g + ']' + ' ' + detail
+                cog_list = list(set(funlist['COG'][g]))
+                nog_list = list(set(funlist['NOG'][g]))
+                data = [
+                    ('cog_id', cog_id),
+                    ('seq_type', seq_type),
+                    ('anno_type', anno_type),
+                    ('type', thekey),
+                    ('function_categories', category),
+                    ('cog', len(cog_list)),
+                    ('nog', len(nog_list)),
+                    ('cog_list', ';'.join(cog_list)),
+                    ('nog_list', ';'.join(nog_list)),
+                ]
+                data = SON(data)
+                data_list.append(data)
+        try:
+            collection = self.db['sg_annotation_cog_detail']
+            collection.insert_many(data_list)
+        except Exception, e:
+            raise Exception("导入cog注释all出错：%s， %s" % (r_cog_path, n_cog_path))
+        else:
+            self.bind_object.logger.info("导入cog注释all成功：%s, %s" % (r_cog_path, n_cog_path))
+
+    @report_check
     def add_annotation_cog_table(self, cog_id, table_path, seq_type, anno_type):
         '''
         table_path:cog_table.xls
@@ -1026,6 +1155,131 @@ class RefAnnotation(Base):
             else:
                 self.bind_object.logger.info("导入gos_list注释信息：%s成功!" % (gos_path))
 
+    def add_annotation_go_all(self, go_id, seq_type, anno_type, level, r_go_path, n_go_path):
+        """
+        r_go_path: go1234level_statistics.xls/go123level_statistics.xls/go12level_statistics.xls(ref)
+        n_go_path: go1234level_statistics.xls/go123level_statistics.xls/go12level_statistics.xls(new)
+        """
+        if not isinstance(go_id, ObjectId):
+            if isinstance(go_id, types.StringTypes):
+                go_id = ObjectId(go_id)
+            else:
+                raise Exception('go_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(r_go_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(r_go_path))
+        if not os.path.exists(n_go_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(n_go_path))
+        data_list1, data_list2, query_ids = list(), list(), list()
+        funlist, termlist = {}, {}
+        with open(r_go_path, 'r') as f, open(n_go_path, 'r') as n:
+            lines = f.readlines()
+            items = n.readlines()
+            for line in lines[1:]:
+                line = line.strip().split('\t')
+                fun = line[0] + "|||" + line[1] + "|||" + line[2]
+                term = line[0] + "|||" + line[1]
+                if level == 3:
+                    fun += "|||" + line[3] + "|||" + line[4]
+                    term = line[0] + "|||" + line[3]
+                if level == 4:
+                    fun += "|||" + line[3] + "|||" + line[4]
+                    fun += "|||" + line[5] + "|||" + line[6]
+                    term = line[0] + "|||" + line[5]
+                funlist[fun] = line[-1].split(";")
+                if term not in termlist:
+                    termlist[term] = line[-1].split(";")
+                else:
+                    for q in line[-1].split(";"):
+                        if q not in termlist[term]:
+                            termlist[term].append(q)
+                for q in line[-1].split(";"):
+                    if q not in query_ids:
+                        query_ids.append(q)
+            for item in items[1:]:
+                item = item.strip().split('\t')
+                fun = item[0] + "|||" + item[1] + "|||" + item[2]
+                term = item[0] + "|||" + item[1]
+                if level == 3:
+                    fun += "|||" + item[3] + "|||" + item[4]
+                    term = item[0] + "|||" + item[3]
+                if level == 4:
+                    fun += "|||" + item[3] + "|||" + item[4]
+                    fun += "|||" + item[5] + "|||" + item[6]
+                    term = item[0] + "|||" + item[5]
+                if term not in termlist:
+                    termlist[term] = item[-1].split(";")
+                else:
+                    for q in item[-1].split(";"):
+                        if q not in termlist[term]:
+                            termlist[term].append(q)
+                if fun not in funlist:
+                    funlist[fun] = item[-1].split(";")
+                    for q in item[-1].split(";"):
+                        if q not in query_ids:
+                            query_ids.append(q)
+                else:
+                    for q in item[-1].split(";"):
+                        if q not in query_ids:
+                            query_ids.append(q)
+                        if q not in funlist[fun]:
+                            funlist[fun].append(q)
+        for term in termlist:
+            terms = term.split("|||")
+            seq_list = termlist[term]
+            percent = float(len(seq_list)) / len(query_ids)
+            data = [
+                ('go_id', go_id),
+                ('seq_type', seq_type),
+                ('anno_type', anno_type),
+                ('level', level),
+                ('term_type', terms[0]),
+                ('go_term', terms[1]),
+                ('seq_number', len(seq_list)),
+                ('percent', round(percent, 4)),
+                ('seq_list', ";".join(seq_list))
+            ]
+            data = SON(data)
+            data_list1.append(data)
+        try:
+            collection = self.db['sg_annotation_go_graph']
+            collection.insert_many(data_list1)
+        except Exception, e:
+            self.bind_object.logger.error("导入go注释画图all信息出错：%s, %s" % (r_go_path, n_go_path))
+            print "导入go注释画图all出错：%s、%s" % (r_go_path, n_go_path)
+        else:
+            self.bind_object.logger.info("导入go注释画图all信息成功：%s, %s" % (r_go_path, n_go_path))
+        for fun in funlist:
+            terms = fun.split("|||")
+            data = [
+                ('go_id', go_id),
+                ('seq_type', seq_type),
+                ('anno_type', anno_type),
+                ('level', level),
+                ('goterm', terms[0]),
+                ('goterm_2', terms[1]),
+                ('goid_2', terms[2])
+            ]
+            if level >= 3:
+                data.append(('goterm_3', terms[3]))
+                data.append(('goid_3', terms[4]))
+            if level == 4:
+                data.append(('goterm_4', terms[5]))
+                data.append(('goid_4', terms[6]))
+            seq_list = funlist[fun]
+            percent = float(len(funlist[fun])) / len(query_ids)
+            data.append(('seq_number', len(seq_list)))
+            data.append(('percent', round(percent, 4)))
+            data.append(('seq_list', ";".join(seq_list)))
+            data = SON(data)
+            data_list2.append(data)
+        try:
+            collection = self.db['sg_annotation_go_detail']
+            collection.insert_many(data_list2)
+        except Exception, e:
+            raise Exception("导入go注释all出错：%s、%s" % (r_go_path, n_go_path))
+        else:
+            self.bind_object.logger.info("导入go注释all信息成功：%s, %s" % (r_go_path, n_go_path))
+
     @report_check
     def add_annotation_kegg(self, name=None, params=None):
         """
@@ -1162,6 +1416,242 @@ class RefAnnotation(Base):
             self.bind_object.logger.info("导入kegg注释table信息：%s成功!" % (table_path))
 
     @report_check
+    def add_annotation_kegg_categories_all(self, kegg_id, seq_type, anno_type, r_cate_path, n_cate_path):
+        """
+        r_cate_path:kegg_layer.xls(ref)
+        n_cate_path:kegg_layer.xls(new)
+        """
+        if not isinstance(kegg_id, ObjectId):
+            if isinstance(kegg_id, types.StringTypes):
+                kegg_id = ObjectId(kegg_id)
+            else:
+                raise Exception('kegg_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(r_cate_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(r_cate_path))
+        if not os.path.exists(n_cate_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(n_cate_path))
+        data_list = list()
+        cate = {}
+        with open(r_cate_path, 'r') as f, open(n_cate_path, "r") as n:
+            lines = f.readlines()
+            items = n.readlines()
+            for line in lines:
+                line = line.strip().split('\t')
+                if line[0] == "Metabolism" and line[1] == "Global and overview maps":
+                    pass
+                else:
+                    cate_d = line[0] + "|||" + line[1]
+                    cate[cate_d] = line[3].split(";")
+            for item in items:
+                item = item.strip().split('\t')
+                if item[0] == "Metabolism" and item[1] == "Global and overview maps":
+                    pass
+                else:
+                    cate_d = item[0] + "|||" + item[1]
+                    if cate_d not in cate:
+                        cate[cate_d] = item[3].split(";")
+                    else:
+                        ids = item[3].split(";")
+                        for q in ids:
+                            if q not in cate[cate_d]:
+                                cate[cate_d].append(q)
+        for f in ["Metabolism", "Genetic Information Processing", "Environmental Information Processing", "Cellular Processes", "Organismal Systems", "Human Diseases", "Drug Development"]:
+            for c in cate:
+                ca = c.split("|||")
+                first_category = ca[0]
+                second_category = ca[1]
+                if f == first_category:
+                    num = len(cate[c])
+                    seq_list = ";".join(cate[c])
+                    data = [
+                        ('kegg_id', kegg_id),
+                        ('seq_type', seq_type),
+                        ('anno_type', anno_type),
+                        ('first_category', first_category),
+                        ('second_category', second_category),
+                        ('num', num),
+                        ('seq_list', seq_list)
+                    ]
+                    data = SON(data)
+                    data_list.append(data)
+        try:
+            collection = self.db['sg_annotation_kegg_categories']
+            collection.insert_many(data_list)
+        except Exception, e:
+            raise Exception("导入kegg注释分类alls出错：%s, %s" % (r_cate_path, n_cate_path))
+        else:
+            self.bind_object.logger.info("导入kegg注释分类all成功：%s, %s" % (r_cate_path, n_cate_path))
+
+    def get_pic(self, path, kos_path, png_path):
+        """
+        画通路图
+        """
+        fs = gridfs.GridFS(self.mongodb)
+        pid = re.sub("map", "ko", path)
+        with open("pathway.kgml", "w+") as k, open("pathway.png", "w+") as p:
+            result = self.png_coll.find_one({"pathway_id": pid})
+            if result:
+                kgml_id = result['pathway_ko_kgml']
+                png_id = result['pathway_map_png']
+                k.write(fs.get(kgml_id).read())
+                p.write(fs.get(png_id).read())
+        cmd = "{} {} {} {} {} {} {}".format(self.r_path, self.map_path, path, kos_path, png_path, "pathway.kgml", "pathway.png")
+        try:
+            subprocess.check_output(cmd, shell=True)
+        except subprocess.CalledProcessError:
+            print "{}画图出错".format(path)
+            os.system("cp {} {}".format("pathway.png", png_path))
+
+    @report_check
+    def add_annotation_kegg_level_all(self, kegg_id, seq_type, anno_type, r_level_path, n_level_path):
+        """
+        r_level_path: pathway_table.xls(ref)
+        n_level_path: pathway_table.xls(new)
+        """
+        if not isinstance(kegg_id, ObjectId):
+            if isinstance(kegg_id, types.StringTypes):
+                kegg_id = ObjectId(kegg_id)
+            else:
+                raise Exception('kegg_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(r_level_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(r_level_path))
+        if not os.path.exists(n_level_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(n_level_path))
+        data_list = []
+        path_def = {}
+        r_path_list = {}
+        n_path_list = {}
+        fs = gridfs.GridFS(self.mongodb)
+        with open(r_level_path, "rb") as r, open(n_level_path, "rb") as n:
+            lines = r.readlines()
+            items = n.readlines()
+            for line in lines[1:]:
+                line = line.strip().split("\t")
+                if line[1] == "Metabolism" and line[2] == "Global and overview maps":
+                    pass
+                else:
+                    path = line[0] + "|||" + line[1] + "|||" + line[2] + "|||" + line[3]
+                    sp = 'http://www.genome.jp/dbget-bin/show_pathway?' + line[0]
+                    k_cols = line[7].split(sp)
+                    k_ids = k_cols[1].split("%09yellow")
+                    k_list = []
+                    for k in k_ids:
+                        if k.startswith('/'):
+                            k_id = k.split('/')[1]
+                            k_list.append(k_id)
+                    seqlist = line[5].split(";")
+                    path_def[line[0]] = path
+                    r_path_list[line[0]] = []
+                    r_path_list[line[0]].append(seqlist)
+                    r_path_list[line[0]].append(k_list)
+            for item in items[1:]:
+                item = item.strip().split("\t")
+                if item[1] == "Metabolism" and item[2] == "Global and overview maps":
+                    pass
+                else:
+                    path = item[0] + "|||" + item[1] + "|||" + item[2] + "|||" + item[3]
+                    sp = 'http://www.genome.jp/dbget-bin/show_pathway?' + item[0]
+                    k_cols = item[7].split(sp)
+                    k_ids = k_cols[1].split("%09green")
+                    k_list = []
+                    for k in k_ids:
+                        if k.startswith('/'):
+                            k_id = k.split('/')[1]
+                            k_list.append(k_id)
+                    seqlist = item[5].split(";")
+                    n_path_list[item[0]] = []
+                    n_path_list[item[0]].append(seqlist)
+                    n_path_list[item[0]].append(k_list)
+                    if item[0] not in path_def:
+                        path_def[item[0]] = path
+        for map_id in path_def:
+            link = []
+            r_kos, n_kos, b_kos = [], [], []
+            ref, new, both = [], [], []
+            paths = path_def[map_id].split("|||")
+            first_category = paths[1]
+            second_category = paths[2]
+            pathway_definition = paths[3]
+            try:
+                seq_list = r_path_list[map_id][0]
+                r_ko = r_path_list[map_id][1]
+            except:
+                seq_list = []
+                r_ko = []
+            try:
+                for q in n_path_list[map_id][0]:
+                    seq_list.append(q)
+                n_ko = n_path_list[map_id][1]
+            except:
+                n_ko = []
+            seq_list = list(set(seq_list))
+            for r_c in r_ko:
+                r = r_c.split("%09tomato")[0]
+                if r_c not in n_ko:
+                    r_id = r + '%09' + 'yellow'
+                    link.append(r_id)
+                    r_kos.append(r)
+                else:
+                    b_id = r + '%09' + 'tomato'
+                    link.append(b_id)
+                    b_kos.append(r)
+            for n_c in n_ko:
+                n = n_c.split("%09tomato")[0]
+                if n_c not in r_ko:
+                    n_id = n + '%09' + 'green'
+                    link.append(n_id)
+                    n_kos.append(n)
+                else:
+                    b_id = n + '%09' + 'tomato'
+                    link.append(b_id)
+                    b_kos.append(n)
+            link = list(set(link))
+            b_kos = list(set(b_kos))
+            link = 'http://www.genome.jp/kegg-bin/show_pathway?' + map_id + '/' + '/'.join(link)
+            png_path = os.getcwd() + '/' + map_id + ".png"
+            pdf_path = os.getcwd() + '/' + map_id + ".pdf"
+            kos_path = os.path.join(os.getcwd(), "KOs.txt")
+            with open(kos_path, "w") as w:
+                w.write("#KO\tbg\tfg\n")
+                for k in n_kos:
+                    w.write(k + "\t" + "#00CD00" + "\t" + "NA" + "\n")
+                for k in r_kos:
+                    w.write(k + "\t" + "#FFFF00" + "\t" + "NA" + "\n")
+                for k in b_kos:
+                    w.write(k + "\t" + "#FFFF00,#00CD00" + "\t" + "NA" + "\n")
+            self.get_pic(map_id, kos_path, png_path)
+            cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + png_path + ' ' + pdf_path
+            try:
+                subprocess.check_output(cmd, shell=True)
+            except subprocess.CalledProcessError:
+                print '图片格式pdf转png出错'
+            pdfid = fs.put(open(pdf_path, 'rb'))
+            graph_png_id = fs.put(open(png_path, 'rb'))
+            insert_data = {
+                'kegg_id': kegg_id,
+                'seq_type': seq_type,
+                'anno_type': anno_type,
+                'pathway_id': map_id,
+                'first_category': first_category,
+                'second_category': second_category,
+                'pathway_definition': pathway_definition,
+                'number_of_seqs': len(seq_list),
+                'seq_list': ";".join(seq_list),
+                'graph_id': pdfid,
+                "hyperlink": link,
+                'graph_png_id': graph_png_id
+            }
+            data_list.append(insert_data)
+            # os.remove(pdf)
+        try:
+            collection = self.db['sg_annotation_kegg_level']
+            collection.insert_many(data_list)
+        except Exception, e:
+            raise Exception("导入kegg注释层级all信息出错：%s、%s" % (r_level_path, n_level_path))
+        else:
+            self.bind_object.logger.info("导入kegg注释层级all信息成功：%s、%s" % (level_path, png_dir))
+
+    @report_check
     def add_annotation_query(self, name=None, params=None, stat_id=None):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
@@ -1187,7 +1677,7 @@ class RefAnnotation(Base):
         return query_id
 
     @report_check
-    def add_annotation_query_detail(self, query_id, query_path):
+    def add_annotation_query_detail(self, query_id, query_path, anno_type):
         if not isinstance(query_id, ObjectId):
             if isinstance(query_id, types.StringTypes):
                 query_id = ObjectId(query_id)
@@ -1202,6 +1692,7 @@ class RefAnnotation(Base):
                 line = line.strip().split('\t')
                 data = [
                     ('query_id', query_id),
+                    ('anno_type', anno_type),
                     ('transcript_id', line[0]),
                     ('gene_id', line[1]),
                 ]
@@ -1215,46 +1706,40 @@ class RefAnnotation(Base):
                     data.append(('length', None))
                 try:
                     data.append(('cog', line[4]))
-                    data.append(('cog_description', line[7]))
+                    data.append(('cog_description', line[6]))
                 except:
                     data.append(('cog', None))
                     data.append(('cog_description', None))
                 try:
                     data.append(('nog', line[5]))
-                    data.append(('nog_description', line[8]))
+                    data.append(('nog_description', line[7]))
                 except:
                     data.append(('nog', None))
                     data.append(('nog_description', None))
                 try:
-                    data.append(('kog', line[6]))
-                    data.append(('kog_description', line[9]))
-                except:
-                    data.append(('kog', None))
-                    data.append(('kog_description', None))
-                try:
-                    data.append(('ko_id', line[10]))
-                    data.append(('ko_name', line[11]))
+                    data.append(('ko_id', line[8]))
+                    data.append(('ko_name', line[9]))
                 except:
                     data.append(('ko_id', None))
                     data.append(('ko_name', None))
                 try:
-                    data.append(('pathways', line[12]))
+                    data.append(('pathways', line[10]))
                 except:
                     data.append(('pathways', None))
                 try:
-                    data.append(('pfam', line[13]))
+                    data.append(('pfam', line[11]))
                 except:
                     data.append(('pfam', None))
                 try:
-                    data.append(('go', line[14]))
+                    data.append(('go', line[12]))
                 except:
                     data.append(('go', None))
                 try:
-                    data.append(('nr', line[15]))
+                    data.append(('nr', line[13]))
                 except:
                     data.append(('nr', None))
                 try:
-                    data.append(('swissprot', line[16]))
+                    data.append(('swissprot', line[14]))
                 except:
                     data.append(('swissprot', None))
                 data = SON(data)
@@ -1263,6 +1748,81 @@ class RefAnnotation(Base):
             collection = self.db['sg_annotation_query_detail']
             collection.insert_many(data_list)
         except Exception, e:
-            raise Exception("导入注释统计信息：%s出错!" % (query_path))
+            raise Exception("导入转录本注释统计信息：%s出错!" % (query_path))
         else:
-            self.bind_object.logger.info("导入注释统计信息：%s成功!" % (query_path))
+            self.bind_object.logger.info("导入转录本注释统计信息：%s成功!" % (query_path))
+
+    @report_check
+    def add_annotation_gene_query_detail(self, query_id, query_path, anno_type):
+        if not isinstance(query_id, ObjectId):
+            if isinstance(query_id, types.StringTypes):
+                query_id = ObjectId(query_id)
+            else:
+                raise Exception('query_id必须为ObjectId对象或其对应的字符串！')
+        if not os.path.exists(query_path):
+            raise Exception('{}所指定的路径不存在，请检查！'.format(query_path))
+        data_list = []
+        with open(query_path, 'r') as f:
+            lines = f.readlines()
+            for j in range(1, len(lines)):
+                line = lines[j].strip().split('\t')
+                data = [
+                    ('query_id', query_id),
+                    ('gene_id', line[0]),
+                    ('anno_type', anno_type),
+                ]
+                try:
+                    data.append(('transcript_id', line[1]))
+                except:
+                    data.append(('transcript_id', None))
+                try:
+                    data.append(('gene_name', line[2]))
+                except:
+                    data.append(('gene_name', None))
+                try:
+                    data.append(('cog', line[3]))
+                    data.append(('cog_description', line[5]))
+                except:
+                    data.append(('cog', None))
+                    data.append(('cog_description', None))
+                try:
+                    data.append(('nog', line[4]))
+                    data.append(('nog_description', line[6]))
+                except:
+                    data.append(('nog', None))
+                    data.append(('nog_description', None))
+                try:
+                    data.append(('ko_id', line[7]))
+                    data.append(('ko_name', line[8]))
+                except:
+                    data.append(('ko_id', None))
+                    data.append(('ko_name', None))
+                try:
+                    data.append(('pathways', line[9]))
+                except:
+                    data.append(('pathways', None))
+                try:
+                    data.append(('pfam', line[10]))
+                except:
+                    data.append(('pfam', None))
+                try:
+                    data.append(('go', line[11]))
+                except:
+                    data.append(('go', None))
+                try:
+                    data.append(('nr', line[12]))
+                except:
+                    data.append(('nr', None))
+                try:
+                    data.append(('swissprot', line[13]))
+                except:
+                    data.append(('swissprot', None))
+                data = SON(data)
+                data_list.append(data)
+        try:
+            collection = self.db['sg_annotation_query_detail']
+            collection.insert_many(data_list)
+        except Exception, e:
+            raise Exception("导入基因注释查询信息：%s出错!" % (query_path))
+        else:
+            self.bind_object.logger.info("导入基因注释统计信息：%s成功!" % (query_path))

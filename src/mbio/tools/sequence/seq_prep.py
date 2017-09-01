@@ -60,7 +60,7 @@ class SeqPrepAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 11
+        self._cpu = 1
         self._memory = ''
 
     def end(self):

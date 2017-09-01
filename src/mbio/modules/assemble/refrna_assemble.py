@@ -76,6 +76,8 @@ class RefrnaAssembleModule(Module):
                 "sample_bam": f,
                 "ref_fa": self.option('ref_fa'),  # 此处不传prop['path']
                 "ref_gtf": self.option('ref_gtf'),
+                "fr_stranded": self.option("fr_stranded"),
+                "strand_direct": self.option("strand_direct"),
             })
             step = getattr(self.step, 'stringtie_{}'.format(n))
             step.start()
@@ -280,12 +282,12 @@ class RefrnaAssembleModule(Module):
         # self.option("merged_gtf").set_path(merge_dir + '/merged.gtf')
         # self.option("merged_fa").set_path(merge_dir + "/merged.fa")
         self.option("new_transcripts_gtf").set_path(new_transcripts_dir + "/new_transcripts.gtf")
-        self.option("new_transcripts_fa").set_path(new_transcripts_dir + "/new_transcripts.fa")
+        # self.option("new_transcripts_fa").set_path(new_transcripts_dir + "/new_transcripts.fa")
         self.option("new_gene_gtf").set_path(new_transcripts_dir + "/new_genes.gtf")
         self.option("change_id_gtf").set_path(merge_dir + "/change_id_merged.gtf")
         # self.option("add_code_gtf").set_path(merge_dir + "/add_code_merged.gtf")
         self.option("cuff_gtf").set_path(compare_dir + '/cuffcmp.annotated.gtf')
-        self.option("change_id_fa").set_path(merge_dir + "/change_id_merged.fa")
+        # self.option("change_id_fa").set_path(merge_dir + "/change_id_merged.fa")
         self.end()
 
     def run(self):

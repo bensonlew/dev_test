@@ -28,10 +28,11 @@ class GenesetEnrichWorkflow(Workflow):
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
             {"name": "method", "type": "string"},
+            {"name": "add_info", "type": "string", "default": None}  # 输入两列的列表文件，有head，第一列为pathway，第二列为底图链接
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.enrich_tool = self.add_tool("rna.go_enrich") if self.option("anno_type") == "go" else self.add_tool("rna.kegg_rich")
+        self.enrich_tool = self.add_tool("denovo_rna.express.go_enrich") if self.option("anno_type") == "go" else self.add_tool("denovo_rna.express.kegg_rich")
         self.output_dir = self.enrich_tool.output_dir
         # self.group_spname = dict()
 
@@ -42,7 +43,8 @@ class GenesetEnrichWorkflow(Workflow):
                 "kegg_table": self.option("kegg_table"),
                 # "all_list": background_path,
                 "diff_list": self.option("genset_list"),
-                "correct": self.option("method")
+                "correct": self.option("method"),
+                "add_info": self.option("add_info")
             }
         else:
             options = {
@@ -101,7 +103,7 @@ class GenesetEnrichWorkflow(Workflow):
         genset_list_path = self.option("genset_list")
         all_list_path = self.option("all_list")
         if self.option("anno_type") == "kegg":
-            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0], genset_list_path, all_list_path)
+            api_geneset.add_kegg_enrich_detail(self.option("main_table_id"), output_file[0])
         else:
             api_geneset.add_go_enrich_detail(self.option("main_table_id"), output_file[0])
             # if len(png_file) == 1:
@@ -110,10 +112,13 @@ class GenesetEnrichWorkflow(Workflow):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "基因集富集结果目录"],
-            # ["./estimators.xls", "xls", "alpha多样性指数表"]
-        ])
-        # print self.get_upload_files()
+        if self.option("anno_type") == "go":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集GO富集分析结果文件"],
+            ])
+        elif self.option("anno_type") == "kegg":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集KEGG富集分析结果文件"],
+            ])
         super(GenesetEnrichWorkflow, self).end()
 

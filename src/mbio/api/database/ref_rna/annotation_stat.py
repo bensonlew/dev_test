@@ -93,7 +93,7 @@ class AnnotationStat(Base):
             self.bind_object.logger.info("导入注释统计信息：%s成功!" % (stat_path))
 
     @report_check
-    def add_stat_detail(self, old_stat_id, stat_id, nr_evalue, gene_nr_evalue, sw_evalue, gene_sw_evalue):
+    def add_stat_detail(self, old_stat_id, stat_id, nr_blast, gene_nr_blast, sw_blast, gene_sw_blast):
         """
         注释重运行时注释统计导表sg_annotation_stat_detail
         """
@@ -131,22 +131,22 @@ class AnnotationStat(Base):
                 data.append(('transcript_list', result["transcript_list"]))
                 data = SON(data)
                 data_list.append(data)
-        nr_ids = self.stat(stat_path=nr_evalue)
-        gene_nr_ids = self.stat(stat_path=gene_nr_evalue)
+        nr_ids = self.stat(stat_path=nr_blast)
+        gene_nr_ids = self.stat(stat_path=gene_nr_blast)
         data = [
             ('stat_id', stat_id),
             ('type', "nr"),
             ('transcript', len(nr_ids)),
-            ('gene',len(gene_nr_ids)),
+            ('gene', len(gene_nr_ids)),
             ('transcript_percent', round(float(len(nr_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_nr_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_nr_ids)),
-            ('transcript_list', ";".join(nr_ids))
+            ('gene_list', ",".join(gene_nr_ids)),
+            ('transcript_list', ",".join(nr_ids))
         ]
         data = SON(data)
         data_list.append(data)
-        sw_ids = self.stat(stat_path=sw_evalue)
-        gene_sw_ids = self.stat(stat_path=gene_sw_evalue)
+        sw_ids = self.stat(stat_path=sw_blast)
+        gene_sw_ids = self.stat(stat_path=gene_sw_blast)
         data = [
             ('stat_id', stat_id),
             ('type', "swissprot"),
@@ -154,8 +154,8 @@ class AnnotationStat(Base):
             ('gene', len(gene_sw_ids)),
             ('transcript_percent', round(float(len(sw_ids))/total_tran, 4)),
             ('gene_percent', round(float(len(gene_sw_ids))/total_gene, 4)),
-            ('gene_list', ";".join(gene_sw_ids)),
-            ('transcript_list', ";".join(sw_ids))
+            ('gene_list', ",".join(gene_sw_ids)),
+            ('transcript_list', ",".join(sw_ids))
         ]
         data = SON(data)
         data_list.append(data)
@@ -173,11 +173,7 @@ class AnnotationStat(Base):
             lines = f.readlines()
             for line in lines[1:]:
                 line = line.strip().split("\t")
-                try:
-                    ids = line[2].split(";")
-                except:
-                    ids = []
-                for i in ids:
-                    if i not in id_list:
-                        id_list.append(i)
+                q_id = line[5]
+                id_list.append(q_id)
+        id_list = list(set(id_list))
         return id_list

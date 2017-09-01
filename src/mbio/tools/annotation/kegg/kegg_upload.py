@@ -18,6 +18,8 @@ class KeggUploadAgent(Agent):
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
+            {"name": "link_bgcolor", "type": "string", "default": "green"},  # 通路图链接官网颜色，约定参考基因组为黄色（yellow），新序列为绿色(green), 两者共有为tomato（红）
+            {"name": "png_bgcolor", "type": "string", "default": "#00CD00"}  # 通路图静态图颜色，#00CD00(绿色)，#FFFF00（黄色）
         ]
         self.add_option(options)
         self.step.add_steps('kegg_update')
@@ -35,7 +37,7 @@ class KeggUploadAgent(Agent):
     def check_options(self):
         if not self.option("kos_list_upload").is_set:
             raise OptionError("必须提供kegg注释结果文件")
-        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", "None"]:
+        if self.option("taxonomy") not in ["Animals", "Plants", "Fungi", "Protists", "Archaea", "Bacteria", "None", None]:
             raise OptionError("物种类别必须为Animals/Plants/Fungi/Protists/Archaea/Bacteria/None")
 
     def set_resource(self):
@@ -63,7 +65,8 @@ class KeggUploadTool(Tool):
         self._version = "2.0"
         self.python = "program/Python/bin/python"
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
-        self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation.py"
+        # self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation.py"
+        self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation_v2.py"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run(self):
@@ -88,8 +91,9 @@ class KeggUploadTool(Tool):
         pathwaydir = self.output_dir + '/pathways'
         pathway_table = self.output_dir + '/pathway_table.xls'
         layerfile = self.output_dir + '/kegg_layer.xls'
-        taxonomyfile = self.output_dir + '/kegg_taxonomy.xls'
-        cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, None, kegg_ids, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        # taxonomyfile = self.output_dir + '/kegg_taxonomy.xls'
+        # cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, None, kegg_ids, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+        cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, blast_xml, None, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
         command = self.add_command("kegg_anno", cmd).run()
         self.wait()
         if command.return_code == 0:

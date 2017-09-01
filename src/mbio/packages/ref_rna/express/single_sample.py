@@ -370,7 +370,7 @@ def group_express(old_fpkm, new_fpkm, old_count, new_count, sample_group_info, f
                 data[seq_id] = {}
                 for i in range(len(sample)):
                     print i
-                    data[seq_id][sample[i]] = int(float(line[i + 1]))
+                    data[seq_id][sample[i]] = float(line[i + 1])
             f2.write("\t" + "\t".join(group_name) + "\n")
             for keys in data.keys():
                 grp_data = []
@@ -388,7 +388,7 @@ def group_express(old_fpkm, new_fpkm, old_count, new_count, sample_group_info, f
                         print sam
                         print sum_value
                         raise Exception("error！")
-                    average_value = round(sum_value / len(sample_id), 6)
+                    average_value = round(float(sum_value) / len(sample_id), 6)
                     grp_data.append(str(average_value))
                 f2.write(keys + "\t" + "\t".join(grp_data) + "\n")
 
@@ -422,16 +422,15 @@ def filter_ref_gene_or_transcript(input_file, class_code, output_path, query_typ
                     if line[1] not in  class_code_info.keys():
                         class_code_info[line[1]]=line[2]
             if query_type == 'transcript':
-                if line[2] != '=':
+                if line[2] == '=':  # ref transcript
                     if line[0] not in class_code_info.keys():
-                        class_code_info[line[0]] = line[2]
+                        class_code_info[line[0]] = line[2]  # 把transcript 放入class_code_info里面
 
     filename = os.path.basename(input_file)
     if gene_list:
         list_file = open(output_path + "/{}_list".format(query_type), 'w+')
     with open(input_file, 'r+') as f1, open(output_path + "/{}".format(filename), 'w+') as f2:
         f2.write(f1.readline())
-        id_list = []
         for lines in f1:
             line = lines.strip().split("\t")
             if line[0] in class_code_info.keys():

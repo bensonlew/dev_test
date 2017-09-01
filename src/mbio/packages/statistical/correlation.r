@@ -1,16 +1,11 @@
 library(pheatmap)
 library(psych)
 library(ape)
-hclust_method="${hclust_method}"  # complete pairwise
+
 method="${method}" # pearson kendall
 data=read.table("${inputfile}",header=T,row.names=1,sep="\t")
-if(grepl('complete',hclust_method)){
-        hclust_new_method = 'complete.obs'
-}
-if(grepl('pairwise',hclust_method)){
-        hclust_new_method = 'pairwise.complete.obs'
-}
-bin <- cor(data,method=method,use=hclust_new_method)
+
+bin <- cor(data,method=method)
 cor <- as.data.frame(bin)
 #cor <- as.data.frame(bin$r)  #commented out code by khl 20170622
 #t <- as.data.frame(bin$t)

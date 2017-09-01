@@ -94,4 +94,7 @@ class GenesetClassAction(RefRnaController):
                 }}
         print("ggggggggxinnnnnnnnnnnnnnnnnn")
         print(task_info)
+        geneset_info = self.ref_rna.insert_geneset_info(data.geneset_id, collection_name, str(main_table_id))
+        if geneset_info:
+            print "geneset_info插入成功"
         return json.dumps(task_info)

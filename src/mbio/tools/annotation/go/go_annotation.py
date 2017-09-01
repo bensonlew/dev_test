@@ -54,7 +54,7 @@ class GoAnnotationAgent(Agent):
 
     def set_resource(self):
         self._cpu = 10
-        self._memory = '25G'
+        self._memory = '60G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -78,6 +78,10 @@ class GoAnnotationTool(Tool):
 
     def __init__(self, config):
         super(GoAnnotationTool, self).__init__(config)
+        self.set_environ(JAVA_HOME=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0")
+        self.set_environ(JRE_HOME=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0/jre")
+        self.set_environ(CLASSPATH=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0/lib")
+        self.set_environ(CLASSPATH=self.config.SOFTWARE_DIR + "/program/sun_jdk1.8.0/jre/lib")
         self._version = "1.0"
         self.b2g_user = "biocluster102"
         self.b2g_password = "sanger-dev-123"
@@ -89,7 +93,7 @@ class GoAnnotationTool(Tool):
     def run_b2g(self):
         self.blast_nr_out = self.work_dir + '/temp_blast_nr.xml'
         self.option("blastout").change_blast_version(self.blast_nr_out)
-        cmd = '/program/sun_jdk1.8.0/bin/java -Xmx15g -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
+        cmd = '/program/sun_jdk1.8.0/bin/java -Xmx30g -cp ' + self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/*:'
         cmd += self.config.SOFTWARE_DIR + '/bioinfo/annotation/b2g4pipe_v2.5/ext/*: es.blast2go.prog.B2GAnnotPipe'
         cmd += ' -in {} -prop {}/bioinfo/annotation/b2g4pipe_v2.5/b2gPipe.properties -annot -out {}'.format(self.blast_nr_out, self.config.SOFTWARE_DIR, self.work_dir + '/blast2go')
         self.logger.info('运行b2g程序')

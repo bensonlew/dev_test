@@ -7,7 +7,7 @@ import traceback
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-from mbio.packages.annotation.go_graph import draw_GO
+from mbio.packages.annotation.go.go_graph import draw_GO
 import subprocess
 
 

@@ -71,15 +71,6 @@ class TophatAgent(Agent):
         self._memory = '10G'
 
     def end(self):
-        """
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ])
-        result_dir.add_regexp_rules([
-            [r"accepted_hits.bam", "bam", "tophat生成的文件"],
-            ])
-        """
         super(TophatAgent, self).end()
 
 
@@ -104,6 +95,7 @@ class TophatTool(Tool):
             self.run_tophat(ref_path)
         else:
             self.set_error("索引建立出错")
+            raise Exception("索引建立出错")
 
     def run_tophat(self, index_ref):
         self.logger.info(self.option("sample"))
@@ -143,9 +135,10 @@ class TophatTool(Tool):
             self.logger.info("开始运行自定义模式")
             self.run_build_index()
         else:
-            with open(self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
                 dict = json.loads(f.read())
-                ref = dict[self.option("ref_genome")]["ref_genome"]
-                index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
-                self.run_tophat(index_ref)
+                rel_index = dict[self.option("ref_genome")]["dna_index"]
+                abs_index = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/" +  rel_index
+                # index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
+                self.run_tophat(abs_index)
         self.end()
