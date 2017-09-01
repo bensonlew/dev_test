@@ -10,6 +10,8 @@ import datetime
 class DemoInitWorkflow(Workflow):
     """
     初始化设置demo时进行demo备份
+    type：ref_rna时，对ref_rna项目做初始化，进行备份或者删除备份；
+          ref_rna_demo时，删除拉取的ref_rna任务（前端做计划任务，传递拉取已有30天的demo参数）
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
@@ -38,6 +40,9 @@ class DemoInitWorkflow(Workflow):
             if self.option("setup_type") in ["cancel", "delete"]:
                 from mbio.packages.rna.refrna_copy_delete import RefrnaCopyDelete
                 RefrnaCopyDelete().find_task_id(task_id=self.option("task_id"))
+        if self.option("type") == "ref_rna_demo" and self.option("setup_type") == "delete":
+            from mbio.packages.rna.refrna_copy_delete import RefrnaCopyDelete
+            RefrnaCopyDelete().remove(self.option("task_id"))
         self.end()
 
     def end(self):
