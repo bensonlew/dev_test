@@ -221,7 +221,7 @@ class DiffExpressWorkflow(Workflow):
 
                 """添加diff_detail表"""
                 api_diff_exp.add_express_diff_detail(name=name, compare_name=compare_name, ref_all='all',
-                                                     express_diff_id=self.option("diff_express_id"), \
+                                                     express_diff_id=self.option("diff_express_id"),
                                                      diff_stat_path=self.diff_exp.output_dir + '/' + f, workflow=False,
                                                      class_code=self.option("class_code"),
                                                      query_type=self.option("type"),

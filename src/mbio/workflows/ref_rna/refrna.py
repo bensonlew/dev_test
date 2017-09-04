@@ -10,6 +10,20 @@ import json
 import shutil
 import re
 import time
+from gevent.monkey import patch_all
+import gevent
+import functools
+
+patch_all()
+
+def time_count(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kw):
+        start = time.time()
+        func(*args, **kw)
+        end = time.time()
+        print("{}函数执行耗时{}s".format(func.__name__, end - start))
+    return wrapper
 
 class RefrnaWorkflow(Workflow):
     def __init__(self, wsheet_object):
@@ -91,6 +105,7 @@ class RefrnaWorkflow(Workflow):
             {"name": "p_length", "type": "int", "default": 100},  # pfam参数
             {"name": "markov_length", "type": "int", "default": 3000},  # markov_length
 
+
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -119,15 +134,11 @@ class RefrnaWorkflow(Workflow):
             self.option("ref_genome_custom", self.ref_genome)
             self.taxon_id = self.json_dict[self.option("ref_genome")]["taxon_id"]
             if "anno_path" not in self.json_dict[self.option("ref_genome")]:
-                self.logger.warning("json文件中不存在注释文件，程序退出")
-                self.start_listener()
-                self.fire("end")
-            elif not os.path.exists(self.json_dict[self.option("ref_genome")]["anno_path"]):
-                self.logger.warning("不存在注释文件，程序退出")
-                self.start_listener()
-                self.fire("end")
+                raise Exception("json文件中不存在注释文件，程序退出")
             self.anno_path = os.path.join(os.path.split(self.json_path)[0],
                                           self.json_dict[self.option("ref_genome")]["anno_path"])
+            if not os.path.exists(self.anno_path):
+                raise Exception("不存在注释文件，程序退出")
             self.logger.info("注释文件路径为： " + self.anno_path)
         else:
             self.ref_genome = self.option("ref_genome_custom")
@@ -146,6 +157,7 @@ class RefrnaWorkflow(Workflow):
         self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
         if self.option("ref_genome") == "Custom":
             self.option("ref_genome", "customer_mode")  # 统一转化为customer_mode
+
 
     def check_options(self):
         """
@@ -662,7 +674,7 @@ class RefrnaWorkflow(Workflow):
         :return:
         """
         self.IMPORT_REPORT_DATA = True
-        self.IMPORT_REPORT_AFTER_END = False
+        self.IMPORT_REPORT_DATA_AFTER_END = False
         task_info = self.api.api('task_info.ref')
         task_info.add_task_info()
         self.filecheck.on('end', self.run_qc)
@@ -685,29 +697,66 @@ class RefrnaWorkflow(Workflow):
 
     def end(self):
         self.run_api_and_set_output()
+        self.modify_output()
         super(RefrnaWorkflow, self).end()
 
+    def modify_output(self):
+        if os.path.exists(self.work_dir + "/upload_results"):
+            os.removedirs(self.work_dir + "/upload_results")
+        os.mkdir(self.work_dir + "/upload_results")
 
-    def run_api_and_set_output(self):
-        # self.IMPORT_REPORT_DATA = True
-        # self.IMPORT_REPORT_AFTER_END = False
-        # 需设置gtf路径
+
+
+
+
+    def run_api_and_set_output(self, test=False):
+        greenlets_list_first = []
+        greenlets_list_sec = []
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_AFTER_END = False
+        for file in os.listdir(self.filecheck.work_dir):
+            if file.endswith("gtf") and not "tmp" in file:
+                self.logger.info(file)
+        self.filecheck.option("gtf", self.filecheck.work_dir + "/" + file)
         self.export_qc()
-        self.export_as()
-        self.export_annotation()
-        self.export_assembly()
-        self.export_snp()
-        self.export_map_assess()
+        self.logger.info("开始进行表达量rsem导表")
+        start = time.time()
         self.export_exp_rsem_default()
-        self.export_ref_gene_set()
-        self.export_gene_set()
-        self.export_ref_diff_gene()
-        self.export_ref_diff_trans()
-        self.export_diff_gene()
-        self.export_diff_trans()
-        self.export_cor()
-        self.export_pca()
+        end = time.time()
+        self.logger.info("表达量rsem导表结束，用时{}s".format(end - start))
+        greenlets_list_first.append(gevent.spawn(self.export_as))
+        greenlets_list_first.append(gevent.spawn(self.export_annotation))
+        greenlets_list_first.append(gevent.spawn(self.export_assembly))
+        greenlets_list_first.append(gevent.spawn(self.export_snp))
+        greenlets_list_first.append(gevent.spawn(self.export_map_assess))
+        greenlets_list_first.append(gevent.spawn(self.export_exp_fc, test))
+        greenlets_list_first.append(gevent.spawn(self.export_ref_gene_set))
+        greenlets_list_first.append(gevent.spawn(self.export_ref_diff_gene))
+        greenlets_list_first.append(gevent.spawn(self.export_ref_diff_trans))
+        greenlets_list_first.append(gevent.spawn(self.export_cor))
+        greenlets_list_first.append(gevent.spawn(self.export_pca))
+        gevent.joinall(greenlets_list_first)
+        greenlets_list_sec.append(gevent.spawn(self.export_gene_set))
+        greenlets_list_sec.append(gevent.spawn(self.export_diff_gene))
+        greenlets_list_sec.append(gevent.spawn(self.export_diff_trans))
+        gevent.joinall(greenlets_list_sec)
+        self.logger.info("导表完成")
+        # self.export_as()
+        # self.export_annotation()
+        # self.export_assembly()
+        # self.export_snp()
+        # self.export_map_assess()
+        # self.export_exp_rsem_default()
+        # self.export_ref_gene_set()
+        # self.export_gene_set()
+        # self.export_ref_diff_gene()
+        # self.export_ref_diff_trans()
+        # self.export_diff_gene()
+        # self.export_diff_trans()
+        # self.export_cor()
+        # self.export_pca()
 
+    @time_count
     def export_qc(self):
         self.api_qc = self.api.ref_rna_qc
         qc_stat = self.qc_stat_before.output_dir
@@ -720,10 +769,11 @@ class RefrnaWorkflow(Workflow):
         self.api_qc.add_samples_info(qc_stat, fq_type=fq_type, about_qc="after")
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
-        self.logger.info("group_detail为：" + self.group_detail)
+        self.logger.info("group_detail为：" + str(self.group_detail))
         self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
         self.api_qc.add_bam_path(self.mapping.output_dir)
 
+    @time_count
     def export_assembly(self):
         self.api_assembly = self.api.api("ref_rna.ref_assembly")
         if self.option("assemble_method") == "cufflinks":
@@ -734,6 +784,7 @@ class RefrnaWorkflow(Workflow):
             merged_path = self.assembly.output_dir + "/StringtieMerge"
         self.api_assembly.add_assembly_result(all_gtf_path=all_gtf_path, merged_path=merged_path, Statistics_path=self.assembly.output_dir + "/Statistics")
 
+    @time_count
     def export_map_assess(self):
         self.api_map = self.api.ref_rna_qc
         stat_dir = self.mapping.output_dir + "/stat"
@@ -750,6 +801,7 @@ class RefrnaWorkflow(Workflow):
         chrom_distribution = self.map_qc.output_dir + "/chr_stat"
         self.api_map.add_chorm_distribution_table(chrom_distribution)
 
+    @time_count
     def export_exp_rsem_default(self):
         self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.api_exp = self.api.refrna_express
@@ -785,11 +837,19 @@ class RefrnaWorkflow(Workflow):
         self.express_id = self.api_exp.add_express(rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
                                                    class_code=class_code, samples=samples, params=params, major=True, distri_path=distri_path)
 
-    def export_exp_fc(self):
+    @time_count
+    def export_exp_fc(self,test=True):
+        if test:
+            distri_path = self.exp_fc.work_dir + "/Featurecounts"
+        else:
+            distri_path = self.exp_fc.featurecounts.work_dir
         self.api_exp = self.api.refrna_express
         feature_dir = self.exp_fc.output_dir + "/featurecounts"
         if self.option("is_duplicate"):
-            group_fpkm_path = self.exp_fc.featurecounts.work_dir + "/group"
+            if test:
+                group_fpkm_path = self.exp_fc.work_dir + "/Featurecounts/group"
+            else:
+                group_fpkm_path = self.exp_fc.featurecounts.work_dir + "/group"
             is_duplicate = True
         else:
             group_fpkm_path = None
@@ -806,7 +866,7 @@ class RefrnaWorkflow(Workflow):
             value = self.group_detail[i].keys()
             params['group_detail'][key] = value
         self.logger.info(params['group_detail'])
-        distri_path = self.exp_fc.featurecounts.work_dir
+        # distri_path = self.exp_fc.featurecounts.work_dir
         class_code = self.exp.mergersem.work_dir + "/class_code"
         self.api_exp.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate, samples=samples,
                             class_code=class_code, params=params, major=True, distri_path=distri_path)
@@ -823,6 +883,7 @@ class RefrnaWorkflow(Workflow):
         self.api_exp.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate, samples=samples,
                             class_code=class_code, params=params2, major=True, distri_path=distri_path)
 
+    @time_count
     def export_gene_set(self):  # ref_and_new
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
@@ -854,6 +915,7 @@ class RefrnaWorkflow(Workflow):
                 else:
                     self.logger.info("基因name和compare_name匹配错误")
 
+    @time_count
     def export_ref_gene_set(self):
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
@@ -885,6 +947,7 @@ class RefrnaWorkflow(Workflow):
                 else:
                     self.logger.info("基因name和compare_name匹配错误")
 
+    @time_count
     def export_diff_trans(self):
         path = self.exp.output_dir + "/diff/trans_diff"
         exp_path = self.exp.output_dir + "/rsem"
@@ -922,6 +985,7 @@ class RefrnaWorkflow(Workflow):
         self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='all',query_type='transcript',
                                             class_code=class_code,workflow=True)
 
+    @time_count
     def export_diff_gene(self):
         path = self.exp.output_dir + "/diff/genes_diff"
         exp_path = self.exp.output_dir + "/rsem"
@@ -958,6 +1022,7 @@ class RefrnaWorkflow(Workflow):
         self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='all',query_type='gene',
                                             class_code=class_code,workflow=True)
 
+    @time_count
     def export_ref_diff_trans(self):
         path = self.exp.output_dir + "/ref_diff/trans_ref_diff"
         exp_path = self.exp.output_dir + "/rsem"
@@ -995,6 +1060,7 @@ class RefrnaWorkflow(Workflow):
         self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='ref',query_type='transcript',
                                             class_code=class_code,workflow=True)
 
+    @time_count
     def export_ref_diff_gene(self):
         path = self.exp.output_dir + "/ref_diff/genes_ref_diff"
         exp_path = self.exp.output_dir + "/rsem"
@@ -1031,7 +1097,7 @@ class RefrnaWorkflow(Workflow):
         self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='ref',query_type='gene',
                                             class_code=class_code,workflow=True)
 
-
+    @time_count
     def export_cor(self):
         self.api_cor = self.api.refrna_corr_express
         correlation = self.exp.output_dir + "/correlation/genes_correlation"
@@ -1045,6 +1111,7 @@ class RefrnaWorkflow(Workflow):
                                            express_level=self.option("exp_way"),
                                            express_id=self.express_id, detail=True, seq_type="gene")
 
+    @time_count
     def export_pca(self):
         self.api_pca = self.api.refrna_corr_express
         pca_path = self.exp.output_dir + "/pca/genes_pca"
@@ -1056,7 +1123,7 @@ class RefrnaWorkflow(Workflow):
         self.api_pca.add_pca_table(pca_path, group_id=str(self.group_id), group_detail=group_detail,
                                    express_level=self.option("exp_way"),
                                    express_id=self.express_id, detail=True, seq_type="gene")
-
+    @time_count
     def export_annotation(self):
         self.api_anno = self.api.api("ref_rna.ref_annotation")
         ref_anno_path = self.anno_path
@@ -1080,7 +1147,7 @@ class RefrnaWorkflow(Workflow):
                                      new_anno_path=new_anno_path,
                                      pfam_path=pfam_path, merge_tran_output=merge_tran_output,
                                      merge_gene_output=merge_gene_output)
-
+    @time_count
     def export_as(self):
         self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
         if self.option("strand_specific"):
@@ -1127,6 +1194,7 @@ class RefrnaWorkflow(Workflow):
             self.api_as.add_sg_splicing_rmats(params=params, major=True, group=group,
                                           ref_gtf=self.filecheck.option("gtf").prop["path"], name=None, outpath=outpath)
 
+    @time_count
     def export_snp(self):
         self.api_snp = self.api.api("ref_rna.ref_snp")
         snp_anno = self.snp_rna.output_dir
