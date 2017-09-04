@@ -1024,14 +1024,14 @@ class RefrnaExpress(Base):
         # dump data of diff_stat_path into mongodb
         diff_table = pd.read_table(diff_stat_path)
         sig_status = list()
-        sig_mark = list(diff_table['significant'])
-        reg_list = list(diff_table['regulate'])
-        if 'no' in sig_mark:
+        sig_mark = diff_table['significant']
+        reg_list = diff_table['regulate']
+        if 'no' in list(sig_mark):
             sig_status.append('nosig')
-        if 'yes' in sig_mark:
-            if 'down' in reg_list:
+        if 'yes' in list(sig_mark):
+            if 'down' in list(reg_list[sig_mark == 'yes']):
                 sig_status.append('down')
-            if 'up' in reg_list:
+            if 'up' in list(reg_list[sig_mark == 'yes']):
                 sig_status.append('up')
         sig_pvalues = diff_table[pvalue_padjust][diff_table['significant'] == "yes"]
         log10_pvalue_list = sorted([-log10(x) for x in sig_pvalues if x > 0])
@@ -1047,7 +1047,7 @@ class RefrnaExpress(Base):
         elif len(sig_pvalues) == 0:
             tmp_list = sorted([-log10(x) for x in diff_table[pvalue_padjust] if x > 0])
             if len(tmp_list) == 0:
-                log10_pvalue_cutoff = 100
+                log10_pvalue_cutoff = 320
             else:
                 log10_pvalue_cutoff = tmp_list[int(len(tmp_list)*0.9)]
         else:
@@ -1075,11 +1075,15 @@ class RefrnaExpress(Base):
 
             pvalue = row_dict[pvalue_padjust]
             if pvalue <= 0:
-                pvalue = 1e-100
-            if -log10(pvalue) > log10_pvalue_cutoff:
-                log10_pvalue = log10_pvalue_cutoff
-            else:
-                log10_pvalue = -log10(pvalue)
+                pvalue = 1e-320
+            try:
+                if -log10(pvalue) > log10_pvalue_cutoff:
+                    log10_pvalue = log10_pvalue_cutoff
+                else:
+                    log10_pvalue = -log10(pvalue)
+            except:
+                print(type(pvalue))
+                raise Exception('pvalue is {}'.format(pvalue))
             row_dict['log10_'+pvalue_padjust] = log10_pvalue
 
             row_dict.update(marker_info)
@@ -1090,7 +1094,8 @@ class RefrnaExpress(Base):
             collection = db["sg_express_diff_detail"]
             collection.insert_many(target_dict_list)
             con = db["sg_express_diff"]
-            con.update({'_id': express_diff_id}, {"$set": {"reg_status": sig_status}})
+            sig_status_name = name+'_vs_'+compare_name+'_'+ref_all+'_status'
+            con.update({'_id': express_diff_id}, {"$set": {sig_status_name: sig_status}})
         except Exception, e:
             self.bind_object.logger.error("导入基因表达差异统计表：%s出错:%s" % (diff_stat_path, e))
         else:
