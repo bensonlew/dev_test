@@ -181,10 +181,7 @@ class RmatsRerunAction(RefRnaController):
             if data.group_id != 'all':
                 to_file.append("ref_rna.export_group_table_by_detail(group_id)")
                 options.update({
-                    # "group_table": data.group_id,
-                    # "group_detail": data.group_detail,
-                    # "rmats_control": data.control_id,
-                    # "gname": group_doc['group_name'],
+
                     "case_group_bam_str": case_group_bam_str,
                     "control_group_bam_str": control_group_bam_str,
                     "case_group_name": case_group_name,

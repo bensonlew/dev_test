@@ -62,7 +62,11 @@ class TranscriptAbstractTool(Tool):
         self.length = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/fastalength"
 
     def run_gffread(self):
-        fasta = self.option("ref_genome_custom").prop["path"]  # 统一按自定义方式传参考基因组
+        old_fasta = self.option("ref_genome_custom").prop["path"]  # 统一按自定义方式传参考基因组
+        fasta = self.work_dir + "/" + os.path.basename(self.option("ref_genome_custom").prop["path"])
+        if os.path.exists(fasta):
+            os.remove(fasta)
+        os.link(old_fasta, fasta)
         gtf = self.option("ref_genome_gtf").prop["path"]
         cmd = "{}gffread {} -g {} -w exons.fa".format(self.gffread_path, gtf, fasta)
         self.logger.info("开始运行cufflinks的gffread，合成、提取exons")

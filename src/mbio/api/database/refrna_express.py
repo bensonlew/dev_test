@@ -19,8 +19,10 @@ from biocluster.config import Config
 import math
 from math import log10
 import pandas as pd
+from gevent.monkey import patch_all
+import gevent
 
-
+patch_all()
 class RefrnaExpress(Base):
     def __init__(self, bind_object):
         super(RefrnaExpress, self).__init__(bind_object)
@@ -39,24 +41,30 @@ class RefrnaExpress(Base):
             data = dict()
             for lines in f1:
                 line = lines.strip('\n').split("\t")
-                if query_type == 'transcript':
+                if workflow:
                     if not line[3]:
                         line[3] = '-'
                     if not line[1]:
                         raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
                     t_id, gene_id, class_code_type, gene_name = line
-                    if workflow:
+                    if query_type == 'transcript':
                         data[t_id] = dict(gene_name=gene_name, gene_id=gene_id, class_code=class_code_type)
                     else:
-                        data[t_id] = dict(gene_name=gene_name, gene_id=gene_id)
-                else:
-                    if not line[1]:
-                        line[1] = '-'
-                    gene_id, gene_name, class_code_type = line
-                    if workflow:
                         data[gene_id] = dict(gene_name=gene_name, class_code=class_code_type)
+                else:
+                    if len(line) == 4:
+                        if not line[3]:
+                            line[3] = '-'
+                        if not line[1]:
+                            raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
+                        t_id, gene_id, class_code_type, gene_name = line
+                        data[t_id] = dict(gene_name=gene_name, gene_id=gene_id)
                     else:
+                        if not line[1]:
+                            line[1] = '-'
+                        gene_id, gene_name, class_code_type = line
                         data[gene_id] = dict(gene_name=gene_name)
+
         return data
 
     # @report_check
@@ -158,6 +166,7 @@ class RefrnaExpress(Base):
         method = params["express_method"]
         # express_id=ObjectId("58f03a28a4e1af44d4139c79")
         if major:
+            gevent_list = []
             rsem_files = os.listdir(rsem_dir)
             # sample_group = "sample"
             for f in rsem_files:
@@ -167,33 +176,33 @@ class RefrnaExpress(Base):
                     # query_type=None,value_type=None, method=None, sample_group=None
                     print fpkm_path
                     print count_path
-                    self.add_express_detail(express_id, fpkm_path, class_code, 'gene', value_type, method,
-                                            sample_group)
-                    self.add_express_detail(express_id, count_path, class_code, 'gene', 'count', method,
-                                            sample_group)
+                    gevent_list.append(gevent.spawn(self.add_express_detail, express_id, fpkm_path, class_code, 'gene', value_type, method,
+                                            sample_group))
+                    gevent_list.append(gevent.spawn(self.add_express_detail, express_id, count_path, class_code, 'gene', 'count', method,
+                                            sample_group))
                     try:
-                        self.add_express_gragh(express_id,
+                        gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                                distribution_path_log2=distri_path + "/log2gene_distribution.xls",
                                                distribution_path_log10=distri_path + "/log10gene_distribution.xls",
                                                distribution_path=distri_path + "/gene_distribution.xls",
                                                sample_group="sample",
-                                               query_type="gene", value_type=value_type)
+                                               query_type="gene", value_type=value_type))
                     except Exception:
                         print 'error!'
                     print '导入基因{}graph成功'.format(value_type)
 
-                    self.add_express_gragh(express_id,
+                    gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                            distribution_path_log2=distri_path + "/sample_count_distribution/log2gene_distribution.xls",
                                            distribution_path_log10=distri_path + "/sample_count_distribution/log10gene_distribution.xls",
                                            distribution_path=distri_path + "/sample_count_distribution/gene_distribution.xls",
                                            sample_group='sample',
-                                           query_type="gene", value_type='count')
+                                           query_type="gene", value_type='count'))
                     print '导入基因{}graph成功'.format('count')
 
-                    self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene",
-                                         value_type=value_type)
-                    self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
-                                         value_type='count')
+                    gevent_list.append(gevent.spawn(self.add_express_box, express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene",
+                                         value_type=value_type))
+                    gevent_list.append(gevent.spawn(self.add_express_box, express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
+                                         value_type='count'))
 
                     if is_duplicate:
                         if value_type == 'fpkm':
@@ -204,54 +213,54 @@ class RefrnaExpress(Base):
                             gene_group_count_path = distri_path + "/Group.genes_count_genes.TMM.EXPR.matrix"
                         print '开始进行group导表'
                         if os.path.exists(gene_group_fpkm_path):
-                            self.add_express_group_detail(express_id, gene_group_fpkm_path, "gene", value_type, "rsem",
-                                                          "group")
+                            gevent_list.append(gevent.spawn(self.add_express_group_detail, express_id, gene_group_fpkm_path, "gene", value_type, "rsem",
+                                                          "group"))
                             print '基因group{}导表成功！'.format(value_type)
                         if os.path.exists(gene_group_count_path):
-                            self.add_express_group_detail(express_id, gene_group_count_path, "gene", "count", "rsem",
-                                                          "group")
+                            gevent_list.append(gevent.spawn(self.add_express_group_detail, express_id, gene_group_count_path, "gene", "count", "rsem",
+                                                          "group"))
                             print '基因group count导表成功！'
-                        self.add_express_gragh(express_id,
+                        gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                                distribution_path_log2=distri_path + "/group_genes_fpkm_distribution/log2GroupGenes_distribution.xls",
                                                distribution_path_log10=distri_path + "/group_genes_fpkm_distribution/log10GroupGenes_distribution.xls",
                                                distribution_path=distri_path + "/group_genes_fpkm_distribution/GroupGenes_distribution.xls",
-                                               sample_group="group", query_type="gene", value_type=value_type)
+                                               sample_group="group", query_type="gene", value_type=value_type))
                         print '基因group graph{}导表成功！'.format(value_type)
-                        self.add_express_gragh(express_id,
+                        gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                                distribution_path_log2=distri_path + "/group_genes_count_distribution/log2GroupGenes_distribution.xls",
                                                distribution_path_log10=distri_path + "/group_genes_count_distribution/log10GroupGenes_distribution.xls",
                                                distribution_path=distri_path + "/group_genes_count_distribution/GroupGenes_distribution.xls",
-                                               sample_group="group", query_type="gene", value_type='count')
+                                               sample_group="group", query_type="gene", value_type='count'))
                         print '基因group graph{}导表成功！'.format('count')
                         # #目前缺少count的graph数据
-                        self.add_express_box(express_id, fpkm_path=gene_group_fpkm_path,
-                                             sample_group="group", query_type="gene", value_type=value_type)
-                        self.add_express_box(express_id, fpkm_path=gene_group_count_path, sample_group='group',
-                                             query_type='gene', value_type='count')
+                        gevent_list.append(gevent.spawn(self.add_express_box, express_id, fpkm_path=gene_group_fpkm_path,
+                                             sample_group="group", query_type="gene", value_type=value_type))
+                        gevent_list.append(gevent.spawn(self.add_express_box, express_id, fpkm_path=gene_group_count_path, sample_group='group',
+                                             query_type='gene', value_type='count'))
                 elif re.search(r'^transcripts\.TMM', f):
                     fpkm_path = rsem_dir + "/" + f
                     count_path = rsem_dir + '/transcripts.counts.matrix'
                     print fpkm_path
                     print count_path
 
-                    self.add_express_detail(express_id, fpkm_path, class_code, 'transcript', value_type, method,
-                                            sample_group)
-                    self.add_express_detail(express_id, count_path, class_code, 'transcript', 'count', method,
-                                            sample_group)
-                    self.add_express_gragh(express_id,
+                    gevent_list.append(gevent.spawn(self.add_express_detail, express_id, fpkm_path, class_code, 'transcript', value_type, method,
+                                            sample_group))
+                    gevent_list.append(gevent.spawn(self.add_express_detail, express_id, count_path, class_code, 'transcript', 'count', method,
+                                            sample_group))
+                    gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                            distribution_path_log2=distri_path + "/log2transcript_distribution.xls",
                                            distribution_path_log10=distri_path + "/log10transcript_distribution.xls",
                                            distribution_path=distri_path + "/transcript_distribution.xls",
-                                           sample_group="sample", query_type="transcript", value_type=value_type)
-                    self.add_express_gragh(express_id,
+                                           sample_group="sample", query_type="transcript", value_type=value_type))
+                    gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                            distribution_path_log2=distri_path + "/sample_count_distribution/log2transcript_distribution.xls",
                                            distribution_path_log10=distri_path + "/sample_count_distribution/log10transcript_distribution.xls",
                                            distribution_path=distri_path + "/sample_count_distribution/transcript_distribution.xls",
-                                           sample_group="sample", query_type="transcript", value_type='count')
-                    self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample",
-                                         query_type="transcript", value_type=value_type)
-                    self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample",
-                                         query_type="transcript", value_type='count')
+                                           sample_group="sample", query_type="transcript", value_type='count'))
+                    gevent_list.append(gevent.spawn(self.add_express_box,express_id, fpkm_path=fpkm_path, sample_group="sample",
+                                         query_type="transcript", value_type=value_type))
+                    gevent_list.append(gevent.spawn(self.add_express_box,express_id, fpkm_path=count_path, sample_group="sample",
+                                         query_type="transcript", value_type='count'))
                     if is_duplicate:
                         print value_type
 
@@ -264,35 +273,28 @@ class RefrnaExpress(Base):
                         print trans_group_fpkm_path
 
                         if os.path.exists(trans_group_fpkm_path):
-                            self.add_express_group_detail(express_id, trans_group_fpkm_path, "transcript", value_type,
-                                                          "rsem", "group")
-                            self.add_express_group_detail(express_id, trans_group_fpkm_path, "transcript", 'count',
-                                                          "rsem", "group")
-                        self.add_express_gragh(express_id,
+                            gevent_list.append(gevent.spawn(self.add_express_group_detail, express_id, trans_group_fpkm_path, "transcript", value_type,
+                                                          "rsem", "group"))
+                            gevent_list.append(gevent.spawn(self.add_express_group_detail, express_id, trans_group_fpkm_path, "transcript", 'count',
+                                                          "rsem", "group"))
+                        gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                                distribution_path_log2=distri_path + "/group_trans_fpkm_distribution/log2GroupTrans_distribution.xls",
                                                distribution_path_log10=distri_path + "/group_trans_fpkm_distribution/log10GroupTrans_distribution.xls",
                                                distribution_path=distri_path + "/group_trans_fpkm_distribution/GroupTrans_distribution.xls",
-                                               sample_group="group", query_type="transcript", value_type=value_type)
-                        self.add_express_gragh(express_id,
+                                               sample_group="group", query_type="transcript", value_type=value_type))
+                        gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                                distribution_path_log2=distri_path + "/group_trans_count_distribution/log2GroupTrans_distribution.xls",
                                                distribution_path_log10=distri_path + "/group_trans_count_distribution/log10GroupTrans_distribution.xls",
                                                distribution_path=distri_path + "/group_trans_count_distribution/GroupTrans_distribution.xls",
-                                               sample_group="group", query_type="transcript", value_type='count')
+                                               sample_group="group", query_type="transcript", value_type='count'))
                         # 目前缺少trans count的graph数据
-                        self.add_express_box(express_id,
+                        gevent_list.append(gevent.spawn(self.add_express_box, express_id,
                                              fpkm_path=trans_group_fpkm_path,
-                                             sample_group="group", query_type="transcript", value_type=value_type)
-                        self.add_express_box(express_id,
+                                             sample_group="group", query_type="transcript", value_type=value_type))
+                        gevent_list.append(gevent.spawn(self.add_express_box, express_id,
                                              fpkm_path=trans_group_count_path,
-                                             sample_group="group", query_type="transcript", value_type='count')
-                elif re.search(r'\.genes\.results$', f):
-                    sample = f.split('.genes.results')[0]
-                    file_ = rsem_dir + "/" + f
-                    # self.add_express_specimen_detail(express_id, file_, 'gene', sample)
-                elif re.search(r'\.isoforms\.results$', f):
-                    sample = f.split('.isoforms.results')[0]
-                    file_ = rsem_dir + "/" + f
-                    # self.add_express_specimen_detail(express_id, file_, 'transcript', sample)
+                                             sample_group="group", query_type="transcript", value_type='count'))
+        gevent.joinall(gevent_list)
         return express_id
 
     # @report_check
@@ -341,28 +343,29 @@ class RefrnaExpress(Base):
 
         # express_id=ObjectId("58f03a28a4e1af44d4139c79")
         if major:
+            gevent_list = []
             if value_type == 'fpkm':
                 fpkm_path = feature_dir + "/fpkm_tpm.fpkm.xls"
             if value_type == 'tpm':
                 fpkm_path = feature_dir + "/fpkm_tpm.tpm.xls"
             count_path = feature_dir + "/count.xls"
-            self.add_express_detail(express_id, fpkm_path, class_code, 'gene', value_type, method, sample_group)
-            self.add_express_detail(express_id, count_path, class_code, 'gene', 'count', method, sample_group)
-            self.add_express_gragh(express_id,
+            gevent_list.append(gevent.spawn(self.add_express_detail, express_id, fpkm_path, class_code, 'gene', value_type, method, sample_group))
+            gevent_list.append(gevent.spawn(self.add_express_detail, express_id, count_path, class_code, 'gene', 'count', method, sample_group))
+            gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                    distribution_path_log2=distri_path + "/{}/log2gene_distribution.xls".format(
                                        value_type),
                                    distribution_path_log10=distri_path + "/{}/log10gene_distribution.xls".format(
                                        value_type),
                                    distribution_path=distri_path + "/{}/gene_distribution.xls".format(value_type),
-                                   sample_group="sample", query_type="gene", value_type=value_type)
-            self.add_express_gragh(express_id,
+                                   sample_group="sample", query_type="gene", value_type=value_type))
+            gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                    distribution_path_log2=distri_path + "/{}/log2gene_distribution.xls".format('count'),
                                    distribution_path_log10=distri_path + "/{}/log10gene_distribution.xls".format(
                                        "count"),
                                    distribution_path=distri_path + "/{}/gene_distribution.xls".format("count"),
-                                   sample_group="sample", query_type="gene", value_type='count')
-            self.add_express_box(express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene",
-                                 value_type=value_type)
+                                   sample_group="sample", query_type="gene", value_type='count'))
+            gevent_list.append(gevent.spawn(self.add_express_box, express_id, fpkm_path=fpkm_path, sample_group="sample", query_type="gene",
+                                 value_type=value_type))
             #self.add_express_box(express_id, fpkm_path=count_path, sample_group="sample", query_type="gene",
             #                     value_type='count')
             if is_duplicate:
@@ -371,30 +374,23 @@ class RefrnaExpress(Base):
                 if value_type == 'tpm':
                     fpkm_group_path = group_fpkm_path + "/group.tpm.xls"
                 count_group_path = distri_path + "/output/fpkm_count.xls"
-                self.add_express_group_detail(express_id, fpkm_group_path, "gene", value_type, "featurecounts", "group")
-                self.add_express_group_detail(express_id, count_group_path, "gene", 'count', "featurecounts", "group")
-                self.add_express_gragh(express_id,
+                gevent_list.append(gevent.spawn(self.add_express_group_detail, express_id, fpkm_group_path, "gene", value_type, "featurecounts", "group"))
+                gevent_list.append(gevent.spawn(self.add_express_group_detail, express_id, count_group_path, "gene", 'count', "featurecounts", "group"))
+                gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                        distribution_path_log2=distri_path + "/group_fpkm_distribution/log2GroupGenes_distribution.xls",
                                        distribution_path_log10=distri_path + "/group_fpkm_distribution/log10GroupGenes_distribution.xls",
                                        distribution_path=distri_path + "/group_fpkm_distribution/GroupGenes_distribution.xls",
-                                       sample_group="group", query_type="gene", value_type=value_type)
-                self.add_express_gragh(express_id,
+                                       sample_group="group", query_type="gene", value_type=value_type))
+                gevent_list.append(gevent.spawn(self.add_express_gragh, express_id,
                                        distribution_path_log2=distri_path + "/group_count_distribution/log2GroupGenes_distribution.xls",
                                        distribution_path_log10=distri_path + "/group_count_distribution/log10GroupGenes_distribution.xls",
                                        distribution_path=distri_path + "/group_count_distribution/GroupGenes_distribution.xls",
-                                       sample_group="group", query_type="gene", value_type='count')
-                self.add_express_box(express_id, fpkm_path=distri_path + "/group/group.{}.xls".format(value_type),
-                                     sample_group="group", query_type="gene", value_type=value_type)
-                self.add_express_box(express_id, fpkm_path=distri_path + "/output/fpkm_count.xls",
-                                     sample_group="group", query_type="gene", value_type='count')
-
-            for files in os.listdir(feature_dir):
-                m_ = re.search(r'vs', files)
-                # if m_:
-                #    path = feature_dir + "/" + files
-                # self.add_express_specimen_detail_feature(express_id, feature_dir + "/" + files)
-                # else:
-                #    print("没有找到正确的specimen路径！")
+                                       sample_group="group", query_type="gene", value_type='count'))
+                gevent_list.append(gevent.spawn(self.add_express_box, express_id, fpkm_path=distri_path + "/group/group.{}.xls".format(value_type),
+                                     sample_group="group", query_type="gene", value_type=value_type))
+                gevent_list.append(gevent.spawn(self.add_express_box, express_id, fpkm_path=distri_path + "/output/fpkm_count.xls",
+                                     sample_group="group", query_type="gene", value_type='count'))
+        gevent.joinall(gevent_list)
         return express_id
 
     # @report_check
@@ -489,7 +485,7 @@ class RefrnaExpress(Base):
 
     # @report_check
     def add_express_detail(self, express_id, path, class_code=None, query_type=None, value_type=None,
-                                   method=None, sample_group=None, diff=True):
+                                   method=None, sample_group=None, diff=True, workflow=True):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(express_id, ObjectId):
             if isinstance(express_id, types.StringTypes):
@@ -997,7 +993,7 @@ class RefrnaExpress(Base):
                     compare_name = con_exp[1]
                     self.add_express_diff_detail(express_diff_id, name, compare_name, ref_all,
                                                  os.path.join(diff_exp_dir, f), workflow,
-                                                 class_code, query_type)
+                                                 class_code, query_type, params["pvalue_padjust"])
         return express_diff_id
 
     def add_express_diff_detail(self, express_diff_id, name, compare_name, ref_all, diff_stat_path, workflow=False,
