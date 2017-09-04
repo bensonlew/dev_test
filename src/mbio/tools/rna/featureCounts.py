@@ -114,7 +114,8 @@ class FeaturecountsTool(Tool):
             self.input_bam_file=" ".join(file_name)
             self.logger.info(self.samples)
             self.output_name="-".join(self.samples)
-            self._out_dir= os.path.join(self.output_dir,"-".join(self.samples))
+            # self._out_dir= os.path.join(self.output_dir, "-".join(self.samples))
+            self._out_dir= os.path.join(self.output_dir, "featureCounts_result")
         else:
             self.output_name=os.path.basename(self.option("bam").prop['path']).split('.bam')[0]
             self._out_dir=os.path.join(self.output_dir,"temp_sample")
@@ -143,16 +144,18 @@ class FeaturecountsTool(Tool):
     def fpkm_tpm(self):
         """计算fpkm，tpm的表达量"""
         if os.path.exists(self._out_dir):
-                remove_header(file_path=self._out_dir, file_name="vs".join(os.path.basename(self._out_dir).split("-")))
+            # remove_header(file_path=self._out_dir, file_name="vs".join(os.path.basename(self._out_dir).split("-")))
+            remove_header(file_path=self._out_dir, file_name="featureCounts_remove_header")
         else:
-                remove_header(file_path=self._out_dir, file_name=self.output_name)
+            remove_header(file_path=self._out_dir, file_name=self.output_name)
         self.count_path = os.path.join(self.output_dir,"count.xls")
         self.gene_length_path = os.path.join(self.output_dir,"gene_length.xls")
         self.logger.info(self._out_dir)
         self.logger.info(self.count_path)
         self.logger.info(self.gene_length_path)
-        prepare(input_file=os.path.join(self.output_dir,"vs".join(os.path.basename(self._out_dir).split("-"))), \
-            gtf_file = self.new_gtf, count_matrix=self.count_path, gene_length=self.gene_length_path)
+        # prepare(input_file=os.path.join(self.output_dir, "vs".join(os.path.basename(self._out_dir).split("-"))), gtf_file=self.new_gtf, count_matrix=self.count_path, gene_length=self.gene_length_path)
+        prepare(input_file=os.path.join(self.output_dir, "featureCounts_remove_header"),
+                gtf_file=self.new_gtf, count_matrix=self.count_path, gene_length=self.gene_length_path)
         fpkm_tpm_cmd= self.perl_path+self.parse_featurecounts_perl+self.count_path +" " +self.gene_length_path + " "+"fpkm_tpm"
         _fpkm_tpm_cmd = self.add_command("fpkm.tpm", fpkm_tpm_cmd).run()
         self.wait(_fpkm_tpm_cmd)
@@ -267,7 +270,9 @@ class FeaturecountsTool(Tool):
                 os.link(os.path.join(self.work_dir,files), os.path.join(self.output_dir,files))
                 self.option("tpm").set_path(os.path.join(self.output_dir, files))
         self.option("out_file").set_path(self._out_dir)  #featurecounts软件生成文件
-        all_gene_list(file_path=os.path.join(self.output_dir, "vs".join(os.path.basename(self._out_dir).split("-"))), all_gene_list_path = os.path.join(self.output_dir, "all_gene_list"))
+        # all_gene_list(file_path=os.path.join(self.output_dir, "vs".join(os.path.basename(self._out_dir).split("-"))), all_gene_list_path = os.path.join(self.output_dir, "all_gene_list"))
+        all_gene_list(file_path=os.path.join(self.output_dir, "featureCounts_remove_header"),
+                      all_gene_list_path=os.path.join(self.output_dir, "all_gene_list"))
         self.option("all_gene_list").set_path(os.path.join(self.output_dir, "all_gene_list"))
         self.logger.info("生成gene_list成功！")
         self.logger.info("设置count表达量成功")
@@ -287,18 +292,18 @@ def remove_header(file_path, file_name):
     """除去生成文件的header标签，同时将最后一列列名更新为样本名"""
     if os.path.exists(file_path):
         file_path_path = os.path.split(file_path)[0]
-        column_new_name = [ss.split('.bam')[0]for ss in os.path.basename(file_path).split('-')]
+        # column_new_name = [ss.split('.bam')[0]for ss in os.path.basename(file_path).split('-')]
         new_file_path = os.path.join(file_path_path, "count")
         os.system('grep \"#\" -v {} > {}'.format(file_path, new_file_path))
         output_file_path = os.path.join(file_path_path, file_name)
         file1 = open(output_file_path, 'w+')
         with open(new_file_path, 'r+') as files:
-            data1=files.readline().strip().split('\t')
-            data=data1[:6]
+            data1 = files.readline().strip().split('\t')
+            data = data1[:6]
             column_name = data1[6:]
             _column_name = [os.path.basename(ss).split('.bam')[0]for ss in column_name]
             file1.write('\t'.join(data)+'\t'+'\t'.join(_column_name)+'\n')
-            i=0
+            i = 0
             for f in files:
                 i += 1
                 line = f.strip().split("\t")
