@@ -125,7 +125,7 @@ class RefSnp(Base):
 
         new_freq_stat = self.freq_stat(all_freq_stat)
         depth_data = self.get_stat_data(sample_names, depth_list, all_depth_stat, snp_id, "depth_stat")
-        freq_data = self.get_stat_data(sample_names, [1, 2, 3, 4, ">5"], new_freq_stat, snp_id, "freq_stat")
+        freq_data = self.get_stat_data(sample_names, [1, 2, 3, 4, ">=5"], new_freq_stat, snp_id, "freq_stat")
         type_data = self.get_stat_data(sample_names, snp_types, snp_type_stat, snp_id, "type_stat")
         snp_pos_data = self.get_stat_data(sample_names, list(distributions), snp_pos_stat, snp_id, "snp_distribution")
         indel_pos_data = self.get_stat_data(sample_names, list(distributions), indel_pos_stat, snp_id, "indel_distribution")
@@ -208,12 +208,12 @@ class RefSnp(Base):
             c = Counter(all_freq_stat[a_s])
             values = c.values()
             keys = c.keys()
-            new_d = {">5": 0}
+            new_d = {">=5": 0}
             for n, s in enumerate(keys):
                 # print s
-                if s < 6:
+                if s < 5:
                     new_d[s] = values[n]
                 else:
-                    new_d[">5"] += values[n]
+                    new_d[">=5"] += values[n]
             all_freq_stat[a_s] = new_d
         return all_freq_stat

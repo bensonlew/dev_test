@@ -16,13 +16,13 @@ import functools
 
 patch_all()
 
-def time_count(func):
+def time_count(func):  # 用于统计导表时间
     @functools.wraps(func)
     def wrapper(*args, **kw):
         start = time.time()
         func(*args, **kw)
         end = time.time()
-        print("{}函数执行耗时{}s".format(func.__name__, end - start))
+        print("{}函数执行完毕，该阶段导表已进行{}s".format(func.__name__, end - start))
     return wrapper
 
 class RefrnaWorkflow(Workflow):
@@ -128,6 +128,7 @@ class RefrnaWorkflow(Workflow):
         self.merge_trans_annot = self.add_tool("annotation.merge_annot")
         self.merge_gene_annot = self.add_tool("annotation.merge_annot")
         self.pfam = self.add_tool("denovo_rna.gene_structure.orf")
+        self.gene_fa = self.add_tool("rna.gene_fa")
         if self.option("ref_genome") != "Custom":
             self.ref_genome = os.path.join(os.path.split(self.json_path)[0],
                                            self.json_dict[self.option("ref_genome")]["dna_fa"])
@@ -151,8 +152,8 @@ class RefrnaWorkflow(Workflow):
         else:
             if self.option("genome_structure_file").format == "gene_structure.gff3":
                 self.gff = self.option('genome_structure_file').prop["path"]
-        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_fc, self.exp, self.merge_trans_annot,
-                            self.merge_gene_annot]
+        self.final_tools = [self.snp_rna, self.altersplicing, self.exp_fc, self.merge_trans_annot,
+                            self.merge_gene_annot, self.gene_fa]
         self.genome_status = True
         self.step.add_steps("filecheck", "rna_qc", "mapping", "assembly", "new_annotation", "express", "snp_rna")
         if self.option("ref_genome") == "Custom":
@@ -500,6 +501,15 @@ class RefrnaWorkflow(Workflow):
         mod.on('end', self.set_step, {'end': self.step.express})
         mod.run()
 
+    def run_gene_fa(self):
+        opts = {
+            "ref_new_gtf": self.exp.combine_gtf.option("file3").prop["path"],  # ref和new合并后的gtf
+            "ref_genome_custom": self.option("ref_genome_custom").prop["path"]
+        }
+        self.gene_fa.set_options(opts)
+        self.gene_fa.run()
+        pass
+
     def run_exp_fc(self):
         self.logger.info("开始运行表达量模块,fc_fpkm")
         opts = {
@@ -689,6 +699,7 @@ class RefrnaWorkflow(Workflow):
         self.assembly.on("end", self.run_exp_fc)
         self.assembly.on("end", self.run_new_transcripts_abs)
         self.assembly.on("end", self.run_new_gene_abs)
+        self.exp.on("end", self.run_gene_fa)
         self.on_rely([self.new_gene_abs, self.new_trans_abs], self.run_new_align, "diamond")
         self.new_annotation.on("end", self.run_merge_annot)
         self.on_rely(self.final_tools, self.end)
@@ -704,42 +715,74 @@ class RefrnaWorkflow(Workflow):
         if os.path.exists(self.work_dir + "/upload_results"):
             os.removedirs(self.work_dir + "/upload_results")
         os.mkdir(self.work_dir + "/upload_results")
-
-
+        origin_dir = self.output_dir
+        target_dir = self.work_dir + "/upload_results"
+        # QC
+        fq_stat_before = origin_dir + "/QC_stat/before_qc/fastq_stat.xls"
+        fq_stat_after = origin_dir + "/QC_stat/after_qc/fastq_stat.xls"
+        os.mkdir(target_dir + "/QC")
+        os.link(fq_stat_before, target_dir + "/QC/rawdata_statistics.xls")
+        os.link(fq_stat_after, target_dir + "/QC/cleandata_statistics.xls")
+        # Align
+        os.makedirs(target_dir + "/Align/AlignStat")
+        os.makedirs(target_dir + "/Align/QualityAssessment")
+        for file in os.listdir(origin_dir + "/mapping/stat"):  # link bam_stat文件，后期可优化
+            file_path = os.path.join(origin_dir + "/mapping/stat", file)
+            os.link(file_path, target_dir + "/Align/AlignStat/" + file.strip(".stat") + "_align_stat.xls")
+        for file in os.listdir(origin_dir + "/map_qc/chr_stat"):  # link chr_distribution.xls
+            file_path = os.path.join(origin_dir + "/map_qc/chr_stat", file)
+            os.link(file_path, target_dir + "/Align/QualityAssessment/" + file.strip("_stat.xls") + "_distribution.xls")
+        for file in os.listdir(origin_dir + "/map_qc/distribution"):  # link region_distribution.xls
+            file_path = os.path.join(origin_dir + "/map_qc/distribution", file)
+            os.link(file_path, target_dir + "/map_qc/distribution/" + file.strip("reads_distribution.txt") + ".region_distribution.xls")
+        # Assemble
+        os.makedirs(target_dir + "/Assemble/AssembleResults")
+        os.makedirs(target_dir + "/Assemble/NewAnnotation")
+        file_path = origin_dir + "/assembly/Gffcompare/cuffcmp.annotated.gtf"
+        os.link(file_path, target_dir + "/Assemble/AssembleResults/cuffcmp.annotated.gtf")
 
 
 
     def run_api_and_set_output(self, test=False):
         greenlets_list_first = []
         greenlets_list_sec = []
+        greenlets_list_third = []
         self.IMPORT_REPORT_DATA = True
         self.IMPORT_REPORT_AFTER_END = False
         for file in os.listdir(self.filecheck.work_dir):
             if file.endswith("gtf") and not "tmp" in file:
                 self.logger.info(file)
-        self.filecheck.option("gtf", self.filecheck.work_dir + "/" + file)
+        if test:
+            self.filecheck.option("gtf", self.filecheck.work_dir + "/" + file)
+            self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+        self.logger.info("进行第一阶段导表")
+        self.export_genome_info()
         self.export_qc()
-        self.logger.info("开始进行表达量rsem导表")
-        start = time.time()
-        self.export_exp_rsem_default()
-        end = time.time()
-        self.logger.info("表达量rsem导表结束，用时{}s".format(end - start))
+        self.export_exp_fc(test)
+        greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
+        greenlets_list_first.append(gevent.spawn(self.export_genome_info))
+        greenlets_list_first.append(gevent.spawn(self.export_gene_detail))
+        # greenlets_list_sec.append(gevent.spawn(self.export_exp_fc, test))
+        greenlets_list_first.append(gevent.spawn(self.export_exp_rsem_tpm, test))
         greenlets_list_first.append(gevent.spawn(self.export_as))
         greenlets_list_first.append(gevent.spawn(self.export_annotation))
         greenlets_list_first.append(gevent.spawn(self.export_assembly))
         greenlets_list_first.append(gevent.spawn(self.export_snp))
         greenlets_list_first.append(gevent.spawn(self.export_map_assess))
-        greenlets_list_first.append(gevent.spawn(self.export_exp_fc, test))
-        greenlets_list_first.append(gevent.spawn(self.export_ref_gene_set))
-        greenlets_list_first.append(gevent.spawn(self.export_ref_diff_gene))
-        greenlets_list_first.append(gevent.spawn(self.export_ref_diff_trans))
-        greenlets_list_first.append(gevent.spawn(self.export_cor))
-        greenlets_list_first.append(gevent.spawn(self.export_pca))
         gevent.joinall(greenlets_list_first)
-        greenlets_list_sec.append(gevent.spawn(self.export_gene_set))
-        greenlets_list_sec.append(gevent.spawn(self.export_diff_gene))
-        greenlets_list_sec.append(gevent.spawn(self.export_diff_trans))
+        self.logger.info("进行第二阶段导表")
+        self.export_exp_rsem_fpkm(test)
+        greenlets_list_sec.append(gevent.spawn(self.export_ref_gene_set))
+        greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_gene))
+        greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_trans))
+        greenlets_list_sec.append(gevent.spawn(self.export_cor))
+        greenlets_list_sec.append(gevent.spawn(self.export_pca))
         gevent.joinall(greenlets_list_sec)
+        self.logger.info("进行第三阶段导表")
+        greenlets_list_third.append(gevent.spawn(self.export_gene_set))
+        greenlets_list_third.append(gevent.spawn(self.export_diff_gene))
+        greenlets_list_third.append(gevent.spawn(self.export_diff_trans))
+        gevent.joinall(greenlets_list_third)
         self.logger.info("导表完成")
         # self.export_as()
         # self.export_annotation()
@@ -755,6 +798,17 @@ class RefrnaWorkflow(Workflow):
         # self.export_diff_trans()
         # self.export_cor()
         # self.export_pca()
+
+    @time_count
+    def export_genome_info(self):
+        if self.option("ref_genome") != "customer_mode" and self.option("ref_genome") != "Custom":
+            self.api_geno = self.api.genome_info
+            file_path = os.path.join(os.path.split(self.json_path)[0],
+                                     self.json_dict[self.option("ref_genome")]["gene_stat"])
+            species_name = self.json_dict[self.option("ref_genome")]["name"]
+            ref_anno_version = self.json_dict[self.option("ref_genome")]["assembly"]
+            hyperlink = self.json_dict[self.option("ref_genome")]["ensemble_web"]
+            self.api_geno.add_genome_info(file_path=file_path,species_name=species_name, ref_anno_version=ref_anno_version,hyperlink=hyperlink)
 
     @time_count
     def export_qc(self):
@@ -802,8 +856,10 @@ class RefrnaWorkflow(Workflow):
         self.api_map.add_chorm_distribution_table(chrom_distribution)
 
     @time_count
-    def export_exp_rsem_default(self):
-        self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+    def export_exp_rsem_fpkm(self, test):
+        if test:
+            pass
+            # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.api_exp = self.api.refrna_express
         rsem_dir = self.exp.output_dir + "/rsem"
         if self.option("is_duplicate"):
@@ -823,7 +879,45 @@ class RefrnaWorkflow(Workflow):
             samples = lst
         params={}
         params["express_method"] = "rsem"
-        params["type"] = self.option("exp_way")
+        params["type"] = "fpkm"
+        params["group_id"] = str(self.group_id)
+        # params["group_detail"] = self.group_detail
+        params['group_detail'] = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            params['group_detail'][key] = value
+        self.logger.info(params['group_detail'])
+        distri_path = self.exp.mergersem.work_dir
+        class_code = self.exp.mergersem.work_dir + "/class_code"
+        self.express_id = self.api_exp.add_express(rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
+                                                   class_code=class_code, samples=samples, params=params, major=True, distri_path=distri_path)
+
+    @time_count
+    def export_exp_rsem_tpm(self, test):
+        if test:
+            # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+            pass
+        self.api_exp = self.api.refrna_express
+        rsem_dir = self.exp.output_dir + "/rsem"
+        if self.option("is_duplicate"):
+            group_fpkm_path = self.exp.mergersem.work_dir + "/group"
+            is_duplicate = True
+        else:
+            group_fpkm_path = None
+            is_duplicate = False
+        if self.option("is_duplicate") == False:
+            with open(rsem_dir + "/genes.counts.matrix") as f:
+                samples = f.readline().strip().split("\t")
+        else:
+            group_spname = self.option("group_table").get_group_spname()
+            lst = []
+            for key in group_spname.keys():
+                lst.extend(group_spname[key])
+            samples = lst
+        params={}
+        params["express_method"] = "rsem"
+        params["type"] = "tpm"
         params["group_id"] = str(self.group_id)
         # params["group_detail"] = self.group_detail
         params['group_detail'] = dict()
@@ -840,6 +934,7 @@ class RefrnaWorkflow(Workflow):
     @time_count
     def export_exp_fc(self,test=True):
         if test:
+            # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
             distri_path = self.exp_fc.work_dir + "/Featurecounts"
         else:
             distri_path = self.exp_fc.featurecounts.work_dir
@@ -856,20 +951,6 @@ class RefrnaWorkflow(Workflow):
             is_duplicate = False
         with open(feature_dir+"/count.xls", 'r+') as f1:
             samples = f1.readline().strip().split("\t")
-        params = dict()
-        params["express_method"] = "featurecounts"
-        params["type"] = "fpkm"
-        params["group_id"] = str(self.group_id)
-        params['group_detail'] = dict()
-        for i in range(len(self.group_category)):
-            key = self.group_category[i]
-            value = self.group_detail[i].keys()
-            params['group_detail'][key] = value
-        self.logger.info(params['group_detail'])
-        # distri_path = self.exp_fc.featurecounts.work_dir
-        class_code = self.exp.mergersem.work_dir + "/class_code"
-        self.api_exp.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate, samples=samples,
-                            class_code=class_code, params=params, major=True, distri_path=distri_path)
         params2 = dict()
         params2["express_method"] = "featurecounts"
         params2["type"] = "tpm"
@@ -880,8 +961,22 @@ class RefrnaWorkflow(Workflow):
             value = self.group_detail[i].keys()
             params2['group_detail'][key] = value
         self.logger.info(params2['group_detail'])
+        class_code = self.exp.mergersem.work_dir + "/class_code"
         self.api_exp.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate, samples=samples,
                             class_code=class_code, params=params2, major=True, distri_path=distri_path)
+        params = dict()
+        params["express_method"] = "featurecounts"
+        params["type"] = "fpkm"
+        params["group_id"] = str(self.group_id)
+        params['group_detail'] = dict()
+        for i in range(len(self.group_category)):
+            key = self.group_category[i]
+            value = self.group_detail[i].keys()
+            params['group_detail'][key] = value
+        self.logger.info(params['group_detail'])
+        self.api_exp.add_express_feature(feature_dir=feature_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate, samples=samples,
+                            class_code=class_code, params=params, major=True, distri_path=distri_path)
+
 
     @time_count
     def export_gene_set(self):  # ref_and_new
@@ -1123,6 +1218,7 @@ class RefrnaWorkflow(Workflow):
         self.api_pca.add_pca_table(pca_path, group_id=str(self.group_id), group_detail=group_detail,
                                    express_level=self.option("exp_way"),
                                    express_id=self.express_id, detail=True, seq_type="gene")
+
     @time_count
     def export_annotation(self):
         self.api_anno = self.api.api("ref_rna.ref_annotation")
@@ -1147,6 +1243,7 @@ class RefrnaWorkflow(Workflow):
                                      new_anno_path=new_anno_path,
                                      pfam_path=pfam_path, merge_tran_output=merge_tran_output,
                                      merge_gene_output=merge_gene_output)
+
     @time_count
     def export_as(self):
         self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
@@ -1199,3 +1296,59 @@ class RefrnaWorkflow(Workflow):
         self.api_snp = self.api.api("ref_rna.ref_snp")
         snp_anno = self.snp_rna.output_dir
         self.api_snp.add_snp_main(snp_anno)
+
+    @time_count
+    def export_gene_detail(self, test):
+        """
+        导入基因详情表
+        :return:
+        """
+        self.api_gene_detail = self.api.refrna_gene_detail
+        if test:
+            self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
+            self.exp.transcript_abstract = self.exp.add_tool("annotation.transcript_abstract")
+            self.gene_fa.option("gene_fa", "/mnt/ilustre/users/sanger-dev/workspace/20170905/Refrna_tsg_8958/GeneFa/output/gene.fa")
+            self.gene_fa.option("transcript_bed", "/mnt/ilustre/users/sanger-dev/workspace/20170905/Refrna_tsg_8958/GeneFa/ref_new_trans_bed")
+            self.gene_fa.option("gene_bed", "/mnt/ilustre/users/sanger-dev/workspace/20170905/Refrna_tsg_8958/GeneFa/ref_new_bed")
+            self.new_annotation.nr_annot.option("blast_table", "/mnt/ilustre/users/sanger-dev/workspace/20170905/Refrna_tsg_8958/RefAnnotation/Xml2table1/output/blast.xls")
+        # biomart_path = base_path + "biomart/Mus_musculus.GRCm38.biomart_gene.txt"
+        # biomart_type = "type1"
+        # biomart_entrez_path = base_path+"NCBI/Mus_musculus.GRCm38.biomart_enterz.txt"
+        # pep_path = base_path + "cds/Mus_musculus.GRCm38.pep.all.fa"
+        # cds_path = base_path + "cds/Mus_musculus.GRCm38.cds.all.fa"
+        # gene2ensembl_path = "/mnt/ilustre/users/sanger-dev/app/database/refGenome/ncbi_gene2ensembl/gene2ensembl"
+        # gene_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_bed'
+        # trans_bed = '/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_5/GeneFa/ref_new_trans_bed'
+        # gene_path = "/mnt/ilustre/users/sanger-dev/workspace/20170724/Single_gene_fa_2/GeneFa/output/gene.fa"
+        # transcript_path = "/mnt/ilustre/users/sanger-dev/workspace/20170706/Single_rsem_stringtie_mouse_total_2/Express1/TranscriptAbstract/output/exons.fa"
+        # class_code_info = "/mnt/ilustre/users/sanger-dev/workspace/20170702/Single_rsem_stringtie_mouse_total_1/Express/MergeRsem/class_code"
+        # blast_xls = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/taxonomy/mouse/new/anno_stat/blast/nr.xls"
+        # species = ""
+        biomart_path = os.path.join(os.path.split(self.json_path)[0], self.json_dict[self.option("ref_genome")]["bio_mart_annot"])
+        biomart_type = self.json_dict[self.option("ref_genome")]["biomart_gene_annotype"]
+        biomart_entrez_path = os.path.join(os.path.split(self.json_path)[0], self.json_dict[self.option("ref_genome")]["ensemble2entrez"])
+        pep_path = os.path.join(os.path.split(self.json_path)[0], self.json_dict[self.option("ref_genome")]["pep"])
+        cds_path = os.path.join(os.path.split(self.json_path)[0], self.json_dict[self.option("ref_genome")]["cds"])
+        gene2ensembl_path = os.path.join(os.path.split(self.json_path)[0], "gene2ensembl")
+        gene_bed = self.gene_fa.option("gene_fa").prop["path"]
+        trans_bed = self.gene_fa.option("transcript_bed").prop["path"]
+        gene_path = self.gene_fa.option("gene_bed").prop["path"]
+        transcript_path = self.exp.transcript_abstract.output_dir + "/exons.fa"
+        class_code_info = self.exp.mergersem.work_dir + "/class_code"
+        blast_xls = self.new_annotation.nr_annot.option("blast_table").prop["path"]
+        species = self.json_dict[self.option("ref_genome")]["name"]
+        self.api_gene_detail.add_gene_detail_class_code_detail(class_code_info,
+                                                                assembly_method=self.option("assemble_method"),
+                                                                biomart_path=biomart_path,
+                                                                biomart_type=biomart_type,
+                                                                biomart_entrez_path=biomart_entrez_path,
+                                                                gene2ensembl_path=gene2ensembl_path,
+                                                                gene_location_path=gene_bed,
+                                                                trans_location_path=trans_bed,
+                                                                cds_path=cds_path,
+                                                                pep_path=pep_path,
+                                                                species=species,
+                                                                transcript_path=transcript_path,
+                                                                gene_path=gene_path,
+                                                                blast_xls=blast_xls,
+                                                                test_this=False)
