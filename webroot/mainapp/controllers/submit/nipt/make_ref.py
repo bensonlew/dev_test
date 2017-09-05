@@ -25,14 +25,23 @@ class MakeRef(NiptController):
                 return json.dumps(info)
         task_name = 'nipt.report.make_ref'
         task_type = 'workflow'
+        if str(data.client) == "client03":
+            sample_file = os.path.join('/mnt/ilustre/tsanger-data', data.sample_txt)
+        elif str(data.client) == "client01":
+            sample_file = os.path.join('/mnt/ilustre/data/', data.sample_txt)
+        else:
+            return json.dumps({"success": False, 'info': "client不合法，client必须是client01 or client03"})
+        print sample_file
         main_table_name = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3] + '_ref-' + data.ref_group
         params_json = {
             'sample_txt': data.sample_txt,
-            'ref_group': int(data.ref_group)
+            'ref_group': int(data.ref_group),
+            'file_id': str(data.file_id),
+            'sample_name': data.sample_name
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
-            ('sample_txt', os.path.basename(data.sample_txt)),
+            ('sample_txt', data.sample_name),
             ('status', 'start'),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('params', params),
@@ -41,8 +50,9 @@ class MakeRef(NiptController):
         ]
         main_table_id = Nipt().insert_main_table('sg_ref_main', mongo_data)
         update_info = {str(main_table_id): 'sg_ref_main'}
+
         options = {
-            "sample_txt": data.sample_txt,
+            "sample_txt": sample_file,
             "update_info": json.dumps(update_info),
             "ref_group": data.ref_group,
             "nipt_task_id": str(main_table_id)
