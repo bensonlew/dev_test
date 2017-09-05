@@ -65,8 +65,8 @@ class RefrnaCopyDemoWorkflow(Workflow):
         results = col.find()
         for result in results:
             old_task_id = result["task_id"]
-            # if old_task_id.startswith(self.option("task_id") + "_"):
-            if old_task_id.startswith("refrna_demo"):
+            if old_task_id.startswith(self.option("task_id") + "_"):
+            # if old_task_id.startswith("refrna_demo"):
                 col.find_one_and_update({"_id": result["_id"]}, {"$set": {"task_id": self.option("target_task_id")}})
                 col.find_one_and_update({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
                 col.find_one_and_update({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
