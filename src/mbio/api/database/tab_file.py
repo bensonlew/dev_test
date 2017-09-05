@@ -168,40 +168,39 @@ class TabFile(Base):
             self.bind_object.logger.info("样本{}已存在数据库中".format(sample))
         return result
 
-
-    def export_tab_file(self, sample, dir):
+    def export_tab_file(self, sample, dir, new_sample=None):
         '''
         导出tab file，在查重步骤时可以用到
+         modify by zhouxuan 20170905 保证自由交互部分可以进行相应的id替换
         :param sample:
         :param dir:
         :return:
         '''
         collection = self.database['sg_pt_ref']
-        sample_tab = sample + '.tab'
-        file = os.path.join(dir, sample_tab)
+        if new_sample:
+            sample_tab = new_sample + '.tab'
+            sample_name = new_sample
+        else:
+            sample_tab = sample + '.tab'
+            sample_name = sample
+        file_path = os.path.join(dir, sample_tab)
 
-        if os.path.exists(file):
+        if os.path.exists(file_path):
             pass
         else:
             search_result = collection.find({"sample_id": sample})  # 读出来是个地址
-            # temp = collection.find_one({"sample_id":sample})
-
-            if search_result.count() != 0:
-                final_result = search_result
-                file = os.path.join(dir, sample + '.tab')
-            else:
-                raise Exception('意外报错：没有在数据库中搜到相应sample')
-            with open(file, 'w+') as f:
-                for i in final_result:
-                        f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
+            if search_result.count() != 0:  # 判断是否找到了相应的结果
+                with open(file_path, 'w+') as f:
+                    for i in search_result:
+                        f.write(sample_name + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
                                 + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
                                 + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
-            if os.path.getsize(file):
-            # pass
-                return file
+            else:
+                raise Exception('意外报错：没有在数据库中搜到相应sample')
+            if os.path.getsize(file_path):
+                return file_path
             else:
                 raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
-
 
     def dedup_sample(self):
         '''
@@ -586,3 +585,21 @@ class TabFile(Base):
             self.bind_object.logger.error('删除深度小于5或者tab为0的样本：{}出错{}'.format(sample_id, e))
         else:
             self.bind_object.logger.info("删除 {} 成功！".format(sample_id))
+
+    def find_father_id(self, case_id):
+        """
+        add by  zhouxuan 20170905
+        模糊匹配寻找父本id （亲子鉴定自由交互需要查找）
+        :param case_id: case号，也就是家系号
+        :return: 返回一个父本列表
+        """
+        dad_list = []
+        collection = self.database['sg_pt_ref_main']
+        dad = case_id + '-F.*'
+        sample_dad = collection.find({"sample_id": {"$regex": dad}, "analysised": {"$exists": True}})
+        if sample_dad:
+            for i in sample_dad:
+                dad_list.append(i["sample_id"])
+            return dad_list
+        else:
+            raise Exception('{}这个家系号下找不到对应父本'.format(case_id))
