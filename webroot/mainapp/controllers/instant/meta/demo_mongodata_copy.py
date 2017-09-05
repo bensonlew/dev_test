@@ -53,10 +53,10 @@ class DemoMongodataCopy(object):
             }
             mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             collection = mongodb['sg_task']
-            # nums = collection.count({"task_id": {"$regex": task_id1}})
-            nums = collection.count({"task_id": {"$regex": "refrna_demo"}})
+            nums = collection.count({"task_id": {"$regex": task_id1}})
+            # nums = collection.count({"task_id": {"$regex": "refrna_demo"}})
             if nums:
-                if nums <= 2:
+                if nums <= 3:
                     info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
                     return json.dumps(info)
         workflow_client = Basic(data=data, instant=True)
