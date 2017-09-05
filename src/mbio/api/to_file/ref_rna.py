@@ -186,10 +186,12 @@ def export_all_list(data, option_name, dir_path, bind_obj=None):
     task_id = my_result["task_id"]
     geneset_type = my_result["type"]
     bind_obj.logger.debug(task_id)
-    exp_result = exp_collection.find_one({'task_id': task_id, "genes": True, "trans": True})
-
+    # exp_result = exp_collection.find_one({'task_id': task_id, "genes": True, "trans": True})
+    exp_result = exp_collection.find_one({'task_id': task_id, "name": {"$regex":"fpkm"}, "trans": True})
+    # 获取到rsem的表达量主表
     # my_result = main_collection.find_one({'_id': ObjectId("591aefeba4e1af3ec14249c8")})
     # print exp_result["_id"]
+    #############################
     if not exp_result:
         raise Exception("意外错误，task_id:{}的背景基因在sg_geneset中未找到！".format(data))
     exp_id = exp_result["_id"]

@@ -342,7 +342,7 @@ class ExpressModule(Module):
 
             genes_opt["count"] = genes_count_path
             genes_opt["fpkm"] = genes_fpkm_path
-            if self.option('edger_group').is_set:
+            if self.option('is_duplicate'):
                 edger_group_path = self.option('edger_group')
                 genes_opt['edger_group'] = edger_group_path
             self.genes_diffRexp.set_options(genes_opt)
@@ -352,7 +352,7 @@ class ExpressModule(Module):
             self.genes_diffRexp.run()
             trans_opt["count"] = trans_count_path
             trans_opt["fpkm"] = trans_fpkm_path
-            if self.option('edger_group').is_set:
+            if self.option('is_duplicate'):
                 edger_group_path = self.option('edger_group')
                 trans_opt["edger_group"] = edger_group_path
             self.trans_diffRexp.set_options(trans_opt)
@@ -365,7 +365,7 @@ class ExpressModule(Module):
                 ref_genes_opt = tool_opt
                 ref_genes_opt["count"] = ref_genes_count_path
                 ref_genes_opt["fpkm"] = ref_genes_fpkm_path
-                if self.option('edger_group').is_set:
+                if self.option('is_duplicate'):
                     edger_group_path = self.option('edger_group')
                     ref_genes_opt['edger_group'] = edger_group_path
                 self.logger.info("开始打印ref_trans_opt参数！")
@@ -378,13 +378,13 @@ class ExpressModule(Module):
                 ############ref转录本的差异分析
                 ref_trans_opt["count"] = ref_trans_count_path
                 ref_trans_opt["fpkm"] = ref_trans_fpkm_path
-                if self.option('edger_group').is_set:
+                if self.option('is_duplicate'):
                     edger_group_path = self.option('edger_group')
                     ref_trans_opt["edger_group"] = edger_group_path
                 self.logger.info("开始打印ref_trans_opt参数！")
                 self.logger.info(ref_trans_opt)
                 self.trans_diffRexp_ref.set_options(ref_trans_opt)
-                self.trans_diffRexp_ref.on('end', self.set_output, 'trans_ref_diff')  # 这步的设置为什么不管用呢？
+                self.trans_diffRexp_ref.on('end', self.set_output, 'trans_ref_diff')
                 self.trans_diffRexp_ref.on("end", self.set_step, {"end": self.step.trans_diffRexp_ref})
                 self.trans_diffRexp_ref.run()
                 self.logger.info("计算ref转录本差异分析成功！")
@@ -398,7 +398,7 @@ class ExpressModule(Module):
             tpm_opt["count"] = self.feature_count_path
             tpm_opt["fpkm"] = self.feature_tpm_path
 
-            if self.option('edger_group').is_set:
+            if self.option('is_duplicate'):
                 edger_group_path = self.option('edger_group')
                 fpkm_opt['edger_group'] = edger_group_path
                 tpm_opt['edger_group'] = edger_group_path

@@ -428,8 +428,8 @@ class RefrnaGeneDetail(Base):
 
         # -----create main table-----
         if not test_this:
-            task_id = self.bind_obj.sheet.task_id
-            project_sn = self.bind_obj.sheet.project_sn
+            task_id = self.bind_object.sheet.task_id
+            project_sn = self.bind_object.sheet.project_sn
         else:
             project_sn = task_id = 'demo_test'
         all_transcript_length = 0
