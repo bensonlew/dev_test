@@ -222,7 +222,7 @@ class RefrnaSplicingRmats(Base):
         project_sn = self.bind_object.sheet.project_sn
         if ref_gtf:
             chr_set = [e.strip() for e in
-                       subprocess.check_output('awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq ' % ref_gtf,
+                       subprocess.check_output('awk -F \'\\t\'  \'$0!~/^#/{print $1}\' %s  | uniq | sort |uniq' % ref_gtf,
                                                shell=True).strip().split('\n')]
         else:
             raise Exception('导表时没有设置ref gtf路径')

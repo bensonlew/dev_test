@@ -40,7 +40,7 @@ class RefrnaWorkflow(Workflow):
             # 基因组结构注释文件，可上传gff3或gtf
             {"name": "strand_specific", "type": "bool", "default": False},
             # 当为PE测序时，是否有链特异性, 默认是False, 无特异性
-            {"name": "strand_dir", "type": "string", "default": "None"},
+            {"name": "strand_dir", "type": "string", "default": "forward"},
             # 当链特异性时为True时，正义链为forward，反义链为reverse
             {"name": "is_duplicate", "type": "bool", "default": True},  # 是否有生物学重复
             {"name": "group_table", "type": "infile", "format": "sample.group_table"},  # 分组文件
