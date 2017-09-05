@@ -6,6 +6,8 @@ from mainapp.libs.signature import check_sig
 from mainapp.controllers.core.basic import Basic
 from biocluster.core.function import filter_error_info
 from mainapp.models.workflow import Workflow
+from mainapp.models.mongo.ref_rna import RefRna
+from biocluster.config import Config
 import random
 
 
@@ -13,25 +15,50 @@ class DemoMongodataCopy(object):
     @check_sig
     def POST(self):
         data = web.input()
-        requires = ['task_id', 'target_task_id', 'target_project_sn', 'target_member_id']
+        requires = ['type', 'task_id', 'target_task_id', 'target_project_sn', 'target_member_id']
         for i in requires:
             if not (hasattr(data, i)):
                 return json.dumps({"success": False, "info": "缺少%s参数!" % i})
         workflow_id = self.get_new_id(data.task_id)
-        data = {
-            'id': workflow_id,
-            'stage_id': 0,
-            'name': "copy_demo.copy_demo",  # 需要配置
-            'type': 'workflow',  # 可以配置
-            'client': data.client,
-            'project_sn': data.target_project_sn,
-            'options': {
-                "task_id": data.task_id,
-                "target_task_id": data.target_task_id,
-                "target_project_sn": data.target_project_sn,
-                "target_member_id": data.target_member_id
+        task_id1 = data.task_id
+        if data.type == 'meta':
+            data = {
+                'id': workflow_id,
+                'stage_id': 0,
+                'name': "copy_demo.copy_demo",  # 需要配置
+                'type': 'workflow',  # 可以配置
+                'client': data.client,
+                'project_sn': data.target_project_sn,
+                'options': {
+                    "task_id": data.task_id,
+                    "target_task_id": data.target_task_id,
+                    "target_project_sn": data.target_project_sn,
+                    "target_member_id": data.target_member_id
+                }
             }
-        }
+        elif data.type == "ref_rna":
+            data = {
+                'id': workflow_id,
+                'stage_id': 0,
+                'name': "copy_demo.refrna_copy_demo",  # 需要配置
+                'type': 'workflow',  # 可以配置
+                'client': data.client,
+                'project_sn': data.target_project_sn,
+                'options': {
+                    "task_id": data.task_id,
+                    "target_task_id": data.target_task_id,
+                    "target_project_sn": data.target_project_sn,
+                    "target_member_id": data.target_member_id
+                }
+            }
+            mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+            collection = mongodb['sg_task']
+            # nums = collection.count({"task_id": {"$regex": task_id1}})
+            nums = collection.count({"task_id": {"$regex": "refrna_demo"}})
+            if nums:
+                if nums <= 2:
+                    info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
+                    return json.dumps(info)
         workflow_client = Basic(data=data, instant=True)
         try:
             run_info = workflow_client.run()

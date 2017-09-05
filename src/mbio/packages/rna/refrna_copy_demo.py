@@ -2,8 +2,10 @@
 # __author__ = 'zengjing'
 # last_modifiy: 2017.06.05
 import json
+import os
 import gevent
 import datetime
+import time
 from bson import ObjectId
 from gevent import Greenlet
 from gevent.monkey import patch_all
@@ -12,13 +14,14 @@ from mainapp.libs.param_pack import group_detail_sort
 
 
 class RefrnaCopyMongo(object):
-    """"""
-    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, db='tsanger_ref_rna'):
-        self.db = Config().mongo_client[db]
+    def __init__(self, old_task_id, new_task_id, new_project_sn, new_member_id, new_bam_path=None, new_ref_gtf=None, db='sanger_ref_rna'):
+        self.db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         self._old_task_id = old_task_id
         self._new_task_id = new_task_id
         self._new_project_sn = new_project_sn
         self._new_member_id = new_member_id
+        self._new_bam_path = new_bam_path
+        self._new_ref_gtf = new_ref_gtf
         self.specimen_id_dict = {}
         self.specimen_group_id_dict = {}
         self.specimen_compare_id_dict = {}
@@ -53,6 +56,7 @@ class RefrnaCopyMongo(object):
         self.copy_main_details("sg_geneset_detail", "geneset_id", self.geneset_id_dict, join=False)
         self.copy_collection_with_change('sg_specimen_mapping')
         self.copy_collection_with_change('sg_specimen_info')
+        self.copy_collection_with_change('sg_software_para')
         greenlet = Greenlet(self.annotation_blast)
         greenlet.start()
         self.all_greenlets.append(greenlet)
@@ -152,124 +156,125 @@ class RefrnaCopyMongo(object):
         reload(socket)
 
     def annotation_blast(self):
-        annotation_blast_dict = self.copy_collection_with_change('sg_annotation_blast', change_positions=['stat_id'], update_sg_status=True)
+        annotation_blast_dict = self.copy_collection_with_change('sg_annotation_blast', change_positions=['stat_id'], update_sg_status=False)
         self.copy_main_details('sg_annotation_blast_detail', 'blast_id', annotation_blast_dict, join=False)
 
     def annotation_nr(self):
-        annotation_nr_dict = self.copy_collection_with_change('sg_annotation_nr', change_positions=['stat_id'], update_sg_status=True)
+        annotation_nr_dict = self.copy_collection_with_change('sg_annotation_nr', change_positions=['stat_id'], update_sg_status=False)
         self.copy_main_details('sg_annotation_nr_pie', 'nr_id', annotation_nr_dict, join=False)
 
     def annotation_swissprot(self):
-        annotation_swissprot_dict = self.copy_collection_with_change('sg_annotation_swissprot', change_positions=['stat_id'], update_sg_status=True)
+        annotation_swissprot_dict = self.copy_collection_with_change('sg_annotation_swissprot', change_positions=['stat_id'], update_sg_status=False)
         self.copy_main_details('sg_annotation_swissprot_pie', 'swissprot_id', annotation_swissprot_dict, join=False)
 
     def annotation_pfam(self):
-        annotation_pfam_dict = self.copy_collection_with_change('sg_annotation_pfam', change_positions=[], update_sg_status=True)
+        annotation_pfam_dict = self.copy_collection_with_change('sg_annotation_pfam', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_annotation_pfam_bar', 'pfam_id', annotation_pfam_dict, join=False)
         self.copy_main_details('sg_annotation_pfam_detail', 'pfam_id', annotation_pfam_dict, join=False)
 
     def annotation_cog(self):
-        annotation_cog_dict = self.copy_collection_with_change('sg_annotation_cog', change_positions=[], update_sg_status=True)
+        annotation_cog_dict = self.copy_collection_with_change('sg_annotation_cog', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_annotation_cog_detail', 'cog_id', annotation_cog_dict, join=False)
-        self.copy_main_details('sg_annotation_cog_table', 'cog_id', annotation_cog_dict, join=False)
+        # self.copy_main_details('sg_annotation_cog_table', 'cog_id', annotation_cog_dict, join=False)
 
     def annotation_go(self):
-        annotation_go_dict = self.copy_collection_with_change('sg_annotation_go', change_positions=[], update_sg_status=True)
+        annotation_go_dict = self.copy_collection_with_change('sg_annotation_go', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_annotation_go_detail', 'go_id', annotation_go_dict, join=False)
         self.copy_main_details('sg_annotation_go_graph', 'go_id', annotation_go_dict, join=False)
         self.copy_main_details('sg_annotation_go_level', 'go_id', annotation_go_dict, join=False)
         self.copy_main_details('sg_annotation_go_list', 'go_id', annotation_go_dict, join=False)
 
     def annotation_kegg(self):
-        annotation_kegg_dict = self.copy_collection_with_change('sg_annotation_kegg', change_positions=[], update_sg_status=True)
+        annotation_kegg_dict = self.copy_collection_with_change('sg_annotation_kegg', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_annotation_kegg_categories', 'kegg_id', annotation_kegg_dict, join=False)
         self.copy_main_details('sg_annotation_kegg_level', 'kegg_id', annotation_kegg_dict, join=False)
         self.copy_main_details('sg_annotation_kegg_table', 'kegg_id', annotation_kegg_dict, join=False)
 
     def annotation_query(self):
-        annotation_query_dict = self.copy_collection_with_change('sg_annotation_query', change_positions=[], update_sg_status=True)
+        annotation_query_dict = self.copy_collection_with_change('sg_annotation_query', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_annotation_query_detail', 'query_id', annotation_query_dict, join=False)
 
     def assessment_chrom_distribution(self):
-        assessment_chrom_distribution_dict = self.copy_collection_with_change('sg_assessment_chrom_distribution', change_positions=[], update_sg_status=True)
+        assessment_chrom_distribution_dict = self.copy_collection_with_change('sg_assessment_chrom_distribution', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_assessment_chrom_distribution_detail', 'chrom_distribution_id', assessment_chrom_distribution_dict, join=False)
         # self.copy_main_details('sg_assessment_chrom_distribution_circos', 'chrom_distribution_id', assessment_chrom_distribution_dict, join=False)
 
     def assessment_coverage(self):
-        assessment_coverage_dict = self.copy_collection_with_change('sg_assessment_coverage', change_positions=[], update_sg_status=True)
+        assessment_coverage_dict = self.copy_collection_with_change('sg_assessment_coverage', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_assessment_coverage_detail', 'coverage_id', assessment_coverage_dict, join=False)
 
     def assessment_distribution(self):
-        assessment_distribution_dict = self.copy_collection_with_change('sg_assessment_distribution', change_positions=[], update_sg_status=True)
+        assessment_distribution_dict = self.copy_collection_with_change('sg_assessment_distribution', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_assessment_distribution_detail', 'distribution_id', assessment_distribution_dict, join=False)
 
     def assessment_duplicate(self):
-        assessment_duplicate_dict = self.copy_collection_with_change('sg_assessment_duplicate', change_positions=[], update_sg_status=True)
+        assessment_duplicate_dict = self.copy_collection_with_change('sg_assessment_duplicate', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_assessment_duplicate_detail', 'dup_id', assessment_duplicate_dict, join=False)
 
     def assessment_saturation(self):
-        assessment_saturation_dict = self.copy_collection_with_change('sg_assessment_saturation', change_positions=[], update_sg_status=True)
+        assessment_saturation_dict = self.copy_collection_with_change('sg_assessment_saturation', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_assessment_saturation_curve', 'saturation_id', assessment_saturation_dict, join=False)
 
     def express(self):
+        # self.express_id_dict = {"596da5cfa4e1af72a2c853b4": "5982d445a4e1af3e78860d94", "596da83ea4e1af74636a93f1": "5982d445a4e1af3e78860d95", "596da9fca4e1af762e41a251": "5982d445a4e1af3e78860d96", "596dad0ba4e1af7855c0ef83": "5982d445a4e1af3e78860d97"}
         self.copy_main_details("sg_express_detail", 'express_id', self.express_id_dict, join=False)
-        self.copy_main_details("sg_express_graph", "express_id", self.express_id_dict, join=False)
+        self.copy_main_details("sg_express_gragh", "express_id", self.express_id_dict, join=False)
         self.copy_main_details("sg_express_box", "express_id", self.express_id_dict, join=False)
 
     def express_diff(self):
-        express_diff_dict = self.copy_collection_with_change("sg_express_diff", change_positions=["express_id"], update_sg_status=True)
+        express_diff_dict = self.copy_collection_with_change("sg_express_diff", change_positions=["express_id"], update_sg_status=False)
         self.copy_main_details("sg_express_diff_detail", "express_diff_id", express_diff_dict, join=False)
         self.copy_main_details("sg_express_diff_summary", "express_diff_id", express_diff_dict, join=False)
 
     def express_corr(self):
-        express_corr_dict = self.copy_collection_with_change("sg_express_correlation", change_positions=[], update_sg_status=True)
+        express_corr_dict = self.copy_collection_with_change("sg_express_correlation", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_express_correlation_detail", "correlation_id", express_corr_dict, join=False)
 
     def express_pca(self):
-        express_pca_dict = self.copy_collection_with_change("sg_express_pca", change_positions=[], update_sg_status=True)
+        express_pca_dict = self.copy_collection_with_change("sg_express_pca", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_express_pca_rotation", "pca_id", express_pca_dict, join=False)
 
     def express_venn(self):
-        express_venn_dict = self.copy_collection_with_change("sg_express_venn", change_positions=[], update_sg_status=True)
+        express_venn_dict = self.copy_collection_with_change("sg_express_venn", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_express_venn_detail", "venn_id", express_venn_dict, join=False)
         self.copy_main_details("sg_express_venn_graph", "venn_id", express_venn_dict, join=False)
 
     def express_class_code(self):
-        class_code_dict = self.copy_collection_with_change("sg_express_class_code", change_positions=[], update_sg_status=True)
+        class_code_dict = self.copy_collection_with_change("sg_express_class_code", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_express_class_code_detail", "class_code_id", class_code_dict, join=False)
 
     def geneset_venn(self):
-        geneset_venn_dict = self.copy_collection_with_change("sg_geneset_venn", change_positions=[],update_sg_status=True)
+        geneset_venn_dict = self.copy_collection_with_change("sg_geneset_venn", change_positions=[],update_sg_status=False)
         self.copy_main_details("sg_geneset_venn_detail", "venn_id", geneset_venn_dict, join=False)
         self.copy_main_details("sg_geneset_venn_graph", "venn_id", geneset_venn_dict, join=False)
 
     def geneset_cluster(self):
-        geneset_cluster_dict = self.copy_collection_with_change("sg_geneset_cluster", change_positions=["express_id"], update_sg_status=True)
+        geneset_cluster_dict = self.copy_collection_with_change("sg_geneset_cluster", change_positions=["express_id"], update_sg_status=False)
         self.copy_main_details("sg_geneset_cluster_detail", "cluster_id", geneset_cluster_dict, join=False)
 
     def geneset_cog_class(self):
-        geneset_cog_class_dict = self.copy_collection_with_change("sg_geneset_cog_class", change_positions=[], update_sg_status=True)
+        geneset_cog_class_dict = self.copy_collection_with_change("sg_geneset_cog_class", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_geneset_cog_class_detail", "geneset_cog_id", geneset_cog_class_dict, join=False)
 
     def geneset_go_class(self):
-        geneset_go_class_dict = self.copy_collection_with_change("sg_geneset_go_class", change_positions=[], update_sg_status=True)
+        geneset_go_class_dict = self.copy_collection_with_change("sg_geneset_go_class", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_geneset_go_class_detail", "go_regulate_id", geneset_go_class_dict, join=False)
 
     def geneset_go_enrich(self):
-        geneset_go_enrich_dict = self.copy_collection_with_change("sg_geneset_go_enrich", change_positions=[], update_sg_status=True)
+        geneset_go_enrich_dict = self.copy_collection_with_change("sg_geneset_go_enrich", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_geneset_go_enrich_detail", "go_enrich_id", geneset_go_enrich_dict, join=False)
 
     def geneset_kegg_class(self):
-        geneset_kegg_class_dict = self.copy_collection_with_change("sg_geneset_kegg_class", change_positions=[], update_sg_status=True)
-        self.copy_main_details("sg_geneset_kegg_class_detail", "kegg_regulate_id", geneset_kegg_class_dict, join=False)
-        self.copy_main_details("sg_geneset_kegg_class_pathway", "kegg_regulate_id", geneset_kegg_class_dict, join=False)
+        geneset_kegg_class_dict = self.copy_collection_with_change("sg_geneset_kegg_class", change_positions=[], update_sg_status=False)
+        self.copy_main_details("sg_geneset_kegg_class_detail", "kegg_id", geneset_kegg_class_dict, join=False)
+        self.copy_main_details("sg_geneset_kegg_class_pathway", "kegg_id", geneset_kegg_class_dict, join=False)
 
     def geneset_kegg_enrich(self):
-        geneset_kegg_enrich_dict = self.copy_collection_with_change("sg_geneset_kegg_enrich", change_positions=[], update_sg_status=True)
+        geneset_kegg_enrich_dict = self.copy_collection_with_change("sg_geneset_kegg_enrich", change_positions=[], update_sg_status=False)
         self.copy_main_details("sg_geneset_kegg_enrich_detail", "kegg_enrich_id", geneset_kegg_enrich_dict, join=False)
 
     def ppinetwork(self):
-        ppinetwork_dict = self.copy_collection_with_change("sg_ppinetwork", change_positions=["geneset_id"], update_sg_status=True)
+        ppinetwork_dict = self.copy_collection_with_change("sg_ppinetwork", change_positions=["geneset_id"], update_sg_status=False)
         self.copy_main_details("sg_ppinetwork_centrality_node", "ppi_id", ppinetwork_dict, join=False)
         self.copy_main_details("sg_ppinetwork_distribution_node", "ppi_id", ppinetwork_dict, join=False)
         self.copy_main_details("sg_ppinetwork_node_table", "ppi_id", ppinetwork_dict, join=False)
@@ -278,9 +283,9 @@ class RefrnaCopyMongo(object):
         self.copy_main_details("sg_ppinetwork_structure_node", "ppi_id", ppinetwork_dict, join=False)
 
     def snp(self):
-        snp_dict = self.copy_collection_with_change('sg_snp', change_positions=[], update_sg_status=True)
+        snp_dict = self.copy_collection_with_change('sg_snp', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_snp_detail', 'snp_id', snp_dict, join=False)
-        self.copy_main_details('sg_snp_graphic', 'snp_id', snp_dict, join=False)
+        # self.copy_main_details('sg_snp_graphic', 'snp_id', snp_dict, join=False)
         self.copy_main_details('sg_snp_stat', 'snp_id', snp_dict, join=False)
 
     def species_information(self):
@@ -288,15 +293,16 @@ class RefrnaCopyMongo(object):
         self.copy_main_details('sg_species_information_detail', 'species_id', species_information_dict, join=False)
 
     def splicing_rmats(self):
-        splicing_rmats_dict = self.copy_collection_with_change('sg_splicing_rmats', change_positions=[], update_sg_status=True)
+        splicing_rmats_dict = self.copy_collection_with_change('sg_splicing_rmats', change_positions=[], update_sg_status=False)
+        self.update_sg_splicing_rmats()
         self.copy_main_details('sg_splicing_rmats_detail', 'splicing_id', splicing_rmats_dict, join=False)
         self.copy_main_details('sg_splicing_rmats_graph', 'splicing_id', splicing_rmats_dict, join=False)
         self.copy_main_details('sg_splicing_rmats_psi', 'splicing_id', splicing_rmats_dict, join=False)
-        self.copy_main_details('sg_splicing_rmats_model', 'splicing_id', splicing_rmats_dict, join=False)
+        # self.copy_main_details('sg_splicing_rmats_model', 'splicing_id', splicing_rmats_dict, join=False)
         self.copy_main_details('sg_splicing_rmats_stats', 'splicing_id', splicing_rmats_dict, join=False)
 
     def transcripts(self):
-        transcripts_dict = self.copy_collection_with_change('sg_transcripts', change_positions=[], update_sg_status=True)
+        transcripts_dict = self.copy_collection_with_change('sg_transcripts', change_positions=[], update_sg_status=False)
         self.copy_main_details('sg_transcripts_seq_type', 'transcripts_id', transcripts_dict, join=False)
         self.copy_main_details('sg_transcripts_step', 'transcripts_id', transcripts_dict, join=False)
         self.copy_main_details('sg_transcripts_relations', 'transcripts_id', transcripts_dict, join=False)
@@ -313,6 +319,12 @@ class RefrnaCopyMongo(object):
         find['member_id'] = self._new_member_id
         find.pop('_id')
         find['project_sn'] = self._new_project_sn
+        find['is_demo'] = 1
+        try:
+            find['demo_id'] = self._old_task_id
+        except:
+            find.pop('demo_id')
+            find['demo_id'] = self._old_task_id
         self.db["sg_task"].insert_one(find)
 
     def copy_sg_specimen(self):
@@ -324,8 +336,11 @@ class RefrnaCopyMongo(object):
         old_specimen_ids = []
         for i in finds:
             old_specimen_ids.append(str(i.pop('_id')))
+            old_bam_path = os.path.basename(i["bam_path"])
             i['task_id'] = self._new_task_id
             i['project_sn'] = self._new_project_sn
+            if self._new_bam_path:
+                i['bam_path'] = os.path.join(self._new_bam_path, old_bam_path)
             news.append(i)
         if news:
             result = self.db["sg_specimen"].insert_many(news)
@@ -437,7 +452,10 @@ class RefrnaCopyMongo(object):
             old_geneset_ids.append(str(i.pop('_id')))
             i['task_id'] = self._new_task_id
             i['project_sn'] = self._new_project_sn
-            i['group_id'] = self.specimen_group_id_dict[str(i['group_id'])]
+            try:
+                i['group_id'] = self.specimen_group_id_dict[str(i['group_id'])]
+            except:
+                print "该基因集没有分组"
             news.append(i)
         if news:
             result = self.db.sg_geneset.insert_many(news)
@@ -536,9 +554,10 @@ class RefrnaCopyMongo(object):
             params = json.loads(params_str)
         except Exception:
             print("WRANNING：非json格式的params：{}".format(params_str))
-            return params_str
+            # return params_str
+            return "null"
         if not params:
-            return None
+            return "null"
         if 'group_detail' in params:
             for one_group in params['group_detail']:
                 params['group_detail'][one_group] = [self.specimen_id_dict[one_sp] for one_sp in params['group_detail'][one_group]]
@@ -558,11 +577,41 @@ class RefrnaCopyMongo(object):
             params['control_id'] = self.specimen_compare_id_dict[params['control_id']]
         if 'geneset_id' in params:
             try:
+                geneset_ids = []
                 for one_id in params['geneset_id'].split(','):
-                    params['geneset_id'][one_id] = self.geneset_id_dict[one_id]
+                    geneset_ids.append(self.geneset_id_dict[one_id])
+                params['geneset_id'] = ','.join(geneset_ids)
             except:
                 params['geneset_id'] = self.geneset_id_dict
         return json.dumps(params, sort_keys=True, separators=(',', ':'))
+
+    def update_sg_splicing_rmats(self):
+            """
+            更新sg_splicing_rmats的ref_gtf和params里的splicing_id
+            """
+            find = self.db["sg_splicing_rmats"].find_one({"task_id": self._new_task_id})  # 同一个task_id里params里的splcing_id皆为第一个主表的_id
+            if 'params' in find:
+                params_str = find['params']
+                try:
+                    params = json.loads(params_str)
+                except Exception:
+                    raise Exception("sg_splicing_rmats表的params非json格式")
+                if 'splicing_id' in params:
+                    splicing_id = str(find['_id'])
+            finds = self.db["sg_splicing_rmats"].find({"task_id": self._new_task_id})
+            for i in finds:
+                if self._new_ref_gtf:
+                    self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"ref_gtf": self._new_ref_gtf}})
+                if 'params' in i:
+                    params_str = i['params']
+                    try:
+                        params = json.loads(params_str)
+                    except Exception:
+                        raise Exception("sg_splicing_rmats表的params非json格式")
+                    if 'splicing_id' in params:
+                        params['splicing_id'] = splicing_id
+                    new_params = json.dumps(params, sort_keys=True, separators=(',', ':'))
+                    self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"params": new_params}})
 
     def insert_new_status(self, collection, main_docs, ids):
         """
@@ -576,38 +625,32 @@ class RefrnaCopyMongo(object):
             except Exception:
                 print("WARNING: params参数没有submit_location字段, Doc:{}".format(doc))
                 submit_location = None
-            try:
-                status = {
-                    "status": doc['status'],
-                    "table_id": ids[index],
-                    "time": doc['created_ts'],
-                    "task_id": self._new_task_id,
-                    "params": doc['params'],
-                    "table_name": doc['name'],
-                    "submit_location": submit_location,
-                    "type_name": collection,
-                    "is_new": "new",
-                    "desc": doc['desc'] if 'desc' in doc else None
-                }
-            except:
-                status = {
-                    "status": doc['status'],
-                    "table_id": ids[index],
-                    "time": doc['created_ts'],
-                    "task_id": self._new_task_id,
-                    "table_name": doc['name'],
-                    "submit_location": submit_location,
-                    "type_name": collection,
-                    "is_new": "new",
-                    "desc": doc['desc'] if 'desc' in doc else None
-                }
+            status = {
+                "status": doc['status'],
+                "table_id": ids[index],
+                "time": doc['created_ts'],
+                "task_id": self._new_task_id,
+                "params": doc['params'],
+                "table_name": doc['name'],
+                "submit_location": submit_location,
+                "type_name": collection,
+                "is_new": "new",
+                "desc": doc['desc'] if 'desc' in doc else None
+            }
             news.append(status.copy())
         if news:
             coll.insert_many(news)
 
 
-# if __name__ == '__main__':
-#     # copy_task = RefrnaCopyMongo('demo_0711', 'demo_sj', '3072', 'demo_sj')
-#     copy_task = RefrnaCopyMongo('demo_0711', 'demo_sj', '3072', 'demo_sj')
-#     # copy_task = RefrnaCopyMongo('tsg_2000', 'demo_zj2', 'demo_zj2', 'demo_zj2')
-#     copy_task.run()
+if __name__ == '__main__':
+    new_bam_path = "/mnt/ilustre/users/sanger/test/bam/"
+    new_ref_gtf = "/mnt/ilustre/users/sanger/test/Mus_musculus.GRCm38.87.gff3.gtf"
+    # time.sleep(21600)  # 指定休眠时间
+    start_time =  time.time()
+    num = 1
+    for i in range(num):
+        task_id = "refrna_demo_mouse_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+        copy_task = RefrnaCopyMongo('sanger_21455', task_id, 'refrna_demo', 'refrna_demo', new_bam_path, new_ref_gtf)
+        copy_task.run()
+    end_time = time.time()
+    print "total time: {}".format(end_time - start_time)
