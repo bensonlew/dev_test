@@ -36,12 +36,11 @@ class RefrnaCopyDemoWorkflow(Workflow):
         self.fire("start")
         time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         old_task_id = self.old_task_id(time)
-        self.logger.info(old_task_id)
         self.update_task_id(old_task_id, self.option("target_task_id"), time)
-        self.logger.info("替换旧task_id完毕")
+        self.logger.info("替换旧task_id: {}完毕".format(old_task_id))
         worker = worker_client()
         id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
-        self.logger.info("开始备份新demo，新demo的id为refrna_demo_mouse_{}".format(id))
+        self.logger.info("开始备份新demo，新demo的id为{}".format(self.option("task_id") + '_' + id))
         json_obj = {
             "type": "workflow",
             "id": id,

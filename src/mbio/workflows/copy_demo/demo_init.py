@@ -37,14 +37,18 @@ class DemoInitWorkflow(Workflow):
                 from mbio.packages.rna.refrna_copy_demo import RefrnaCopyMongo
                 target_project_sn = "refrna_demo"
                 target_member_id = "refrna_demo"
+                self.logger.info("开始备份新的demo")
                 for i in range(self.option("demo_number")):
                     target_task_id = self.option("task_id") + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
                     copy_task = RefrnaCopyMongo(self.option("task_id"), target_task_id, target_project_sn, target_member_id)
                     copy_task.run()
+                self.logger.info("备份{}份新的demo成功".format(self.option("demo_number")))
             if self.option("setup_type") in ["cancel", "delete"]:
+                self.logger.info("开始删除备份的demo")
                 from mbio.packages.rna.refrna_copy_delete import RefrnaCopyDelete
                 RefrnaCopyDelete().find_task_id(task_id=self.option("task_id"))
         if self.option("type") == "ref_rna_demo" and self.option("setup_type") == "delete":
+            self.logger.info("开始删除拉取的demo")
             from mbio.packages.rna.refrna_copy_delete import RefrnaCopyDelete
             RefrnaCopyDelete().remove(self.option("task_id"))
         self.end()
