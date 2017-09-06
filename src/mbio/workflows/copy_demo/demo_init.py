@@ -17,13 +17,17 @@ class DemoInitWorkflow(Workflow):
         self._sheet = wsheet_object
         super(DemoInitWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "task_id", "type": "string", "default": ""},  # 要设置为demo或取消的demo的task_id
+            {"name": "task_id", "type": "string"},  # 要设置为demo或取消的demo的task_id
             {"name": "type", "type": "string", "default": "ref_rna"},  # demo的类型
             {"name": "setup_type", "type": "string", "default": "setup"},  # 对demo进行的操作，设置为demo，取消删除demo
             {"name": "demo_number", "type": "int", "default": 10}  # demo备份的数量
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
+
+    def check_options(self):
+        if self.option("task_id") == "":
+            raise OptionError("task_id不能为空")
 
     def run(self):
         self.start_listener()
