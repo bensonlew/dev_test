@@ -17,15 +17,17 @@ from mbio.packages.ref_rna.express.cmp_ref_cls import *
 from mbio.packages.ref_rna.express.express_distribution import distribution
 import shutil
 
+
 class ExpressModule(Module):
-    def __init__(self,work_id):
-        super(ExpressModule,self).__init__(work_id)
-        options=[
+    def __init__(self, work_id):
+        super(ExpressModule, self).__init__(work_id)
+        options = [
             {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组的gtf文件
             # {"name": "merged_gtf", "type": "infile", "format": "gene_structure.gtf"}, #拼接生成的merged.gtf文件
             # {"name": "cmp_gtf", "type": "infile", "format": "gene_structure.gtf"}, #gttcompare生成的annotated.gtf文件
-            {"name":"new_gtf","type":"infile","format":"gene_structure.gtf"}, #新转录本的gtf文件  RNA流程为assembly模式时需要设置此参数
+            {"name": "new_gtf","type":"infile","format":"gene_structure.gtf"}, #新转录本的gtf文件
+            # RNA流程为assembly模式时需要设置此参数
             {"name": "sample_bam", "type": "infile", "format": "align.bwa.bam_dir"},  # 所有样本的bam文件夹 适用于featureCoutns软件
             {"name": "fastq_dir", "type":"infile", "format":"sequence.fastq, sequence.fastq_dir"}, #所有样本的fastq_dir文件夹，适用于rsem, kallisto软件
             {"name": "ref_genome", "type": "string"}, # 参考基因组参数
@@ -45,7 +47,7 @@ class ExpressModule(Module):
             {"name": "diff_fdr_ci","type":"float",'default':0.05}, #padjust显著性水平
             {"name": "gname", "type": "string", "default": "group"},  # 分组方案名称
             {"name": "genes_all_list", "type": "outfile", "format": "rna.gene_list"},  # 全部基因名称文件
-            {"name":"genes_diff_list","type":"outfile","format":"rna.gene_list"}, #差异基因/转录本文件
+            {"name": "genes_diff_list","type":"outfile","format":"rna.gene_list"}, #差异基因/转录本文件
             {"name": "trans_all_list", "type": "outfile", "format": "rna.gene_list"},  # 全部基因名称文件
             {"name": "trans_diff_list", "type": "outfile", "format": "rna.gene_list"},  # 差异基因/转录本文件
             {"name": "method", "type": "string", "default": "edgeR"},  # 分析差异基因选择的方法
@@ -58,8 +60,8 @@ class ExpressModule(Module):
             {"name": "trans_diff_fpkm", "type": "outfile", "format": "rna.express_matrix"},  # 差异转录本的fpkm表
             {"name":  "fc", "type":"float","default":2}, #设置fc的值
             {"name": "is_express_assembly", "type": "string", "default": "assembly"},  # 表达量RNA流程分析或转录组RNA流程分析
-            {"name":"is_class_code","type":"bool","default":True}, #是否对merged gtf文件生成class_code信息
-            {"name":"network_diff_list","type":"outfile","format":"rna.ppi"}, #为生成蛋白调控网络的diff_list文件
+            {"name": "is_class_code","type":"bool","default":True}, #是否对merged gtf文件生成class_code信息
+            {"name": "network_diff_list","type":"outfile","format":"rna.ppi"}, #为生成蛋白调控网络的diff_list文件
         ]
         self.add_option(options)
 
@@ -133,7 +135,6 @@ class ExpressModule(Module):
         if self.option("express_method").lower() == 'featurecounts':
             self.transcript_abstract.on('end',self.featurecounts_run)
         self.transcript_abstract.run()
-
 
     def featurecounts_run(self):
         """发送信息给前端"""
@@ -419,15 +420,15 @@ class ExpressModule(Module):
             self.tpm_diffRexp.run()
             self.logger.info("准备计算tpm差异分析！")
 
-
     def get_list(self):
-        if self.option("express_method").lower() == "featurecounts":
-            list_path = self.option("sample_bam").prop['path']
-            sample_number = len(os.listdir(list_path))
-        else:
-            list_path = self.option("fastq_dir").prop['path']
-            sample_number = len(os.listdir(list_path))-1   #含有list.txt文件
-        return sample_number
+        return self.option('edger_group').prop['sample_number']
+        # if self.option("express_method").lower() == "featurecounts":
+        #     list_path = self.option("sample_bam").prop['path']
+        #     sample_number = len(os.listdir(list_path))
+        # else:
+        #     list_path = self.option("fastq_dir").prop['path']
+        #     sample_number = len(os.listdir(list_path))-1   #含有list.txt文件
+        # return sample_number
 
     def linkdir(self, dirpath, dirname, output_dir):
         allfiles = os.listdir(dirpath)
