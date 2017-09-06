@@ -27,7 +27,7 @@ class DemoInitAction(object):
             demo_number = data.demo_number
         except:
             demo_number = 10
-        if data.task_id == "":
+        if data.task_id == "" or data.task_id == " ":
             return json.dumps({"success": False, "info": "参数task_id不能为空!"})
         workflow_id = "DemoInit_" + "{}_{}".format(data.task_id, datetime.datetime.now().strftime("%H%M%S%f")[:-3])
         # if data.type == "ref_rna":
