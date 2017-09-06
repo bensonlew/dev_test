@@ -26,7 +26,9 @@ class DemoInitAction(object):
         try:
             demo_number = data.demo_number
         except:
-            demo_number = 3
+            demo_number = 10
+        if data.task_id == "":
+            return json.dumps({"success": False, "info": "参数task_id不能为空!"})
         workflow_id = "DemoInit_" + "{}_{}".format(data.task_id, datetime.datetime.now().strftime("%H%M%S%f")[:-3])
         # if data.type == "ref_rna":
         data = {
@@ -53,5 +55,4 @@ class DemoInitAction(object):
             else:
                 return {"success": False, "info": "demo备份任务提交失败,请重新设置"}
         except:
-            print "2222222222222"
             return {"success": False, "info": "demo备份任务提交失败,请重新设置"}
