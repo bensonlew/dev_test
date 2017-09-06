@@ -734,7 +734,7 @@ class RefrnaWorkflow(Workflow):
             os.link(file_path, target_dir + "/Align/QualityAssessment/" + file.strip("_stat.xls") + "_distribution.xls")
         for file in os.listdir(origin_dir + "/map_qc/distribution"):  # link region_distribution.xls
             file_path = os.path.join(origin_dir + "/map_qc/distribution", file)
-            os.link(file_path, target_dir + "/Align/QualityAssessment/" + file.strip("reads_distribution.txt") + ".region_distribution.xls")
+            os.link(file_path, target_dir + "/Align/QualityAssessment/" + file.strip(".reads_distribution.txt") + ".region_distribution.xls")
         # Assemble
         os.makedirs(target_dir + "/Assemble/AssembleResults")
         os.makedirs(target_dir + "/Assemble/NewAnnotation")
