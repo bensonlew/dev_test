@@ -26,7 +26,7 @@ class DemoInitWorkflow(Workflow):
         self.set_options(self._sheet.options())
 
     def check_options(self):
-        if self.option("task_id") == "":
+        if self.option("task_id") == "" or self.option("task_id") == " ":
             raise OptionError("task_id不能为空")
 
     def run(self):
