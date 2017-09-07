@@ -930,7 +930,7 @@ class RefrnaExpress(Base):
             else:
                 raise Exception('express_id必须为ObjectId对象或其对应的字符串！')
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        task_id = self.bind_object.sheet.task_id
+        task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         # params.update({
         #     'express_id': express_id,

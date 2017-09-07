@@ -33,7 +33,8 @@ class RnaseqMappingModule(Module):
             {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
             {"name": "result_reserved", "type": "int", "default": 1},  # 最多保留的比对结果数目
-            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"}
+            {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf"},
+            {"name": "strand_specific", "type": "bool", "default": False}  # 链特异性参数
         ]
         self.add_option(options)
         self.samples = {}
@@ -79,6 +80,12 @@ class RnaseqMappingModule(Module):
             "seq_method": self.option("seq_method"),
             "assemble_method": self.option("assemble_method"),
         }
+        if self.option("strand_specific"):
+            self.tool_opts.update(
+                {
+                    "strand_specific": True
+                }
+            )
         return True
     
     def run(self):

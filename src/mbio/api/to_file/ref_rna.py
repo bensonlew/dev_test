@@ -680,3 +680,38 @@ def export_multi_gene_list(data, option_name, dir_path, bind_obj=None):
         #     id_list.append(gene_id)
         f.write(",".join(results["gene_list"]) + "\n")
     return multi_geneset_path
+
+def export_class_code_for_enrich(data, option_name, dir_path, bind_obj=None):
+    tmp = data.split("\t")
+    task_id = tmp[0]
+    class_code_type = tmp[1]
+    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    collection = db['sg_express_class_code']
+    result = collection.find_one({"task_id":task_id})
+    id = result["_id"]
+    class_code = os.path.join(dir_path, "%s_class_code" % task_id)
+    bind_obj.logger.debug("正在导出class_code信息:%s" %(class_code))
+    class_code_detail = db['sg_express_class_code_detail']
+    class_code_col = db['sg_express_class_code']
+    class_code_main_info = class_code_col.find_one({"_id": id})
+    task_id = class_code_main_info["task_id"]
+    sg_task = db["sg_task"]
+    sg_task_info = sg_task.find_one({"task_id":task_id})
+    if sg_task_info["is_demo"] == 2:
+        demo_id = sg_task_info["demo_id"]  # sanger_21455
+        class_code_demo_info = class_code_col.find_one({"task_id":demo_id})
+        bind_obj.logger.info(class_code_demo_info)
+        data = str(class_code_demo_info["_id"])
+    bind_obj.logger.info(data)
+    class_code_info = class_code_detail.find({"class_code_id":ObjectId(data),"type":class_code_type})
+    with open(class_code,'w+') as f:
+        header = ['seq_id','gene_name',"class_code"]
+        f.write("\t".join(header)+"\n")
+        for d in class_code_info:
+            if type == 'gene':
+                _write = d['assembly_gene_id']+"\t"+d['gene_name']+"\t" + d["class_code"] + "\n"
+            if type == 'transcript':
+                _write = d['assembly_trans_id']+"\t"+d['gene_name']+"\t" + d["class_code"] + "\t" + d["assembly_gene_id"] + "\n"
+            f.write(_write)
+    return class_code
+

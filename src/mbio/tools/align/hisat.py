@@ -31,7 +31,8 @@ class HisatAgent(Agent):
             {"name": "right_reads", "type": "infile", "format": "sequence.fastq"},
             {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam"},
             {"name": "assemble_method", "type": "string"},
-            {"name": "sample", "type": "string"}
+            {"name": "sample", "type": "string"},
+            {"name": "strand_specific", "type": "bool", "default": False}
         ]
         self.add_option(options)
         self.step.add_steps('hisat')
@@ -149,6 +150,8 @@ class HisatTool(Tool):
             else:
                 cmd = "{}hisat2 -q -x {} {} -S accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
+        if self.option("strand_specific"):
+            cmd += " --rna-strandness RF"
         self.logger.info("开始运行hisat2，进行比对")
         command = self.add_command("hisat_mapping", cmd)
         command.run()

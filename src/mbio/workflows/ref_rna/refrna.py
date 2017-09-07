@@ -287,6 +287,12 @@ class RefrnaWorkflow(Workflow):
             "mid_dis": self.option("mid_dis"),
             "result_reserved": self.option("result_reserved")
         }
+        if self.option("strand_specific"):
+            opts.update(
+                {
+                    "strand_specific":True,
+                 }
+            )
         self.mapping.set_options(opts)
         self.mapping.on("end", self.set_output, "mapping")
         self.mapping.on("start", self.set_step, {"start": self.step.mapping})
@@ -741,6 +747,7 @@ class RefrnaWorkflow(Workflow):
         # AssembleResult
         file_path = origin_dir + "/assembly/Gffcompare/cuffcmp.annotated.gtf"
         os.link(file_path, target_dir + "/Assemble/AssembleResults/cuffcmp.annotated.gtf")
+        ########
         classcode_path = origin_dir + "/assembly/Statistics/code_num.txt"
         os.link(classcode_path, target_dir + "/Assemble/AssembleResults/classcode_statistics.txt")
         newgenegtf_path = origin_dir + "/assembly/NewTranscripts/new_genes.gtf"
@@ -1028,7 +1035,7 @@ class RefrnaWorkflow(Workflow):
             ["SNP/snp_anno.xls", "", "SNP/InDel分析结果文件"],
             ["AS", "", "可变剪切分析结果文件"]
         ]
-        sdir = self.add_upload_dir(self.target_dir)
+        sdir = self.add_upload_dir(target_dir)
         sdir.add_relpath_rules(repaths)
 
     def run_api_and_set_output(self, test=False):
@@ -1044,6 +1051,7 @@ class RefrnaWorkflow(Workflow):
             self.filecheck.option("gtf", self.filecheck.work_dir + "/" + file)
             self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.logger.info("进行第一阶段导表")
+
         self.export_qc()
         self.export_exp_fc(test)
         greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
@@ -1085,6 +1093,12 @@ class RefrnaWorkflow(Workflow):
         # self.export_cor()
         # self.export_pca()
 
+    def export_test(self):
+        self.api_qc = self.api.ref_rna_qc
+        from bson import ObjectId
+        self.group_id = ObjectId("59ae0a75a4e1af55d523f91a")
+        self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
+
     @time_count
     def export_genome_info(self):
         if self.option("ref_genome") != "customer_mode" and self.option("ref_genome") != "Custom":
@@ -1110,7 +1124,8 @@ class RefrnaWorkflow(Workflow):
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
         self.logger.info("group_detail为：" + str(self.group_detail))
-        self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
+        self.control_id, compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
+        self.compare_detail = compare_detail
         self.api_qc.add_bam_path(self.mapping.output_dir)
 
     @time_count
