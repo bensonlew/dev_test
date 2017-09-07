@@ -23,7 +23,8 @@ class GoEnrichAgent(Agent):
             # {"name": "all_list", "type": "infile", "format": "rna.gene_list"},
             {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
             {"name": "pval", "type": "string", "default": "0.05"},
-            {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"}
+            {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"},
+            {"name": "class_code", "type": "string"}
             ]
         self.add_option(options)
         self.step.add_steps("goenrich")
@@ -84,7 +85,7 @@ class GoEnrichTool(Tool):
         self.python_path = 'program/Python/bin/python'
         self.out_enrich_fp = self.output_dir + '/go_enrich_' + os.path.splitext(os.path.basename(self.option('diff_list').path))[0] + '.xls'
         self.out_go_graph = self.output_dir + '/go_lineage'
-        self.image_magick_path = self.config.SOFTWARE_DIR + "/bioinfo/plot/imageMagick/bin/"
+        self.image_magick_path = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/"
         self.out_adjust_graph = self.output_dir + '/adjust_lineage'
 
     def check_list(self):

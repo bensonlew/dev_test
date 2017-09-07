@@ -62,7 +62,6 @@ def get_diff_list(edgerfile, output, fc=2, pvalue_padjust=None,diff_ci=0.05):
                     w.write("%s\n"%(line[0]))
 
 
-
 def check_dispersion(genes, diff_num, diff_rate):
     dispersion = 0.1
     rate = diff_num / genes

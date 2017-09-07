@@ -2,12 +2,6 @@
 # __author__ = 'qindanhua'
 
 from biocluster.workflow import Workflow
-from collections import defaultdict
-import os
-import glob
-from itertools import chain
-import subprocess
-from mbio.packages.denovo_rna.express.kegg_regulate import KeggRegulate
 
 
 class GenesetKeggWorkflow(Workflow):
@@ -16,7 +10,6 @@ class GenesetKeggWorkflow(Workflow):
     """
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        self.rpc = False
         super(GenesetKeggWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "geneset_kegg", "type": "string"},
@@ -27,257 +20,46 @@ class GenesetKeggWorkflow(Workflow):
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
             {"name": "geneset_id", "type": "string"},
-            {"name": "kegg_pics", "type": "string"},
             {"name": "add_info", "type": "string"}  # 底图颜色信息
 
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
-        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
-        self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
-        self.db_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/database/"
-        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
-        self.map_dict = {}
+        self.kegg_class = self.add_tool("denovo_rna.express.kegg_class")
 
     def run(self):
-        self.start_listener()
-        self.fire("start")
-        self.get_kegg_table()
-        self.set_db()
-        # super(GenesetClassWorkflow, self).run()
+        # super(GenesetKeggWorkflow, self).run()
+        self.kegg_class.on("end", self.set_db)
+        self.run_kegg_class()
+        super(GenesetKeggWorkflow, self).run()
+        # self.set_db()
+        # self.end()
 
     def set_db(self):
         """
         保存结果指数表到mongo数据库中
         """
         api_geneset = self.api.ref_rna_geneset
-        self.logger.info("wooooooooorkflowinfoooooooo")
-        output_file = self.output_dir + '/kegg_stat.xls'
-        pathway_file = self.output_dir + '/pathways'
+        self.logger.info("开始进行kegg_class的导表")
+        output_file = self.kegg_class.output_dir + '/kegg_stat.xls'
+        pathway_file = self.kegg_class.output_dir + '/pathways'
         api_geneset.add_kegg_regulate_detail(self.option("main_table_id"), output_file)
         api_geneset.add_kegg_regulate_pathway(pathway_file, self.option("main_table_id"))
-        # os.link(output_file, self.output_dir + "/" + os.path.basename(output_file))
-        print(output_file)
         self.end()
 
-    def get_kegg_table(self):
-        kegg = KeggRegulate()
-        ko_genes, path_ko = self.option('kegg_table').get_pathway_koid()
-        geneset_ko = defaultdict(set)
-        regulate_gene = {}
-        with open(self.option("geneset_kegg"), "r") as f:
-            for line in f:
-                line = line.strip().split("\t")
-                regulate_gene[line[0]] = line[1].split(",")
-                geneset_ko[line[0]] = []
-                for key in ko_genes.keys():
-                    for gene in regulate_gene[line[0]]:
-                        if gene in ko_genes[key]:
-                            geneset_ko[line[0]].append(key)
-        # self.logger.info(geneset_ko)
-        self.category = geneset_ko
-        pathways = self.output_dir + '/pathways'
-        if not os.path.exists(pathways):
-            os.mkdir(pathways)
-        # self.category = regulate_gene
-        kegg.get_regulate_table(ko_gene=ko_genes, path_ko=path_ko, regulate_gene=regulate_gene, output= self.output_dir + '/kegg_stat.xls')
-        self.run_add_info()
-        self.get_ko(ko_genes=ko_genes, catgory=regulate_gene, kegg_regulate=self.output_dir + '/kegg_stat.xls', out_dir=self.output_dir)
-        self.get_pics(ko_genes=ko_genes, path_ko=path_ko, kos_path=self.output_dir + "/ko", out_dir=self.output_dir)
-        # self.add_info()
-
-    def get_ko(self, ko_genes, catgory, kegg_regulate, out_dir):
-        if not os.path.exists(out_dir + "/ko"):
-            os.mkdir(out_dir + "/ko")
-        f = open(kegg_regulate, "r")
-        f.readline()
-        for line in f:
-            tmp = line.strip().split("\t")
-            path = tmp[0]
-            gene_num1 = tmp[2]
-            gene1_list = []
-            gene2_list = []
-            if len(catgory) == 1:
-                if gene_num1 and not gene_num1 == "0" and not gene_num1.startswith("http"):
-                    gene1_list_tmp = [x.split("(")[1] if not ")" in x else x.strip(")").split("(")[1] for x in tmp[3].split(");")]
-                    for gene in gene1_list_tmp:
-                        if gene.find(";") != 1:
-                            gene1_list.append(gene)
-                        else:
-                            gene1_list.extend(gene.split(";"))
-            else:
-                if gene_num1 and not gene_num1 == "0" and not gene_num1.startswith("http"):
-                    gene1_list_tmp = [x.split("(")[1] if not ")" in x else x.strip(")").split("(")[1] for x in tmp[3].split(");")]
-                    for gene in gene1_list_tmp:
-                        if gene.find(";") != 1:
-                            gene1_list.append(gene)
-                        else:
-                            gene1_list.extend(gene.split(";"))
-                gene_num2 = tmp[4]
-                if gene_num2 and not gene_num2.startswith("http") and not gene_num2 == "0":
-                    gene2_list_tmp = [x.split("(")[1] if not ")" in x else x.strip(")").split("(")[1] for x in tmp[5].split(");")]
-                    for gene in gene2_list_tmp:
-                        if gene.find(";") != 1:
-                            gene2_list.append(gene)
-                        else:
-                            gene2_list.extend(gene.split(";"))
-            gene_list = []
-            gene_list.extend(gene1_list)
-            gene_list.extend(gene2_list)
-            gene_list_unrepeat = list(set(gene_list))
-            color_dict = {}
-            for gene in gene_list_unrepeat:
-                color_dict[gene] = []
-                if len(catgory) == 1:
-                    if gene in gene1_list:
-                        color_dict[gene].append("#0000cd")  # 蓝色
-                elif len(catgory) ==2:
-                    if gene in gene1_list and gene in gene2_list:
-                        color_dict[gene].append("#ff69b4")  # pink
-                    elif gene in gene1_list:
-                        color_dict[gene].append("#0000cd")  # 蓝色
-                    if gene in gene2_list:
-                        color_dict[gene].append("#ff0000")  # 大红
-                else:
-                    pass
-            with open(out_dir + "/ko/" + path, "w") as fw:
-                fw.write("#KO\tbg\tfg\n")
-                for key in color_dict.keys():
-                    if len(color_dict[key]) != 0:
-                        str_ = key + "\tNA\t" + ",".join(color_dict[key]) + "\n"
-                    else:
-                        str_ = key + "\tNA\t" + "NA" + "\n"
-                    fw.write(str_)
-        self.logger.info("ko文件生成完毕")
-        return
-
-
-    def get_pics(self, ko_genes, path_ko, kos_path, out_dir):
-        path_list = path_ko.keys()
-        for path in path_list:
-            ko_path = kos_path + "/" + path
-            ko = path.replace("map", "ko")
-            cmd = "{} {} {} {} {} {} {}".format(self.r_path, self.map_path, path,
-                                             ko_path, out_dir + "/pathways/" + path + ".png",
-                                             self.db_path + ko + ".xml",
-                                             self.option("kegg_pics") + "/" + path + ".png")
-            # self.logger.info(cmd)
-            try:
-                subprocess.check_output(cmd, shell=True)
-                pdf_path = out_dir + "/pathways/" + path + ".pdf"
-                cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + out_dir + "/pathways/" + path + ".png" + ' ' + pdf_path
-                # self.logger.info(cmd)
-                subprocess.check_output(cmd, shell=True)
-            except:
-                # self.logger.info("{}画图出错".format(path))
-                try:
-                    # db_png_path = self.db_path + path + ".png"
-                    db_png_path = self.option("kegg_pics") + "/" + path + ".png"
-                    self.logger.info(db_png_path)
-                    os.link(db_png_path, out_dir + "/pathways/" + path + ".png")
-                    cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + db_png_path + ' ' + out_dir + "/pathways/" + path + ".pdf"
-                    # self.logger.info(cmd)
-                    subprocess.check_output(cmd, shell=True)
-                except:
-                    self.logger.info('图片格式png转pdf出错')
-
-    def run_add_info(self):
-        os.link(self.output_dir + '/kegg_stat.xls', self.output_dir + '/kegg_stat.xls_bak')
-        os.remove(self.output_dir + '/kegg_stat.xls')
-        background_links = self.option("add_info")
-        if not os.path.exists(background_links):
-            self.logger.info("不存在背景信息文件，程序退出")
-            return
-        with open(background_links) as r:
-            r.readline()
-            for line in r:
-                tmp = line.strip().split("\t")
-                pathway = tmp[0]
-                links = tmp[1].split("?")[1].split("/")
-                links.pop(0)  # 去除掉map
-                dict = {}
-                for link in links:
-                    ko = link.split("%09")[0]  # K06101
-                    color = link.split("%09")[1]  # tomato
-                    dict[ko] = color
-                self.map_dict[pathway] = dict  # self.map_dict["map05340"] = {"K10887": "yellow"}
-        with open(self.output_dir + '/kegg_stat.xls_bak', "r") as file, open(self.output_dir + '/kegg_stat.xls', "w") as fw:
-            line = file.readline()
-            fw.write(line)
-            for line in file:
-                tmp = line.strip().split("\t")
-                links = tmp[-1]
-                pathway = tmp[0]
-                links_ko = links.split("?")[1].split("/")
-                links_ko.pop(0)  # 去除掉map
-                lnk = links.split("?")[0] + "?map=" + pathway + "&multi_query="
-                ko_tmp = [x.split("%09")[0] for x in links_ko]
-                if pathway in self.map_dict:  # 含有背景色
-                    for ko in self.map_dict[pathway].keys():  # 对背景色中的所有项进行循环
-                        # self.logger.info(ko)
-                        if ko == "":
-                            continue
-                        if ko in ko_tmp:  # 基因ko显著富集
-                            if self.get_color(ko):
-                                lnk += ko + "+{},{}%0d%0a".format(self.map_dict[pathway][ko], self.get_color(ko))  # 有背景色,前景色
-                            else:
-                                lnk += ko + "+{}%0d".format(self.map_dict[pathway][ko])  # 只有背景色
-                        else:
-                            lnk += ko + "+{}%0d".format(self.map_dict[pathway][ko])  # 只有背景色
-                else:  # 只标边框
-                    for ko in ko_tmp:
-                        if ko == "":
-                            continue
-                        if self.get_color(ko):
-                            lnk += ko + "+{},{}%0d%0a".format("white", self.get_color(ko))  # 只有背景色
-                        else:
-                            pass
-                tmp[-1] = lnk
-                str_ = "\t".join(tmp) + "\n"
-                fw.write(str_)
-
-    def get_color(self, ko):
-        """
-        根据基因的ko号，获取颜色
-        :param ko: 基因的ko号
-        :return:
-        """
-        if len(self.category) == 1:
-            if ko in self.category[0]:
-                return "blue"
-            else:
-                return False
-        elif len(self.category) == 2:
-            lst = list(self.category.keys())  # 基因集列表
-            lst.sort()
-            if ko in self.category[lst[0]] and ko in self.category[lst[1]]:
-                return "pink"
-            elif ko in self.category[lst[0]]:
-                return "blue"
-            elif ko in self.category[lst[1]]:
-                return "red"
-            else:
-                # self.logger.info(str(self.category[lst[0]]))
-                return False
-
-
-
-
-
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir = self.add_upload_dir(self.kegg_class.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "基因集KEGG功能分类结果目录"],
-            # ["./estimators.xls", "xls", "alpha多样性指数表"]
         ])
-        # print self.get_upload_files()
-        self.set_end()
-        self.fire('end')
-        self._upload_result()
-        self._import_report_data()
-        self.step.finish()
-        self.step.update()
-        self.logger.info("运行结束!")
-        self._save_report_data()
-        # super(GenesetClassWorkflow, self).end()
+        super(GenesetKeggWorkflow, self).end()
 
+    def run_kegg_class(self):
+        opts = {
+            "geneset_kegg": self.option("geneset_kegg"),
+            "kegg_table": self.option("kegg_table"),
+            "geneset_id": self.option("geneset_id"),
+            "background_links": self.option("add_info")
+        }
+        self.kegg_class.set_options(opts)
+        self.kegg_class.run()

@@ -50,7 +50,7 @@ class RefSnp(Base):
         indel_pos_stat = {}
         all_depth_stat = {}
         all_freq_stat = {}
-        depth_list = ["<=30", "31-100", "101-200", "201-300", "301-400", "401-500", ">500"]
+        depth_list = ["<=30", "31-100", "101-200", "201-300", "301-400", "401-500", ">501"]
         # graph_data_list = []
         chroms = set()
         distributions = set()
@@ -100,7 +100,7 @@ class RefSnp(Base):
                     depth_num = -1
                     single_and_all = '.'
                     if rate != './.' and rate != '0/0':
-                        single_and_all = rate.split("/")[1] + "/" + line[7]
+                        single_and_all = rate.split("/")[1]
                         mut_rate = round(int(rate.split("/")[0])/int(rate.split("/")[1]), 4)
                         # 统计各样本的突变频率数目
                         if line[5] == "exonic":
@@ -125,7 +125,7 @@ class RefSnp(Base):
 
         new_freq_stat = self.freq_stat(all_freq_stat)
         depth_data = self.get_stat_data(sample_names, depth_list, all_depth_stat, snp_id, "depth_stat")
-        freq_data = self.get_stat_data(sample_names, [1, 2, 3, 4, ">5"], new_freq_stat, snp_id, "freq_stat")
+        freq_data = self.get_stat_data(sample_names, [1, 2, 3, 4, ">=5"], new_freq_stat, snp_id, "freq_stat")
         type_data = self.get_stat_data(sample_names, snp_types, snp_type_stat, snp_id, "type_stat")
         snp_pos_data = self.get_stat_data(sample_names, list(distributions), snp_pos_stat, snp_id, "snp_distribution")
         indel_pos_data = self.get_stat_data(sample_names, list(distributions), indel_pos_stat, snp_id, "indel_distribution")
@@ -146,7 +146,7 @@ class RefSnp(Base):
         except Exception, e:
             print("导入SNP统计信息出错:%s" % e)
         else:
-            print("导入SNP统计信息出错")
+            print("导入SNP统计信息成功")
 
     def get_depth_stat(self, depth_num, target_list):
         if depth_num == -1:
@@ -188,6 +188,8 @@ class RefSnp(Base):
                 if type(value_dict[s]) is list:
                     data["{}".format(s)] = value_dict[s][n]
                 else:
+                    if ds not in value_dict[s].keys():
+                        value_dict[s][ds] = 0
                     data["{}".format(s)] = value_dict[s][ds]
             stat_data.append(data)
         # print stat_data
@@ -206,12 +208,12 @@ class RefSnp(Base):
             c = Counter(all_freq_stat[a_s])
             values = c.values()
             keys = c.keys()
-            new_d = {">5": 0}
+            new_d = {">=5": 0}
             for n, s in enumerate(keys):
                 # print s
-                if s < 6:
+                if s < 5:
                     new_d[s] = values[n]
                 else:
-                    new_d[">5"] += values[n]
+                    new_d[">=5"] += values[n]
             all_freq_stat[a_s] = new_d
         return all_freq_stat

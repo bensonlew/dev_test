@@ -36,7 +36,7 @@ class ExpressCorrAction(RefRnaController):
         my_param['submit_location'] = data.submit_location
         my_param["task_type"] = task_type
         group_detail = my_param["group_detail"]
-        if data.group_id in ["all","ALL","All"]:
+        if data.group_id in ["all", "ALL", "All"]:
             sample_num = len(group_detail.values()[0])
             if sample_num<2:
                 info = {'success': False, 'info': '表达量相关性分析至少选择两个样本!'}

@@ -12,7 +12,7 @@ from mbio.packages.denovo_rna.express.kegg_regulate import KeggRegulate
 from biocluster.config import Config
 import subprocess
 
-class KeggRegulateAgent(Agent):
+class KeggClassAgent(Agent):
     """
     Kegg分类统计分析，主要用于基因集的重运行步骤
     version v1.0.1
@@ -20,7 +20,7 @@ class KeggRegulateAgent(Agent):
     last_modify: 2017.8.16
     """
     def __init__(self, parent):
-        super(KeggRegulateAgent, self).__init__(parent)
+        super(KeggClassAgent, self).__init__(parent)
         options = [
             {"name": "geneset_kegg", "type": "string"},  # 基因集与基因的对应文件，行数等于基因集的数目
             {"name": "kegg_table", "type": "infile", "format": "annotation.kegg.kegg_table"},
@@ -56,12 +56,12 @@ class KeggRegulateAgent(Agent):
         self._memory = '10G'
 
     def end(self):
-        super(KeggRegulateAgent, self).end()
+        super(KeggClassAgent, self).end()
 
 
-class KeggRegulateTool(Tool):
+class KeggClassTool(Tool):
     def __init__(self, config):
-        super(KeggRegulateTool, self).__init__(config)
+        super(KeggClassTool, self).__init__(config)
         self._version = "v1.0.1"
         self.python = '/program/Python/bin/'
         self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
@@ -77,7 +77,7 @@ class KeggRegulateTool(Tool):
         运行
         :return:
         """
-        super(KeggRegulateTool, self).run()
+        super(KeggClassTool, self).run()
         self.get_kegg_pics()
         self.get_dicts()
         self.get_kegg_stat_tmp()

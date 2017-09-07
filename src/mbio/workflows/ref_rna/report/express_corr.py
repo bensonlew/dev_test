@@ -128,7 +128,7 @@ class ExpressCorrWorkflow(Workflow):
             self.logger.info(self.corr.output_dir)
             # _id = api_corr.add_correlation_table(self.corr.output_dir,express_id="58ef0bcba4e1af740ec4c14c",\
                 # detail=False, seq_type="gene")
-            api_corr.add_correlation_detail(self.corr.output_dir,self.option("correlation_id"),updata_tree=True)
+            api_corr.add_correlation_detail(self.corr.output_dir, self.option("correlation_id"),updata_tree=True)
 
         if self.option('corr_pca') == 'pca':
             self.logger.info(self.pca.output_dir)
@@ -170,7 +170,18 @@ class ExpressCorrWorkflow(Workflow):
             self.run_pca()
         super(ExpressCorrWorkflow, self).run()
 
-        
-        
-        
-        
+    def end(self):
+        if self.option('corr_pca') == 'corr':
+            output1_dir = self.corr.output_dir
+            result = self.add_upload_dir(output1_dir)
+            result.add_relpath_rules([
+                [".", "", "表达量相关性分析结果文件"],
+            ])
+        if self.option('corr_pca') == 'pca':
+            output2_dir = self.pca.output_dir
+            result2 = self.add_upload_dir(output2_dir)
+            result2.add_relpath_rules([[".", "", "表达量PCA分析结果文件"], ])
+        super(ExpressCorrWorkflow, self).end()
+
+
+

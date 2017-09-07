@@ -20,8 +20,10 @@ class RefAnnoQueryAgent(Agent):
             {"name": "blast_nr_table", "type": "string", "default": None},
             {"name": "blast_swissprot_table", "type": "string", "default": None},
             {"name": "pfam_domain", "type": "string", "default": None},
-            {"name": "length_path", "type": "string"},  # 注释转录本序列的长度
-            {"name": "gtf_path", "type": "string"},  # 参考基因组gtf文件/新转录本gtf文件
+            {"name": "length_path", "type": "string", "default": None},  # 注释转录本序列的长度
+            {"name": "ref_gtf_path", "type": "string", "default": None},  # 参考基因组gtf文件
+            {"name": "new_gtf_path", "type": "string", "default": None},  # 新转录本gtf文件
+            {"name": "gene_file", "type": "string", "default": None},  #基因对应的转录本列表文件
         ]
         self.add_option(options)
         self.step.add_steps("ref_anno_query")
@@ -43,8 +45,13 @@ class RefAnnoQueryAgent(Agent):
             raise OptionError('缺少输入文件:kegg_table')
         if not self.option("length_path"):
             raise OptionError('缺少输入文件:length_path')
-        if not self.option("gtf_path"):
-            raise OptionError('缺少输入文件:gtf_path')
+        if not self.option("gene_file"):
+            raise OptionError('缺少输入文件：gene_file')
+        if self.option("new_gtf_path"):
+            if not self.option("blast_nr_table"):
+                raise OptionError("缺少nr注释文件")
+            if not self.option("blast_swissprot_table"):
+                raise OptionError("缺少swissprot注释文件")
 
     def set_resource(self):
         self._cpu = 5
@@ -66,19 +73,24 @@ class RefAnnoQueryTool(Tool):
     def __init__(self, config):
         super(RefAnnoQueryTool, self).__init__(config)
         self.python = self.config.SOFTWARE_DIR + "/program/Python/bin/python"
-        self.query_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/ref_annotation_query.py"
+        # self.query_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/ref_annotation_query.py"
+        self.query_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/new_annotation_query.py"
 
     def run_query(self):
-        outpath = self.work_dir + "/all_annotation.xls"
-        gtf_path = self.option("gtf_path")
+        tran_outpath = self.output_dir + "/trans_anno_detail.xls"
+        gene_outpath = self.output_dir + "/gene_anno_detail.xls"
+        ref_gtf_path = self.option("ref_gtf_path")
+        new_gtf_path = self.option("new_gtf_path")
         length_path = self.option("length_path")
+        gene_file = self.option("gene_file")
         kegg_table = self.option("kegg_table")
         gos_list = self.option("gos_list")
         blast_nr_table = self.option("blast_nr_table")
         blast_swissprot_table = self.option("blast_swissprot_table")
         pfam_domain = self.option("pfam_domain")
         cog_list = self.option("cog_list")
-        cmd = "{} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.query_path, outpath, gtf_path, cog_list, kegg_table, gos_list, blast_nr_table, blast_swissprot_table, pfam_domain, length_path)
+        # cmd = "{} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.query_path, outpath, gtf_path, cog_list, kegg_table, gos_list, blast_nr_table, blast_swissprot_table, pfam_domain, length_path)
+        cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.query_path, tran_outpath, gene_outpath, new_gtf_path, ref_gtf_path, length_path, gene_file, cog_list, kegg_table, gos_list, blast_nr_table, blast_swissprot_table, pfam_domain)
         self.logger.info("开始运行注释查询脚本")
         self.logger.info(cmd)
         try:
@@ -86,14 +98,7 @@ class RefAnnoQueryTool(Tool):
             self.logger.info("运行注释查询脚本成功")
         except subprocess.CalledProcessError:
             self.set_error("运行注释查询脚本失败")
-        self.set_output()
-
-    def set_output(self):
-        f1 = self.output_dir + "/all_annotation.xls"
-        f2 = self.work_dir + "/all_annotation.xls"
-        if os.path.exists(f1):
-            os.remove(f1)
-        os.link(f2, f1)
+        # self.set_output()
         self.end()
 
     def run(self):

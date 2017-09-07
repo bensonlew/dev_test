@@ -31,7 +31,8 @@ class HisatAgent(Agent):
             {"name": "right_reads", "type": "infile", "format": "sequence.fastq"},
             {"name": "bam_output", "type": "outfile", "format": "align.bwa.bam"},
             {"name": "assemble_method", "type": "string"},
-            {"name": "sample", "type": "string"}
+            {"name": "sample", "type": "string"},
+            {"name": "strand_specific", "type": "bool", "default": False}
         ]
         self.add_option(options)
         self.step.add_steps('hisat')
@@ -83,7 +84,7 @@ class HisatTool(Tool):
 
     def __init__(self, config):
         super(HisatTool, self).__init__(config)
-        self.hisat_path = 'bioinfo/align/hisat2/hisat2-2.0.0-beta/'
+        self.hisat_path = 'bioinfo/align/hisat2/hisat2-2.1.0/'
         self.samtools_path = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
         self.sort_path = self.config.SOFTWARE_DIR + '/bioinfo/align/samtools-1.3.1/'
 
@@ -109,10 +110,11 @@ class HisatTool(Tool):
                 else:
                     raise Exception("建立索引出错")
         else:
-            with open(self.config.SOFTWARE_DIR + "/database/refGenome/ref_genome.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
                 dict = json.loads(f.read())
-                ref = dict[self.option("ref_genome")]["ref_genome"]
-                index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
+                rel_index = dict[self.option("ref_genome")]["dna_index"]
+                index_ref = self.config.SOFTWARE_DIR +  "/database/Genome_DB_finish/" +  rel_index
+                # index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
                 global index_ref
                 # shutil.copyfile(index_ref, self.work_dir)
 
@@ -148,6 +150,8 @@ class HisatTool(Tool):
             else:
                 cmd = "{}hisat2 -q -x {} {} -S accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
+        if self.option("strand_specific"):
+            cmd += " --rna-strandness RF"
         self.logger.info("开始运行hisat2，进行比对")
         command = self.add_command("hisat_mapping", cmd)
         command.run()

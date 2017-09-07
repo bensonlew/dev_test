@@ -38,14 +38,15 @@ class RefAnnoStatAgent(Agent):
             {"name": "kos_list_upload", "type": "infile", "format": "annotation.upload.anno_upload"},  # 客户上传kegg注释文件,kegg_xml或kos_list_upload进行kegg注释统计
             {"name": "string_xml", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "string_table", "type": "infile", "format": "align.blast.blast_table"},
-            {"name": "cog_list", "type": "infile", "format": "annotation.cog.cog_list"},
-            {"name": "cog_table", "type": "infile", "format": "annotation.cog.cog_table"},
+            {"name": "cog_summary", "type": "infile", "format": "annotation.cog.cog_summary"},
             {"name": "pfam_domain", "type": "infile", "format": "annotation.kegg.kegg_list"},
             {"name": "gene_file", "type": "infile", "format": "rna.gene_list"},
             {"name": "swissprot_xml", "type": "infile", "format": "align.blast.blast_xml"},
             {"name": "ref_genome_gtf", "type": "infile", "format": "gene_structure.gtf"},  # 参考基因组gtf文件/新转录本gtf文件
             {"name": "taxonomy", "type": "string", "default": None},   # kegg数据库物种分类, Animals/Plants/Fungi/Protists/Archaea/Bacteria
             {"name": "database", "type": "string", "default": "nr,go,cog,pfam,kegg,swissprot"},
+            {"name": "link_bgcolor", "type": "string", "default": "green"},  # 通路图链接官网颜色，约定参考基因组为黄色（yellow），新序列为绿色(green), 两者共有为tomato（红）
+            {"name": "png_bgcolor", "type": "string", "default": "#00CD00"},  # 通路图静态图颜色，#00CD00(绿色)，#FFFF00（黄色）
             {"name": "gene_nr_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_string_table", "type": "outfile", "format": "align.blast.blast_table"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "align.blast.blast_table"},
@@ -96,8 +97,8 @@ class RefAnnoStatAgent(Agent):
                     pass
                 else:
                     raise OptionError('进行cog注释统计必须输入blast到string数据库的xml文件或table文件')
-                if not self.option('cog_list').is_set and not self.option('cog_table').is_set:
-                    raise OptionError('缺少cog注释的输入文件:cog_list、cog_table')
+                if not self.option('cog_summary').is_set:
+                    raise OptionError('缺少cog注释的输入文件:cog_summary')
             if i == 'nr' and not self.option('nr_xml').is_set:
                 raise OptionError('缺少nr注释的输入文件')
             if i == "pfam" and not self.option('pfam_domain').is_set:
@@ -187,7 +188,8 @@ class RefAnnoStatTool(Tool):
         self.denovo_stat = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/denovo_stat/'
         self.go_annot = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goAnnot.py'
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
-        self.kegg_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
+        # self.kegg_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
+        self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation_v2.py"
         # self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
         self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/String2Cog.pl'
         self.perl = '/program/perl-5.24.0/bin/perl'
@@ -304,11 +306,13 @@ class RefAnnoStatTool(Tool):
         else:
             taxonomy = None
         if self.option("kegg_xml").is_set:
-            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+            # cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
         else:
             self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
             kegg_ids = self.work_dir + "/gene_kegg.list"
-            cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+            # cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
         self.logger.info("开始运行kegg注释脚本")
         command = self.add_command("kegg_anno", cmd).run()
         self.wait()
@@ -383,20 +387,8 @@ class RefAnnoStatTool(Tool):
                 if db == 'cog':
                     self.movedir2output(self.cog_stat_path, 'cog_stat')
                     self.option('gene_string_table', self.output_dir + '/blast/gene_string.xls')
-                    # string_venn_stat
-                    if self.option('string_xml').is_set:
-                        self.option('string_xml').get_info()
-                        string_venn = self.option('string_xml').prop['hit_query_list']
-                    else:
-                        string_venn = self.option('string_table').prop['query_list']
-                    string_gene_venn = self.option('gene_string_table').prop['query_list']
-                    self.get_venn(venn_list=string_venn, output=self.output_dir + '/venn/string_venn.txt')
-                    self.get_venn(venn_list=string_gene_venn, output=self.output_dir + '/venn/gene_string_venn.txt')
-                    self.anno_list['string'] = string_venn
-                    self.gene_anno_list['string'] = string_gene_venn
-                    # cog_venn_stat
-                    cog_venn = self.list_num(self.option("cog_list").prop["path"])
-                    cog_gene_venn = self.list_num(self.work_dir + '/cog_stat/' + 'gene_cog_list.xls')
+                    cog_venn = self.cog_summary_list(self.option("cog_summary").prop["path"])
+                    cog_gene_venn = self.cog_summary_list(self.work_dir + '/cog_stat/' + 'gene_cog_summary.xls')
                     self.get_venn(venn_list=cog_venn, output=self.output_dir + '/venn/cog_venn.txt')
                     self.get_venn(venn_list=cog_gene_venn, output=self.output_dir + '/venn/gene_cog_venn.txt')
                     self.anno_list['cog'] = cog_venn
@@ -561,3 +553,24 @@ class RefAnnoStatTool(Tool):
                     if line[0] not in ids:
                         ids.append(line[0])
         return ids
+
+    def cog_summary_list(self, cog_summary):
+        query_ids = []
+        with open(cog_summary, "r") as f:
+            lines = f.readlines()
+            for line in lines[2:]:
+                item = line.strip().split("\t")
+                try:
+                    query_cog = item[4].split(";")
+                    for q in query_cog:
+                        query_ids.append(q)
+                except:
+                    pass
+                try:
+                    query_nog = item[5].split(";")
+                    for q in query_nog:
+                        query_ids.append(q)
+                except:
+                    pass
+            query_ids = list(set(query_ids))
+        return query_ids

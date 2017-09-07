@@ -16,6 +16,7 @@ from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from mbio.api.to_file.ref_rna import *
 from mainapp.models.mongo.submit.ref_rna import *
 
+
 class DiffExpressAction(RefRnaController):
     def __init__(self):
         super(DiffExpressAction, self).__init__()
@@ -171,7 +172,7 @@ class DiffExpressAction(RefRnaController):
                 success.append("传入的id：{}不是一个ObjectId对象或字符串类型".format(ids))
         return success
 
-    def check_group_id_control_id(self,control_id,group_detail):
+    def check_group_id_control_id(self, control_id, group_detail):
         """检测control_id的样本分组信息是否和group_detail表一一对应"""
         compare_names = self.ref_rna.get_control_id(control_id)
         group_names = group_detail.keys()

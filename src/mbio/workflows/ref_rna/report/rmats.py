@@ -141,7 +141,7 @@ class RmatsWorkflow(Workflow):
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
-            [r'.', '', 'rmats结果输出目录']
+            [r'.', '', '可变剪切分析结果文件']
         ])
         result_dir.add_regexp_rules([
             ["fromGTF\.(RI|A3SS|A5SS|SE|MXE)\.alter_id\.txt", 'txt', '可变剪接事件基本表'],

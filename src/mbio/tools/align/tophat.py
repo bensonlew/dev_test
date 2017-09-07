@@ -29,7 +29,8 @@ class TophatAgent(Agent):
             {"name": "sample", "type": "string"},
             {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
-            {"name": "result_reserved", "type": "int", "default": 1}  # 最多保留的比对结果数目
+            {"name": "result_reserved", "type": "int", "default": 1},  # 最多保留的比对结果数目
+            {"name": "strand_specific", "type": "bool", "default": "False"}
             ]
         self.add_option(options)
         self.step.add_steps('Tophat')
@@ -71,15 +72,6 @@ class TophatAgent(Agent):
         self._memory = '10G'
 
     def end(self):
-        """
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-            ])
-        result_dir.add_regexp_rules([
-            [r"accepted_hits.bam", "bam", "tophat生成的文件"],
-            ])
-        """
         super(TophatAgent, self).end()
 
 
@@ -104,6 +96,7 @@ class TophatTool(Tool):
             self.run_tophat(ref_path)
         else:
             self.set_error("索引建立出错")
+            raise Exception("索引建立出错")
 
     def run_tophat(self, index_ref):
         self.logger.info(self.option("sample"))
@@ -119,6 +112,8 @@ class TophatTool(Tool):
                                       self.option("right_reads").prop['path'])
         else:
             cmd += " {} {}".format(index_ref, self.option("single_end_reads").prop['path'])
+        if self.option("strand_specific"):
+            cmd += " --library-type fr-firststrand"
         tophat_command = self.add_command("tophat", cmd)
         self.logger.info("开始运行tophat")
         tophat_command.run()
@@ -143,9 +138,10 @@ class TophatTool(Tool):
             self.logger.info("开始运行自定义模式")
             self.run_build_index()
         else:
-            with open(self.config.SOFTWARE_DIR + "/database/refGenome/scripts/ref_genome.json", "r") as f:
+            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
                 dict = json.loads(f.read())
-                ref = dict[self.option("ref_genome")]["ref_genome"]
-                index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
-                self.run_tophat(index_ref)
+                rel_index = dict[self.option("ref_genome")]["dna_index"]
+                abs_index = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/" +  rel_index
+                # index_ref = os.path.join(os.path.split(ref)[0], "ref_index")
+                self.run_tophat(abs_index)
         self.end()

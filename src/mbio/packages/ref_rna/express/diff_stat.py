@@ -170,7 +170,7 @@ class DiffStat(object):
                 def check_fc(fc, pvalue, pvalue_filter=None, fc_filter=None):
                     if pvalue_filter !=0:
                         if float(fc_filter) != 1:
-                            if abs(float(pow(2, float(fc)))) > float(fc_filter):
+                            if abs(float(pow(2, float(fc)))) >= float(fc_filter):
                                 if pvalue <= float(pvalue_filter):
                                     sig = 'yes'
                                 else:
@@ -184,7 +184,7 @@ class DiffStat(object):
                                 sig = 'no'
                     else:
                         if float(fc_filter) != 1:
-                            if abs(float(pow(2, float(fc)))) > float(fc_filter):
+                            if abs(float(pow(2, float(fc)))) >= float(fc_filter):
                                 sig = 'yes'
                             else:
                                 sig = 'no'

@@ -7,6 +7,7 @@ from biocluster.config import Config
 import os
 from biocluster.core.exceptions import OptionError
 import subprocess
+from mbio.packages.rna.merge_kegg_pathway import MergeKeggPathway
 
 
 class MergeAnnotAgent(Agent):
@@ -19,6 +20,7 @@ class MergeAnnotAgent(Agent):
             {"name": "gos_dir", "type": "string", "default": None},  # 文件，以；分割
             {"name": "kegg_table_dir", "type": "string", "default": None},
             {"name": "cog_table_dir", "type": "string", "default": None},
+            {"name": "pathway_table_dir", "type": "string", "default": None},
             {"name": "database", "type": "string", "default": "go,cog,kegg"},
             {"name": "go2level_out", "type": "outfile", "format": "annotation.go.level2"},
             {"name": "golist_out", "type": "outfile", "format": "annotation.go.go_list"},
@@ -50,8 +52,9 @@ class MergeAnnotAgent(Agent):
                 raise OptionError("缺少go注释的输入文件目录")
             if db == "cog" and not self.option("cog_table_dir"):
                 raise OptionError("缺少cog注释table的输入文件目录")
-            if db == "kegg" and not self.option("kegg_table_dir"):
-                raise OptionError("缺少kegg注释table的输入文件目录")
+            if db == "kegg":
+                if not self.option("kegg_table_dir") and not self.option("pathway_table_dir"):
+                    raise OptionError("缺少kegg注释table和pathway_table的输入文件目录")
 
     def set_resource(self):
         """
@@ -69,7 +72,8 @@ class MergeAnnotAgent(Agent):
             ["./go2level.xls", "xls", "go注释level2合并文件"],
             ["./gos.list", "xls", "go注释gos合并文件"],
             ["./cog_table.xls", "xls", "cog注释table合并文件"],
-            ["./kegg_table.xls", "xls", "kegg注释table合并文件"]
+            ["./kegg_table.xls", "xls", "kegg注释table合并文件"],
+            ["./pathway_table.xls", "xls", "kegg注释pathway合并文件"]
         ])
         super(MergeAnnotAgent, self).end()
 
@@ -108,7 +112,10 @@ class MergeAnnotTool(Tool):
                 self.merge(dirs=kegg, merge_file="kegg_table.xls", type="kegg")
                 self.option("kegg_table", self.work_dir + "/kegg_table.xls")
                 self.logger.info("合并kegg注释文件完成")
-        files = ["go2level.xls", "query_gos.list", "cog_table.xls", "kegg_table.xls"]
+                r_level_path = self.option("pathway_table_dir").split(";")[0]
+                n_level_path = self.option("pathway_table_dir").split(";")[1]
+                MergeKeggPathway().merge_kegg_pathway(r_level_path=r_level_path, n_level_path=n_level_path, all_level_path="pathway_table.xls", all_pathways=self.output_dir + "/all_pathways")
+        files = ["go2level.xls", "query_gos.list", "cog_table.xls", "kegg_table.xls", "pathway_table.xls"]
         for f in files:
             if os.path.exists(f):
                 linkfile = os.path.join(self.output_dir, f)
@@ -132,11 +139,6 @@ class MergeAnnotTool(Tool):
             else:
                 self.set_error("运行goAnnot.py出错")
                 raise Exception("运行goAnnot.py出错")
-        # try:
-        #     subprocess.check_output(cmd1, shell=True)
-        #     self.logger.info("运行goAnnot.py完成")
-        # except subprocess.CalledProcessError:
-        #     self.set_error("运行goAnnot.py出错")
         cmd2 = "{} {} {}".format(self.python, self.goSplit, self.work_dir + '/go_detail.xls')
         self.logger.info("运行goSplit.py")
         self.logger.info(cmd2)
@@ -152,11 +154,6 @@ class MergeAnnotTool(Tool):
             else:
                 self.set_error("运行goSplit.py出错")
                 raise Exception("运行goSplit.py出错")
-        # try:
-        #     subprocess.check_output(cmd2, shell=True)
-        #     self.logger.info("运行goSplit.py完成")
-        # except subprocess.CalledProcessError:
-        #     self.set_error("运行goSplit.py出错")
 
     def merge(self, dirs, merge_file, type):
         cmd = "{} {} {} {}".format(self.python, self.merge_scripts, dirs, merge_file)
@@ -172,9 +169,6 @@ class MergeAnnotTool(Tool):
             else:
                 self.set_error("文件合并未完成")
                 raise Exception("文件合并失败")
-
-
-
 
     def run(self):
         super(MergeAnnotTool, self).run()

@@ -28,7 +28,8 @@ class GenesetEnrichWorkflow(Workflow):
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
             {"name": "method", "type": "string"},
-            {"name": "add_info", "type": "string", "default": None}  # 输入两列的列表文件，有head，第一列为pathway，第二列为底图链接
+            {"name": "add_info", "type": "string", "default": None},  # 输入两列的列表文件，有head，第一列为pathway，第二列为底图链接
+            {"name": "class_code_info", "type": "string"}
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -44,7 +45,8 @@ class GenesetEnrichWorkflow(Workflow):
                 # "all_list": background_path,
                 "diff_list": self.option("genset_list"),
                 "correct": self.option("method"),
-                "add_info": self.option("add_info")
+                "add_info": self.option("add_info"),
+                "class_code_info": self.option("class_code_info")
             }
         else:
             options = {
@@ -53,6 +55,7 @@ class GenesetEnrichWorkflow(Workflow):
                 "go_list": self.option("go_list"),
                 # "pval": self.option("pval"),
                 "method": self.option("method"),
+                "class_code_info": self.option("class_code_info")
             }
         self.logger.info(options)
         self.enrich_tool.set_options(options)
@@ -112,10 +115,13 @@ class GenesetEnrichWorkflow(Workflow):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "基因集富集结果目录"],
-            # ["./estimators.xls", "xls", "alpha多样性指数表"]
-        ])
-        # print self.get_upload_files()
+        if self.option("anno_type") == "go":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集GO富集分析结果文件"],
+            ])
+        elif self.option("anno_type") == "kegg":
+            result_dir.add_relpath_rules([
+                [".", "", "基因集KEGG富集分析结果文件"],
+            ])
         super(GenesetEnrichWorkflow, self).end()
 

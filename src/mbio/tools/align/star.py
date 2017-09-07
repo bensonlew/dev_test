@@ -64,7 +64,7 @@ class StarAgent(Agent):
                 raise OptionError("请提供用于比对的单端fastq或fasta文件！")
 
     def set_resource(self):
-        self._cpu = 4
+        self._cpu = 11
         if self.option("ref_genome") == "customer_mode":
             if self.option("ref_genome_custom").prop["size"] / 1024 / 1024 < 500:
                 self._memory = '10G'
@@ -94,9 +94,10 @@ class StarTool(Tool):
     def star_index1(self, genomeDir, ref_fa):
         """
         step1:第一步建索引；用star建立参考基因组的索引，当用户不上传参考基因组时，该步骤省略，直接调用已有的序列文件
+        genomeDir为用于存放第一步建立的参考基因组索引的路径
+
         """
-        cmd = "{}STAR --runMode genomeGenerate --limitGenomeGenerateRAM 50000000000 --genomeDir {} --genomeFastaFiles {} --runThreadN 10".format(self.star_path, genomeDir, ref_fa)  # self.work_dir/ref_star_index1 用于存放第一步建立的参考基因组索引的路径,参数为用户上传的参考基因组文件
-        print cmd
+        cmd = "{}STAR --runMode genomeGenerate --limitGenomeGenerateRAM 50000000000 --genomeDir {} --genomeFastaFiles {} --runThreadN 10".format(self.star_path, genomeDir, ref_fa)
         self.logger.info("使用star建立参考基因组索引")
         command = self.add_command("star_index1", cmd)
         command.run()
@@ -174,21 +175,14 @@ class StarTool(Tool):
         """
         cmd = "{}STAR --runThreadN 10 --genomeDir {} --readFilesIn {}".format(self.star_path, self.genomeDir_path2,
                                                                               self.option("readFilesIN").prop["path"])
-        print cmd
-        self.logger.info("使用star进行最终比对！")
+        self.logger.info("进入最终比对阶段！")
         command = self.add_command("star_aln2", cmd)
         command.run()
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("最终单端比对成功！")
         else:
-            command.rerun()
-            self.wait(command)
-            if command.return_code == 0:
-                self.logger.info("最终单端比对成功！")
-            else:
-                self.set_error("最终单端比对出错!")
-                raise Exception("运行star出错")
+            raise Exception("运行star出错")
 
     def star_aln2_pe(self):
         """
@@ -258,35 +252,39 @@ class StarTool(Tool):
         运行
         """
         super(StarTool, self).run()
-        if  self.option("ref_genome_custom").is_set:  # 自定义模式的时候需要建索引
-            self.logger.info("在参考基因组为自定义模式下运行star！")
-            if not os.path.exists("ref_star_index2"):
-                os.mkdir("ref_star_index2")
-            if not os.path.exists("ref_star_index1"):
-                os.mkdir("ref_star_index1")
-            for file in os.listdir(self.option("star_index1").prop["path"]):
-                old_path = os.path.join(self.option("star_index1").prop["path"], file)
-                new_path = os.path.join(self.genomeDir_path1, file)
-                os.link(old_path, new_path)
-            ref_fa = self.option("ref_genome_custom").prop["path"]
-            if self.option("seq_method") == "PE":
-                self.star_aln1_pe(self.genomeDir_path1)
-                sj = os.path.join(self.work_dir, "SJ.out.tab")
-                self.star_index2(ref_fa, sj)
-                self.star_aln2_pe()
-                self.star_aln2_pe_bam()
-            else:
-                self.star_aln1_se(self.genomeDir_path1)
-                sj = os.path.join(self.work_dir, "SJ.out.tab")
-                self.star_index2(ref_fa, sj)
-                self.star_aln2_se()
-                self.star_aln2_se_bam()
-        else:
+        if not self.option("ref_genome_custom").is_set:
             raise Exception("请设置参考基因组文件")
+        self.logger.info("star开始运行，建立索引的步骤由align.star_index进行，索引文件夹通过option-star_index1传入！")
+        if not os.path.exists("ref_star_index2"):
+            os.mkdir("ref_star_index2")
+        if not os.path.exists("ref_star_index1"):
+            os.mkdir("ref_star_index1")
+        for file in os.listdir(self.option("star_index1").prop["path"]):
+            old_path = os.path.join(self.option("star_index1").prop["path"], file)
+            new_path = os.path.join(self.genomeDir_path1, file)
+            if os.path.exists(new_path):
+                os.remove(new_path)
+            os.link(old_path, new_path)
+        ref_fa = self.option("ref_genome_custom").prop["path"]
+        if self.option("seq_method") == "PE":
+            self.star_aln1_pe(self.genomeDir_path1)
+            sj = os.path.join(self.work_dir, "SJ.out.tab")
+            self.star_index2(ref_fa, sj)
+            # self.star_aln2_pe()
+            self.star_aln2_pe_bam()
+        else:
+            self.star_aln1_se(self.genomeDir_path1)
+            sj = os.path.join(self.work_dir, "SJ.out.tab")
+            self.star_index2(ref_fa, sj)
+            # self.star_aln2_se()
+            self.star_aln2_se_bam()
         self.mv_bam()
         self.end()
 
     def mv_bam(self):
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+            os.mkdir(self.output_dir)
         if not os.path.exists(self.output_dir + "/bam"):
             os.mkdir(self.output_dir + "/bam")
         if not os.path.exists(self.output_dir + "/sam"):
