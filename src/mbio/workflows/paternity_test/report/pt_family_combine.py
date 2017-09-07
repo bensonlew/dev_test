@@ -36,7 +36,7 @@ class PtFamilyCombineWorkflow(Workflow):
 			{"name": 'dedup_end', "type": "string"},
 			{"name": 'dedup_all', "type": "string"},
 			{"name": 'main_id', "type": "string"},   # 主表id
-			{"name": 'member_id', "type": "string"},
+			{"name": 'member_id', "type": "string"},  # 做记录
 		]
 		self.add_option(options)
 		self.ref_dir = self.config.SOFTWARE_DIR
@@ -142,10 +142,10 @@ class PtFamilyCombineWorkflow(Workflow):
 
 	def dedup_run(self):
 		"""
-		查重部分新机制
+		查重部分新机制：如果是全库查重的话，直接使用参考库就可以了。
+		如果是部分查重的话根据输入的dedup_start:WQ12345678和dedup_end:WQ12349999中WQ后面跟的数字来确定查重的父本
 		:return:
 		"""
-
 		father_data = self.output_dir + "/" + "father"  # 自定义查重父本
 		if not os.path.exists(father_data):
 			os.mkdir(father_data)
@@ -154,12 +154,10 @@ class PtFamilyCombineWorkflow(Workflow):
 			temp_s = re.match('WQ([1-9].*)', self.option('dedup_start'))
 			temp_e = re.match('WQ([1-9].*)', self.option('dedup_end'))
 			num_list = range(int(temp_s.group(1)), int(temp_e.group(1)))
-			# num = int(temp_s.group(1))
-			# num_list = range(num-int(self.option('dedup_num')), num+int(self.option('dedup_num'))+1)
 			name_list = []
 			for m in num_list:
 				x = api_read_tab.dedup_sample_report(m)  # 这边主要取的是 同一个家系下的所有父本
-				if len(x): #如果库中能取到前后的样本
+				if len(x):  # 如果库中能取到前后的样本
 					for k in range(len(x)):
 						name_list.append(x[k])
 			name_list = list(set(name_list))
@@ -252,6 +250,12 @@ class PtFamilyCombineWorkflow(Workflow):
 			self.linkdir(obj.output_dir, self.output_dir)
 
 	def run(self):
+		'''
+		可以组成的家系全部放在self.family这个列表中
+		如果存在dad_id,那么构成的家系肯定只有一组（更换id的新家系，不更换id的老家系）
+		在组成家系的时候将tab文件从库中拿出
+		:return:
+		'''
 		self.family = []
 		if self.option('dad_id'):
 			combine = []
@@ -301,9 +305,8 @@ class PtFamilyCombineWorkflow(Workflow):
 		"""
 		super(PtFamilyCombineWorkflow, self).run()
 
-	def end(self):
+	def end(self):  # 和亲子主流程的导表基本一致
 		self.logger.info("开始end函数")
-		results = os.listdir(self.output_dir)
 		api_main = self.api.sg_paternity_test
 		if self.option('dedup_all') == 'true':
 			dedup = 'all'
@@ -313,32 +316,59 @@ class PtFamilyCombineWorkflow(Workflow):
 			else:
 				dedup = 'no'
 		for i in range(len(self.family)):
+			dedup_done = 'false'
 			dad_id = self.family[i][0]
 			mom_id = self.family[i][1]
 			preg_id = self.family[i][2]
-			self.father_id = api_main.add_sg_father(dad_id, mom_id, preg_id, self.option('main_id'), self.option("member_id"))
+			self.father_id = api_main.add_sg_father(dad_id, mom_id, preg_id, self.option('main_id'),
+			                                        self.option("member_id"), type='free')
 			# 此处的main_id相当于别处的batch_id为该自由交互的主表，和正式流程里的不一样
 
 			self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=self.option('err_min'), dedup=dedup)  # 交互表id
 			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
-			dedup_new = dad_id + "_" + mom_id + '_' + preg_id + '.txt'
+			dedup_new = dad_id + '_' + mom_id + '_' + preg_id + '.txt'
+			self.logger.info(dedup_new)
+			results = os.listdir(self.output_dir)
+			self.logger.info(results)
 			for f in results:
-				if re.search(dedup, f):
+				if re.search(dedup, f):  # 结果表
+					self.logger.info('结果表')
 					api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
-				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family_joined_tab.txt':
+				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family_joined_tab.txt':  # 调试表
+					self.logger.info('调试表')
 					api_main.add_sg_pt_father_detail(self.output_dir + '/' + f, self.pt_father_id)
-				elif f == mom_id + '_' + preg_id + '_info_show.txt':
+				elif f == mom_id + '_' + preg_id + '_info_show.txt':  # 母本和胎儿的浓度信息
+					self.logger.info('母本和胎儿的浓度信息')
 					api_main.add_info_detail(self.output_dir + '/' + f, self.pt_father_id)
-				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_test_pos.txt':
+				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_test_pos.txt':  # 报告位点
+					self.logger.info('报告位点')
 					api_main.add_test_pos(self.output_dir + '/' + f, self.pt_father_id)
-				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family.png':
+				elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family.png':  # 插入图
+					self.logger.info('插入图')
 					file_dir = self.output_dir + '/' + dad_id + '_' + mom_id + '_' + preg_id
 					api_main.add_pt_father_figure(file_dir, self.pt_father_id)
-				elif str(f) == str(dedup_new):
-					self.logger.info(f)
+				elif str(f) == str(dedup_new):  # 查重表
+					self.logger.info('查重表')
+					dedup_done = 'true'
 					api_main.import_dedup_data(self.output_dir + '/' + f, self.pt_father_id)
+			############
+			# 写这一段是因为如果只有一个家系存在查重的时候很有可能在end开始时还没有完成相应set_output,所以去直接指定路径获取查重文件
+			# 防止数据漏掉
+			dedup_path = self.work_dir + '/Dedup/output/' + dedup_new
+			if len(self.family) == 1 and os.path.exists(dedup_path) and dedup_done == 'false':
+				self.logger.info('查重表')
+				api_main.import_dedup_data(dedup_path, self.pt_father_id)
+			############
 
-			self.update_status_api = self.api.pt_update_status
-			self.update_status_api.add_pt_status(table_id=self.option('pt_father_id'), table_name='sg_pt_father',
-			                                     type_name='sg_pt_father')
+			if dad_id + '_' + mom_id + '_' + preg_id + '_family.png' not in results:  # 20170707 zhouxuan
+				api_main.has_problem(self.pt_father_id, dad_id)
+			elif dad_id + '_' + mom_id + '_' + preg_id + '_fig2.png' not in results:
+				api_main.has_problem(self.pt_father_id, dad_id)
+			if mom_id + '_' + preg_id + '_info_show.txt' not in results:
+				api_main.update_infoshow(self.pt_father_id, mom_id, preg_id)
+
+			api_main.add_father_result(self.father_id, self.pt_father_id, dad_id)
+			api_main.add_father_qc(self.father_id, self.pt_father_id)
+
+			api_main.update_sg_pt_father(self.pt_father_id)
 		super(PtFamilyCombineWorkflow, self).end()

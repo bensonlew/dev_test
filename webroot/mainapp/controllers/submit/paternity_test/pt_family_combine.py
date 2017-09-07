@@ -60,6 +60,8 @@ class PtFamilyCombine(PtController):
             'err_min': data.err_min,
             'dedup_all': data.dedup_all,
             "update_info": json.dumps(update_info),
+            'main_id': str(main_table_id),
+            'member_id': data.member_id,
         }
         if hasattr(data, 'dad_id'):
             options['dad_id'] = data.dad_id
@@ -78,7 +80,7 @@ class PtFamilyCombine(PtController):
 
     def check_options(self, data):
         """
-        检查网页端传入的参数
+        检查网页端传入的参数,必须有母本id\胎儿id\父本组id\允许错配数\member_id\是否全库查重
         :param data:网页端传入的数据(是否全库查重的参数必须传递)
         :return: 检查结果
         """
@@ -87,6 +89,7 @@ class PtFamilyCombine(PtController):
         for names in params_name:
             if not (hasattr(data, names)):
                 success.append("缺少参数{}".format(names))
+        # 当有新的id时个数必须为三并且一定要有dad_id
         WQ_number = ['new_mom_id', 'new_dad_id', 'new_preg_id']
         num = 0
         for i in WQ_number:
@@ -99,6 +102,7 @@ class PtFamilyCombine(PtController):
                 success.append("替换编号时必须要有父本id")
         else:
             success.append("新编号参数不全")
+        # 如果不全库查重的话，必须同时给定起始查重编号和末端查重编号
         if data.dedup_all == 'false':
             if hasattr(data, 'dedup_start'):
                 if not hasattr(data, 'dedup_end'):
