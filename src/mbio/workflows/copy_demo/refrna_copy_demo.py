@@ -48,7 +48,7 @@ class RefrnaCopyDemoWorkflow(Workflow):
             "IMPORT_REPORT_DATA": True,
             "IMPORT_REPORT_AFTER_END": False,
             "options": {
-                "task_id": "sanger_21455",
+                "task_id": self.option("task_id"),
                 "target_task_id": self.option("task_id") + '_' + id,
                 "target_project_sn": "refrna_demo",
                 "target_member_id": "refrna_demo"

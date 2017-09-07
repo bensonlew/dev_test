@@ -192,7 +192,7 @@ class RefrnaCopyMongo(object):
 
     def annotation_query(self):
         annotation_query_dict = self.copy_collection_with_change('sg_annotation_query', change_positions=[], update_sg_status=False)
-        self.copy_main_details('sg_annotation_query_detail', 'query_id', annotation_query_dict, join=False)
+        # self.copy_main_details('sg_annotation_query_detail', 'query_id', annotation_query_dict, join=False)
 
     def assessment_chrom_distribution(self):
         assessment_chrom_distribution_dict = self.copy_collection_with_change('sg_assessment_chrom_distribution', change_positions=[], update_sg_status=False)
@@ -241,7 +241,7 @@ class RefrnaCopyMongo(object):
 
     def express_class_code(self):
         class_code_dict = self.copy_collection_with_change("sg_express_class_code", change_positions=[], update_sg_status=False)
-        self.copy_main_details("sg_express_class_code_detail", "class_code_id", class_code_dict, join=False)
+        # self.copy_main_details("sg_express_class_code_detail", "class_code_id", class_code_dict, join=False)
 
     def geneset_venn(self):
         geneset_venn_dict = self.copy_collection_with_change("sg_geneset_venn", change_positions=[],update_sg_status=False)
@@ -284,9 +284,9 @@ class RefrnaCopyMongo(object):
 
     def snp(self):
         snp_dict = self.copy_collection_with_change('sg_snp', change_positions=[], update_sg_status=False)
-        self.copy_main_details('sg_snp_detail', 'snp_id', snp_dict, join=False)
-        # self.copy_main_details('sg_snp_graphic', 'snp_id', snp_dict, join=False)
-        self.copy_main_details('sg_snp_stat', 'snp_id', snp_dict, join=False)
+        # self.copy_main_details('sg_snp_detail', 'snp_id', snp_dict, join=False)
+        # # self.copy_main_details('sg_snp_graphic', 'snp_id', snp_dict, join=False)
+        # self.copy_main_details('sg_snp_stat', 'snp_id', snp_dict, join=False)
 
     def species_information(self):
         species_information_dict = self.copy_collection_with_change('sg_species_information', change_positions=[], update_sg_status=False)
