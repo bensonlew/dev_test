@@ -754,9 +754,9 @@ class RefrnaWorkflow(Workflow):
         os.makedirs(target_dir + "/Assemble/NewAnnotation/Swiss-Prot")
         os.makedirs(target_dir + "/Assemble/NewAnnotation/Pfam")
         newgenenrannot_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast/gene_nr.xls"
-        os.link(newgenenrannot_path, target_dir + "/Assemble/NewAnnotation/NR/newgene_ nr_annot.xls")
+        os.link(newgenenrannot_path, target_dir + "/Assemble/NewAnnotation/NR/newgene_nr_annot.xls")
         newtransnrannot_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast/nr.xls"
-        os.link(newtransnrannot_path, target_dir + "/Assemble/NewAnnotation/NR/newtrans_ nr_annot.xls")
+        os.link(newtransnrannot_path, target_dir + "/Assemble/NewAnnotation/NR/newtrans_nr_annot.xls")
         newgenenrevalue_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_nr_statistics/gene_nr_evalue.xls"
         os.link(newgenenrevalue_path, target_dir + "/Assemble/NewAnnotation/NR/newgene_nr_evalue.xls")
         newtransnrevalue_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_nr_statistics/nr_evalue.xls"
@@ -817,15 +817,23 @@ class RefrnaWorkflow(Workflow):
         newgenegoleve1234_path = origin_dir + "/../RefAnnotation/output/anno_stat/go_stat/gene_go1234level_statistics.xls"
         os.link(newgenegoleve1234_path, target_dir + "/Annotation/GeneAnnotation/GO/newgene_go_lev1234_statistics.xls")
         os.makedirs(target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway")
+        os.makedirs(target_dir + "/Annotation/GeneAnnotation/KEGG/newgene_pathway")
         for file in os.listdir(self.anno_path + "/anno_stat/kegg_stat/gene_pathway"): #DiffExp文件夹对应gene refandnew
             refgenepathway_path = os.path.join(self.anno_path + "/anno_stat/kegg_stat/gene_pathway", file)
             os.link(refgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway/" + file)
+        for file in os.listdir(origin_dir + "/../RefAnnotation/output/anno_stat/kegg_stat/gene_pathway"):
+            newgenepathway_path = os.path.join(self.anno_path + "/anno_stat/kegg_stat/gene_pathway", file)
+            os.link(newgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/newgene_pathway/" + file)
         # refgenepathway_path = self.anno_path + "/anno_stat/kegg_stat/gene_pathway"
         #os.link(refgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway")
         refgenekegglayer_path = self.anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
         os.link(refgenekegglayer_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_kegg_layer.xls")
+        newgenekegglayer_path = origin_dir + "/../RefAnnotation/output/anno_stat/kegg_stat/gene_kegg_layer.xls"
+        os.link(newgenekegglayer_path, target_dir + "/Annotation/GeneAnnotation/KEGG/newgene_kegg_layer.xls")
         refgenekeggtable_path = self.anno_path + "/anno_stat/kegg_stat/gene_kegg_table.xls"
         os.link(refgenekeggtable_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_kegg_table.xls")
+        newgenekeggtable_path = origin_dir + "/../RefAnnotation/output/anno_stat/kegg_stat/gene_kegg_table.xls"
+        os.link(newgenekeggtable_path, target_dir + "/Annotation/GeneAnnotation/KEGG/newgene_kegg_table.xls")
         # TransAnnotation
         os.makedirs(target_dir + "/Annotation/TransAnnotation/AnnoOverview")
         os.makedirs(target_dir + "/Annotation/TransAnnotation/COG")
@@ -856,15 +864,23 @@ class RefrnaWorkflow(Workflow):
         newtransgoleve1234_path = origin_dir + "/../RefAnnotation/output/go/go1234level_statistics.xls"
         os.link(newtransgoleve1234_path, target_dir + "/Annotation/TransAnnotation/GO/newtrans_go_lev1234_statistics.xls")
         os.makedirs(target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_pathway")
+        os.makedirs(target_dir + "/Annotation/TransAnnotation/KEGG/newtrans_pathway")
         for file in os.listdir(self.anno_path + "/kegg/pathways"):
             reftranspathway_path = os.path.join(self.anno_path + "/kegg/pathways", file)
             os.link(reftranspathway_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_pathway" + file)
+        for file in os.listdir(origin_dir + "/../RefAnnotation/output/kegg/pathways"):
+            newtranspathway_path = os.path.join(origin_dir + "/../RefAnnotation/output/kegg/pathways", file)
+            os.link(newtranspathway_path, target_dir + "/Annotation/TransAnnotation/KEGG/newtrans_pathway" + file)
         #reftranspathway_path = self.anno_path + "/kegg/pathways"
         #os.link(reftranspathway_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_pathway")
         reftranskegglayer_path = self.anno_path + "/kegg/kegg_layer.xls"
         os.link(reftranskegglayer_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_kegg_layer.xls")
         reftranskeggtable_path = self.anno_path + "/kegg/kegg_table.xls"
         os.link(reftranskeggtable_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_kegg_table.xls")
+        newtranskegglayer_path = origin_dir + "/../RefAnnotation/output/kegg/pathways/kegg_layer.xls"
+        os.link(newtranskegglayer_path, target_dir + "/Annotation/TransAnnotation/KEGG/newtrans_kegg_layer.xls")
+        newtranskeggtable_path = origin_dir + "/../RefAnnotation/output/kegg/pathways/kegg_table.xls"
+        os.link(newtranskeggtable_path, target_dir + "/Annotation/TransAnnotation/KEGG/newtrans_kegg_table.xls")
         #Expression
         os.makedirs(target_dir + "/ExpAnalysis")
         os.makedirs(target_dir + "/ExpAnalysis/GeneExp")
@@ -916,8 +932,104 @@ class RefrnaWorkflow(Workflow):
         for file_dir in os.listdir(origin_dir + "/../Rmats/output/"):
             as_path = origin_dir + "/../Rmats/output/"+ file_dir + "/all_events_detail_big_table.txt"
             os.link(as_path, target_dir + "/AS/" + "ASRmats_" + file_dir + "_G_ref_anno.xls")
-        
-
+        repaths = [
+            [".", "", "流程分析结果目录"],
+            ["QC", "", "测序数据统计与质控结果文件"],
+            ["QC/rawdata_statistics.xls", "", "原始数据统计表"],
+            ["QC/cleandata_statistics.xls", "", "质控数据统计表"],
+            ["Align", "", "质控数据比对结果文件"],
+            ["Align/AlignStat", "", "比对结果统计文件"],
+            ["Align/QualityAssessment", "", "比对结果整体评估文件"],
+            ["Assemble", "", "基于ref组装与新转录本/基因注释文件"],
+            ["Assemble/AssembleResults", "", "基于ref组装结果文件"],
+            ["Assemble/AssembleResults/cuffcmp.annotated.gtf", "", "组装注释信息表"],
+            ["Assemble/AssembleResults/classcode_statistics.txt", "", "新转录本类型统计表"],
+            ["Assemble/AssembleResults/new_gene.gtf", "", "新基因序列注释信息表"],
+            ["Assemble/AssembleResults/new_trans.gtf", "", "新转录本序列注释信息表"],
+            ["Assemble/NewAnnotation", "", "新基因/转录本功能注释（NR,Swiss-Prot和Pfam）文件"],
+            ["Assemble/NewAnnotation/all_annotation_statistics.xls", "", "注释结果统计表"],
+            ["Assemble/NewAnnotation/NR", "", "NR 库注释结果文件"],
+            ["Assemble/NewAnnotation/Swiss-Prot", "", "Swiss-Prot库注释结果文件"],
+            ["Assemble/NewAnnotation/Pfam", "", "Pfam库注释结果文件"],
+            ["Assemble/NewAnnotation/NR/newgene_nr_annot.xls", "", "新基因NR库注释结果表"],
+            ["Assemble/NewAnnotation/NR/newtrans_nr_annot.xls", "", "新转录本NR库注释结果表"],
+            ["Assemble/NewAnnotation/NR/newgene_nr_evalue.xls", "", "新基因NR库注释E-value统计表"],
+            ["Assemble/NewAnnotation/NR/newtrans_nr_evalue.xls", "", "新转录本NR库注释E-value统计表"],
+            ["Assemble/NewAnnotation/NR/newgene_nr_similar.xls", "", "新基因NR库注释similarity统计表"],
+            ["Assemble/NewAnnotation/NR/newtrans_nr_similar.xls", "", "新转录本NR库注释similarity统计表"],
+            ["Assemble/NewAnnotation/Swiss-Prot/newgene_swissprot_annot.xls", "", "新基因Swiss-Prot库注释结果表"],
+            ["Assemble/NewAnnotation/Swiss-Prot/newtrans_swissprot_annot.xls", "", "新转录本Swiss-Prot库注释结果表"],
+            ["Assemble/NewAnnotation/Swiss-Prot/newgene_swissprot_evalue.xls", "", "新基因Swiss-Prot库注释E-value统计表"],
+            ["Assemble/NewAnnotation/Swiss-Prot/newgene_swissprot_similar.xls", "", "新基因Swiss-Prot库注释 similarity 统计表"],
+            ["Assemble/NewAnnotation/Swiss-Prot/newtrans_swissprot_evalue.xls", "", "新转录本Swiss-Prot库注释E-value统计表"],
+            ["Assemble/NewAnnotation/Swiss-Prot/newtrans_swissprot_similar.xls", "", "新转录本Swiss-Prot库注释 similarity 统计表"],
+            ["Assemble/NewAnnotation/Pfam/newgene_pfam_annot.xls", "", "新基因Pfam库注释结果表"],
+            ["Assemble/NewAnnotation/Pfam/newtrans_pfam_annot.xls", "", "新转录本Pfam库注释结果表"],
+            ["Annotation", "", "基因/转录本功能注释（COG, GO 和KEGG）文件"],
+            ["Annotation/ref_all_annot_statistics.xls", "", "参考基因/转录本数据库注释结果统计表"],
+            ["Annotation/new_all_annot_statistics.xls", "", "新基因/转录本数据库注释结果统计表"],
+            ["Annotation/GeneAnnotation", "", "基因功能注释文件"],
+            ["Annotation/TransAnnotation", "", "转录本功能注释文件"],
+            ["Annotation/GeneAnnotation/AnnoOverview", "", "基因功能注释详情文件"],
+            ["Annotation/GeneAnnotation/COG", "", "COG库注释文件"],
+            ["Annotation/GeneAnnotation/GO", "", "GO库注释文件"],
+            ["Annotation/GeneAnnotation/KEGG", "", "KEGG库注释文件"],
+            ["Annotation/GeneAnnotation/AnnoOverview/refgene_anno_detail.xls", "", "参考基因注释详情表"],
+            ["Annotation/GeneAnnotation/AnnoOverview/newgene_anno_detail.xls", "", "新基因注释详情表"],
+            ["Annotation/GeneAnnotation/COG/refgene_cog_statistics.xls", "", "参考基因COG库注释统计表"],
+            ["Annotation/GeneAnnotation/COG/newgene_cog_statistics.xls", "", "新基因COG库注释统计表"],
+            ["Annotation/GeneAnnotation/GO/refgene_gos.list", "", "参考基因GO注释列表"],
+            ["Annotation/GeneAnnotation/GO/newgene_gos.list", "", "新基因GO注释列表"],
+            ["Annotation/GeneAnnotation/GO/refgene_go_lev12_statistics.xls", "", "参考基因GO12级注释统计表"],
+            ["Annotation/GeneAnnotation/GO/refgene_go_lev123_statistics.xls", "", "参考基因GO123级注释统计表"],
+            ["Annotation/GeneAnnotation/GO/refgene_go_lev1234_statistics.xls", "", "参考基因GO1234级注释统计表"],
+            ["Annotation/GeneAnnotation/GO/newgene_go_lev12_statistics.xls", "", "新基因GO12级注释统计表"],
+            ["Annotation/GeneAnnotation/GO/newgene_go_lev123_statistics.xls", "", "新基因GO123级注释统计表"],
+            ["Annotation/GeneAnnotation/GO/newgene_go_lev1234_statistics.xls", "", "新基因GO1234级注释统计表"],
+            ["Annotation/GeneAnnotation/KEGG/refgene_pathway", "", "参考基因KEGG注释pathway通路图"],
+            ["Annotation/GeneAnnotation/KEGG/newgene_pathway", "", "新基因KEGG注释pathway通路图"],
+            ["Annotation/GeneAnnotation/KEGG/refgene_kegg_layer.xls", "", "参考基因KEGG层级分类表"],
+            ["Annotation/GeneAnnotation/KEGG/newgene_kegg_layer.xls", "", "新基因KEGG层级分类表"],
+            ["Annotation/GeneAnnotation/KEGG/refgene_kegg_table.xls", "", "参考基因KEGG注释统计表"],
+            ["Annotation/GeneAnnotation/KEGG/newgene_kegg_table.xls", "", "新基因KEGG注释统计表"],
+            ["Annotation/TransAnnotation/AnnoOverview", "", "转录本功能注释文件"],
+            ["Annotation/TransAnnotation/COG", "", "COG库注释文件"],
+            ["Annotation/TransAnnotation/GO", "", "GO库注释文件"],
+            ["Annotation/TransAnnotation/KEGG", "", "KEGG库注释文件"],
+            ["Annotation/TransAnnotation/AnnoOverview/reftrans_anno_detail.xls", "", "参考转录本注释详情表"],
+            ["Annotation/TransAnnotation/AnnoOverview/newtrans_anno_detail.xls", "", "新转录本注释详情表"],
+            ["Annotation/TransAnnotation/COG/reftrans_cog_statistics.xls", "", "参考转录本COG注释统计表"],
+            ["Annotation/TransAnnotation/COG/newtrans_cog_statistics.xls", "", "新转录本COG注释统计表"],
+            ["Annotation/TransAnnotation/GO/reftrans_gos.list", "", "参考转录本GO注释列表"],
+            ["Annotation/TransAnnotation/GO/newtrans_gos.list", "", "新转录本GO注释列表"],
+            ["Annotation/TransAnnotation/GO/reftrans_go_lev12_statistics.xls", "", "参考转录本GO12级注释统计表"],
+            ["Annotation/TransAnnotation/GO/reftrans_go_lev123_statistics.xls", "", "参考转录本GO123级注释统计表"],
+            ["Annotation/TransAnnotation/GO/reftrans_go_lev1234_statistics.xls", "", "参考转录本GO1234级注释统计表"],
+            ["Annotation/TransAnnotation/GO/newtrans_go_lev12_statistics.xls", "", "新转录本GO12级注释统计表"],
+            ["Annotation/TransAnnotation/GO/newtrans_go_lev123_statistics.xls", "", "新转录本GO123级注释统计表"],
+            ["Annotation/TransAnnotation/GO/newtrans_go_lev1234_statistics.xls", "", "新转录本GO1234级注释统计表"],
+            ["Annotation/TransAnnotation/KEGG/reftrans_pathway", "", "参考转录本KEGG注释pathway通路图"],
+            ["Annotation/TransAnnotation/KEGG/newtrans_pathway", "", "新转录本KEGG注释pathway通路图"],
+            ["Annotation/TransAnnotation/KEGG/reftrans_kegg_layer.xls", "", "参考转录本KEGG层级分类表"],
+            ["Annotation/TransAnnotation/KEGG/reftrans_kegg_table.xls", "", "参考转录本KEGG注释统计表"],
+            ["Annotation/TransAnnotation/KEGG/newtrans_kegg_layer.xls", "", "新转录本KEGG层级分类表"],
+            ["Annotation/TransAnnotation/KEGG/newtrans_kegg_table.xls", "", "新转录本KEGG注释统计表"],
+            ["ExpAnalysis", "", "基因/转录本表达量分析结果文件"],
+            ["ExpAnalysis/GeneExp", "", "基因（参考+新）表达量统计文件"],
+            ["ExpAnalysis/TransExp", "", "转录本（参考+新）表达量统计文件"],
+            ["DiffExpAnalysis", "", "基因/转录本的表达量差异分析结果文件"],
+            ["DiffExpAnalysis/DiffExpRef", "", "参考基因/转录本表达差异分析结果文件"],
+            ["DiffExpAnalysis/DiffExpRef/GeneRef", "", "参考基因表达差异分析结果文件"],
+            ["DiffExpAnalysis/DiffExpRef/TransRef", "", "参考转录本表达差异分析结果文件"],
+            ["DiffExpAnalysis/DiffExpRefandnew", "", "参考基因/转录本+新基因/转录本表达差异分析结果文件"],
+            ["DiffExpAnalysis/DiffExpRefandnew/GeneRefandnew", "", "基因表达差异分析结果文件"],
+            ["DiffExpAnalysis/DiffExpRefandnew/TransRefandnew", "", "转录本表达差异分析结果文件"],
+            ["SNP", "", "SNP/InDel分析结果文件"],
+            ["SNP/snp_anno.xls", "", "SNP/InDel分析结果文件"],
+            ["AS", "", "可变剪切分析结果文件"]
+        ]
+        sdir = self.add_upload_dir(self.target_dir)
+        sdir.add_relpath_rules(repaths)
 
     def run_api_and_set_output(self, test=False):
         greenlets_list_first = []
