@@ -8,6 +8,7 @@ from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
 import json
 import random
+import datetime
 
 
 class PtController(MetaController):
@@ -64,7 +65,7 @@ class PtController(MetaController):
 
     def set_sheet_data_(self, name, options, module_type="workflow", params=None, to_file=None):
         self._post_data = web.input()
-        new_id = 'pt_{}_{}'.format(random.randint(1000, 10000), random.randint(1, 10000))
+        new_id = '{}_{}'.format(random.randint(1, 1000), datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
         print new_id
         self._sheet_data = {
             'id': new_id,

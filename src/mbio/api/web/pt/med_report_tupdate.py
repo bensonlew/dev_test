@@ -44,25 +44,25 @@ class MedReportTupdate(UpdateStatus):
                     "time": create_time
                 }
                 collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
-            sg_status_col = self.database[collection_name]
-            if status == "start":
-                insert_data = {
-                    "status": "start",
-                    "desc": desc,
-                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                sg_status_col.find_one_and_update({"_id": obj_id}, {'$set': insert_data}, upsert=True)
-            elif status == "finish":  # 只能有一次finish状态
-                insert_data = {
-                    "status": 'end',
-                    "desc": desc,
-                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                sg_status_col.find_one_and_update({"_id": obj_id}, {'$set': insert_data}, upsert=True)
-            else:
-                insert_data = {
-                    "status": status,
-                    "desc": desc,
-                    "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                }
-                sg_status_col.find_one_and_update({"_id": obj_id}, {'$set': insert_data}, upsert=True)
+            # sg_status_col = self.database[collection_name]
+            # if status == "start":
+            #     insert_data = {
+            #         "status": "start",
+            #         "desc": desc,
+            #         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            #     }
+            #     sg_status_col.find_one_and_update({"_id": obj_id}, {'$set': insert_data}, upsert=True)
+            # elif status == "finish":  # 只能有一次finish状态
+            #     insert_data = {
+            #         "status": 'end',
+            #         "desc": desc,
+            #         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            #     }
+            #     sg_status_col.find_one_and_update({"_id": obj_id}, {'$set': insert_data}, upsert=True)
+            # else:
+            #     insert_data = {
+            #         "status": status,
+            #         "desc": desc,
+            #         "time": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            #     }
+            #     sg_status_col.find_one_and_update({"_id": obj_id}, {'$set': insert_data}, upsert=True)

@@ -86,9 +86,9 @@ class Bam2tabTool(Tool):
         self.cmd_path = "bioinfo/medical/scripts/bam2tab.sh"
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
-        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin') #正式机
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1') #测试机
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioruby-vcf-master/bin') #测试机
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')  # 正式机
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')  # 测试机
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioruby-vcf-master/bin')  # 测试机
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
@@ -136,30 +136,46 @@ class Bam2tabTool(Tool):
         api = self.api.tab_file
         temp = os.listdir(self.output_dir)
         api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
-        for i in temp:
-            m = re.search(r'(.*)\.mem.*tab$', i)
-            n = re.search(r'(.*)\.qc', i)
-            if m:
-                tab_path = self.output_dir + '/' + i
-                tab_name = m.group(1)
-                # tab_path = self.output_dir + '/' + i
-                # tab_name = m.group(1)
-                if not api_read_tab.tab_exist(tab_name):
-                    api.add_pt_tab(tab_path, self.option('batch_id'))
-                    api.add_sg_pt_tab_detail(tab_path)
-                else:
-                    self.set_error('样本{}重名，请检查！'.format(tab_name))
-                    raise Exception('可能样本重名，请检查！')
-            elif n:
-                tab_path = self.output_dir + '/' + i
-                tab_name = n.group(1)
-                if not api_read_tab.qc_exist(tab_name):
-                    api.sample_qc(tab_path, tab_name)
-                    api.sample_qc_addition(tab_name)
-                else:
-                    self.set_error('样本{}重名，请检查！'.format(tab_name))
-                    raise Exception('可能样本重名，请检查！')
-
+        if os.path.getsize(self.output_dir + '/' + self.option('sample_id') + '.mem.sort.hit.vcf.tab') > 0:  # 判断该样本的tab文件是否要入库
+            with open(self.output_dir + '/' + self.option('sample_id') + '.qc', 'r') as r:
+                for line in r:
+                    line = line.strip().split(':')
+                    if line[0] == 'dp':
+                        if len(line) == 2 and float(line[1]) > 5:
+                            to_mongo = True
+                            self.logger.info('{}该样本tab和qc文件可以入库'.format(self.option('sample_id')))
+                        else:
+                            to_mongo = False
+                    else:
+                        continue
+        else:
+            to_mongo = False
+        if to_mongo:
+            for i in temp:
+                m = re.search(r'(.*)\.mem.*tab$', i)
+                n = re.search(r'(.*)\.qc', i)
+                if m and os.path.getsize(self.output_dir + '/' + i) > 0:
+                    tab_path = self.output_dir + '/' + i
+                    tab_name = m.group(1)
+                    if not api_read_tab.tab_exist(tab_name):
+                        api.add_pt_tab(tab_path, self.option('batch_id'))
+                        api.add_sg_pt_tab_detail(tab_path)
+                    else:
+                        self.set_error('样本{}重名，请检查！'.format(tab_name))
+                        raise Exception('可能样本重名，请检查！')
+                elif n:
+                    tab_path = self.output_dir + '/' + i
+                    tab_name = n.group(1)
+                    if not api_read_tab.qc_exist(tab_name):
+                        api.sample_qc(tab_path, tab_name)
+                        api.sample_qc_addition(tab_name)
+                    else:
+                        self.set_error('样本{}重名，请检查！'.format(tab_name))
+                        raise Exception('可能样本重名，请检查！')
+        else:
+            self.logger.info('{}该样本tab文件为空'.format(self.option('sample_id')))
+            self.api.sg_paternity_test.sample_size(self.option('sample_id'), self.option('batch_id'))
+            self.api.tab_file.remove_sample(self.option('sample_id'))  # 用于删除sg_pt_ref_main中不合格样本信息
 
     def run(self):
         super(Bam2tabTool, self).run()

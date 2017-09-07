@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'moli.zhou'
-#last modified:20161220
+#last modified by hongdongxuan :20170731
 
 '''医学检验所-无创产前亲子鉴定流程'''
 from biocluster.workflow import Workflow
@@ -8,6 +8,7 @@ from biocluster.core.exceptions import OptionError
 import os
 import re
 from bson import ObjectId
+from biocluster.config import Config
 import json
 import shutil
 
@@ -21,25 +22,26 @@ class PtReportWorkflow(Workflow):
 		options = [
 			{"name": "ref_fasta", "type": "infile", "format": "sequence.fasta"},  # 参考序列
 			{"name": "targets_bedfile", "type": "string"},
-
 			{"name": "dad_id", "type": "string"},  # 输入F/M/S的样本ID
 			{"name": "mom_id", "type": "string"},
 			{"name": "preg_id", "type": "string"},
 			{"name": "err_min", "type": "int", "default": 2},  # 允许错配数
 			{"name": "ref_point", "type": "string"},  # 参考位点
-			{"name": "dedup_num", "type": "int", "default": 50},  # 查重样本数
+			{"name": "dedup_num", "type": "string", "default": "50"},  # 查重样本数
 			{"name": "pt_father_id", "type": "string"},  # 查重样本数
 			{"name": "update_info", "type": "string"}
 		]
 		self.add_option(options)
 		self.pt_analysis = self.add_module("paternity_test.pt_analysis")
 		self.result_info = self.add_tool("paternity_test.result_info")
+		self.pt_analysis_dedup = self.add_tool("paternity_test.dedup")
 		self.tools = []
 		self.rdata = []
 		self.tools_rename = []
 		self.tools_rename_analysis = []
 		self.tools_dedup =[]
 		self.tools_dedup_f = []
+		self.ref_data = self.config.SOFTWARE_DIR + "/database/human/pt_ref/tab_data/"
 		self.set_options(self._sheet.options())
 		# self.step.add_steps("pt_analysis", "result_info", "retab",
 		#                     "de_dup1", "de_dup2")
@@ -106,48 +108,53 @@ class PtReportWorkflow(Workflow):
 		self.result_info.run()
 
 	def dedup_run(self):
-		api_read_tab = self.api.tab_file
-		n = 0
-		temp = re.match('WQ([1-9].*)-F.*', self.option('dad_id'))
-		num = int(temp.group(1))
-		num_list = range(num-self.option('dedup_num'), num+self.option('dedup_num')+1)
-		name_list = []
-		for m in num_list:
-			x = api_read_tab.dedup_sample_report(m)
-			if len(x): #如果库中能取到前后的样本
-				for k in range(len(x)):
-					name_list.append(x[k])
-		name_list = list(set(name_list))
-		for i in name_list:
-			if i == self.option('dad_id'):
-				pass
-			else:
-				pt_analysis_dedup = self.add_module("paternity_test.pt_analysis")
-				api_read_tab = self.api.tab_file
-				api_read_tab.export_tab_file(i, self.output_dir)
-				pt_analysis_dedup.set_options({
-					"dad_tab": self.output_dir + '/' + i + '.tab',  # 数据库的tab文件
-					"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
-					"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
-					"ref_point": self.option("ref_point"),
-					"err_min": self.option("err_min")
-				}
-				)
-			# step = getattr(self.step, 'dedup_{}'.format(n))
-			# step.start()
-			# pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
-				self.tools_dedup.append(pt_analysis_dedup)
-				n += 1
-		for j in range(len(self.tools_dedup)):
-			self.tools_dedup[j].on('end', self.set_output, 'dedup')
-		if len(self.tools_dedup) > 1:
-			self.on_rely(self.tools_dedup, self.end)
-		elif len(self.tools_dedup) == 1:
-			self.tools_dedup[0].on('end', self.end)
+		"""
+		查重部分新机制
+		:return:
+		"""
+		father_data = self.output_dir + "/" + "father"
+		if not os.path.exists(father_data):
+			os.mkdir(father_data)
+		if self.option('dedup_num') != "all":
+			api_read_tab = self.api.tab_file
+			temp = re.match('WQ([1-9].*)-F.*', self.option('dad_id'))
+			num = int(temp.group(1))
+			num_list = range(num-int(self.option('dedup_num')), num+int(self.option('dedup_num'))+1)
+			name_list = []
+			for m in num_list:
+				x = api_read_tab.dedup_sample_report(m)
+				if len(x): #如果库中能取到前后的样本
+					for k in range(len(x)):
+						name_list.append(x[k])
+			name_list = list(set(name_list))
+			self.logger.info("name_list:%s" % name_list)
+			for m in name_list:
+				api_read_tab.export_tab_file(str(m), father_data)
+			self.pt_analysis_dedup.set_options({
+				# "dad_list": dad_list,  # 数据库的tab文件
+				"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
+				"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
+				"ref_point": self.option("ref_point"),
+				"err_min": self.option("err_min"),
+				"father_path": father_data + "/",
+				"dad_id": self.option('dad_id')
+			})
+			self.pt_analysis_dedup.on('end', self.set_output, 'dedup')
+			self.pt_analysis_dedup.on('end', self.end)
+			self.pt_analysis_dedup.run()
 		else:
-			self.end()
-		for tool in self.tools_dedup:
-			tool.run()
+			self.pt_analysis_dedup.set_options({
+				# "dad_list": dad_list,  # 数据库的tab文件
+				"mom_tab": self.output_dir + '/' + str(self.option('mom_id')) + '.tab',
+				"preg_tab": self.output_dir + '/' + str(self.option('preg_id')) + '.tab',
+				"ref_point": self.option("ref_point"),
+				"err_min": self.option("err_min"),
+				"father_path": self.ref_data,
+				"dad_id": self.option('dad_id')
+			})
+			self.pt_analysis_dedup.on('end', self.set_output, 'dedup')
+			self.pt_analysis_dedup.on('end', self.end)
+			self.pt_analysis_dedup.run()
 
 	def linkdir(self, dirpath, dirname):
 		"""
@@ -190,18 +197,20 @@ class PtReportWorkflow(Workflow):
 			# api_main.add_pt_figure(obj.output_dir)
 
 		if event['data'] == "dedup":
-			self.linkdir(obj.output_dir + '/family_analysis', self.output_dir)
+			self.linkdir(obj.output_dir, self.output_dir)
 
 
 	def run(self):
 		self.pt_analysis.on('end', self.result_info_run)
 		self.result_info.on('end', self.dedup_run)
+		# self.pt_analysis_dedup.on('end', self.end)
 		self.pt_analysis_run()
 		super(PtReportWorkflow, self).run()
 
 
 
 	def end(self):
+		self.logger.info("开始end函数")
 		api_main = self.api.sg_paternity_test
 
 		results = os.listdir(self.output_dir)
@@ -210,6 +219,7 @@ class PtReportWorkflow(Workflow):
 		mom_id = self.option('mom_id')
 		preg_id = self.option('preg_id')
 		dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
+		dedup_new = dad_id + "_" + mom_id + '_' + preg_id + '.txt'
 		for f in results:
 			if re.search(dedup, f):
 				api_main.add_analysis_tab(self.output_dir + '/' + f, self.pt_father_id)
@@ -222,6 +232,9 @@ class PtReportWorkflow(Workflow):
 			elif f == dad_id + '_' + mom_id + '_' + preg_id + '_family.png':
 				file_dir = self.output_dir + '/' + dad_id + '_' + mom_id + '_' + preg_id
 				api_main.add_pt_father_figure(file_dir, self.pt_father_id)
+			elif str(f) == str(dedup_new):
+				self.logger.info(f)
+				api_main.import_dedup_data(self.output_dir + '/' + f, self.pt_father_id)
 
 		# self.update_status_api = self.api.pt_update_status
 		# self.update_status_api.add_pt_status(table_id=self.option('pt_father_id'), table_name='sg_pt_father',

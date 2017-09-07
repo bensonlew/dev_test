@@ -192,7 +192,7 @@ class RefrnaCopyMongo(object):
 
     def annotation_query(self):
         annotation_query_dict = self.copy_collection_with_change('sg_annotation_query', change_positions=[], update_sg_status=False)
-        self.copy_main_details('sg_annotation_query_detail', 'query_id', annotation_query_dict, join=False)
+        # self.copy_main_details('sg_annotation_query_detail', 'query_id', annotation_query_dict, join=False)
 
     def assessment_chrom_distribution(self):
         assessment_chrom_distribution_dict = self.copy_collection_with_change('sg_assessment_chrom_distribution', change_positions=[], update_sg_status=False)
@@ -241,7 +241,7 @@ class RefrnaCopyMongo(object):
 
     def express_class_code(self):
         class_code_dict = self.copy_collection_with_change("sg_express_class_code", change_positions=[], update_sg_status=False)
-        self.copy_main_details("sg_express_class_code_detail", "class_code_id", class_code_dict, join=False)
+        # self.copy_main_details("sg_express_class_code_detail", "class_code_id", class_code_dict, join=False)
 
     def geneset_venn(self):
         geneset_venn_dict = self.copy_collection_with_change("sg_geneset_venn", change_positions=[],update_sg_status=False)
@@ -284,9 +284,9 @@ class RefrnaCopyMongo(object):
 
     def snp(self):
         snp_dict = self.copy_collection_with_change('sg_snp', change_positions=[], update_sg_status=False)
-        self.copy_main_details('sg_snp_detail', 'snp_id', snp_dict, join=False)
-        # self.copy_main_details('sg_snp_graphic', 'snp_id', snp_dict, join=False)
-        self.copy_main_details('sg_snp_stat', 'snp_id', snp_dict, join=False)
+        # self.copy_main_details('sg_snp_detail', 'snp_id', snp_dict, join=False)
+        # # self.copy_main_details('sg_snp_graphic', 'snp_id', snp_dict, join=False)
+        # self.copy_main_details('sg_snp_stat', 'snp_id', snp_dict, join=False)
 
     def species_information(self):
         species_information_dict = self.copy_collection_with_change('sg_species_information', change_positions=[], update_sg_status=False)
@@ -319,7 +319,7 @@ class RefrnaCopyMongo(object):
         find['member_id'] = self._new_member_id
         find.pop('_id')
         find['project_sn'] = self._new_project_sn
-        find['is_demo'] = 2
+        find['is_demo'] = 1
         try:
             find['demo_id'] = self._old_task_id
         except:
@@ -589,6 +589,15 @@ class RefrnaCopyMongo(object):
             """
             更新sg_splicing_rmats的ref_gtf和params里的splicing_id
             """
+            find = self.db["sg_splicing_rmats"].find_one({"task_id": self._new_task_id})  # 同一个task_id里params里的splcing_id皆为第一个主表的_id
+            if 'params' in find:
+                params_str = find['params']
+                try:
+                    params = json.loads(params_str)
+                    if 'splicing_id' in params:
+                        splicing_id = str(find['_id'])
+                except Exception:
+                    raise Exception("sg_splicing_rmats表的params非json格式")
             finds = self.db["sg_splicing_rmats"].find({"task_id": self._new_task_id})
             for i in finds:
                 if self._new_ref_gtf:
@@ -597,10 +606,10 @@ class RefrnaCopyMongo(object):
                     params_str = i['params']
                     try:
                         params = json.loads(params_str)
+                        if 'splicing_id' in params:
+                            params['splicing_id'] = splicing_id
                     except Exception:
                         raise Exception("sg_splicing_rmats表的params非json格式")
-                    if 'splicing_id' in params:
-                        params['splicing_id'] = str(i['_id'])
                     new_params = json.dumps(params, sort_keys=True, separators=(',', ':'))
                     self.db["sg_splicing_rmats"].update_one({"_id": i["_id"]}, {"$set": {"params": new_params}})
 

@@ -13,13 +13,16 @@ class RefrnaCopyDelete(object):
         task_id:task_id，detatil_coll:主表对应的详细表, change_option:详细表中主表字段
         """
         results = self.db[main_coll].find({"task_id": task_id})
-        for result in results:
-            main_id = result["_id"]
-            for coll in detatil_coll:
-                items = self.db[coll].remove({change_option: main_id})
-                print "成功删除task_id为{}的细节表{}".format(task_id, coll)
-            self.db[main_coll].remove({"_id": result["_id"]})
-            print "成功删除task_id为{}的主表{}".format(task_id, main_coll)
+        if results:
+            for result in results:
+                main_id = result["_id"]
+                for coll in detatil_coll:
+                    items = self.db[coll].remove({change_option: main_id})
+                    print "成功删除task_id为{}的细节表{}".format(task_id, coll)
+                self.db[main_coll].remove({"_id": result["_id"]})
+                print "成功删除task_id为{}的主表{}".format(task_id, main_coll)
+        else:
+            print "没有找到task_id为{}的主表{}".format(task_id, main_coll)
 
     def remove(self, task_id):
         self.remove_collection(task_id=task_id, main_coll="sg_task", detatil_coll=[], change_option="")
@@ -65,10 +68,13 @@ class RefrnaCopyDelete(object):
         self.remove_collection(task_id=task_id, main_coll="sg_transcripts", detatil_coll=["sg_transcripts_seq_type", "sg_transcripts_step", "sg_transcripts_relations"], change_option="transcripts_id")
 
     def find_task_id(self, task_id):
-        results = self.db["sg_task"].find({"task_id": {"$regex": task_id + "_"}})
-        for result in results:
-            target_task_id = result["task_id"]
-            self.remove(target_task_id)
+        results = self.db["sg_task"].find({"task_id": {"$regex": task_id + "_.*_.*"}})
+        if results:
+            for result in results:
+                target_task_id = result["task_id"]
+                self.remove(target_task_id)
+        else:
+            print "没有找到以task_id为{}备份的demo,请检查!".format(task_id)
 
 
 if __name__ == "__main__":
