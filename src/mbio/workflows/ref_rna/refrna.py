@@ -923,6 +923,7 @@ class RefrnaWorkflow(Workflow):
         for file_dir in os.listdir(origin_dir + "/../Rmats/output/"):
             as_path = origin_dir + "/../Rmats/output/"+ file_dir + "/all_events_detail_big_table.txt"
             os.link(as_path, target_dir + "/AS/" + "ASRmats_" + file_dir + "_G_ref_anno.xls")
+        self.add_upload_dir(self.work_dir + "/upload_results")
 
 
     def run_api_and_set_output(self, test=False):
