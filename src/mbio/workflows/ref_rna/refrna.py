@@ -287,6 +287,12 @@ class RefrnaWorkflow(Workflow):
             "mid_dis": self.option("mid_dis"),
             "result_reserved": self.option("result_reserved")
         }
+        if self.option("strand_specific"):
+            opts.update(
+                {
+                    "strand_specific":True,
+                 }
+            )
         self.mapping.set_options(opts)
         self.mapping.on("end", self.set_output, "mapping")
         self.mapping.on("start", self.set_step, {"start": self.step.mapping})
@@ -740,7 +746,7 @@ class RefrnaWorkflow(Workflow):
         os.makedirs(target_dir + "/Assemble/NewAnnotation")
         file_path = origin_dir + "/assembly/Gffcompare/cuffcmp.annotated.gtf"
         os.link(file_path, target_dir + "/Assemble/AssembleResults/cuffcmp.annotated.gtf")
-
+        # 
 
 
     def run_api_and_set_output(self, test=False):
@@ -756,32 +762,33 @@ class RefrnaWorkflow(Workflow):
             self.filecheck.option("gtf", self.filecheck.work_dir + "/" + file)
             self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.logger.info("进行第一阶段导表")
-        # self.export_qc()
-        # self.export_exp_fc(test)
-        # greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
-        # greenlets_list_first.append(gevent.spawn(self.export_genome_info))
+        # self.export_test()
+        self.export_qc()
+        self.export_exp_fc(test)
         greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
-        # greenlets_list_sec.append(gevent.spawn(self.export_exp_fc, test))
-        # greenlets_list_first.append(gevent.spawn(self.export_exp_rsem_tpm, test))
-        # greenlets_list_first.append(gevent.spawn(self.export_as))
-        # greenlets_list_first.append(gevent.spawn(self.export_annotation))
-        # greenlets_list_first.append(gevent.spawn(self.export_assembly))
-        # greenlets_list_first.append(gevent.spawn(self.export_snp))
-        # greenlets_list_first.append(gevent.spawn(self.export_map_assess))
+        greenlets_list_first.append(gevent.spawn(self.export_genome_info))
+        greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
+        greenlets_list_sec.append(gevent.spawn(self.export_exp_fc, test))
+        greenlets_list_first.append(gevent.spawn(self.export_exp_rsem_tpm, test))
+        greenlets_list_first.append(gevent.spawn(self.export_as))
+        greenlets_list_first.append(gevent.spawn(self.export_annotation))
+        greenlets_list_first.append(gevent.spawn(self.export_assembly))
+        greenlets_list_first.append(gevent.spawn(self.export_snp))
+        greenlets_list_first.append(gevent.spawn(self.export_map_assess))
         gevent.joinall(greenlets_list_first)
-        # self.logger.info("进行第二阶段导表")
-        # self.export_exp_rsem_fpkm(test)
-        # greenlets_list_sec.append(gevent.spawn(self.export_ref_gene_set))
-        # greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_gene))
-        # greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_trans))
-        # greenlets_list_sec.append(gevent.spawn(self.export_cor))
-        # greenlets_list_sec.append(gevent.spawn(self.export_pca))
-        # gevent.joinall(greenlets_list_sec)
-        # self.logger.info("进行第三阶段导表")
-        # greenlets_list_third.append(gevent.spawn(self.export_gene_set))
-        # greenlets_list_third.append(gevent.spawn(self.export_diff_gene))
-        # greenlets_list_third.append(gevent.spawn(self.export_diff_trans))
-        # gevent.joinall(greenlets_list_third)
+        self.logger.info("进行第二阶段导表")
+        self.export_exp_rsem_fpkm(test)
+        greenlets_list_sec.append(gevent.spawn(self.export_ref_gene_set))
+        greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_gene))
+        greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_trans))
+        greenlets_list_sec.append(gevent.spawn(self.export_cor))
+        greenlets_list_sec.append(gevent.spawn(self.export_pca))
+        gevent.joinall(greenlets_list_sec)
+        self.logger.info("进行第三阶段导表")
+        greenlets_list_third.append(gevent.spawn(self.export_gene_set))
+        greenlets_list_third.append(gevent.spawn(self.export_diff_gene))
+        greenlets_list_third.append(gevent.spawn(self.export_diff_trans))
+        gevent.joinall(greenlets_list_third)
         self.logger.info("导表完成")
         # self.export_as()
         # self.export_annotation()
@@ -797,6 +804,12 @@ class RefrnaWorkflow(Workflow):
         # self.export_diff_trans()
         # self.export_cor()
         # self.export_pca()
+
+    def export_test(self):
+        self.api_qc = self.api.ref_rna_qc
+        from bson import ObjectId
+        self.group_id = ObjectId("59ae0a75a4e1af55d523f91a")
+        self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
 
     @time_count
     def export_genome_info(self):
@@ -823,7 +836,8 @@ class RefrnaWorkflow(Workflow):
         self.api_qc.add_gragh_info(quality_stat_after, "after")
         self.group_id, self.group_detail, self.group_category = self.api_qc.add_specimen_group(self.option("group_table").prop["path"])
         self.logger.info("group_detail为：" + str(self.group_detail))
-        self.control_id, self.compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
+        self.control_id, compare_detail = self.api_qc.add_control_group(self.option("control_file").prop["path"], self.group_id)
+        self.compare_detail = compare_detail
         self.api_qc.add_bam_path(self.mapping.output_dir)
 
     @time_count

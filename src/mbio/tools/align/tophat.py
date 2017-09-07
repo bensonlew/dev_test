@@ -29,7 +29,8 @@ class TophatAgent(Agent):
             {"name": "sample", "type": "string"},
             {"name": "mate_std", "type": "int", "default": 50},  # 末端配对插入片段长度标准差
             {"name": "mid_dis", "type": "int", "default": 50},  # 两个成对引物间的距离中间值
-            {"name": "result_reserved", "type": "int", "default": 1}  # 最多保留的比对结果数目
+            {"name": "result_reserved", "type": "int", "default": 1},  # 最多保留的比对结果数目
+            {"name": "strand_specific", "type": "bool", "default": "False"}
             ]
         self.add_option(options)
         self.step.add_steps('Tophat')
@@ -111,6 +112,8 @@ class TophatTool(Tool):
                                       self.option("right_reads").prop['path'])
         else:
             cmd += " {} {}".format(index_ref, self.option("single_end_reads").prop['path'])
+        if self.option("strand_specific"):
+            cmd += " --library-type fr-firststrand"
         tophat_command = self.add_command("tophat", cmd)
         self.logger.info("开始运行tophat")
         tophat_command.run()

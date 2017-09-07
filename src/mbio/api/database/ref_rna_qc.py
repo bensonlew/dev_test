@@ -245,8 +245,8 @@ class RefRnaQc(Base):
         data = {
             "task_id": self.bind_object.sheet.id,
             "compare_group_name": group_name,
-            "compare_names": str(con_list),
-            "compare_category_name": category_names,
+            "compare_names": json.dumps(con_list),
+            "compare_category_name": "all",
             "specimen_group_id": str(group_id)
         }
         col = self.db["sg_specimen_group_compare"]
@@ -678,5 +678,4 @@ class RefRnaQc(Base):
             print("导入比对结果统计信息成功")
 
 if __name__ == "__main__":
-    a =
     dir_path = "/mnt/ilustre/users/sanger-test/workspace/20170627/Refrna_mouse_6/MapAssessment/output/chr_stat"

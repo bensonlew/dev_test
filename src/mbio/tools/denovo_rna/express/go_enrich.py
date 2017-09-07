@@ -23,7 +23,8 @@ class GoEnrichAgent(Agent):
             # {"name": "all_list", "type": "infile", "format": "rna.gene_list"},
             {"name": "go_list", "type": "infile", "format": "annotation.go.go_list"},  # test
             {"name": "pval", "type": "string", "default": "0.05"},
-            {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"}
+            {"name": "method", "type": "string", "default": "bonferroni,sidak,holm,fdr"},
+            {"name": "class_code", "type": "string"}
             ]
         self.add_option(options)
         self.step.add_steps("goenrich")
