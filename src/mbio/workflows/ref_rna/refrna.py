@@ -719,7 +719,7 @@ class RefrnaWorkflow(Workflow):
 
     def modify_output(self):
         if os.path.exists(self.work_dir + "/upload_results"):
-            os.removedirs(self.work_dir + "/upload_results")
+            shutil.rmtree(self.work_dir + "/upload_results")
         os.mkdir(self.work_dir + "/upload_results")
         origin_dir = self.output_dir
         target_dir = self.work_dir + "/upload_results"
@@ -740,13 +740,189 @@ class RefrnaWorkflow(Workflow):
             os.link(file_path, target_dir + "/Align/QualityAssessment/" + file.strip("_stat.xls") + "_distribution.xls")
         for file in os.listdir(origin_dir + "/map_qc/distribution"):  # link region_distribution.xls
             file_path = os.path.join(origin_dir + "/map_qc/distribution", file)
-            os.link(file_path, target_dir + "/map_qc/distribution/" + file.strip("reads_distribution.txt") + ".region_distribution.xls")
+            os.link(file_path, target_dir + "/Align/QualityAssessment/" + file.strip(".reads_distribution.txt") + ".region_distribution.xls")
         # Assemble
         os.makedirs(target_dir + "/Assemble/AssembleResults")
         os.makedirs(target_dir + "/Assemble/NewAnnotation")
+        # AssembleResult
         file_path = origin_dir + "/assembly/Gffcompare/cuffcmp.annotated.gtf"
         os.link(file_path, target_dir + "/Assemble/AssembleResults/cuffcmp.annotated.gtf")
-        # 
+        ########
+        classcode_path = origin_dir + "/assembly/Statistics/code_num.txt"
+        os.link(classcode_path, target_dir + "/Assemble/AssembleResults/classcode_statistics.txt")
+        newgenegtf_path = origin_dir + "/assembly/NewTranscripts/new_genes.gtf"
+        os.link(newgenegtf_path, target_dir + "/Assemble/AssembleResults/new_gene.gtf")
+        newtransgtf_path = origin_dir + "/assembly/NewTranscripts/new_transcripts.gtf"
+        os.link(newtransgtf_path, target_dir + "/Assemble/AssembleResults/new_trans.gtf")
+        # NewAnnotation
+        allannot_path = origin_dir + "/../RefAnnotation/output/anno_stat/all_annotation_statistics.xls"
+        os.link(allannot_path, target_dir + "/Assemble/NewAnnotation/all_annotation_statistics.xls")
+        os.makedirs(target_dir + "/Assemble/NewAnnotation/NR")
+        os.makedirs(target_dir + "/Assemble/NewAnnotation/Swiss-Prot")
+        os.makedirs(target_dir + "/Assemble/NewAnnotation/Pfam")
+        newgenenrannot_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast/gene_nr.xls"
+        os.link(newgenenrannot_path, target_dir + "/Assemble/NewAnnotation/NR/newgene_ nr_annot.xls")
+        newtransnrannot_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast/nr.xls"
+        os.link(newtransnrannot_path, target_dir + "/Assemble/NewAnnotation/NR/newtrans_ nr_annot.xls")
+        newgenenrevalue_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_nr_statistics/gene_nr_evalue.xls"
+        os.link(newgenenrevalue_path, target_dir + "/Assemble/NewAnnotation/NR/newgene_nr_evalue.xls")
+        newtransnrevalue_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_nr_statistics/nr_evalue.xls"
+        os.link(newtransnrevalue_path, target_dir + "/Assemble/NewAnnotation/NR/newtrans_nr_evalue.xls")
+        newgenenrsimi_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_nr_statistics/gene_nr_similar.xls"
+        os.link(newgenenrsimi_path, target_dir + "/Assemble/NewAnnotation/NR/newgene_nr_similar.xls")
+        newtransnrsimi_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_nr_statistics/nr_similar.xls"
+        os.link(newtransnrsimi_path, target_dir + "/Assemble/NewAnnotation/NR/newtrans_nr_similar.xls")
+        newgeneswissannot_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast/gene_swissprot.xls"
+        os.link(newgeneswissannot_path, target_dir + "/Assemble/NewAnnotation/Swiss-Prot/newgene_swissprot_annot.xls")
+        newtransswissannot_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast/swissprot.xls"
+        os.link(newtransswissannot_path, target_dir + "/Assemble/NewAnnotation/Swiss-Prot/newtrans_swissprot_annot.xls")
+        newgeneswisevalue_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_swissprot_statistics/gene_swissprot_evalue.xls"
+        os.link(newgeneswisevalue_path, target_dir + "/Assemble/NewAnnotation/Swiss-Prot/newgene_swissprot_evalue.xls")
+        newgeneswissimi_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_swissprot_statistics/gene_swissprot_similar.xls"
+        os.link(newgeneswissimi_path, target_dir + "/Assemble/NewAnnotation/Swiss-Prot/newgene_swissprot_similar.xls")
+        newtransswisevalue_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_swissprot_statistics/swissprot_evalue.xls"
+        os.link(newtransswisevalue_path, target_dir + "/Assemble/NewAnnotation/Swiss-Prot/newtrans_swissprot_evalue.xls")
+        newtransswissimi_path = origin_dir + "/../RefAnnotation/output/anno_stat/blast_swissprot_statistics/swissprot_similar.xls"
+        os.link(newtransswissimi_path, target_dir + "/Assemble/NewAnnotation/Swiss-Prot/newtrans_swissprot_similar.xls")
+        newgenepfam_path = origin_dir + "/../RefAnnotation/output/anno_stat/pfam_stat/gene_pfam_domain"
+        os.link(newgenepfam_path, target_dir + "/Assemble/NewAnnotation/Pfam/newgene_pfam_annot.xls")
+        newtranspfam_path = origin_dir + "/../Orf/pfam_domain"
+        os.link(newtranspfam_path, target_dir + "/Assemble/NewAnnotation/Pfam/newtrans_pfam_annot.xls")
+        #Annotation
+        os.makedirs(target_dir + "/Annotation")
+        refall_path = self.anno_path + "/anno_stat/all_annotation_statistics.xls"
+        os.link(refall_path, target_dir + "/Annotation/ref_all_annot_statistics.xls")
+        newall_path = origin_dir + "/../RefAnnotation/output/anno_stat/all_annotation_statistics.xls"
+        os.link(newall_path, target_dir + "/Annotation/new_all_annot_statistics.xls")
+        # GeneAnnotation
+        os.makedirs(target_dir + "/Annotation/GeneAnnotation/AnnoOverview")
+        os.makedirs(target_dir + "/Annotation/GeneAnnotation/COG")
+        os.makedirs(target_dir + "/Annotation/GeneAnnotation/GO")
+        os.makedirs(target_dir + "/Annotation/GeneAnnotation/KEGG")
+        refgenedetail_path =  self.anno_path + "/anno_stat/gene_anno_detail.xls"
+        os.link(refgenedetail_path, target_dir + "/Annotation/GeneAnnotation/AnnoOverview/refgene_anno_detail.xls")
+        newgenedetail_path =  origin_dir + "/../RefAnnotation/output/anno_stat/gene_anno_detail.xls"
+        os.link(newgenedetail_path, target_dir + "/Annotation/GeneAnnotation/AnnoOverview/newgene_anno_detail.xls")
+        refgenecog_path = self.anno_path + "/anno_stat/cog_stat/gene_cog_summary.xls"
+        os.link(refgenecog_path, target_dir + "/Annotation/GeneAnnotation/COG/refgene_cog_statistics.xls")
+        newgenecog_path = origin_dir + "/../RefAnnotation/output/anno_stat/cog_stat/gene_cog_summary.xls"
+        os.link(newgenecog_path, target_dir + "/Annotation/GeneAnnotation/COG/newgene_cog_statistics.xls")
+        refgenegolist_path = self.anno_path + "/anno_stat/go_stat/gene_gos.list"
+        os.link(refgenegolist_path, target_dir + "/Annotation/GeneAnnotation/GO/refgene_gos.list")
+        newgenegolist_path = origin_dir + "/../RefAnnotation/output/anno_stat/go_stat/gene_gos.list"
+        os.link(newgenegolist_path, target_dir + "/Annotation/GeneAnnotation/GO/newgene_gos.list")
+        refgenegoleve12_path = self.anno_path + "/anno_stat/go_stat/gene_go12level_statistics.xls"
+        os.link(refgenegoleve12_path, target_dir + "/Annotation/GeneAnnotation/GO/refgene_go_lev12_statistics.xls")
+        refgenegoleve123_path = self.anno_path + "/anno_stat/go_stat/gene_go123level_statistics.xls"
+        os.link(refgenegoleve123_path, target_dir + "/Annotation/GeneAnnotation/GO/refgene_go_lev123_statistics.xls")
+        refgenegoleve1234_path = self.anno_path + "/anno_stat/go_stat/gene_go1234level_statistics.xls"
+        os.link(refgenegoleve1234_path, target_dir + "/Annotation/GeneAnnotation/GO/refgene_go_lev1234_statistics.xls")
+        newgenegoleve12_path = origin_dir + "/../RefAnnotation/output/anno_stat/go_stat/gene_go12level_statistics.xls"
+        os.link(newgenegoleve12_path, target_dir + "/Annotation/GeneAnnotation/GO/newgene_go_lev12_statistics.xls")
+        newgenegoleve123_path = origin_dir + "/../RefAnnotation/output/anno_stat/go_stat/gene_go123level_statistics.xls"
+        os.link(newgenegoleve123_path, target_dir + "/Annotation/GeneAnnotation/GO/newgene_go_lev123_statistics.xls")
+        newgenegoleve1234_path = origin_dir + "/../RefAnnotation/output/anno_stat/go_stat/gene_go1234level_statistics.xls"
+        os.link(newgenegoleve1234_path, target_dir + "/Annotation/GeneAnnotation/GO/newgene_go_lev1234_statistics.xls")
+        os.makedirs(target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway")
+        for file in os.listdir(self.anno_path + "/anno_stat/kegg_stat/gene_pathway"): #DiffExp文件夹对应gene refandnew
+            refgenepathway_path = os.path.join(self.anno_path + "/anno_stat/kegg_stat/gene_pathway", file)
+            os.link(refgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway/" + file)
+        # refgenepathway_path = self.anno_path + "/anno_stat/kegg_stat/gene_pathway"
+        #os.link(refgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway")
+        refgenekegglayer_path = self.anno_path + "/anno_stat/kegg_stat/gene_kegg_layer.xls"
+        os.link(refgenekegglayer_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_kegg_layer.xls")
+        refgenekeggtable_path = self.anno_path + "/anno_stat/kegg_stat/gene_kegg_table.xls"
+        os.link(refgenekeggtable_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_kegg_table.xls")
+        # TransAnnotation
+        os.makedirs(target_dir + "/Annotation/TransAnnotation/AnnoOverview")
+        os.makedirs(target_dir + "/Annotation/TransAnnotation/COG")
+        os.makedirs(target_dir + "/Annotation/TransAnnotation/GO")
+        os.makedirs(target_dir + "/Annotation/TransAnnotation/KEGG")
+        reftransdetail_path =  self.anno_path + "/anno_stat/trans_anno_detail.xls"
+        os.link(reftransdetail_path, target_dir + "/Annotation/TransAnnotation/AnnoOverview/reftrans_anno_detail.xls")
+        newtransdetail_path =  origin_dir + "/../RefAnnotation/output/anno_stat/trans_anno_detail.xls"
+        os.link(newtransdetail_path, target_dir + "/Annotation/TransAnnotation/AnnoOverview/newtrans_anno_detail.xls")
+        reftranscog_path = self.anno_path + "/cog/cog_summary.xls"
+        os.link(reftranscog_path, target_dir + "/Annotation/TransAnnotation/COG/reftrans_cog_statistics.xls")
+        newtranscog_path = origin_dir + "/../RefAnnotation/output/cog/cog_summary.xls"
+        os.link(newtranscog_path, target_dir + "/Annotation/TransAnnotation/COG/newtrans_cog_statistics.xls")
+        reftransgolist_path = self.anno_path + "/go/query_gos.list"
+        os.link(reftransgolist_path, target_dir + "/Annotation/TransAnnotation/GO/reftrans_gos.list")
+        newtransgolist_path = origin_dir + "/../RefAnnotation/output/go/query_gos.list"
+        os.link(newtransgolist_path, target_dir + "/Annotation/TransAnnotation/GO/newtrans_gos.list")
+        reftransgoleve12_path = self.anno_path + "/go/go12level_statistics.xls"
+        os.link(reftransgoleve12_path, target_dir + "/Annotation/TransAnnotation/GO/reftrans_go_lev12_statistics.xls")
+        reftransgoleve123_path = self.anno_path + "/go/go123level_statistics.xls"
+        os.link(reftransgoleve123_path, target_dir + "/Annotation/TransAnnotation/GO/reftrans_go_lev123_statistics.xls")
+        reftransgoleve1234_path = self.anno_path + "/go/go1234level_statistics.xls"
+        os.link(reftransgoleve1234_path, target_dir + "/Annotation/TransAnnotation/GO/reftrans_go_lev1234_statistics.xls")
+        newtransgoleve12_path = origin_dir + "/../RefAnnotation/output/go/go12level_statistics.xls"
+        os.link(newtransgoleve12_path, target_dir + "/Annotation/TransAnnotation/GO/newtrans_go_lev12_statistics.xls")
+        newtransgoleve123_path = origin_dir + "/../RefAnnotation/output/go/go123level_statistics.xls"
+        os.link(newtransgoleve123_path, target_dir + "/Annotation/TransAnnotation/GO/newtrans_go_lev123_statistics.xls")
+        newtransgoleve1234_path = origin_dir + "/../RefAnnotation/output/go/go1234level_statistics.xls"
+        os.link(newtransgoleve1234_path, target_dir + "/Annotation/TransAnnotation/GO/newtrans_go_lev1234_statistics.xls")
+        os.makedirs(target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_pathway")
+        for file in os.listdir(self.anno_path + "/kegg/pathways"):
+            reftranspathway_path = os.path.join(self.anno_path + "/kegg/pathways", file)
+            os.link(reftranspathway_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_pathway" + file)
+        #reftranspathway_path = self.anno_path + "/kegg/pathways"
+        #os.link(reftranspathway_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_pathway")
+        reftranskegglayer_path = self.anno_path + "/kegg/kegg_layer.xls"
+        os.link(reftranskegglayer_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_kegg_layer.xls")
+        reftranskeggtable_path = self.anno_path + "/kegg/kegg_table.xls"
+        os.link(reftranskeggtable_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_kegg_table.xls")
+        #Expression
+        os.makedirs(target_dir + "/ExpAnalysis")
+        os.makedirs(target_dir + "/ExpAnalysis/GeneExp")
+        os.makedirs(target_dir + "/ExpAnalysis/TransExp")
+        genersemfpkm_path = origin_dir + "/exp/rsem/genes.TMM.fpkm.matrix"
+        os.link(genersemfpkm_path, target_dir + "/ExpAnalysis/GeneExp/ExpStat_G_rsem_fpkm.xls")
+        genersemcount_path = origin_dir + "/exp/rsem/genes.counts.matrix"
+        os.link(genersemcount_path, target_dir + "/ExpAnalysis/GeneExp/ExpStat_G_rsem_count.xls")
+        genersemtpm_path = origin_dir + "/../Express/MergeRsem1/genes.TMM.EXPR.matrix"
+        os.link(genersemtpm_path, target_dir + "/ExpAnalysis/GeneExp/ExpStat_G_rsem_tpm.xls")
+        genefcfpkm_path = origin_dir + "/exp_fc_all/featurecounts/fpkm_tpm.fpkm.xls"
+        os.link(genefcfpkm_path, target_dir + "/ExpAnalysis/GeneExp/ExpStat_G_feacount_fpkm.xls")
+        genefctpm_path = origin_dir + "/exp_fc_all/featurecounts/fpkm_tpm.tpm.xls"
+        os.link(genefctpm_path, target_dir + "/ExpAnalysis/GeneExp/ExpStat_G_feacount_tpm.xls")
+        genefccount_path = origin_dir + "/exp_fc_all/featurecounts/count.xls"
+        os.link(genefccount_path, target_dir + "/ExpAnalysis/GeneExp/ExpStat_G_feacount_count.xls")
+        transrsemfpkm_path = origin_dir + "/exp/rsem/transcripts.TMM.fpkm.matrix"
+        os.link(transrsemfpkm_path, target_dir + "/ExpAnalysis/TransExp/ExpStat_T_rsem_fpkm.xls")
+        transrsemcount_path = origin_dir + "/exp/rsem/transcripts.counts.matrix"
+        os.link(transrsemcount_path, target_dir + "/ExpAnalysis/TransExp/ExpStat_T_rsem_count.xls")
+        transrsemtpm_path = origin_dir + "/../Express/MergeRsem1/transcripts.TMM.EXPR.matrix"
+        os.link(transrsemtpm_path, target_dir + "/ExpAnalysis/TransExp/ExpStat_T_rsem_tpm.xls")
+        # DiffExpAnalysis
+        os.makedirs(target_dir + "/DiffExpAnalysis")
+        os.makedirs(target_dir + "/DiffExpAnalysis/DiffExpRef")
+        os.makedirs(target_dir + "/DiffExpAnalysis/DiffExpRef/GeneRef")
+        os.makedirs(target_dir + "/DiffExpAnalysis/DiffExpRef/TransRef")
+        os.makedirs(target_dir + "/DiffExpAnalysis/DiffExpRefandnew")
+        os.makedirs(target_dir + "/DiffExpAnalysis/DiffExpRefandnew/GeneRefandnew")
+        os.makedirs(target_dir + "/DiffExpAnalysis/DiffExpRefandnew/TransRefandnew")
+        for file in os.listdir(origin_dir + "/../Express/DiffExp/output"): #DiffExp文件夹对应gene refandnew
+            generefandnew_path = os.path.join(origin_dir + "/../Express/DiffExp/output", file)
+            os.link(generefandnew_path, target_dir + "/DiffExpAnalysis/DiffExpRefandnew/GeneRefandnew/" + "DiffExp_G_" + file.strip("_edgr_stat.xls") + "_refandnew.xls")
+        for file in os.listdir(origin_dir + "/../Express/DiffExp1/output"): #DiffExp文件夹对应transcript refandnew
+            transrefandnew_path = os.path.join(origin_dir + "/../Express/DiffExp1/output", file)
+            os.link(transrefandnew_path, target_dir + "/DiffExpAnalysis/DiffExpRefandnew/TransRefandnew/" + "DiffExp_T_" + file.strip("_edgr_stat.xls") + "_refandnew.xls")
+        for file in os.listdir(origin_dir + "/../Express/DiffExp2/output"): #DiffExp文件夹对应gene ref
+            generef_path = os.path.join(origin_dir + "/../Express/DiffExp2/output", file)
+            os.link(generef_path, target_dir + "/DiffExpAnalysis/DiffExpRef/GeneRef/" + "DiffExp_G_" + file.strip("_edgr_stat.xls") + "_ref.xls")
+        for file in os.listdir(origin_dir + "/../Express/DiffExp3/output"): #DiffExp文件夹对应transcript ref
+            transref_path = os.path.join(origin_dir + "/../Express/DiffExp3/output", file)
+            os.link(transref_path, target_dir + "/DiffExpAnalysis/DiffExpRef/TransRef/" + "DiffExp_T_" + file.strip("_edgr_stat.xls") + "_ref.xls")
+        # SNP
+        os.makedirs(target_dir + "/SNP")
+        snp_path = origin_dir + "/snp/snp_anno.xls"
+        os.link(snp_path, target_dir + "/SNP/snp_anno.xls")
+        # Alternative Splicing
+        os.makedirs(target_dir + "/AS")
+        for file_dir in os.listdir(origin_dir + "/../Rmats/output/"):
+            as_path = origin_dir + "/../Rmats/output/"+ file_dir + "/all_events_detail_big_table.txt"
+            os.link(as_path, target_dir + "/AS/" + "ASRmats_" + file_dir + "_G_ref_anno.xls")
 
 
     def run_api_and_set_output(self, test=False):
@@ -762,13 +938,12 @@ class RefrnaWorkflow(Workflow):
             self.filecheck.option("gtf", self.filecheck.work_dir + "/" + file)
             self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
         self.logger.info("进行第一阶段导表")
-        # self.export_test()
+
         self.export_qc()
         self.export_exp_fc(test)
         greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
         greenlets_list_first.append(gevent.spawn(self.export_genome_info))
         greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
-        greenlets_list_sec.append(gevent.spawn(self.export_exp_fc, test))
         greenlets_list_first.append(gevent.spawn(self.export_exp_rsem_tpm, test))
         greenlets_list_first.append(gevent.spawn(self.export_as))
         greenlets_list_first.append(gevent.spawn(self.export_annotation))

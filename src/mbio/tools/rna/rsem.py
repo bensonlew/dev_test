@@ -37,6 +37,8 @@ class RsemAgent(Agent):
             {"name": "max_memory", "type": "string", "default": "100G"}, # 设置内存
             {"name": "only_bowtie_build", "type": "bool", "default": False},  # 为true时该tool只建索引
             {"name": "bowtie_build_Rsem1", "type": "bool", "default": False},  # 为true时该tool需要建索引
+            {"name": "strand_specific", "type": "bool", "default": False},  # added by gdq
+            {"name": "strand_dir", "type": "string", "default": "forward"},  # added by gdq
         ]
         self.add_option(options)
         self.step.add_steps("Rsem1")
@@ -111,8 +113,25 @@ class RsemTool(Tool):
     def ref_Rsem1_run(self, fasta_build):
         data = FastqFile()
         if self.option("fq_type") == "PE":
-            cmd = self.Rsem1_path + "rsem-calculate-expression --paired-end -p 8 {} {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_l"),\
-               self.option("fq_r"), fasta_build, self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
+            if self.option('strand_specific'):
+                if self.option('strand_dir') == "forward":
+                    forward_prob = 0
+                else:
+                    forward_prob = 1
+            else:
+                forward_prob = 0.5
+            cmd = self.Rsem1_path + "rsem-calculate-expression " \
+                                    "--paired-end " \
+                                    "-p 8 " \
+                                    "{} {} {} {} " \
+                                    "--bowtie2 " \
+                                    "--bowtie2-path {} " \
+                                    "--forward-prob {}".format(self.option("fq_l"),
+                                                               self.option("fq_r"),
+                                                               fasta_build,
+                                                               self.output_dir +"/"+self.option("sample_name"),
+                                                               self.bowtie_path,
+                                                               forward_prob)
         elif self.option("fq_type") == "SE":
             cmd = self.Rsem1_path + "rsem-calculate-expression -p 8 {} {} {} --bowtie2 --bowtie2-path {}".format(self.option("fq_s"),\
                    fasta_build, self.output_dir+"/"+self.option("sample_name"), self.bowtie_path)
