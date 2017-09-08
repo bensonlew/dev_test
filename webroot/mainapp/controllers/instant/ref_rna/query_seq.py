@@ -31,9 +31,9 @@ class QuerySeqAction(RefRnaController):
         seq_id, sequence = self.query_seq(data.seq_type, data.seq_id, data.seq_db)
 
         # save
-        mongo_data = [('task_id', data.task_id),
-                      ('seq_id', seq_id),
-                      ('sequence', sequence), ]
+        mongo_data = dict([('task_id', data.task_id),
+                           ('seq_id', seq_id),
+                           ('sequence', sequence), ])
         self.ref_rna.insert_seq(mongo_data)
         info = {"success": True, "info": "提交成功"}
         return json.dumps(info)
