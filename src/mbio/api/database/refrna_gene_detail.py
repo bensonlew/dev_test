@@ -1,10 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import re
+import os
 import time
 import datetime
 import types
 import unittest
+import sqlite3
 from collections import OrderedDict, defaultdict
 from bson.objectid import ObjectId
 from bson.son import SON
@@ -382,6 +384,29 @@ class RefrnaGeneDetail(Base):
         print "从{}共统计出{}条序列信息".format(fasta_file, len(seq))
         return seq
 
+    @staticmethod
+    def build_seq_database(seq_dicts, db_path):
+        """
+        :param seq_dicts: {table_name, seq_dict}
+        :param db_path: abs path of seq db to be build.
+        :return:
+        """
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        # Create table
+
+        for table_name in seq_dicts:
+            cursor.execute('DROP TABLE IF EXISTS {}'.format(table_name))
+            cursor.execute('CREATE TABLE {} (seq_id text, sequence text)'.format(table_name))
+            seq_dict = seq_dicts[table_name]
+            for seq_id in seq_dict:
+                seq = seq_dict[seq_id]  # seq_id is transcript_id or gene_id
+                if type(seq) == dict:
+                    seq = seq_dict[seq_id]['sequence']
+                cursor.execute("INSERT INTO {} VALUES ('{}', '{}')".format(table_name, seq_id, seq))
+        conn.commit()
+        conn.close()
+
     def add_gene_detail_class_code_detail(self, class_code,
                                           biomart_path=None,
                                           biomart_type="type1",
@@ -447,6 +472,10 @@ class RefrnaGeneDetail(Base):
                 ('created_ts', create_time.strftime('%Y-%m-%d %H:%M:%S')), ('status', 'end'),
                 ('name', 'Gene_detail_' + create_time.strftime("%Y%m%d_%H%M%S")),
                 ('transcripts_total_length', all_transcript_length)]
+        if not test_this:
+            data.append(('refrna_seqdb', self.bind_object.work_dir + '/refrna_seqs.db'))
+        else:
+            data.append(('refrna_seqdb', os.path.join(os.getcwd(), 'refrna_seqs.db')))
         collection = self.db["sg_express_class_code"]
         class_code_id = collection.insert_one(SON(data)).inserted_id
         print("导入Gene_detail主表信息完成！")
@@ -496,6 +525,17 @@ class RefrnaGeneDetail(Base):
         else:
             raise Exception('blast_id or blast_xls must be specified')
 
+        # ----------build seq database----------
+        seq_dicts = dict(gene=gene_sequence_dict, transcript=trans_sequence,
+                         pep=trans_pep_info, cds=trans_cds_info)
+        if not test_this:
+            db_path = self.bind_object.work_dir + '/refrna_seqs.db'
+        else:
+            db_path = os.path.join(os.getcwd(), 'refrna_seqs.db')
+
+        self.build_seq_database(seq_dicts, db_path)
+        # -------------------------------------
+
         data_list = list()
         new_num = 0
         for gene_id in gene2trans:
@@ -535,22 +575,22 @@ class RefrnaGeneDetail(Base):
                 if ('MSTRG' not in trans_ll) and ('TCONS' not in trans_ll):
                     transcript_info[new_ind] = dict()
                     # 已知转录本输入的是cds和pep信息, 其键值索引是转录本的ensembl编号.
-                    if trans_ll in trans_cds_info.keys():
-                        transcript_info[new_ind]["cds"] = trans_cds_info[trans_ll]
-                    else:
-                        transcript_info[new_ind]["cds"] = '-'
-
-                    if trans_ll in trans_pep_info.keys():
-                        transcript_info[new_ind]["pep"] = trans_pep_info[trans_ll]
-                    else:
-                        transcript_info[new_ind]["pep"] = '-'
+                    # if trans_ll in trans_cds_info.keys():
+                    #     transcript_info[new_ind]["cds"] = trans_cds_info[trans_ll]
+                    # else:
+                    #     transcript_info[new_ind]["cds"] = '-'
+                    #
+                    # if trans_ll in trans_pep_info.keys():
+                    #     transcript_info[new_ind]["pep"] = trans_pep_info[trans_ll]
+                    # else:
+                    #     transcript_info[new_ind]["pep"] = '-'
 
                     if trans_ll in trans_sequence.keys():
-                        transcript_info[new_ind]["sequence"] = trans_sequence[trans_ll]
+                        # transcript_info[new_ind]["sequence"] = trans_sequence[trans_ll]
                         transcript_info[new_ind]["length"] = len(trans_sequence[trans_ll])
                     else:
                         transcript_info[new_ind]["length"] = '-'
-                        transcript_info[new_ind]["sequence"] = '-'
+                        # transcript_info[new_ind]["sequence"] = '-'
                 else:
                     if trans_ll in trans_location_info.keys():
                         tmp_value = trans_location_info[trans_ll]
@@ -561,11 +601,11 @@ class RefrnaGeneDetail(Base):
                         new_transcript_info[new_ind] = dict(start='-', end='-')
 
                     if trans_ll in trans_sequence.keys():
-                        new_transcript_info[new_ind]['sequence'] = trans_sequence[trans_ll]
+                        # new_transcript_info[new_ind]['sequence'] = trans_sequence[trans_ll]
                         new_transcript_info[new_ind]['length'] = len(trans_sequence[trans_ll])
                     else:
                         print('{} was not found in {}'.format(trans_ll, transcript_path))
-                        new_transcript_info[new_ind]['sequence'] = '-'
+                        # new_transcript_info[new_ind]['sequence'] = '-'
                         new_transcript_info[new_ind]['length'] = '-'
 
             # get known gene description and gene name
@@ -624,7 +664,7 @@ class RefrnaGeneDetail(Base):
                     ("transcript", transcripts),
                     ("transcript_number", transcript_num),
                     ("gene_type", gene_type),
-                    ("gene_sequence", gene_sequence),
+                    # ("gene_sequence", gene_sequence),
                     ("gene_length", gene_length),
                     ("gene_ncbi", ncbi),  # only display one site
                     ("gene_ensembl", ensembl),
