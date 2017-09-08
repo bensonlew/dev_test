@@ -26,9 +26,9 @@ class SnpRnaModule(Module):
             {"name": "ref_genome_custom", "type": "infile", "format": "sequence.fasta"},  # 自定义参考基因组文件
             {"name": "ref_gtf", "type": "infile", "format": "gene_structure.gtf,gene_structure.gff3"},  # 基因组gtf文件
             # {"name": "in_bam", "type": "infile", "format": "align.bwa.bam_dir"},
-            {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
-            {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
-            {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
+            # {"name": "readFilesIN", "type": "infile", "format": "sequence.fastq"},  # 用于比对的单端序列文件
+            # {"name": "readFilesIN1", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列←
+            # {"name": "readFilesIN2", "type": "infile", "format": "sequence.fastq, sequence.fasta"},  # 双端序列右
             {"name": "in_bam", "type": "infile", "format": "align.bwa.bam_dir"},  # bam格式文件
             {"name": "seq_method", "type": "string"},  # 比对方式
             {"name": "input_bam", "type": "infile", "format": "align.bwa.bam"}  # bam格式文件,排序过的
@@ -87,12 +87,13 @@ class SnpRnaModule(Module):
         gatk = self.add_tool('gene_structure.gatk')
         self.gatks.append(gatk)
         self.logger.info("因为参考数据库中未含有gatk所需dict，gatk使用自定义模式进行")
-        if self.option("ref_genome") != "customer_mode":
-            with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
-                dict = json.loads(f.read())
-                ref_fasta = dict[self.option("ref_genome")]["dna_fa"]
+        #
+        # if self.option("ref_genome") != "customer_mode":
+        #     with open(self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json", "r") as f:
+        #         dict = json.loads(f.read())
+        #         ref_fasta = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/" + dict[self.option("ref_genome")]["dna_fa"]
         gatk.set_options({
-            "ref_fa": ref_fasta,
+            "ref_fa": self.option("ref_genome_custom"),
             "input_bam": f_path,
             "ref_genome": "customer_mode"
         })
@@ -133,7 +134,9 @@ class SnpRnaModule(Module):
                 # "ref_gtf": self.option("ref_gtf").prop["path"]
             }
             if self.option("ref_genome") == "customer_mode":
-                options["ref_fasta"] = self.option("ref_genome_custom")
+                os.link(self.option("ref_genome_custom").prop["path"], self.work_dir + "/" +
+                        os.path.basename(self.option("ref_genome_custom").prop["path"]))
+                options["ref_fasta"] = self.work_dir + "/" + os.path.basename(self.option("ref_genome_custom").prop["path"])
                 options["ref_gtf"] = self.option("ref_gtf")
             annovar.set_options(options)
             self.annovars.append(annovar)
