@@ -36,24 +36,28 @@ class SgPaternityTest(Base):
         temp_d = re.search("WQ([0-9]*)-F.*", dad)
         temp_m = re.search(".*-(M.*)", mom)
         temp_s = re.search(".*-(S.*)", preg)
-        name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
         if type == 'free':  # 自由交互的主表需要完整记录样本名
             name = 'check_' + dad + '_' + mom + '_' + preg
+        else:
+            name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
         # 信息增加modify by zhouxuan 20170705
 
         pt_collection = self.database["sg_pt_customer"]
         # -T 表示重上机信息不变 # modify by zhouxuan 20170728
         # 根据现在的样本名绑定家系信息中的name方便查找家系信息
-        if re.match('(.*-T)([0-9])', dad):
-            dad_ = ('-').join(dad.split('-')[:-1])
+        if temp_d and temp_m and temp_s:
+            if re.match('(.*-T)([0-9])', dad):
+                dad_ = ('-').join(dad.split('-')[:-1])
+            else:
+                dad_ = dad
+            if re.match('(.*-T)([0-9])', mom):
+                mom_ = ('-').join(mom.split('-')[:-1])
+                temp_m_ = re.search(".*-(M.*)", mom_)
+            else:
+                temp_m_ = temp_m
+            message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
         else:
-            dad_ = dad
-        if re.match('(.*-T)([0-9])', mom):
-            mom_ = ('-').join(mom.split('-')[:-1])
-            temp_m_ = re.search(".*-(M.*)", mom_)
-        else:
-            temp_m_ = temp_m
-        message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
+            message_id = 'free_WQ'
         # 对于自由组合而言，只有正确的家系生成的message_id才会有用
 
         result = pt_collection.find_one({"name": message_id})  # 自由组合可能没有这个

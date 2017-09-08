@@ -309,12 +309,12 @@ class PtFamilyCombineWorkflow(Workflow):
 		self.logger.info("开始end函数")
 		api_main = self.api.sg_paternity_test
 		if self.option('dedup_all') == 'true':
-			dedup = 'all'
+			dedup_num = 'all'
 		else:
 			if self.option('dedup_start'):
-				dedup = self.option('dedup_start') + '-' + self.option('dedup_end')
+				dedup_num = self.option('dedup_start') + '-' + self.option('dedup_end')
 			else:
-				dedup = 'no'
+				dedup_num = 'no'
 		for i in range(len(self.family)):
 			dedup_done = 'false'
 			dad_id = self.family[i][0]
@@ -324,7 +324,7 @@ class PtFamilyCombineWorkflow(Workflow):
 			                                        self.option("member_id"), type='free')
 			# 此处的main_id相当于别处的batch_id为该自由交互的主表，和正式流程里的不一样
 
-			self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=self.option('err_min'), dedup=dedup)  # 交互表id
+			self.pt_father_id = api_main.add_pt_father(father_id=self.father_id, err_min=self.option('err_min'), dedup=dedup_num)  # 交互表id
 			dedup = '.*' + mom_id + '_' + preg_id + '_family_analysis.txt'
 			dedup_new = dad_id + '_' + mom_id + '_' + preg_id + '.txt'
 			self.logger.info(dedup_new)
