@@ -121,6 +121,7 @@ class HcHeatmapTool(Tool):
                           col_number=self.option("col_number"), row_number=self.option("row_number"), t=self.option('data_T'))
         if self.option('group_table').is_set and self.option("group_method") in ["average", "sum", "median"]:
             group_samples = self.get_group_detail()
+            self.logger.info(group_samples)
             with open(self.new_data, "r") as f:
                 lines = f.readlines()
                 line = lines[0].rstrip().split("\t")
@@ -135,7 +136,6 @@ class HcHeatmapTool(Tool):
                                 for i in range(len(line)):
                                     if o == line[i]:
                                         new_sample_index[s].append(i)
-                        self.logger.info(new_sample_index)
                         table_path = os.path.join(self.work_dir, group + "_table.xls")
                         with open(table_path, "w") as w:
                             header = line[0] + "\t" + '\t'.join(new_samples) + "\n"
@@ -262,8 +262,6 @@ class HcHeatmapTool(Tool):
                     group = m.group(1)
                     groups.append(group)
                     new = os.path.join(self.output_dir, "{}_col_tre".format(group))
-                    self.logger.info(os.path.join(self.output_dir, name))
-                    self.logger.info(new)
                     os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_col_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
                 n = re.match(r"hcluster_tree_(.+)_table.xls(.*)\.ttre$", name)
