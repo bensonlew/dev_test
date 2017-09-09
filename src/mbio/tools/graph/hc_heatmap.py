@@ -126,44 +126,47 @@ class HcHeatmapTool(Tool):
                 line = lines[0].rstrip().split("\t")
                 for group in group_samples:
                     new_samples = list(group_samples[group].keys())
-                    new_sample_index = {}
-                    for s in new_samples:
-                        old_samples = group_samples[group][s]
-                        new_sample_index[s] = []
-                        for o in old_samples:
-                            for i in range(len(line)):
-                                if o == line[i]:
-                                    new_sample_index[s].append(i)
-                    self.logger.info(new_sample_index)
-                    table_path = os.path.join(self.work_dir, group + "_table.xls")
-                    with open(table_path, "w") as w:
-                        header = line[0] + "\t" + '\t'.join(new_samples) + "\n"
-                        w.write(header)
-                        for item in lines[1:]:
-                            item = item.rstrip().split("\t")
-                            w.write(item[0] + "\t")
-                            tmp = []
-                            for s in new_samples:
-                                summary = 0
-                                mid_list = []
-                                for i in new_sample_index[s]:
-                                    summary += int(item[i])
-                                    mid_list.append(int(item[i]))
-                                mid_list.sort()
-                                size = len(mid_list)
-                                if size % 2 == 0:
-                                    midian = (mid_list[size/2] + mid_list[size/2 -1]) / 2
-                                else:
-                                    midian = mid_list[(size-1)/2]
-                                average = summary / size
-                                if self.option("group_method") == "sum":
-                                    tmp.append(str(summary))
-                                elif self.option("group_method") == "average":
-                                    tmp.append(str(average))
-                                elif self.option("group_method") == "median":
-                                    tmp.append(str(midian))
-                            w.write('\t'.join(tmp) + "\n")
-                    self.create_tree(table_path, group)
+                    if len(new_samples) >= 2:
+                        new_sample_index = {}
+                        for s in new_samples:
+                            old_samples = group_samples[group][s]
+                            new_sample_index[s] = []
+                            for o in old_samples:
+                                for i in range(len(line)):
+                                    if o == line[i]:
+                                        new_sample_index[s].append(i)
+                        self.logger.info(new_sample_index)
+                        table_path = os.path.join(self.work_dir, group + "_table.xls")
+                        with open(table_path, "w") as w:
+                            header = line[0] + "\t" + '\t'.join(new_samples) + "\n"
+                            w.write(header)
+                            for item in lines[1:]:
+                                item = item.rstrip().split("\t")
+                                w.write(item[0] + "\t")
+                                tmp = []
+                                for s in new_samples:
+                                    summary = 0
+                                    mid_list = []
+                                    for i in new_sample_index[s]:
+                                        summary += int(item[i])
+                                        mid_list.append(int(item[i]))
+                                    mid_list.sort()
+                                    size = len(mid_list)
+                                    if size % 2 == 0:
+                                        midian = (mid_list[size/2] + mid_list[size/2 -1]) / 2
+                                    else:
+                                        midian = mid_list[(size-1)/2]
+                                    average = summary / size
+                                    if self.option("group_method") == "sum":
+                                        tmp.append(str(summary))
+                                    elif self.option("group_method") == "average":
+                                        tmp.append(str(average))
+                                    elif self.option("group_method") == "median":
+                                        tmp.append(str(midian))
+                                w.write('\t'.join(tmp) + "\n")
+                        self.create_tree(table_path, group)
+                    else:
+                        raise OptionError("聚类时样本必须大于等于2,{}分组里样本小于2,不能进行聚类".format(group))
         else:
             os.link(self.new_data, os.path.join(self.work_dir, "new_table.xls"))
             self.create_tree(os.path.join(self.work_dir, "new_table.xls"), "no")
