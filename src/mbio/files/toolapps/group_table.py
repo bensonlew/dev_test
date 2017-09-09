@@ -90,9 +90,15 @@ class GroupTableFile(TableFile):
                 line = re.split("\t", line)
                 sub_line.append(line[0])
                 for i in my_index:
-                    sub_line.append(line[i])
-                new_line = "\t".join(sub_line)
-                w.write(new_line + "\n")
+                    if line[i] == '' or line[i] == ' ':  # add by wzy 20170909
+                        pass
+                    else:
+                        sub_line.append(line[i])
+                if len(sub_line) > 1:  # add by wzy 20170909
+                    new_line = "\t".join(sub_line)
+                    w.write(new_line + "\n")
+                else:
+                    pass
 
     @staticmethod
     def check_info(file_path):
@@ -126,3 +132,9 @@ class GroupTableFile(TableFile):
         if super(GroupTableFile, self).check():
             self.get_info()
             return True
+
+if __name__ == '__main__':
+    a = GroupTableFile()
+    a.set_path('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/group2.txt')
+    a.get_info()
+    a.sub_group('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/group1.txt', ['group1'])
