@@ -136,6 +136,8 @@ class SnpRnaModule(Module):
             if self.option("ref_genome") == "customer_mode":
                 os.link(self.option("ref_genome_custom").prop["path"], self.work_dir + "/" +
                         os.path.basename(self.option("ref_genome_custom").prop["path"]))
+                os.link(self.option("ref_genome_custom").prop["path"] + '.fai', self.work_dir + "/" +
+                        os.path.basename(self.option("ref_genome_custom").prop["path"] + '.fai'))
                 options["ref_fasta"] = self.work_dir + "/" + os.path.basename(self.option("ref_genome_custom").prop["path"])
                 options["ref_gtf"] = self.option("ref_gtf")
             annovar.set_options(options)
