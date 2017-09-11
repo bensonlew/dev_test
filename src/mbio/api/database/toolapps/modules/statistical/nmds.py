@@ -37,9 +37,12 @@ class Nmds(Base):
             for item in f:
                 item = item.rstrip().split("\t")
                 for i in range(1, len(line)):
-                    if item[i]:
-                        group_samples[line[i]].append(item[0])
-                    else:
+                    try:
+                        if item[i]:
+                            group_samples[line[i]].append(item[0])
+                        else:
+                            self.bind_object.logger.info("{}样本不在分组方案{}内".format(item[0], line[i]))
+                    except:
                         self.bind_object.logger.info("{}样本不在分组方案{}内".format(item[0], line[i]))
         return group_samples
 
