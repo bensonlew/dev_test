@@ -35,7 +35,7 @@ class QuerySeqAction(RefRnaController):
                            ('seq_id', seq_id),
                            ('sequence', sequence), ])
         self.ref_rna.insert_seq(mongo_data)
-        info = {"success": True, "info": "提交成功"}
+        info = {"success": True, "info": "query success"}
         return json.dumps(info)
 
     @staticmethod
@@ -45,5 +45,9 @@ class QuerySeqAction(RefRnaController):
         table_name = seq_type
         seq_id = seq_id
         cursor.execute("SELECT * FROM {} WHERE seq_id='{}'".format(table_name, seq_id))
-        seq_id, sequence = cursor.fetchone()
+        result = cursor.fetchone()
+        if result:
+            seq_id, sequence = result
+        else:
+            seq_id, sequence = '-', '-'
         return seq_id, sequence
