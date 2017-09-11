@@ -105,12 +105,15 @@ class HcHeatmapTool(Tool):
             for item in f:
                 item = item.rstrip().split("\t")
                 for i in range(1, len(line)):
-                    if item[i] and item[i] not in group_samples[line[i]]:
-                        group_samples[line[i]][item[i]] = []
-                        group_samples[line[i]][item[i]].append(item[0])
-                    elif item[i]:
-                        group_samples[line[i]][item[i]].append(item[0])
-                    else:
+                    try:
+                        if item[i] and item[i] not in group_samples[line[i]]:
+                            group_samples[line[i]][item[i]] = []
+                            group_samples[line[i]][item[i]].append(item[0])
+                        elif item[i]:
+                            group_samples[line[i]][item[i]].append(item[0])
+                        else:
+                            self.logger.info("{}样本不在分组方案{}内".format(item[0], line[i]))
+                    except:
                         self.logger.info("{}样本不在分组方案{}内".format(item[0], line[i]))
         return group_samples
 
