@@ -20,25 +20,51 @@ class Nmds(Base):
         self.check()
         self.sample_list = []
 
+    def get_group_detail(self, group_table):
+        """
+        根据分组文件得到具体的分组方案
+        """
+        group_samples = {}  # 分组对应中新样本对应的旧样本
+        with open(group_table, "r") as f:
+            line = f.readline().rstrip()
+            line = re.split("\t", line)
+            if line[1] == "##empty_group##":
+                is_empty = True
+            else:
+                is_empty = False
+            for i in range(1, len(line)):
+                group_samples[line[i]] = []
+            for item in f:
+                item = item.rstrip().split("\t")
+                for i in range(1, len(line)):
+                    if item[i]:
+                        group_samples[line[i]].append(item[0])
+                    else:
+                        self.bind_object.logger.info("{}样本不在分组方案{}内".format(item[0], line[i]))
+        return group_samples
+
     @report_check
     def run(self):
         """
         运行函数
         """
-        self.main_id = self.nmds_in()
-        self.table_ids = self.table_in()
-        return self.main_id
-        pass
+        if self.bind_object._task.option("group_table").is_set:
+            group_detail = self.get_group_detail(self.bind_object._task.option("group_table").prop["path"])
+            self.bind_object.logger.info(group_detail)
+        else:
+            group_detail = None
+        self.main_id = self.nmds_in(group_detail)
+        self.table_ids = self.table_in(group_detail)
 
-    def table_in(self):
+    def table_in(self, group_detail=None):
         """
 		导入表格相关信息
 		"""
         ratation = self.insert_table(self.output_dir + '/Nmds/nmds_sites.xls', 'nmds分析结果表',
-                                     '画图的原始数据表')
+                                     '画图的原始数据表', group_detail)
         return [ratation]
 
-    def insert_table(self, fp, name, desc):
+    def insert_table(self, fp, name, desc, group_detail=None):
         self.bind_object.logger.info('开始导入table表')
         with open(fp) as f:
             columns = f.readline().strip().split('\t')
@@ -50,6 +76,7 @@ class Nmds(Base):
                 attrs=columns,
                 desc=desc,
                 status='end',
+                group_detail=group_detail,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )).inserted_id
             for line in f:
@@ -64,7 +91,7 @@ class Nmds(Base):
             self.insert_specimens(self.sample_list)
         return table_id
 
-    def nmds_in(self):
+    def nmds_in(self, group_detail=None):
         """
         导入nmds相关信息
         """
@@ -78,6 +105,7 @@ class Nmds(Base):
                 name='nmds',
                 desc='nmds分析',
                 status='end',
+                group_detail=group_detail,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 stress=stress,
             )).inserted_id
