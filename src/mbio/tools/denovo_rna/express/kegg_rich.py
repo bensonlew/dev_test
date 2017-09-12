@@ -153,10 +153,33 @@ class KeggRichTool(Tool):
                     newfw.write(line)
             return annot_file_new
 
+    def check_list(self, ko_file):
+        """
+        去除diff_list中没有注释信息的数据
+        new_file_name为在work_dir中生成的新diff_list文件的绝对路径
+        :return:
+        """
+        file1 = ko_file
+        file2 = self.work_dir + "/gene2K.info"
+        f1 = open(file1, "r")
+        f2 = open(file2, "r")
+        lst_2 = [x.split('\t')[0] for x in f2.readlines()]
+        f2.close()
+        new_file_name = ko_file + ".check"
+        with open(new_file_name, "w") as check_file:
+            for item in f1.readlines():
+                gene = item.split('\t')[0]
+                if gene in lst_2:
+                    check_file.write(item)
+        f1.close()
+        return new_file_name
+
     def run_identify(self):
         deg_path = self.work_dir + "/" + os.path.basename(self.option('diff_list').prop["path"]) + ".DE.list"
         # kofile = os.path.splitext(os.path.basename(self.option('diff_list').prop['path']))[0]
-        kofile = os.path.basename(self.option('diff_list').prop['path']) + ".DE.list"
+        kofile = os.path.basename(self.option('diff_list').prop['path']) + ".DE.list.check"
+        deg_path = self.check_list(deg_path)
+
         g2p_path = self.work_dir + "/gene2path.info"
         g2k_path = self.work_dir + "/gene2K.info"
         bgn = self.bgn
