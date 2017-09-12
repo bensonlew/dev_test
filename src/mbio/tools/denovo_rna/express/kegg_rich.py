@@ -103,6 +103,18 @@ class KeggRichTool(Tool):
             self.run_add_info()
         self.end()
 
+    def get_geneset_type(self, diff_file):
+        """
+        查看基因集是已知基因集还是已知基因+新基因 刘彬旭
+        """
+        gene_set_f = open(diff_file, 'r')
+        for line in gene_set_f.readlines():
+            if line.startswith('MSTR') or line.startswith('TCON') or line.startswith('XLOC'):
+                gene_set_f.close()
+                return 'all'
+        gene_set_f.close()
+        return 'known'
+
     def run_kegg_rich(self):
         """
         运行kobas软件，进行kegg富集分析
@@ -127,6 +139,20 @@ class KeggRichTool(Tool):
             self.logger.info("kegg富集第一步运行出错:{}".format(e))
         # self.run_identify()
 
+    def choose_known_background(self, annot_file):
+        """
+        如果基因集中仅含有已知基因，修改背景注释为已知基因注释 刘彬旭
+        """
+        annot_file_new = annot_file + ".known"
+        with open(annot_file_new, "w") as newfw, open(annot_file, "r") as anf:
+            newfw.write(anf.readline())
+            for line in anf.readlines():
+                if line.startswith('MSTR') or line.startswith('TCON') or line.startswith('XLOC'):
+                    pass
+                else:
+                    newfw.write(line)
+            return annot_file_new
+
     def run_identify(self):
         deg_path = self.work_dir + "/" + os.path.basename(self.option('diff_list').prop["path"]) + ".DE.list"
         # kofile = os.path.splitext(os.path.basename(self.option('diff_list').prop['path']))[0]
@@ -136,6 +162,14 @@ class KeggRichTool(Tool):
         bgn = self.bgn
         k2e = self.k2e
         brite = self.brite
+
+        # 当基因集仅包含已知基因时只使用已知基因作为背景
+        if self.get_geneset_type(self.option('diff_list').prop['path']) == 'known':
+            g2p_path = self.choose_known_background(g2p_path)
+            g2k_path = self.choose_known_background(g2k_path)
+            length = os.popen("less {}|wc -l".format(self.work_dir + "/gene2K.info.known"))
+            line_number = int(length.read().strip("\n"))
+            bgn = line_number - 1
         # correct method:
         correct = self.option("correct")
         correct_method = 3
