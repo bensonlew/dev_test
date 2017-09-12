@@ -36,6 +36,9 @@ class MgAssSoapdenovoModule(Module):
         self.tools = []
         self.single_module = []
         self.step.add_steps("SOAPdenovo2", "contig_stat","length_distribute")
+        self.SOAPdenovo2 = self.add_module('assemble.single_soap_denovo')
+        self.contig_stat = self.add_tool("assemble.contig_stat")
+        self.len_distribute = self.add_tool("sequence.length_distribute")
         self.kmer_list = ['39', '43', '47']
 
     def check_options(self):
@@ -83,7 +86,6 @@ class MgAssSoapdenovoModule(Module):
             assem_mem = self.get_mem(sample_type[key], base_num[key]) # 计算运行内存
             # self.logger.info('type is ' + sample_type[key] + '; base_num is ' + base_num[key] + " assem_mem is " + str(assem_mem) + '\n')
             for kmer in self.kmer_list:
-                self.SOAPdenovo2 = self.add_module('assemble.single_soap_denovo')
                 self.step.add_steps('SOAPdenovo2_{}'.format(n))
                 self.SOAPdenovo2.set_options({
                     "fastq1": self.option('QC_dir').prop['path']+'/' + key + '.sickle.l.fastq',
@@ -120,7 +122,6 @@ class MgAssSoapdenovoModule(Module):
         """
         kmer = ",".join(self.kmer_list)
         self.get_file()
-        self.contig_stat = self.add_tool("assemble.contig_stat")
         self.contig_stat.set_options({
             "contig_dir": self.work_dir + '/scaftig_dir',
             "choose_kmer": kmer,
@@ -138,7 +139,6 @@ class MgAssSoapdenovoModule(Module):
         长度分布
         :return:
         """
-        self.len_distribute = self.add_tool("sequence.length_distribute")
         self.len_distribute.set_options({
             #"fasta_dir": self.work_dir + '/scaftig_dir',
             "fasta_dir": self.contig_stat.output_dir,
@@ -149,7 +149,7 @@ class MgAssSoapdenovoModule(Module):
         self.step.length_distribute.finish()
         self.step.update()
 
-    def get_mem(self,type,base_number):
+    def get_mem(self, type,base_number):
         """
         根据样品类型和此样品测序量，计算拼接所用内存
         :param type: 样品类型

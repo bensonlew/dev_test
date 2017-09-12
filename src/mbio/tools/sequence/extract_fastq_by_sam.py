@@ -13,11 +13,12 @@ class ExtractFastqBySamAgent(Agent):
     author: zhujuan
     last_modify: 2017.08.18
     """
+
     def __init__(self, parent):
         super(ExtractFastqBySamAgent, self).__init__(parent)
         options = [
             {"name": "fq_type", "type": "string", "default": "PSE"},  # fq类型，PE、SE、PSE（即PE+SE，单端加双端）
-            {"name": "sam", "type": "infile", "format": "align.bwa.sam_dir"},     # sam格式文件,内含对应list文件
+            {"name": "sam", "type": "infile", "format": "align.bwa.sam_dir"},  # sam格式文件,内含对应list文件
             {"name": "extract_type", "type": "string", "default": "unmap"},  # 提取的fq结果类型是 'map'的还是'unmap'的
             {"name": "reasult_dir", "type": "outfile", 'format': "sequence.fastq_dir"}  # 输出文件夹
         ]
@@ -36,7 +37,7 @@ class ExtractFastqBySamAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ])
+        ])
         super(ExtractFastqBySamAgent, self).end()
 
     def set_resource(self):
@@ -68,8 +69,8 @@ class ExtractFastqBySamTool(Tool):
                     self.wait(command)
                     if command.return_code == 0:
                         self.logger.info("运行{}完成".format(command.name))
-                        w.write(sample + '.1.fq\t'+sample+'\tl\n')
-                        w.write(sample + '.2.fq\t'+sample+'\tr\n')
+                        w.write(sample + '.1.fq\t' + sample + '\tl\n')
+                        w.write(sample + '.2.fq\t' + sample + '\tr\n')
                     else:
                         self.set_error("运行{}出错".format(command.name))
                         raise Exception("运行{}出错".format(command.name))
@@ -82,7 +83,7 @@ class ExtractFastqBySamTool(Tool):
                     self.wait(command)
                     if command.return_code == 0:
                         self.logger.info("运行{}完成".format(command.name))
-                        w.write(sample + '.s.fq\t'+sample+'\ts\n')
+                        w.write(sample + '.s.fq\t' + sample + '\ts\n')
                     else:
                         self.set_error("运行{}出错".format(command.name))
                         raise Exception("运行{}出错".format(command.name))
@@ -121,8 +122,7 @@ class ExtractFastqBySamTool(Tool):
         运行
         """
         super(ExtractFastqBySamTool, self)
-        self. fastq_form_sam()
+        self.fastq_form_sam()
         self.set_output()
         self.fq_stat()
         self.end()
-

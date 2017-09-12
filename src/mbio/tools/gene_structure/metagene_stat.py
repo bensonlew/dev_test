@@ -3,19 +3,20 @@
 
 import os
 import re
-import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from mbio.packages.ref_rna.trans_step import step_count
+
 
 class MetageneStatAgent(Agent):
     """
     统计基因预测结果
     version: 1
     author: guhaidong
-    last_modify: 2017.08.30
+    last_modify: 2017.09.12
     """
+
     def __init__(self, parent):
         super(MetageneStatAgent, self).__init__(parent)
         options = [
@@ -92,7 +93,11 @@ class MetageneStatTool(Tool):
         :return:
         """
         cmd = self.python_path + ' %s -gene_dir %s -output_stat %s -output_fa %s' % (self.gene_stat_path,
-         self.option('contig_dir').prop['path'], self.work_dir + '/sample.metagene.stat', self.work_dir + '/metagene.fa' )
+                                                                                     self.option('contig_dir').prop[
+                                                                                         'path'],
+                                                                                     self.work_dir +
+                                                                                     '/sample.metagene.stat',
+                                                                                     self.work_dir + '/metagene.fa')
         command = self.add_command("metagenestat", cmd)
         command.run()
         self.wait(command)
@@ -100,7 +105,6 @@ class MetageneStatTool(Tool):
             self.logger.info("运行metagenestat的cmd完成")
         else:
             self.set_error("运行metagenestat的cmd运行出错!")
-
 
     def set_output(self):
         """

@@ -124,5 +124,7 @@ class ContigStatTool(Tool):
                     self.logger.info("have files:" + files)
                     os.remove(self.output_dir + '/' + files)
                 os.link(self.work_dir + '/' + files, self.output_dir + '/' + files)
-        shutil.copy2(self.work_dir + '/' + self.option('assembly_stat'), self.output_dir + '/' + self.option('assembly_stat'))
+        if os.path.exists(self.output_dir + '/' + self.option('assembly_stat')):
+            os.remove(self.output_dir + '/' + self.option('assembly_stat'))
+        os.link(self.work_dir + '/' + self.option('assembly_stat'), self.output_dir + '/' + self.option('assembly_stat'))
         self.logger.info("设置assemble_stat分析结果目录成功")

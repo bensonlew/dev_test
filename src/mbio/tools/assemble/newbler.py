@@ -6,13 +6,15 @@ from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 
+
 class NewblerAgent(Agent):
     """
     进行newbler拼接
     version: v1.0
     author: guhaidong
-    last_modify: 2017.08.23
+    last_modify: 2017.09.12
     """
+
     def __init__(self, parent):
         super(NewblerAgent, self).__init__(parent)
         options = [
@@ -21,8 +23,8 @@ class NewblerAgent(Agent):
             {"name": "mem", "type": "int", "default": 10},  # 拼接使用内存，默认10
             {"name": "mi", "type": "int", "default": 98},  # 拼接相似度0-100，默认98
             {"name": "ml", "type": "int", "default": 40},  # 拼接比对长度，默认40
-            {"name": "all_length","type": "int", "default": 300},  # 拼接结果最小contig长度
-            {"name": "large_length","type": "int", "default": 1000},  # 拼接结果认为是长contig的长度
+            {"name": "all_length", "type": "int", "default": 300},  # 拼接结果最小contig长度
+            {"name": "large_length", "type": "int", "default": 1000},  # 拼接结果认为是长contig的长度
             {"name": "output", "type": "string"},  # 输出拼接结果的拼接状态文件
         ]
         self.add_option(options)
@@ -79,14 +81,14 @@ class NewblerTool(Tool):
         进行newbler拼接
         :return:
         """
-        cmd = self.newbler_path + 'runAssembly -o %s -force -cpu %s -mi %s -ml %s -a %s -l %s %s'\
-           % (self.work_dir,
-           self.option('cpu'),
-           self.option('mi'),
-           self.option('ml'),
-           self.option('all_length'),
-           self.option('large_length'),
-           self.option('contig').prop['path'])
+        cmd = self.newbler_path + 'runAssembly -o %s -force -cpu %s -mi %s -ml %s -a %s -l %s %s' \
+                                  % (self.work_dir,
+                                     self.option('cpu'),
+                                     self.option('mi'),
+                                     self.option('ml'),
+                                     self.option('all_length'),
+                                     self.option('large_length'),
+                                     self.option('contig').prop['path'])
         self.logger.info("运行newbler拼接")
         command = self.add_command("newbler", cmd)
         command.run()

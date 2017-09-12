@@ -11,11 +11,11 @@ class CdhitParaModule(Module):
     def __init__(self, work_id):
         super(CdhitParaModule, self).__init__(work_id)
         options = [
-            {"name": "first", "type": "int", "default": ""},
-            {"name": "last", "type": "int", "default": ""},
+            {"name": "first", "type": "int"},  # 第一个文件编号
+            {"name": "last", "type": "int"},  # 最后一个文件编号
             {"name": "in_dir", "type": "infile", "format": "sequence.cdhit_cluster_dir"},  # 输入文件夹
-            {"name": "identity", "type": "float", "default": 0.95},  ##给出cdhit的参数identity
-            {"name": "coverage", "type": "float", "default": 0.9},  ##给出cdhit的参数coverage
+            {"name": "identity", "type": "float", "default": 0.95},  # 给出cdhit的参数identity
+            {"name": "coverage", "type": "float", "default": 0.9},  # 给出cdhit的参数coverage
             #            {"name": "ou_dir", "type": "infile", "format": "uniGene.build_dir"}  # 输出文件夹
         ]
         self.add_option(options)

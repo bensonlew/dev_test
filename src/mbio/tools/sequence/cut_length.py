@@ -18,10 +18,10 @@ class CutLengthAgent(Agent):
     def __init__(self, parent):
         super(CutLengthAgent, self).__init__(parent)
         options = [
-            {"name": "contig", "type": "infile", "format": "sequence.fasta_dir"},  #输入contig文件路径
+            {"name": "contig", "type": "infile", "format": "sequence.fasta_dir"},  # 输入contig文件路径
             {"name": "cut_length", "type": "float", "default": "1000"},  # 拆分序列长度标准，默认1000
             {"name": "cut_contig", "type": "outfile", "format": "sequence.fasta_dir"},  # 输出contig文件路径
-            {"name": "short_contig", "type": "outfile", "format": "sequence.fasta"},  #输出供newbler拼接使用的contig文件
+            {"name": "short_contig", "type": "outfile", "format": "sequence.fasta"},  # 输出供newbler拼接使用的contig文件
         ]
         self.add_option(options)
         self.step.add_steps('cut_length')
