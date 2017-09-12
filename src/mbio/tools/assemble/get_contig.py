@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'wangzhaoyue'
+# __author__ = 'wangzhaoyue & guhaidong'
 
 import os
-#import shutil
+# import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
+
 
 class GetContigAgent(Agent):
     """
     宏基因组装之序列处理，去掉低质量的序列
     version: v1.0
-    author: wangzhaoyue
-    last_modify: 2017.06.05
+    author: wangzhaoyue & guhaidong
+    last_modify: 2017.09.12
     """
+
     def __init__(self, parent):
         super(GetContigAgent, self).__init__(parent)
         options = [
@@ -22,7 +24,7 @@ class GetContigAgent(Agent):
             {"name": "scaftig", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，scaffold去掉N后的序列
             {"name": "cut_more_scaftig", "type": "outfile", "format": "sequence.fasta"},
             # 输出文件，去掉小于最短contig长度的序列
-            #{"name": "scaftig_stat", "type": "outfile", "format": "sequence.profile_table"},  # 输出文件，对组装后的序列进行信息统计
+            # {"name": "scaftig_stat", "type": "outfile", "format": "sequence.profile_table"},  # 输出文件，对组装后的序列进行信息统计
         ]
         self.add_option(options)
         self.step.add_steps("GetContig")
@@ -73,7 +75,7 @@ class GetContigTool(Tool):
         self.logger.info(self.perl_path)
         self.get_scaftig_path = self.config.SOFTWARE_DIR + '/bioinfo/metaGenomic/scripts/get_scaftig.pl '
         self.cut_more_path = self.config.SOFTWARE_DIR + '/bioinfo/metaGenomic/scripts/cut_more.pl '
-        #self.scaftig_stat_path = self.config.SOFTWARE_DIR + '/bioinfo/metaGenomic/scripts/contig_stat.pl '
+        # self.scaftig_stat_path = self.config.SOFTWARE_DIR + '/bioinfo/metaGenomic/scripts/contig_stat.pl '
 
     def run(self):
         """
@@ -83,7 +85,7 @@ class GetContigTool(Tool):
         super(GetContigTool, self).run()
         self.run_get_scaftig()
         self.run_cut_more()
-        #self.run_scaftig_stat()  #工作流更改，不进行质量统计
+        # self.run_scaftig_stat()  #工作流更改，不进行质量统计
         self.set_output()
         self.end()
 
@@ -93,10 +95,10 @@ class GetContigTool(Tool):
         :return:
         """
         self.logger.info("path is : " + self.option('scafSeq').path)
-        #sample_name = os.path.basename(self.option('scafSeq').prop['path']).split('.scafSeq')[0]
+        # sample_name = os.path.basename(self.option('scafSeq').prop['path']).split('.scafSeq')[0]
         sample_name = os.path.basename(self.option('scafSeq').path).split('.scafSeq')[0]
         cmd = self.perl_path + self.get_scaftig_path + self.option('scafSeq').path + ' ' + sample_name
-        #cmd = self.perl_path + self.get_scaftig_path + self.option('scafSeq').prop['path'] + ' ' + sample_name
+        # cmd = self.perl_path + self.get_scaftig_path + self.option('scafSeq').prop['path'] + ' ' + sample_name
         command = self.add_command("get_scaftig", cmd)
         command.run()
         self.wait(command)
@@ -152,12 +154,11 @@ class GetContigTool(Tool):
         """
         self.logger.info("设置结果目录")
         sample_name = os.path.basename(self.option('scafSeq').prop['path']).split('.scafSeq')[0]
-        #shutil.copy2(self.work_dir + "/" + sample_name + ".scaftig", self.output_dir + "/" + sample_name + ".scaftig")
+        # shutil.copy2(self.work_dir + "/" + sample_name + ".scaftig", self.output_dir + "/" + sample_name + ".scaftig")
         if os.path.exists(self.output_dir + "/" + sample_name + ".contig.fa"):
             os.remove(self.output_dir + "/" + sample_name + ".contig.fa")
         os.link(self.work_dir + "/" + sample_name + ".scaftig.more" + self.option('min_contig'), self.output_dir +
-                     "/" + sample_name + ".contig.fa")
-        #shutil.copy2(self.work_dir + "/" + sample_name + ".scaftig.more" + self.option('min_contig') + '.stat', self.output_dir +
+                "/" + sample_name + ".contig.fa")
+        # shutil.copy2(self.work_dir + "/" + sample_name + ".scaftig.more" + self.option('min_contig') + '.stat', self.output_dir +
         #             "/" + sample_name + ".scaftig.more" + self.option('min_contig') + '.stat')
         self.logger.info("设置get_contig分析结果目录成功")
-
