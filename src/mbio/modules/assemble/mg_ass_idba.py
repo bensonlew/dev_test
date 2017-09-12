@@ -3,6 +3,7 @@
 
 import os
 import re
+import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 from biocluster.config import Config
@@ -69,7 +70,7 @@ class MgAssIdbaModule(Module):
         :return:
         """
         n = 0
-        db = Config().mongo_client.sanger_biodb
+        db = Config().mongo_client.tsanger_metagenomic
         # db = Config().mongo_client[Config().MONGODB]
         collection = db['mg_data_stat']
         # object_id = ObjectId(self.option['data_id'])
@@ -92,8 +93,9 @@ class MgAssIdbaModule(Module):
             opts = ({
                 "fastq1": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['l'],
                 "fastq2": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['r'],
+                "sample_name": key,
                 "split_num": split_num,
-                "mem": 10,  # assem_mem，测试提供
+                "mem": 20,  # assem_mem，测试提供
             })
             if self.option('method') == 'simple':
                 opts['min_contig'] = self.option('min_contig')
@@ -108,14 +110,19 @@ class MgAssIdbaModule(Module):
             self.single_module.append(self.idba)
             self.sum_tools.append(self.idba)
             n += 1
-        '''
         if len(self.single_module) == 1:
-            self.single_module[0].on('end', self.contig_stat_run)
+            if self.option('method') == 'multiple':
+                self.single_module[0].on('end', self.bowtie2_run)
+            else:
+                self.single_module[0].on('end', self.contig_stat_run)
         else:
-            self.on_rely(self.single_module, self.contig_stat_run)
-            self.step.contig_stat.start()
+            if self.option('method') == 'multiple':
+                self.on_rely(self.single_module, self.bowtie2_run)
+                self.step.bowtie2.start()
+            else:
+                self.on_rely(self.single_module, self.contig_stat_run)
+                self.step.contig_stat.start()
             self.step.update()
-        '''
         for module in self.single_module:
             module.run()
 
@@ -130,11 +137,11 @@ class MgAssIdbaModule(Module):
             self.bowtie2 = self.add_tool("align.bowtie2")
             opts = ({
                 'ref_fasta': self.work_dir + '/contig_dir/' + samples + '.contig.fa',
-                'fastq1': self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['l'],
-                'fastq2': self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['r'],
+                'fastq1': self.option('QC_dir').prop['path'] + '/' + self.qc_file[samples]['l'],
+                'fastq2': self.option('QC_dir').prop['path'] + '/' + self.qc_file[samples]['r'],
             })
-            if 's' in self.qc_file[key].keys():
-                opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['s']
+            if 's' in self.qc_file[samples].keys():
+                opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[samples]['s']
             self.bowtie2.set_options(opts)
             step = getattr(self.step, 'bowtie2_{}'.format(n))
             step.start()
@@ -160,7 +167,7 @@ class MgAssIdbaModule(Module):
         for module in self.bowtie_module:
             self.extract_fq = self.add_tool('sequence.extract_fq_by_sam')
             opts = ({
-                'sam': module.option('sam_file'), # 测试一下这样传参
+                'sam': module.option('sam_file'),  # 测试一下这样传参
             })
             if 's' in self.qc_file[key].keys():
                 opts['fq_type'] = 'PSE'
@@ -248,6 +255,7 @@ class MgAssIdbaModule(Module):
         self.newbler.set_options({
             'contig': self.cut_length.option('short_contig'),
         })
+        self.newbler.on('end', self.contig_stat_run)
         self.newbler.run()
         self.step.newbler.finish()
         self.step.update()
@@ -307,7 +315,7 @@ class MgAssIdbaModule(Module):
                         raise OptionError('质控list表中包含重复的样品及其pse类型，请检查质控list.txt ')
                     else:
                         file_dic[name][type] = info[0]
-                        logfile.write(name + '\t' +  type + '\n')
+                        logfile.write(name + '\t' + type + '\n')
                 else:
                     file_dic[name] = {type: info[0]}
                     logfile.write(name + '\t' + type + '\n')
@@ -398,7 +406,6 @@ class MgAssIdbaModule(Module):
         """
         if not os.path.exists(self.work_dir + '/unmap_dir'):
             os.mkdir(self.work_dir + '/unmap_dir')
-        list_info = []
         new_list = open(self.work_dir + '/unmap_dir/list.txt', 'w')
         for module in self.extract_fq_module:
             all_files = os.listdir(module.output_dir)
@@ -422,14 +429,14 @@ class MgAssIdbaModule(Module):
         :return:
         """
         self.idba_run()
-        if self.option('method') == 'multiple':
-            self.bowtie2_run()
+        #if self.option('method') == 'multiple':
+            #self.bowtie2_run()
             # self.cat_reads_run()
             # self.mix_assem_run()
             # self.cut_length_run()
             # self.newbler_run()
             # self.sort_idba_result_run()
-        self.contig_stat_run()
+        #self.contig_stat_run()
         super(MgAssIdbaModule, self).run()
 
     def linkdir(self, dirpath, dirname):
