@@ -49,5 +49,6 @@ class QuerySeqAction(RefRnaController):
         if result:
             seq_id, sequence = result
         else:
-            seq_id, sequence = '-', '-'
+            sequence = '-'
+        cursor.close()
         return seq_id, sequence
