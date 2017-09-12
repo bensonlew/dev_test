@@ -659,7 +659,7 @@ class ExpressModule(Module):
         else: # 样本数小于等于2时
             if self.option("express_method").lower() == 'rsem':
                 self.judge_list = [self.genes_diffRexp, self.trans_diffRexp, self.genes_diffRexp_ref,
-                                   self.trans_diffRexp_ref, self.genes_corr, self.trans_corr]
+                                   self.trans_diffRexp_ref, self.genes_corr, self.trans_corr, self.mergersem1]
             elif self.option("express_method").lower() == 'kallisto':
                 self.judge_list = [self.trans_diffRexp, self.trans_corr]
             elif self.option("express_method").lower() == 'featurecounts':
