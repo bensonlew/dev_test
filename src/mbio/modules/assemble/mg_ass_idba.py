@@ -135,6 +135,7 @@ class MgAssIdbaModule(Module):
         self.get_contig_file()
         for samples in self.sample:
             self.bowtie2 = self.add_tool("align.bowtie2")
+            self.step.add_steps('bowtie2_{}'.format(n))
             opts = ({
                 'ref_fasta': self.work_dir + '/contig_dir/' + samples + '.contig.fa',
                 'fastq1': self.option('QC_dir').prop['path'] + '/' + self.qc_file[samples]['l'],
@@ -165,16 +166,18 @@ class MgAssIdbaModule(Module):
         """
         n = 0
         for module in self.bowtie_module:
-            self.extract_fq = self.add_tool('sequence.extract_fq_by_sam')
+            self.extract_fq = self.add_tool('sequence.extract_fastq_by_sam')
+            self.step.add_steps('extract_fq_{}'.format(n))
             opts = ({
                 'sam': module.option('sam_file'),  # 测试一下这样传参
             })
-            if 's' in self.qc_file[key].keys():
+            name = os.path.basename(module.option('sam_file').prop['path']).split('.')[0]
+            if 's' in self.qc_file[name].keys():
                 opts['fq_type'] = 'PSE'
             else:
                 opts['fq_type'] = 'PE'
             self.extract_fq.set_options(opts)
-            step = getattr(self.step, 'bowtie2_{}'.format(n))
+            step = getattr(self.step, 'extract_fq_{}'.format(n))
             step.start()
             self.extract_fq.on('end', self.finish_update, 'extract_fq_{}'.format(n))
             self.extract_fq_module.append(self.extract_fq)

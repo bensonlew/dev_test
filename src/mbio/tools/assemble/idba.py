@@ -196,7 +196,6 @@ class IdbaTool(Tool):
             self.logger.info("拆分fasta完成")
         else:
             self.set_error("拆分fasta失败！")
-        pass
 
     def run_idba(self, number=0):  # 增加对样品分割后分别拼接的选择
         """
@@ -206,7 +205,7 @@ class IdbaTool(Tool):
         # sample_name = os.path.basename(self.option('fastq1').prop['path']).split('.sickle.l.fastq')[0]
         if os.path.exists(self.work_dir + '/' + self.sample_name + '/contig.fa'):
             self.logger.info("拼接结果已存在，跳过拼接")
-            pass
+            return
         if not number:
             cmd = self.idba_path + 'idba_ud -r %s -o %s  --pre_correction --num_threads 16 --mink %s --maxk %s --step %s --min_contig %s' % (
                 self.work_dir + '/' + self.sample_name + '.fa',
