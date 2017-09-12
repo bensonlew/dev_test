@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'xuting'
+# __author__ = 'wangzhaoyue'
 
 from mainapp.config.db import get_mongo_client
 from biocluster.config import Config

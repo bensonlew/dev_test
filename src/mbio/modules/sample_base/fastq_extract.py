@@ -18,7 +18,7 @@ class FastqExtractModule(Module):
         super(FastqExtractModule, self).__init__(work_id)
         options = [
             {"name": "in_fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},
-            {"name": "output_fq", "type":"output", "format":"sequence.fastq_dir"},
+            {"name": "output_fq", "type": "output", "format": "sequence.fastq_dir"},
             {"name": "output_length", "type": "output", "format": "sample.data_dir"},
             {"name": "output_list", "type": "outfile", "format": "sequence.info_txt"}
 
