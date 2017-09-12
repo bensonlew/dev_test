@@ -53,10 +53,8 @@ class MapGenesetModule(Module):
             if not os.path.exists(list_path):
                 OptionError("缺少list文件")
             row_num = len(open(list_path, "r").readline().split())
-            if self.option('fq_type') == "PE" and row_num != 3:
+            if  row_num != 3:
                 raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
-            elif self.option('fq_type') == "SE" and row_num != 2:
-                raise OptionError("SE序列list文件应该包括文件名、样本名两列")
         if not self.option("insertsize").is_set:
             raise OptionError("必须提供插入片段文件")
 
