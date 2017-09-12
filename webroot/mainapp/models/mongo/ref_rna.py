@@ -185,7 +185,6 @@ class RefRna(Meta):
         else:
             collection.insert_one(mongo_data)
 
-            
 if __name__ == "__main__":
     data=RefRna()
     d = data.get_express_id("tsg_2000","fpkm","featurecounts")
