@@ -75,7 +75,7 @@ class DemoMongodataCopy(object):
                     }
                     worker = worker_client()
                     worker.add_task(json_obj)
-                if nums <= 3:
+                if nums < 3:
                     info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
                     return json.dumps(info)
             else:
