@@ -1054,7 +1054,7 @@ class RefrnaWorkflow(Workflow):
 
         self.export_qc()
         self.export_exp_fc(test)
-        greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
+        #greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
         greenlets_list_first.append(gevent.spawn(self.export_genome_info))
         greenlets_list_first.append(gevent.spawn(self.export_gene_detail, test))
         greenlets_list_first.append(gevent.spawn(self.export_exp_rsem_tpm, test))
