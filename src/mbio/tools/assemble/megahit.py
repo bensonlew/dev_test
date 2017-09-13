@@ -7,7 +7,6 @@ from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 
-
 class MegahitAgent(Agent):
     """
     进行megahit拼接
@@ -15,7 +14,6 @@ class MegahitAgent(Agent):
     author: guhaidong
     last_modify: 2017.09.08
     """
-
     def __init__(self, parent):
         super(MegahitAgent, self).__init__(parent)
         options = [
@@ -26,7 +24,7 @@ class MegahitAgent(Agent):
             {"name": "mem", "type": "int", "default": 10},  # 拼接使用内存，默认10
             {"name": "mem_mode", "type": "string", "default": "mem"},
             # 拼接内存模式,mem表示根据'mem'参数，minimum表示最小内存，moderate表示普通内存
-            {"name": "min_contig", "type": "string", "default": "300"},  # 最短contig值
+            {"name": "min_contig", "type": "string", "default": "300"},   # 最短contig值
             {"name": "mink", "type": "int", "default": 47},  # 最小kmer值
             {"name": "maxk", "type": "int", "default": 97},  # 最大kmer值
             {"name": "step", "type": "int", "default": 10},  # kmer步长
@@ -90,18 +88,20 @@ class MegahitTool(Tool):
         进行megahit拼接
         :return:
         """
+        if os.path.exists(self.output_dir + '/megahit.contig.fa'):
+            return
         if os.path.exists(self.work_dir + '/run'):
             shutil.rmtree(self.work_dir + '/run')
-        cmd = self.megahit_path + 'megahit -1 %s -2 %s ' \
-                                  % (self.option('fastq1').prop['path'], self.option('fastq2').prop['path'],)
+        cmd = self.megahit_path + 'megahit -1 %s -2 %s '\
+           % (self.option('fastq1').prop['path'], self.option('fastq2').prop['path'],)
         if self.option('fastqs'):
             cmd += '-r %s ' % (self.option('fastqs').prop['path'])
-        cmd += '-o %s --k-min %s --k-max %s --k-step %s --min-contig-len %s ' \
-               % (self.work_dir + '/run',
-                  self.option('mink'),
-                  self.option('maxk'),
-                  self.option('step'),
-                  self.option('min_contig'))
+        cmd += '-o %s --k-min %s --k-max %s --k-step %s --min-contig-len %s '\
+            % (self.work_dir + '/run',
+            self.option('mink'),
+            self.option('maxk'),
+            self.option('step'),
+            self.option('min_contig'))
         if self.option('mem_mode') == 'mem':
             member_byte_format = self.option('mem') * 1000000000
             cmd += '-m %s' % (member_byte_format)

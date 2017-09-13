@@ -2,31 +2,29 @@
 # __author__ = 'haidong.gu'
 
 import os
+import shutil
 from biocluster.core.exceptions import OptionError
-from biocluster.module import Module
-
-
+from biocluster.module import  Module
 class GenePredictModule(Module):
     """
     宏基因组基因预测模块
     author: guhaidong
     last_modify: 2017.08.31
     """
-
     def __init__(self, work_id):
         super(GenePredictModule, self).__init__(work_id)
         option = [
             {"name": "input_fasta", "type": "infile", "format": "sequence.fasta_dir"},  # 输入文件夹，去掉小于最短contig长度的序列
             {"name": "min_gene", "type": "string", "default": "100"},  # 输入最短基因长度，如100
-            {"name": "out", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，基因预测输出路径
+            {"name": "out", "type": "outfile", "format": "sequence.fasta"},  #输出文件，基因预测输出路径
         ]
         self.add_option(option)
-        self._is_mix = False  # 判断是否为混拼结果
-        self.metagene_tools = []  # run_metagene并行运行tools列表
+        self._is_mix = False  #判断是否为混拼结果
+        self.metagene_tools = []  #run_metagene并行运行tools列表
         self.metagene_stat = self.add_tool('gene_structure.metagene_stat')
         self.len_distribute = self.add_tool('sequence.length_distribute')
         self.step.add_steps("metagene", "metagene_stat", "len_distribute")
-        self.sum_tools = []  # 根据此变量移动结果文件
+        self.sum_tools = []  #根据此变量移动结果文件
 
     def check_options(self):
         """
@@ -79,8 +77,9 @@ class GenePredictModule(Module):
         self.sum_tools.append(self.metagene_tools[0])
 
     def run_metagene_stat(self):
+        self.sort_result()
         opts = {
-            'contig_dir': self.metagene_tools[0].output_dir
+            'contig_dir': self.work_dir + '/Predict'
         }
         self.metagene_stat.set_options(opts)
         self.metagene_stat.on('start', self.set_step, {'start': self.step.metagene_stat})
@@ -94,15 +93,31 @@ class GenePredictModule(Module):
             'len_range': '200,400,500,600,800'
         }
         if self._is_mix:
-            opts["fasta_dir"] = self.metagene_tools[0].output_dir
-        else:
             opts["fasta_dir"] = self.metagene_stat.output_dir
+        else:
+            opts["fasta_dir"] = self.work_dir + '/Predict'
         self.len_distribute.set_options(opts)
         self.len_distribute.on('start', self.set_step, {'start': self.step.len_distribute})
         self.len_distribute.on('end', self.set_step, {'end': self.step.len_distribute})
         self.len_distribute.on('end', self.set_output)
         self.len_distribute.run()
         self.sum_tools.append(self.len_distribute)
+
+    def sort_result(self):
+        """
+        将metagene的预测结果放在一起
+        :return:
+        """
+        if os.path.exists(self.work_dir + '/Predict'):
+            shutil.rmtree(self.work_dir + '/Predict')
+        os.mkdir(self.work_dir + '/Predict')
+        for tool in self.metagene_tools:
+            files = os.listdir(tool.output_dir)
+            for fasta in files:
+                try:
+                    os.link(os.path.join(tool.output_dir, fasta), os.path.join(self.work_dir, 'Predict', fasta))
+                except OSError:
+                    self.logger.info(os.path.join(self.work_dir, 'Predict', fasta) + '已存在')
 
     def run(self):
         """
@@ -112,7 +127,7 @@ class GenePredictModule(Module):
         self.run_metagene()
         super(GenePredictModule, self).run()
 
-    def linkdir(self, dirpath, dirname):
+    def linkdir(self,dirpath,dirname):
         """
         link一个文件夹下所有文件到module的output目录
         :param dirpath: 传入文件夹路径
@@ -143,28 +158,28 @@ class GenePredictModule(Module):
         :return:
         """
         self.logger.info("设置结果目录")
-        for i, tool in enumerate(self.sum_tools):
+        for i,tool in enumerate(self.sum_tools):
             if i == 0:
                 if self._is_mix:
                     pass
                 else:
-                    self.linkdir(tool.output_dir, self.output_dir)
+                    self.linkdir(self.work_dir + '/Predict', self.output_dir)
             elif i == 1:
                 if self._is_mix:
                     self.linkdir(tool.output_dir, self.output_dir)
                 else:
-                    if os.exists(self.output_dir + '/sample.metagene.stat'):
+                    if os.path.exists(self.output_dir + '/sample.metagene.stat'):
                         os.remove(self.output_dir + '/sample.metagene.stat')
                     os.link(tool.output_dir + '/sample.metagene.stat', self.output_dir + '/sample.metagene.stat')
             elif i == 2:
                 if self._is_mix:
                     for f in os.listdir(tool.output_dir):
                         if f.startswith('Newbler_Mix'):
-                            if os.exists(self.output_dir + '/' + f):
-                                os.remove(self.output_dir + '/' + f)
-                            os.link(tool.output_dir + '/' + f, self.output_dir + '/' + f)
+                            if os.path.exists(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f):
+                                os.remove(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f)
+                            os.link(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f)
                 else:
-                    self.linkdir(tool.output_dir, self.output_dir)
+                    self.linkdir(tool.output_dir, self.output_dir + '/len_distribute')
         self.option('out').set_path(self.metagene_stat.option('fasta').prop['path'])
         self.logger.info("设置基因预测结果目录成功")
         self.end()

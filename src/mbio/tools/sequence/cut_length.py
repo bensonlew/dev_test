@@ -12,7 +12,7 @@ class CutLengthAgent(Agent):
     cut_length:split_length.pl根据序列长度阈值对输入路径中的序列进行拆分，然后用combine_contig.pl将短序列合并为一个文件
     version 1.0
     author: guhaidong
-    last_modify: 2017.09.06
+    last_modify: 2017.09.13
     """
 
     def __init__(self, parent):
@@ -112,8 +112,8 @@ class CutLengthTool(Tool):
         :return:
         """
         self.logger.info("设置结果目录")
-        self.option['short_contig'] = os.path.join(self.output_dir, "newbler_input.fa")
-        self.option['cut_contig'] = self.output_dir
+        self.option('short_contig').set_path(os.path.join(self.output_dir, "newbler_input.fa"))
+        self.option('cut_contig').set_path(self.output_dir)
         self.logger.info("设置结果目录成功")
 
     def run(self):

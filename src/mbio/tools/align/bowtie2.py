@@ -112,7 +112,7 @@ class Bowtie2Tool(Tool):
         """
         self.logger.info('运行bowtie2 比对 pair reads')
         list_file = open(self.output_dir + '/list.txt', 'w')
-        list_file.write("{}.pair.sam\t{}\tPE\n".format(self.samp_name, self.samp_name))
+        list_file.write("{}.pair.sam\t{}\tpe\n".format(self.samp_name, self.samp_name))
         cmd = "{}bowtie2  -p 2 -x {}/{}  -1  {}  -2  {}  -S  {}/{}.pair.sam ".format(self.bowtie2_path,
                                                                                      self.work_dir, self.index_prefix,
                                                                                      self.option("fastq1").path,
@@ -126,9 +126,9 @@ class Bowtie2Tool(Tool):
             list_file.close()
             self.set_error("bowtie2_map_pair运行出错！")
         # self.logger.info("fastqs is : " + self.option("fastqs").path)
-        if not self.option("fastqs"):
+        if self.option("fastqs"):
             self.logger.info("运行bowtie2 比对 single reads")
-            list_file.write("{}.single.sam\t{}\tSE\n".format(self.samp_name, self.samp_name))
+            list_file.write("{}.single.sam\t{}\tse\n".format(self.samp_name, self.samp_name))
             cmd = "{}bowtie2  -p  6  -x  {}/{}  -U  {}  -S  {}/{}.single.sam".format(self.bowtie2_path,
                                                                                      self.work_dir, self.index_prefix,
                                                                                      self.option("fastqs").path,

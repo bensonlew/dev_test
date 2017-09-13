@@ -32,13 +32,11 @@ class MgAssSoapdenovoModule(Module):
             # 输出文件，去掉小于最短contig长度的序列
         ]
         self.add_option(options)
+        self.qc_file = {}  # 质控数据信息
         self.sum_tools = []
         self.tools = []
         self.single_module = []
         self.step.add_steps("SOAPdenovo2", "contig_stat","length_distribute")
-        self.SOAPdenovo2 = self.add_module('assemble.single_soap_denovo')
-        self.contig_stat = self.add_tool("assemble.contig_stat")
-        self.len_distribute = self.add_tool("sequence.length_distribute")
         self.kmer_list = ['39', '43', '47']
 
     def check_options(self):
@@ -70,11 +68,13 @@ class MgAssSoapdenovoModule(Module):
         :return:
         """
         n = 0
-        db = Config().mongo_client.sanger_biodb
+        #db = Config().mongo_client.sanger_biodb
+        db = Config().mongo_client.tsanger_metagenomic
         # db = Config().mongo_client[Config().MONGODB]
         collection = db['mg_data_stat']
         #object_id = ObjectId(self.option['data_id'])
         object_id = '111111111111111111111111'
+        self.qc_file = self.get_list()
         results = collection.find({'data_stat_id': object_id})
         if not results.count():
             raise Exception('没有找到样品集数据')
@@ -86,11 +86,13 @@ class MgAssSoapdenovoModule(Module):
             assem_mem = self.get_mem(sample_type[key], base_num[key]) # 计算运行内存
             # self.logger.info('type is ' + sample_type[key] + '; base_num is ' + base_num[key] + " assem_mem is " + str(assem_mem) + '\n')
             for kmer in self.kmer_list:
+                self.SOAPdenovo2 = self.add_module('assemble.single_soap_denovo')
                 self.step.add_steps('SOAPdenovo2_{}'.format(n))
-                self.SOAPdenovo2.set_options({
-                    "fastq1": self.option('QC_dir').prop['path']+'/' + key + '.sickle.l.fastq',
-                    "fastq2": self.option('QC_dir').prop['path']+'/' + key + '.sickle.r.fastq',
+                opts = ({
+                    "fastq1": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['l'],
+                    "fastq2": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['r'],
                     "fastqs": self.option('QC_dir').prop['path']+'/' + key + '.sickle.s.fastq',
+                    "sample_name": key,
                     "mem": 50, # assem_mem,
                     "max_rd_len": raw_rd_len[key],
                     "insert_size": insert_dic[key],
@@ -100,6 +102,9 @@ class MgAssSoapdenovoModule(Module):
                     "kmer": kmer,
                     "min_contig": self.option('min_contig')
                 })
+                if 's' in self.qc_file[key].keys():
+                    opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['s']
+                self.SOAPdenovo2.set_options(opts)
                 step = getattr(self.step, 'SOAPdenovo2_{}'.format(n))
                 step.start()
                 self.SOAPdenovo2.on('end', self.finish_update, 'SOAPdenovo2_{}'.format(n))
@@ -122,6 +127,7 @@ class MgAssSoapdenovoModule(Module):
         """
         kmer = ",".join(self.kmer_list)
         self.get_file()
+        self.contig_stat = self.add_tool("assemble.contig_stat")
         self.contig_stat.set_options({
             "contig_dir": self.work_dir + '/scaftig_dir',
             "choose_kmer": kmer,
@@ -139,6 +145,7 @@ class MgAssSoapdenovoModule(Module):
         长度分布
         :return:
         """
+        self.len_distribute = self.add_tool("sequence.length_distribute")
         self.len_distribute.set_options({
             #"fasta_dir": self.work_dir + '/scaftig_dir',
             "fasta_dir": self.contig_stat.output_dir,
@@ -149,7 +156,35 @@ class MgAssSoapdenovoModule(Module):
         self.step.length_distribute.finish()
         self.step.update()
 
-    def get_mem(self, type,base_number):
+    def get_list(self):
+        """
+        根据QC路径下list.txt，将文件信息转换成字典
+        :return: dic:file_dic[sample_name][file_type]
+        """
+        file_dic = dict()
+        logfile = open("log.txt", "w")
+        ab_rout = self.option('QC_dir').prop['path'] + '/list.txt'
+        logfile.write(ab_rout)
+        with open(ab_rout, 'r') as list_file:
+            for line in list_file:
+                info = line.split('\t')
+                name = info[1]
+                type = info[2].split('\n')[0]
+                if type not in ['l', 's', 'r']:
+                    raise OptionError('质控样品的类型错误，必须为l/r/s之一')
+                if name in file_dic.keys():
+                    if type in file_dic[name].keys():
+                        raise OptionError('质控list表中包含重复的样品及其pse类型，请检查质控list.txt ')
+                    else:
+                        file_dic[name][type] = info[0]
+                        logfile.write(name + '\t' + type + '\n')
+                else:
+                    file_dic[name] = {type: info[0]}
+                    logfile.write(name + '\t' + type + '\n')
+        logfile.close()
+        return file_dic
+
+    def get_mem(self,type,base_number):
         """
         根据样品类型和此样品测序量，计算拼接所用内存
         :param type: 样品类型
