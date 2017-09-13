@@ -829,7 +829,7 @@ class RefrnaWorkflow(Workflow):
             refgenepathway_path = os.path.join(self.anno_path + "/anno_stat/kegg_stat/gene_pathway", file)
             os.link(refgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway/" + file)
         for file in os.listdir(origin_dir + "/../RefAnnotation/output/anno_stat/kegg_stat/gene_pathway"):
-            newgenepathway_path = os.path.join(self.anno_path + "/anno_stat/kegg_stat/gene_pathway", file)
+            newgenepathway_path = os.path.join(origin_dir + "/../RefAnnotation/output/anno_stat/kegg_stat/gene_pathway", file)
             os.link(newgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/newgene_pathway/" + file)
         # refgenepathway_path = self.anno_path + "/anno_stat/kegg_stat/gene_pathway"
         #os.link(refgenepathway_path, target_dir + "/Annotation/GeneAnnotation/KEGG/refgene_pathway")
@@ -884,9 +884,9 @@ class RefrnaWorkflow(Workflow):
         os.link(reftranskegglayer_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_kegg_layer.xls")
         reftranskeggtable_path = self.anno_path + "/kegg/kegg_table.xls"
         os.link(reftranskeggtable_path, target_dir + "/Annotation/TransAnnotation/KEGG/reftrans_kegg_table.xls")
-        newtranskegglayer_path = origin_dir + "/../RefAnnotation/output/kegg/pathways/kegg_layer.xls"
+        newtranskegglayer_path = origin_dir + "/../RefAnnotation/output/kegg/kegg_layer.xls"
         os.link(newtranskegglayer_path, target_dir + "/Annotation/TransAnnotation/KEGG/newtrans_kegg_layer.xls")
-        newtranskeggtable_path = origin_dir + "/../RefAnnotation/output/kegg/pathways/kegg_table.xls"
+        newtranskeggtable_path = origin_dir + "/../RefAnnotation/output/kegg/kegg_table.xls"
         os.link(newtranskeggtable_path, target_dir + "/Annotation/TransAnnotation/KEGG/newtrans_kegg_table.xls")
         #Expression
         os.makedirs(target_dir + "/ExpAnalysis")
