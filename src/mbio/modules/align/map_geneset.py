@@ -53,7 +53,7 @@ class MapGenesetModule(Module):
             if not os.path.exists(list_path):
                 OptionError("缺少list文件")
             row_num = len(open(list_path, "r").readline().split())
-            if  row_num != 3:
+            if row_num != 3:
                 raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
         if not self.option("insertsize").is_set:
             raise OptionError("必须提供插入片段文件")
@@ -134,6 +134,8 @@ class MapGenesetModule(Module):
 
     def set_output(self):
         self.linkdir(self.unigene_profile.output_dir, "gene_profile")
+        self.option('reads_abundance', self.unigene_profile.option("reads_abundance"))
+        self.option('rpkm_abundance', self.unigene_profile.option("rpkm_abundance"))
         self.end()
 
     def linkdir(self, dirpath, dirname):
@@ -151,11 +153,6 @@ class MapGenesetModule(Module):
                 os.remove(newfile)
         for i in range(len(allfiles)):
             os.link(oldfiles[i], newfiles[i])
-
-    def linkfile(self, target, filename):
-        if os.path.exists(target):
-            os.remove(target)
-        os.link(filename, target)
 
     def run(self):
         super(MapGenesetModule, self).run()
