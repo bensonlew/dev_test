@@ -20,7 +20,7 @@ class SortIdbaResultAgent(Agent):
         super(SortIdbaResultAgent, self).__init__(parent)
         options = [
             {"name": "idba_contig", "type": "infile", "format": "sequence.fasta_dir"},  # 输入idba拼接结果路径
-            {"name": "newbler", "type": "sequence.profile_table"},  # 输入newbler拼接结果状态文件路径
+            {"name": "newbler", "type": "infile", "format": "sequence.profile_table"},  # 输入newbler拼接结果状态文件路径
             {"name": "min_contig", "type": "int", "default": 300},  # 输入最短contig长度，默认300
             {"name": "predict", "type": "outfile", "format": "sequence.fasta_dir"}, # 输出fasta结果文件夹(供基因预测用)
         ]
