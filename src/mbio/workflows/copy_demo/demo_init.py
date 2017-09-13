@@ -42,6 +42,10 @@ class DemoInitWorkflow(Workflow):
                     target_task_id = self.option("task_id") + "_" + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
                     copy_task = RefrnaCopyMongo(self.option("task_id"), target_task_id, target_project_sn, target_member_id)
                     copy_task.run()
+                    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+                    col = db["sg_task"]
+                    result = col.find_one({"task_id": target_task_id, "project_sn": target_project_sn})
+                    col.update_one({"_id": result["_id"]}, {"$set": {"demo_status": "end"}})
                 self.logger.info("备份{}份新的demo成功".format(self.option("demo_number")))
             if self.option("setup_type") in ["cancel", "delete"]:
                 self.logger.info("开始删除备份的demo")
