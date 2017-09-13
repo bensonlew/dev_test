@@ -136,22 +136,37 @@ class TableFile(File):
     @staticmethod
     def get_table_of_main_table(origin_table, target_path, group):
         r_sample = []
-        exp = []
-        with open(group, 'r') as g:
-            r = g.readline()
+        final_lines =[]
+        with open(group, 'r') as g, open(origin_table)as fr, open(target_path, "w")as fw:
             for line in g:
                 sample = line.strip().split("\t")[0]
                 r_sample.append(sample)   # 获取分组文件中存在的样本
-        import pandas as pd
-        data = pd.read_table(origin_table, header=0, sep="\t")
-        for i in data.columns[1:]:
-            if i not in r_sample:
-                exp.append(i)  # 获取要去除的样本
-        if len(exp) >= 1:
-            data = data.drop(exp, axis=1)
-        else:
-            pass
-        data.to_csv(target_path, sep="\t", index=False)  # 数据框写入文件
+            lines = fr.readlines()
+            table_list = [i.rstrip().split('\t') for i in lines]
+            T_lines = map(lambda *a: '\t'.join(a), *table_list)
+            # T_lines = map(lambda *a: '\t'.join(a) + '\n', *lines)
+            final_lines.append(T_lines[0])
+            for line in T_lines[1:]:
+                line_split = line.strip().split("\t")
+                if line_split[0] not in r_sample:
+                    pass
+                else:
+                    final_lines.append(line)  # 转置挑选需要的样本
+            table_list = [i.rstrip().split('\t') for i in final_lines]
+            T_lines = map(lambda *a: '\t'.join(a) + '\n', *table_list)  # 再次转置回来
+            for line in T_lines:
+                fw.write(line)
+            # 此方法不能投递运行，故换写法
+            # import pandas as pd
+            # data = pd.read_table(origin_table, header=0, sep="\t")
+            # for i in data.columns[1:]:
+            #     if i not in r_sample:
+            #         exp.append(i)  # 获取要去除的样本
+            # if len(exp) >= 1:
+            #     data = data.drop(exp, axis=1)
+            # else:
+            #     pass
+            # data.to_csv(target_path, sep="\t", index=False)  # 数据框写入文件
 
     def check(self):
         if super(TableFile, self).check():
@@ -161,5 +176,9 @@ class TableFile(File):
 
 if __name__ == "__main__":
     a = TableFile()
-    a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/zhouxuan/otu_table_Tab_zx_1498725491.txt")
+    a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/matrix_column.txt")
+    group_file = '/mnt/ilustre/users/sanger-dev/workspace/20170913/Single_test_bar_log_group1/SimpleBar/group1/group_1'
     a.check()
+    out = '/mnt/ilustre/users/sanger-dev/workspace/20170913/Single_test_bar_log_group1/SimpleBar/group1/input_1'
+    a.get_table_of_main_table('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/matrix_column.txt', out, group_file)
+    
