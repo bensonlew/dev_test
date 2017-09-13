@@ -112,5 +112,5 @@ class CdhitSplitFastaTool(Tool):
         for newfile in newfiles:
             if os.path.exists(newfile):
                 os.remove(newfile)
-        for i in range(len(allfiles)):
+        for i in range(len(newfiles)):
             os.link(oldfiles[i], newfiles[i])

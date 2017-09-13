@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shaohua.yuan'
-# last_modify:2017.9.11
+# last_modify:2017.8.23
 
 from biocluster.module import Module
 import os
@@ -16,22 +16,14 @@ class ArdbAnnotationModule(Module):
             {"name": "lines", "type": "int", "default": 100000},  # 将fasta序列拆分此行数的多个文件
             {"name": "reads_profile_table", "type": "infile", "format": "sequence.profile_table"},  # 基因丰度表
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
-            {"name": "ardb_result_dir", "type": "outfile", "format": "anno.mg_anno_dir.py"}  # 设置结果文件
+            {"name": "ardb_result_dir", "type": "outfile", "format": "annotation.mg_anno_dir"}  # 设置结果文件后面要用
         ]
-        self.add_option(options)  # 检查option是否list格式，其中每个opt是否字典格式
+        self.add_option(options)  ##### 检查option是否list格式，其中每个opt是否字典格式
         self.split_fasta = self.add_tool("sequence.split_fasta")
-        self.step.add_steps('split_fasta', 'diamond', 'link', 'anno', 'anno_stat')
         self.ardb_align_tools = []
         self.ardb_anno_tool = self.add_tool("annotation.ardb_anno")
         self.ardb_anno_stat_tool = self.add_tool("annotation.ardb_anno_stat")
         self.align_result_path = ''
-
-    def set_step(self, event):
-        if 'start' in event['data'].keys():
-            event['data']['start'].start()
-        if 'end' in event['data'].keys():
-            event['data']['end'].finish()
-        self.step.update()
 
     def check_options(self):
         if not self.option("query").is_set:
@@ -44,9 +36,9 @@ class ArdbAnnotationModule(Module):
 
     def run_split_fasta(self):
         self.split_fasta.set_options({
-                                        "fasta": self.option("query"),
-                                        "lines": self.option("lines"),
-                                        })
+            "fasta": self.option("query"),
+            "lines": self.option("lines"),
+        })
         self.split_fasta.on('end', self.ardb_align)
         self.split_fasta.run()
 
@@ -56,7 +48,6 @@ class ArdbAnnotationModule(Module):
             pass
         else:
             os.mkdir(self.align_result_path)
-        # n = 0
         for f in os.listdir(self.split_fasta.output_dir):
             file_path = os.path.join(self.split_fasta.output_dir, f)
             align_diamond = self.add_tool('align.meta_diamond')
@@ -67,15 +58,11 @@ class ArdbAnnotationModule(Module):
                 "sensitive": 0,
                 "target_num": 1
             })
-            # align_diamond.on('end', self.set_output, 'ardb_align')
             self.ardb_align_tools.append(align_diamond)
-            # n += 1
         if len(self.ardb_align_tools) > 1:
             self.on_rely(self.ardb_align_tools, self.ardb_anno)
-            # self.on_rely(self.ardb_align_tools, self.link_xml)
         else:
             self.ardb_align_tools[0].on('end', self.ardb_anno)
-            # self.ardb_align_tools[0].on('end', self.link_xml)
         for tool in self.ardb_align_tools:
             tool.run()
 
@@ -94,9 +81,6 @@ class ArdbAnnotationModule(Module):
         self.ardb_anno_tool.set_options({
             "ardb_xml_dir": xml_dir
         })
-        self.ardb_anno_tool.on('start', self.set_step, {'start': self.step.anno})
-        self.ardb_anno_tool.on('end', self.set_step, {'end': self.step.anno})
-        # self.ardb_anno_tool.on('end', self.set_output, "anno")
         self.ardb_anno_tool.on('end', self.ardb_anno_stat)
         self.ardb_anno_tool.run()
 
@@ -105,8 +89,6 @@ class ArdbAnnotationModule(Module):
             'ardb_anno_table': self.ardb_anno_tool.option('ardb_anno_result'),
             'reads_profile_table': self.option('reads_profile_table'),
         })
-        # self.ardb_anno_stat_tool.on('start', self.set_step, {'start': self.step.anno_stat})
-        # self.ardb_anno_stat_tool.on('end', self.set_step, {'end': self.step.anno_stat})
         self.ardb_anno_stat_tool.on('end', self.set_output)
         self.ardb_anno_stat_tool.run()
 
@@ -122,10 +104,8 @@ class ArdbAnnotationModule(Module):
         for i in range(len(output_newfiles)):
             if os.path.exists(output_newfiles[i]):
                 os.remove(output_newfiles[i])
-            print
-            "old:", out_oldfiles[i]
-            print
-            "new:", output_newfiles[i]
+            # print "old:",out_oldfiles[i]
+            # print "new:",output_newfiles[i]
             os.link(out_oldfiles[i], output_newfiles[i])
         self.end()
 
