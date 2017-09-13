@@ -52,7 +52,7 @@ class BamReadsdistributionAgent(Agent):
         """
         设置所需资源
         """
-        self._cpu = 10
+        self._cpu = 2
         self._memory = '50G'
 
     def end(self):

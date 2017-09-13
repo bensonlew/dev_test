@@ -46,8 +46,8 @@ class KeggAnnotationAgent(Agent):
             raise OptionError("物种类别必须为Animals/Plants/Fungi/Protists/Archaea/Bacteria/None")
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = '50G'
+        self._cpu = 2
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
