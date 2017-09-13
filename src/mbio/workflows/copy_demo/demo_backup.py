@@ -45,7 +45,7 @@ class DemoBackupWorkflow(Workflow):
         copy_task.run()
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         col = db["sg_task"]
-        result = col.find_one({"task_id": target_task_id, "project_sn": target_project_sn})
+        result = col.find_one({"task_id": self.option("target_task_id"), "project_sn": self.option("target_project_sn")})
         col.update_one({"_id": result["_id"]}, {"$set": {"demo_status": "end"}})
         self.end()
 
