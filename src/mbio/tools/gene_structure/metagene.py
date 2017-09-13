@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'wangzhaoyue & guhaidong'
+# __author__ = 'wangzhaoyue'
 
 import os
 import re
+import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-
+from mbio.packages.ref_rna.trans_step import step_count
 
 class MetageneAgent(Agent):
     """
     使用metagene软件进行基因预测
     version: Metagene
-    last_modify: 2017.09.12
+    author: wangzhaoyue
+    last_modify: 2017.06.19
     """
-
     def __init__(self, parent):
         super(MetageneAgent, self).__init__(parent)
         options = [
@@ -24,7 +25,7 @@ class MetageneAgent(Agent):
             {"name": "min_gene", "type": "string", "default": "100"},  # 输入最短基因长度，如100
             {"name": "fna", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，样本的核酸序列
             {"name": "cut_more_fna", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，样本去除最小值后的核酸序列
-            # {"name": "faa", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，样本的蛋白序列
+            #{"name": "faa", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，样本的蛋白序列
         ]
         self.add_option(options)
         self.step.add_steps("Metagene")
@@ -89,8 +90,8 @@ class MetageneTool(Tool):
         self.run_metagene()
         self.run_metageneseqs()
         self.run_cut_more()
-        # self.run_transeq()
-        # self.step_count()
+        #self.run_transeq()
+        #self.step_count()
         self.set_output()
         self.end()
 
@@ -100,8 +101,7 @@ class MetageneTool(Tool):
         :return:
         """
         cmd = self.sh_path + 'metagene.sh %s %s %s' % (self.metagene_path, self.option('cut_more_scaftig').prop['path'],
-                                                       self.work_dir + '/' + self.option(
-                                                           'sample_name') + '.metagene.csv')
+                                                       self.work_dir + '/' + self.option('sample_name') + '.metagene.csv')
         command = self.add_command("metagene", cmd)
         command.run()
         self.wait(command)
@@ -115,10 +115,7 @@ class MetageneTool(Tool):
         MetageneSeqs  -m [csv] -f [scaftig] -o [fna]
         :return:
         """
-        cmd = self.perl_path + self.metagene_seqs_path + '-m %s -f %s -o %s' % (
-            self.work_dir + '/' + self.option('sample_name') + '.metagene.csv',
-            self.option('cut_more_scaftig').prop['path'],
-            self.work_dir + '/' + self.option('sample_name') + '.metagene.fna')
+        cmd = self.perl_path + self.metagene_seqs_path + '-m %s -f %s -o %s' % (self.work_dir + '/' + self.option('sample_name') + '.metagene.csv', self.option('cut_more_scaftig').prop['path'], self.work_dir + '/' + self.option('sample_name') + '.metagene.fna')
         command = self.add_command("metageneseqs运行", cmd)
         command.run()
         self.wait(command)
@@ -132,9 +129,7 @@ class MetageneTool(Tool):
         perl cut_more.pl [run_MetageneSeqs的输出文件] [最短contig长度] [输出文件的名称前缀]
         :return:
         """
-        cmd = self.perl_path + self.cut_more_path + self.work_dir + '/' + self.option(
-            'sample_name') + '.metagene.fna' + ' ' + self.option('min_gene') + ' ' + self.option(
-            'sample_name') + '.metagene.fna'
+        cmd = self.perl_path + self.cut_more_path + self.work_dir + '/' + self.option('sample_name') + '.metagene.fna' + ' ' + self.option('min_gene') + ' ' + self.option('sample_name') + '.metagene.fna'
         command = self.add_command("cut_more", cmd)
         command.run()
         self.wait(command)
@@ -142,7 +137,6 @@ class MetageneTool(Tool):
             self.logger.info("运行cut_more完成")
         else:
             self.set_error("运行cut_more运行出错!")
-
     '''
     def run_transeq(self):
         """
@@ -180,27 +174,27 @@ class MetageneTool(Tool):
                 pass
         self.logger.info("预测部分步长统计结束")
     '''
-
     def set_output(self):
         """
         将结果文件复制到output文件夹下面
         :return:
         """
         self.logger.info("设置结果目录")
-        outfasta1 = self.output_dir + '/../../Metagene/output/' + self.option('sample_name') + '.metagene.fna'
-        outfasta2 = self.output_dir + '/../../Metagene/output/' + self.option(
-            'sample_name') + '.metagene.more' + self.option('min_gene') + '.fa'
+        outfasta1 = self.output_dir + '/' + self.option('sample_name') + '.metagene.fna'
+        outfasta2 = self.output_dir + '/' + self.option('sample_name') + '.metagene.more' + self.option('min_gene') + '.fa'
         if os.path.exists(outfasta1):
             os.remove(outfasta1)
         if os.path.exists(outfasta2):
             os.remove(outfasta2)
+        #os.link(self.work_dir + '/' + self.option('sample_name') + '.metagene.fna',
+        #        outfasta1)
         os.link(self.work_dir + '/' + self.option('sample_name') + '.metagene.fna.more' + self.option('min_gene'),
                 outfasta2)
-        self.option('cut_more_fna').set_path(outfasta2)
-        # os.link(self.work_dir + '/' + self.option('sample_name') + '.metagene.fna', outfasta1)
-        # os.link(self.work_dir + '/' + self.option('sample_name') + '.metagene.faa',
+        #os.link(self.work_dir + '/' + self.option('sample_name') + '.metagene.faa',
         #        self.output_dir + '/' + self.option('sample_name') + '.metagene.faa')
-        # self.option('fna').set_path(self.output_dir + '/' + self.option('sample_name') + '.metagene.fna')
+        #self.option('fna').set_path(self.output_dir + '/' + self.option('sample_name') + '.metagene.fna')
+        self.option('cut_more_fna').set_path(
+             outfasta2)
         #    self.output_dir + '/' + self.option('sample_name') + '.metagene.more' + self.option('min_gene') + '.fa')
-        # self.option('faa').set_path(self.output_dir + '/' + self.option('sample_name') + '.metagene.faa')
+        #self.option('faa').set_path(self.output_dir + '/' + self.option('sample_name') + '.metagene.faa')
         self.logger.info("设置Metagene分析结果目录成功")

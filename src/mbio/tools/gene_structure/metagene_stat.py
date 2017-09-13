@@ -3,20 +3,19 @@
 
 import os
 import re
+import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from mbio.packages.ref_rna.trans_step import step_count
-
 
 class MetageneStatAgent(Agent):
     """
     统计基因预测结果
     version: 1
     author: guhaidong
-    last_modify: 2017.09.12
+    last_modify: 2017.08.30
     """
-
     def __init__(self, parent):
         super(MetageneStatAgent, self).__init__(parent)
         options = [
@@ -48,7 +47,7 @@ class MetageneStatAgent(Agent):
         if not os.path.exists(self.option('contig_dir').prop['path']):
             raise OptionError('基因预测结果文件夹不存在')
         if not os.listdir(self.option('contig_dir').prop['path']):
-            raise OptionError('基因预测结果文件夹为空')
+            raise OptionError('基因预测结果文件夹为空\n' + self.option('contig_dir').prop['path'])
         return True
 
     def set_resource(self):
@@ -93,11 +92,7 @@ class MetageneStatTool(Tool):
         :return:
         """
         cmd = self.python_path + ' %s -gene_dir %s -output_stat %s -output_fa %s' % (self.gene_stat_path,
-                                                                                     self.option('contig_dir').prop[
-                                                                                         'path'],
-                                                                                     self.work_dir +
-                                                                                     '/sample.metagene.stat',
-                                                                                     self.work_dir + '/metagene.fa')
+         self.option('contig_dir').prop['path'], self.work_dir + '/sample.metagene.stat', self.work_dir + '/metagene.fa' )
         command = self.add_command("metagenestat", cmd)
         command.run()
         self.wait(command)
@@ -105,6 +100,7 @@ class MetageneStatTool(Tool):
             self.logger.info("运行metagenestat的cmd完成")
         else:
             self.set_error("运行metagenestat的cmd运行出错!")
+
 
     def set_output(self):
         """
