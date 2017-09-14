@@ -1094,6 +1094,7 @@ class RefrnaWorkflow(Workflow):
         # self.export_pca()
 
     def export_test(self):
+        gevent.sleep()
         self.api_qc = self.api.ref_rna_qc
         from bson import ObjectId
         self.group_id = ObjectId("59ae0a75a4e1af55d523f91a")
@@ -1101,6 +1102,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_genome_info(self):
+        gevent.sleep()
         if self.option("ref_genome") != "customer_mode" and self.option("ref_genome") != "Custom":
             self.api_geno = self.api.genome_info
             file_path = os.path.join(os.path.split(self.json_path)[0],
@@ -1112,6 +1114,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_qc(self):
+        gevent.sleep()
         self.api_qc = self.api.ref_rna_qc
         qc_stat = self.qc_stat_before.output_dir
         fq_type = self.option("fq_type").lower()
@@ -1130,6 +1133,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_assembly(self):
+        gevent.sleep()
         self.api_assembly = self.api.api("ref_rna.ref_assembly")
         if self.option("assemble_method") == "cufflinks":
             all_gtf_path = self.assembly.output_dir + "/Cufflinks"
@@ -1141,6 +1145,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_map_assess(self):
+        gevent.sleep()
         self.api_map = self.api.ref_rna_qc
         stat_dir = self.mapping.output_dir + "/stat"
         if self.option("seq_method") == "Topaht":
@@ -1158,6 +1163,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_exp_rsem_fpkm(self, test):
+        gevent.sleep()
         if test:
             pass
             # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
@@ -1196,6 +1202,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_exp_rsem_tpm(self, test):
+        gevent.sleep()
         if test:
             # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
             pass
@@ -1234,6 +1241,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_exp_fc(self,test=True):
+        gevent.sleep()
         if test:
             # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
             distri_path = self.exp_fc.work_dir + "/Featurecounts"
@@ -1281,6 +1289,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_gene_set(self):  # ref_and_new
+        gevent.sleep()
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
         path = self.exp.output_dir + "/diff/trans_diff/diff_stat_dir"
@@ -1313,6 +1322,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_ref_gene_set(self):
+        gevent.sleep()
         self.api_geneset = self.api.refrna_express
         group_id = self.group_id
         path = self.exp.output_dir + "/ref_diff/trans_ref_diff/diff_stat_dir"
@@ -1345,6 +1355,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_diff_trans(self):
+        gevent.sleep()
         path = self.exp.output_dir + "/diff/trans_diff"
         exp_path = self.exp.output_dir + "/rsem"
         with open(exp_path + "/transcripts.counts.matrix", 'r+') as f1:
@@ -1383,6 +1394,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_diff_gene(self):
+        gevent.sleep()
         path = self.exp.output_dir + "/diff/genes_diff"
         exp_path = self.exp.output_dir + "/rsem"
         with open(exp_path + "/genes.counts.matrix", 'r+') as f1:
@@ -1420,6 +1432,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_ref_diff_trans(self):
+        gevent.sleep()
         path = self.exp.output_dir + "/ref_diff/trans_ref_diff"
         exp_path = self.exp.output_dir + "/rsem"
         with open(exp_path + "/transcripts.counts.matrix", 'r+') as f1:
@@ -1458,6 +1471,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_ref_diff_gene(self):
+        gevent.sleep()
         path = self.exp.output_dir + "/ref_diff/genes_ref_diff"
         exp_path = self.exp.output_dir + "/rsem"
         with open(exp_path + "/genes.counts.matrix", 'r+') as f1:
@@ -1495,6 +1509,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_cor(self):
+        gevent.sleep()
         self.api_cor = self.api.refrna_corr_express
         correlation = self.exp.output_dir + "/correlation/genes_correlation"
         group_id = str(self.group_id)
@@ -1509,6 +1524,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_pca(self):
+        gevent.sleep()
         self.api_pca = self.api.refrna_corr_express
         pca_path = self.exp.output_dir + "/pca/genes_pca"
         group_detail = dict()
@@ -1522,6 +1538,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_annotation(self):
+        gevent.sleep()
         self.api_anno = self.api.api("ref_rna.ref_annotation")
         ref_anno_path = self.anno_path
         params = {
@@ -1547,6 +1564,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_as(self):
+        gevent.sleep()
         self.api_as = self.api.api("ref_rna.refrna_splicing_rmats")
         if self.option("strand_specific"):
             lib_type = "fr-firststrand",
@@ -1594,6 +1612,7 @@ class RefrnaWorkflow(Workflow):
 
     @time_count
     def export_snp(self):
+        gevent.sleep()
         self.api_snp = self.api.api("ref_rna.ref_snp")
         snp_anno = self.snp_rna.output_dir
         self.api_snp.add_snp_main(snp_anno)
@@ -1604,6 +1623,7 @@ class RefrnaWorkflow(Workflow):
         导入基因详情表
         :return:
         """
+        gevent.sleep()
         self.api_gene_detail = self.api.refrna_gene_detail
         if test:
             # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
