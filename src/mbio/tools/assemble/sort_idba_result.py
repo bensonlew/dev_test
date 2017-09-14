@@ -20,9 +20,9 @@ class SortIdbaResultAgent(Agent):
         super(SortIdbaResultAgent, self).__init__(parent)
         options = [
             {"name": "idba_contig", "type": "infile", "format": "sequence.fasta_dir"},  # 输入idba拼接结果路径
-            {"name": "newbler", "type": "infile", "format": "sequence.profile_table"},  # 输入newbler拼接结果状态文件路径
+            {"name": "newbler", "type": "string"},  # 输入newbler拼接结果输出路径
             {"name": "min_contig", "type": "int", "default": 300},  # 输入最短contig长度，默认300
-            {"name": "predict", "type": "outfile", "format": "sequence.fasta_dir"}, # 输出fasta结果文件夹(供基因预测用)
+            # {"name": "predict", "type": "outfile", "format": "sequence.fasta_dir"}, # 输出fasta结果文件夹(供基因预测用)
         ]
         self.add_option(options)
         self.step.add_steps("SortIdbaResult")
@@ -44,6 +44,7 @@ class SortIdbaResultAgent(Agent):
         """
         if not self.option('idba_contig'):
             raise OptionError('必须输入idba拼接结果路径')
+        self.logger.info(self.option('newbler'))
         if not self.option('newbler'):
             raise OptionError('必须输入newbler拼接结果状态文件路径')
         return True
@@ -82,7 +83,7 @@ class SortIdbaResultTool(Tool):
                                   % (self.option('idba_contig').prop['path'] + '/more.list',
                                      self.option('idba_contig').prop['path'] + '/less.list',
                                      self.option('min_contig'),
-                                     self.option('newbler').prop['path'],
+                                     self.option('newbler') + '/454ReadStatus.txt',
                                      self.work_dir)
         self.logger.info("开始整合混拼结果")
         command = self.add_command("sort_idba_result", cmd)
@@ -107,14 +108,14 @@ class SortIdbaResultTool(Tool):
         os.mkdir(out_predict_dir)
         if os.path.exists(newbler_mix):
             os.remove(newbler_mix)
-        newbler_output_dir = os.path.basename(self.option('newbler').prop['path'])
+        newbler_output_dir = self.option('newbler')
         os.link(newbler_output_dir + '/newbler.contig.fa', newbler_contig)
         for file in os.listdir(self.work_dir):
             if "Newbler_Mix" in file:
                 os.link(self.work_dir + '/' + file, self.output_dir + '/' + file)
             elif "contig.fa" in file:
                 os.link(self.work_dir + '/' + file, out_predict_dir + '/' + file)
-        self.option('predict').set_path(out_predict_dir)
+        # self.option('predict').set_path(out_predict_dir)
         self.logger.info("设置结果目录成功")
 
     def run(self):

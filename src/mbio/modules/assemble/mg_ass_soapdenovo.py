@@ -25,10 +25,10 @@ class MgAssSoapdenovoModule(Module):
             {"name": "reverse_seq", "type": "string", "default": "0"},   # 配置文件的其他参数
             {"name": "asm_flags", "type": "string", "default": "3"},  # 配置文件的其他参数
             {"name": "rank", "type": "string", "default": "1"},  # 配置文件的其他参数
-            {"name": "min_contig", "type": "string", "default": "500"},  # 输入最短contig长度，默认500
-            {"name": "scafSeq", "type": "outfile", "format": "sequence.fasta"},  # 输出文件,sample.scafSeq
-            {"name": "scaftig", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，scaffold去掉N后的序列
-            {"name": "cut_more_scaftig", "type": "outfile", "format": "sequence.fasta"},
+            {"name": "min_contig", "type": "int", "default": 500},  # 输入最短contig长度，默认500
+            # {"name": "scafSeq", "type": "outfile", "format": "sequence.fasta"},  # 输出文件,sample.scafSeq
+            # {"name": "scaftig", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，scaffold去掉N后的序列
+            {"name": "contig", "type": "outfile", "format": "sequence.fasta"},
             # 输出文件，去掉小于最短contig长度的序列
         ]
         self.add_option(options)
@@ -100,7 +100,7 @@ class MgAssSoapdenovoModule(Module):
                     "asm_flags": self.option('asm_flags'),
                     "rank": self.option('rank'),
                     "kmer": kmer,
-                    "min_contig": self.option('min_contig')
+                    "min_contig": str(self.option('min_contig'))
                 })
                 if 's' in self.qc_file[key].keys():
                     opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['s']
@@ -296,6 +296,7 @@ class MgAssSoapdenovoModule(Module):
         self.linkdir(self.contig_stat.output_dir, self.output_dir)
         self.linkdir(self.len_distribute.output_dir, self.output_dir + '/len_distribute')
         self.logger.info("设置结果目录")
+        self.option('contig') = self.output_dir
         self.end()
 
     def end(self):

@@ -22,7 +22,7 @@ class IdbaAgent(Agent):
             {"name": "fastq2", "type": "infile", "format": "sequence.fastq"},  # 输入文件,r
             {"name": "fastqs", "type": "infile", "format": "sequence.fastq"},  # 输入文件,s 可不传
             {"name": "sample_name", "type": "string"},  # 拼接样品名称
-            {"name": "min_contig", "type": "string", "default": "300"},  # 最短contig值
+            {"name": "min_contig", "type": "int", "default": 300},  # 最短contig值
             {"name": "mem", "type": "int", "default": 250},  # 拼接使用内存，不填写则根据样品自动判断
             {"name": "split_num", "type": "int", "default": 1},  # 拼接前拆分reads份数，1表示不拆分
             {"name": "mink", "type": "int", "default": 47},  # 最小kmer值
