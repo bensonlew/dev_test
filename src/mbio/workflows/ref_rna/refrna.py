@@ -1586,7 +1586,7 @@ class RefrnaWorkflow(Workflow):
             "read_len": 150,
             "ref_gtf": self.filecheck.option("gtf").prop["path"],
             "seq_type": seq_type,
-            "control_file": str(self.control_id),
+            "control_id": str(self.control_id),
             "gname": "group1",
             "submit_location": "splicingrmats",
             "task_type": ""
