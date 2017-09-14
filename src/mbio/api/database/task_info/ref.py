@@ -11,17 +11,17 @@ class Ref(Base):
         super(Ref, self).__init__(bind_object)
         self._db_name = Config().MONGODB + "_ref_rna"
 
-    @report_check
+    #@report_check
     def add_task_info(self, db_name=None):
         if db_name:
             self._db_name = db_name
         json_data = [
-            ('task_id', self.bind_object._sheet.id),
-            ('member_id', self.bind_object._sheet.member_id),
-            ('project_sn', self.bind_object._sheet.project_sn),
+            ('task_id', self.bind_object.sheet.id),
+            ('member_id', self.bind_object.sheet.member_id),
+            ('project_sn', self.bind_object.sheet.project_sn),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
             ('is_demo', 0),
-            ('demo_id', self.bind_object._sheet.id)
+            ('demo_id', self.bind_object.sheet.id)
         ]
         self.db['sg_task'].insert_one(SON(json_data))
         self.bind_object.logger.info('任务信息导入sg_task成功。')
