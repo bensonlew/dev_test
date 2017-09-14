@@ -7,13 +7,14 @@ import os
 import shutil
 from biocluster.core.exceptions import OptionError
 
+
 class VfdbAnnotationModule(Module):
     def __init__(self, work_id):
         super(VfdbAnnotationModule, self).__init__(work_id)
         options = [
             {"name": "query", "type": "infile", "format": "sequence.fasta"},  # 输入文件
             {"name": "lines", "type": "int", "default": 100000},  # 将fasta序列拆分此行数的多个文件
-            {"name": "reads_profile_table", "type": "infile", "format": "sequence.profile_table"},#基因丰度表
+            {"name": "reads_profile_table", "type": "infile", "format": "sequence.profile_table"},  # 基因丰度表
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "vfdb_result_dir", "type": "outfile", "format": "annotation.mg_anno_dir"}  # 设置结果文件后面要用
         ]
@@ -21,8 +22,7 @@ class VfdbAnnotationModule(Module):
         self.split_fasta = self.add_tool("sequence.split_fasta")
         self.vfdb_align_core_tools = []
         self.vfdb_align_predict_tools = []
-        #self.vfdb_anno_tool = self.add_tool("annotation.vfdb_anno")
-        self.vfdb_anno_tools =[]
+        self.vfdb_anno_tools = []
         self.vfdb_anno_stat_tool = self.add_tool("annotation.vfdb_anno_stat")
         self.align_core_path = ''
         self.align_predict_path = ''
@@ -53,15 +53,13 @@ class VfdbAnnotationModule(Module):
             core_align_tool = self.add_tool('align.meta_diamond')
             core_align_tool.set_options({
                 "query": file_path,
-                "database":"vfdb_core",
-                "evalue":self.option("evalue"),
-                "sensitive":0,
-                "target_num":1,
-                "unalign":1
+                "database": "vfdb_core",
+                "evalue": self.option("evalue"),
+                "sensitive": 0,
+                "target_num": 1,
+                "unalign": 1
             })
             self.vfdb_align_core_tools.append(core_align_tool)
-            #core_align_tool.on("end",self.predict_align(core_align_tool.unalign_file))
-            #core_align_tool.on("end",self.vfdb_anno,{"core"})
             self.logger.info("run core align tool")
         if len(self.vfdb_align_core_tools) > 1:
             self.on_rely(self.vfdb_align_core_tools, self.predict_align)
@@ -76,16 +74,16 @@ class VfdbAnnotationModule(Module):
             files = os.listdir(tool.output_dir)
             for file in files:
                 if "_unalign.fasta" in file:
-                    infile = os.path.join(tool.output_dir,file)
+                    infile = os.path.join(tool.output_dir, file)
                 else:
                     self.logger.info("unalign.fasta is not find!")
             predict_tool = self.add_tool('align.meta_diamond')
             predict_tool.set_options({
-            "query": infile,
-            "database":"vfdb_predict",
-            "evalue":self.option("evalue"),
-            "sensitive":0,
-            "target_num":1,
+                "query": infile,
+                "database": "vfdb_predict",
+                "evalue": self.option("evalue"),
+                "sensitive": 0,
+                "target_num": 1,
             })
         self.vfdb_align_predict_tools.append(predict_tool)
         if len(self.vfdb_align_predict_tools) > 1:
@@ -95,56 +93,54 @@ class VfdbAnnotationModule(Module):
         for tool in self.vfdb_align_predict_tools:
             tool.run()
 
-
     #### 比对全部完成后，调用vfdb_anno工具根据输入参数不同对核心库和预测库
     def vfdb_anno(self):
         core_dir = self.align_core_path
-        self.link(self.vfdb_align_core_tools,core_dir)
+        self.link(self.vfdb_align_core_tools, core_dir)
         vfdb_core_anno = self.add_tool("annotation.vfdb_anno")
         vfdb_core_anno.set_options({
             "vfdb_xml_dir": core_dir,
-            "database":"core"
+            "database": "core"
         })
         self.vfdb_anno_tools.append(vfdb_core_anno)
         pre_dir = self.align_predict_path
-        self.link(self.vfdb_align_predict_tools,pre_dir)
+        self.link(self.vfdb_align_predict_tools, pre_dir)
         vfdb_pre_anno = self.add_tool("annotation.vfdb_anno")
         vfdb_pre_anno.set_options({
             "vfdb_xml_dir": pre_dir,
-            "database":"predict"
-            })
+            "database": "predict"
+        })
         self.vfdb_anno_tools.append(vfdb_pre_anno)
-        self.on_rely(self.vfdb_anno_tools,self.vfdb_anno_stat)
+        self.on_rely(self.vfdb_anno_tools, self.vfdb_anno_stat)
         for tool in self.vfdb_anno_tools:
             tool.run()
 
-    def link(self,align_result,xml_dir):
+    def link(self, align_result, xml_dir):
         if os.path.exists(xml_dir):
             pass
         else:
             os.mkdir(xml_dir)
         for i in align_result:
-            #print os.listdir(i.output_dir)
+            # print os.listdir(i.output_dir)
             for f in os.listdir(i.output_dir):
                 if os.path.splitext(f)[1] == '.xml_new':
-                    file_path = os.path.join(i.output_dir,f)
+                    file_path = os.path.join(i.output_dir, f)
                     new_path = os.path.join(xml_dir, os.path.basename(file_path))
                     if os.path.exists(new_path):
                         os.remove(new_path)
-                    os.link(file_path, new_path)    #####创建硬链
+                    os.link(file_path, new_path)  #####创建硬链
 
     def vfdb_anno_stat(self):
         self.vfdb_anno_stat_tool.set_options({
-        'vfdb_core_anno': self.vfdb_anno_tools[0].option('vfdb_anno_result'),
-        'vfdb_predict_anno': self.vfdb_anno_tools[1].option('vfdb_anno_result'),
-        'reads_profile_table': self.option('reads_profile_table'),
+            'vfdb_core_anno': self.vfdb_anno_tools[0].option('vfdb_anno_result'),
+            'vfdb_predict_anno': self.vfdb_anno_tools[1].option('vfdb_anno_result'),
+            'reads_profile_table': self.option('reads_profile_table'),
         })
-        self.vfdb_anno_stat_tool.on('end',self.set_output)
+        self.vfdb_anno_stat_tool.on('end', self.set_output)
         self.vfdb_anno_stat_tool.run()
 
-
     def set_output(self):
-        #self.option('vfdb_result_dir',self.output_dir)
+        # self.option('vfdb_result_dir',self.output_dir)
         anno_allfiles1 = os.listdir(self.vfdb_anno_tools[0].output_dir)
         anno_allfiles2 = os.listdir(self.vfdb_anno_tools[1].output_dir)
         stat_allfiles = os.listdir(self.vfdb_anno_stat_tool.output_dir)
@@ -158,10 +154,8 @@ class VfdbAnnotationModule(Module):
         for i in range(len(output_newfiles)):
             if os.path.exists(output_newfiles[i]):
                 os.remove(output_newfiles[i])
-            #print "old:",out_oldfiles[i]
-            #print "new:",output_newfiles[i]
-            os.link(out_oldfiles[i],output_newfiles[i])
-        self.option('vfdb_result_dir',self.output_dir)
+            os.link(out_oldfiles[i], output_newfiles[i])
+        self.option('vfdb_result_dir', self.output_dir)
         self.end()
 
     def run(self):
@@ -170,10 +164,3 @@ class VfdbAnnotationModule(Module):
 
     def end(self):
         super(VfdbAnnotationModule, self).end()
-
-
-
-
-
-
-
