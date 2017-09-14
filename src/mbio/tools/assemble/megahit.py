@@ -88,6 +88,8 @@ class MegahitTool(Tool):
         进行megahit拼接
         :return:
         """
+        if os.path.exists(self.output_dir + '/megahit.contig.fa'):
+            return
         if os.path.exists(self.work_dir + '/run'):
             shutil.rmtree(self.work_dir + '/run')
         cmd = self.megahit_path + 'megahit -1 %s -2 %s '\

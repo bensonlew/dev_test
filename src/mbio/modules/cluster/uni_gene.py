@@ -119,8 +119,8 @@ class UniGeneModule(Module):
             ["gene_profile", "", "非冗余基因丰度目录"]
         ])
         result_dir.add_regexp_rules([
-            [r'length_distribute/gene_step_.*\.txt$', 'txt', '长度分布统计结果']
-            [r'gene_profile/gene_profile.*\.xls$', 'xls', '基因丰度表']
+            ['length_distribute/gene_step_.*\.txt$', 'txt', '长度分布统计结果'],
+            ['gene_profile/*\.xls$', 'xls', '基因丰度表']
         ])
         super(UniGeneModule, self).end()
 

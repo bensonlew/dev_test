@@ -2,10 +2,11 @@
 # __author__ = 'wangzhaoyue & guhaidong'
 
 import os, sys
-#import shutil
+# import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
+
 
 class SoapDenovoAgent(Agent):
     """
@@ -14,16 +15,18 @@ class SoapDenovoAgent(Agent):
     author: wangzhaoyue & guhaidong
     last_modify: 2017.09.04
     """
+
     def __init__(self, parent):
         super(SoapDenovoAgent, self).__init__(parent)
         options = [
             {"name": "fastq1", "type": "infile", "format": "sequence.fastq"},  # 输入文件,sample.sickle.l.fastq
             {"name": "fastq2", "type": "infile", "format": "sequence.fastq"},  # 输入文件,sample.sickle.r.fastq
             {"name": "fastqs", "type": "infile", "format": "sequence.fastq"},  # 输入文件,sample.sickle.s.fastq
+            {"name": "sample_name", "type": "string"},  # 样品名称
             {"name": "max_rd_len", "type": "string"},  # read最大读长
             {"name": "mem", "type": "int", "default": 100},  # 拼接使用内存
             {"name": "insert_size", "type": "string"},  # 平均插入片段长度
-            {"name": "reverse_seq", "type": "string", "default": "0"},   # 配置文件的其他参数
+            {"name": "reverse_seq", "type": "string", "default": "0"},  # 配置文件的其他参数
             {"name": "asm_flags", "type": "string", "default": "3"},  # 配置文件的其他参数
             {"name": "rank", "type": "string", "default": "1"},  # 配置文件的其他参数
             {"name": "kmer", "type": "string"},  # k_mer值，例"39"
@@ -51,6 +54,8 @@ class SoapDenovoAgent(Agent):
             raise OptionError('必须输入*l.fastq文件')
         if not self.option('fastq2'):
             raise OptionError('必须输入*r.fastq文件')
+        if not self.option('sample_name'):
+            raise OptionError('必须输入样品名称')
         if not self.option('max_rd_len'):
             raise OptionError('必须输入read的最大长度')
         if not self.option('insert_size'):
@@ -70,7 +75,7 @@ class SoapDenovoAgent(Agent):
         else:
             mem_str = str(self.option('mem'))
         self._memory = mem_str + "G"
-        #self._memory = "100G"
+        # self._memory = "100G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -86,6 +91,7 @@ class SoapDenovoAgent(Agent):
 class SoapDenovoTool(Tool):
     def __init__(self, config):
         super(SoapDenovoTool, self).__init__(config)
+        self.sample_name = self.option('sample_name')
         self._version = "SOAPdenovo2-src-r240"
         self.SOAPdenovo_path = '/bioinfo/metaGenomic/SOAPdenovo2/bin/'
 
@@ -96,13 +102,13 @@ class SoapDenovoTool(Tool):
         """
         super(SoapDenovoTool, self).run()
         self.init_config()
-        have_result = self.run_SOAPdenovo2()     #如果已有拼接结果，则stat为1，如果没有，则stat为0
+        have_result = self.run_SOAPdenovo2()  # 如果已有拼接结果，则stat为1，如果没有，则stat为0
         self.set_output(have_result)
         self.end()
 
     def init_config(self):
-        sample_name = os.path.basename(self.option('fastq1').prop['path']).split('.sickle.l.fastq')[0]
-        config_file = self.work_dir + "/" + sample_name + ".config"
+        # sample_name = os.path.basename(self.option('fastq1').prop['path']).split('.sickle.l.fastq')[0]
+        config_file = self.work_dir + "/" + self.sample_name + ".config"
         with open(config_file, "w+") as fw:
             first = "max_rd_len=" + self.option('max_rd_len') + "\n"
             second = "[LIB]" + "\n"
@@ -119,15 +125,16 @@ class SoapDenovoTool(Tool):
                 fw.write(first + second + third + forth + fifth + sixth + q1 + q2 + qs)
 
     def run_SOAPdenovo2(self):
-        sample_name = os.path.basename(self.option('fastq1').prop['path']).split('.sickle.l.fastq')[0]
-        #output_dir = self.work_dir + "/" + sample_name + "_K" + self.option('kmer')
-        #if not os.path.exists(output_dir):
+        # sample_name = os.path.basename(self.option('fastq1').prop['path']).split('.sickle.l.fastq')[0]
+        # output_dir = self.work_dir + "/" + self.sample_name + "_K" + self.option('kmer')
+        # if not os.path.exists(output_dir):
         #    os.makedirs(output_dir)
         cmd = self.SOAPdenovo_path + 'SOAPdenovo2-63mer all -s %s -o %s -K %s -p 16 -d 1 -D 1 -F -u' % \
-                                     (self.work_dir + "/" + sample_name + ".config",
-                                      self.work_dir + "/" + sample_name + '.kmer' + self.option('kmer'), self.option('kmer'))
-        if os.path.exists(self.output_dir + "/" + sample_name + '.kmer' + self.option('kmer') + '.scafSeq'):
-            self.logger.info("%s.kmer%s.scafSeq已存在，跳过拼接" % (sample_name, self.option('kmer')))
+                                     (self.work_dir + "/" + self.sample_name + ".config",
+                                      self.work_dir + "/" + self.sample_name + '.kmer' + self.option('kmer'),
+                                      self.option('kmer'))
+        if os.path.exists(self.output_dir + "/" + self.sample_name + '.kmer' + self.option('kmer') + '.scafSeq'):
+            self.logger.info("%s.kmer%s.scafSeq已存在，跳过拼接" % (self.sample_name, self.option('kmer')))
             result_stat = 1
         else:
             command = self.add_command("soapdenovo", cmd)
@@ -146,12 +153,16 @@ class SoapDenovoTool(Tool):
         :return:
         """
         self.logger.info("设置结果目录")
-        sample_name = os.path.basename(self.option('fastq1').prop['path']).split('.sickle.l.fastq')[0]
-        self.option('scafSeq').set_path(self.work_dir + "/" + sample_name + '.kmer' + self.option('kmer') + '.scafSeq')
+        # self.sample_name = os.path.basename(self.option('fastq1').prop['path']).split('.sickle.l.fastq')[0]
+        self.option('scafSeq').set_path(
+            self.work_dir + "/" + self.sample_name + '.kmer' + self.option('kmer') + '.scafSeq')
         if status == 0:
             self.logger.info("现在复制结果")
-            #shutil.copy2(self.work_dir + "/" + sample_name + '_K' + self.option('kmer') + '.scafSeq', self.output_dir +
+            if os.path.exists(self.output_dir + "/" + self.sample_name + '.kmer' + self.option('kmer') + '.scafSeq'):
+                os.remove(self.output_dir + "/" + self.sample_name + '.kmer' + self.option('kmer') + '.scafSeq')
+            # shutil.copy2(self.work_dir + "/" + sample_name + '_K' + self.option('kmer') + '.scafSeq', self.output_dir +
             #         "/" + sample_name + '_K' + self.option('kmer') + '.scafSeq')
-            os.link(self.work_dir + "/" + sample_name + '.kmer' + self.option('kmer') + '.scafSeq', self.output_dir +
-                   "/" + sample_name + '.kmer' + self.option('kmer') + '.scafSeq' )
+            os.link(self.work_dir + "/" + self.sample_name + '.kmer' + self.option('kmer') + '.scafSeq',
+                    self.output_dir +
+                    "/" + self.sample_name + '.kmer' + self.option('kmer') + '.scafSeq')
         self.logger.info("设置SOAPdenovo2分析结果目录成功")

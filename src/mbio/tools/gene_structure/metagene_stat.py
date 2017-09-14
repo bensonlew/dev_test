@@ -47,7 +47,7 @@ class MetageneStatAgent(Agent):
         if not os.path.exists(self.option('contig_dir').prop['path']):
             raise OptionError('基因预测结果文件夹不存在')
         if not os.listdir(self.option('contig_dir').prop['path']):
-            raise OptionError('基因预测结果文件夹为空')
+            raise OptionError('基因预测结果文件夹为空\n' + self.option('contig_dir').prop['path'])
         return True
 
     def set_resource(self):

@@ -61,7 +61,7 @@ class MergeRsemAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 10
+        self._cpu = 1
         self._memory = ''
 
     def end(self):
