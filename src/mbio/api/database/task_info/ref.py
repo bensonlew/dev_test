@@ -11,7 +11,7 @@ class Ref(Base):
         super(Ref, self).__init__(bind_object)
         self._db_name = Config().MONGODB + "_ref_rna"
 
-    @report_check
+    #@report_check
     def add_task_info(self, db_name=None):
         if db_name:
             self._db_name = db_name
