@@ -13,7 +13,7 @@ class MgAssSoapdenovoModule(Module):
     """
     宏基因运用soapdenovo2组装
     author: guhaidong
-    last_modify: 2017.09.04
+    last_modify: 2017.09.15
     """
     def __init__(self, work_id):
         super(MgAssSoapdenovoModule, self).__init__(work_id)
@@ -25,10 +25,10 @@ class MgAssSoapdenovoModule(Module):
             {"name": "reverse_seq", "type": "string", "default": "0"},   # 配置文件的其他参数
             {"name": "asm_flags", "type": "string", "default": "3"},  # 配置文件的其他参数
             {"name": "rank", "type": "string", "default": "1"},  # 配置文件的其他参数
-            {"name": "min_contig", "type": "string", "default": "500"},  # 输入最短contig长度，默认500
-            {"name": "scafSeq", "type": "outfile", "format": "sequence.fasta"},  # 输出文件,sample.scafSeq
-            {"name": "scaftig", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，scaffold去掉N后的序列
-            {"name": "cut_more_scaftig", "type": "outfile", "format": "sequence.fasta"},
+            {"name": "min_contig", "type": "int", "default": 500},  # 输入最短contig长度，默认500
+            # {"name": "scafSeq", "type": "outfile", "format": "sequence.fasta"},  # 输出文件,sample.scafSeq
+            # {"name": "scaftig", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，scaffold去掉N后的序列
+            {"name": "contig", "type": "outfile", "format": "sequence.fasta"},
             # 输出文件，去掉小于最短contig长度的序列
         ]
         self.add_option(options)
@@ -72,8 +72,8 @@ class MgAssSoapdenovoModule(Module):
         db = Config().mongo_client.tsanger_metagenomic
         # db = Config().mongo_client[Config().MONGODB]
         collection = db['mg_data_stat']
-        #object_id = ObjectId(self.option['data_id'])
-        object_id = '111111111111111111111111'
+        object_id = ObjectId(self.option('data_id'))
+        # object_id = '111111111111111111111111'
         self.qc_file = self.get_list()
         results = collection.find({'data_stat_id': object_id})
         if not results.count():
@@ -100,7 +100,7 @@ class MgAssSoapdenovoModule(Module):
                     "asm_flags": self.option('asm_flags'),
                     "rank": self.option('rank'),
                     "kmer": kmer,
-                    "min_contig": self.option('min_contig')
+                    "min_contig": str(self.option('min_contig'))
                 })
                 if 's' in self.qc_file[key].keys():
                     opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['s']
@@ -286,7 +286,9 @@ class MgAssSoapdenovoModule(Module):
             if os.path.isfile(oldfiles[i]):
                 os.link(oldfiles[i], newfiles[i])
             elif os.path.isdir(oldfiles[i]):
-                os.link(oldfiles[i], newdir)
+                # os.link(oldfiles[i], newdir)
+                oldfile_basename = os.path.basename(oldfiles[i])
+                self.linkdir(oldfiles[i], os.path.join(newdir, oldfile_basename))
 
     def set_output(self):
         """
@@ -296,6 +298,7 @@ class MgAssSoapdenovoModule(Module):
         self.linkdir(self.contig_stat.output_dir, self.output_dir)
         self.linkdir(self.len_distribute.output_dir, self.output_dir + '/len_distribute')
         self.logger.info("设置结果目录")
+        self.option('contig') = self.output_dir
         self.end()
 
     def end(self):

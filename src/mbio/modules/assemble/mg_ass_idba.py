@@ -23,7 +23,7 @@ class MgAssIdbaModule(Module):
             {"name": "data_id", "type": "string"},  # 主表任务ID，导出测序量与样品类型
             {"name": "QC_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 输入文件，质控后的文件夹
             {"name": "method", "type": "string"},  # 拼接方法选择{simple|multiple}
-            {"name": "min_contig", "type": "string", "default": "300"},  # 输入最短contig长度，默认300
+            {"name": "min_contig", "type": "int", "default": 300},  # 输入最短contig长度，默认300
             {"name": "contig", "type": "outfile", "format": "sequence.fasta_dir"},  # 输出contig路径, sample.contig.fa
             {"name": "contig_stat", "type": "outfile", "format": "sequence.profile_table"},  # 输出contig质量统计结果表
         ]
@@ -35,6 +35,7 @@ class MgAssIdbaModule(Module):
         self.single_module = []  # idba拼接，混拼后加入第一次混拼过程
         self.bowtie_module = []  # bowtie2 map reads
         self.extract_fq_module = []  # 根据sam文件提取reads
+        self.newbler = self.add_tool("assemble.newbler")
         if self.option('method') == 'single':
             self.step.add_steps("idba", "contig_stat", "length_distribute")
         else:
@@ -73,8 +74,8 @@ class MgAssIdbaModule(Module):
         db = Config().mongo_client.tsanger_metagenomic
         # db = Config().mongo_client[Config().MONGODB]
         collection = db['mg_data_stat']
-        # object_id = ObjectId(self.option['data_id'])
-        object_id = '111111111111111111111111'
+        object_id = ObjectId(self.option('data_id'))
+        # object_id = '111111111111111111111111'
         self.qc_file = self.get_list()
         results = collection.find({'data_stat_id': object_id})
         if not results.count():
@@ -100,7 +101,7 @@ class MgAssIdbaModule(Module):
             if self.option('method') == 'simple':
                 opts['min_contig'] = self.option('min_contig')
             else:
-                opts['min_contig'] = "200"
+                opts['min_contig'] = 200
             if 's' in self.qc_file[key].keys():
                 opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['s']
             self.idba.set_options(opts)
@@ -257,10 +258,9 @@ class MgAssIdbaModule(Module):
         进行newbler拼接
         :return:
         """
-        self.newbler = self.add_tool("assemble.newbler")
         self.newbler.set_options({
             'contig': self.cut_length.option('short_contig'),
-            'all_length': int(self.option('min_contig')),
+            'all_length': self.option('min_contig'),
         })
         self.newbler.on('end', self.sort_idba_result_run)
         self.newbler.run()
@@ -273,9 +273,9 @@ class MgAssIdbaModule(Module):
         :return:
         """
         self.sort_result = self.add_tool("assemble.sort_idba_result")
-        self.sort_result.set_option({
+        self.sort_result.set_options({
             'idba_contig': self.cut_length.option('cut_contig'),
-            'newbler': self.newbler.option('output'),
+            'newbler': self.newbler.output_dir,
             'min_contig': self.option('min_contig'),
         })
         self.sort_result.on('end', self.contig_stat_run)
@@ -486,14 +486,30 @@ class MgAssIdbaModule(Module):
             if os.path.isfile(oldfiles[i]):
                 os.link(oldfiles[i], newfiles[i])
             elif os.path.isdir(oldfiles[i]):
-                os.link(oldfiles[i], newdir)
+                # os.link(oldfiles[i], newdir)
+                oldfile_basename = os.path.basename(oldfiles[i])
+                self.linkdir(oldfiles[i], os.path.join(newdir, oldfile_basename))
 
     def set_output(self):
         """
         将结果文件复制到output文件夹下面
         :return:
         """
-        self.linkdir(self.contig_stat.output_dir, self.output_dir)
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
+        if self.option('method') == 'single':
+            self.linkdir(self.contig_stat.output_dir, self.output_dir)
+            # self.option('contig').set_path(self.output_dir)
+            self.option('contig', self.output_dir)
+        elif self.option('method') == 'multiple':
+            stat_file = '/assembly.stat'
+            # new_mix_file = '/Newbler_Mix.contig.fa'
+            if os.path.exists(self.output_dir + stat_file):
+                os.remove(self.output_dir + stat_file)
+            self.linkdir(self.sort_result.output_dir, self.output_dir)
+            os.link(self.contig_stat.output_dir + stat_file, self.output_dir + stat_file)
+            self.option('contig').set_path(self.output_dir + '/predict')
+            # self.option('conitg', self.output_dir + '/predict')
         self.linkdir(self.len_distribute.output_dir, self.output_dir + '/len_distribute')
         self.logger.info("设置结果目录")
         self.end()

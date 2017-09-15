@@ -23,7 +23,7 @@ class NewblerAgent(Agent):
             {"name": "ml", "type": "int", "default": 40},  # 拼接比对长度，默认40
             {"name": "all_length","type": "int", "default": 300},  # 拼接结果最小contig长度
             {"name": "large_length","type": "int", "default": 1000},  # 拼接结果认为是长contig的长度
-            {"name": "output", "type": "outfile", "format": "sequence.profile_table"},  # 输出拼接结果状态文件路径
+            #{"name": "output", "type": "string"},  # 输出拼接结果状态文件路径
         ]
         self.add_option(options)
         self.step.add_steps("Newbler")
@@ -112,7 +112,8 @@ class NewblerTool(Tool):
             os.remove(out_stat)
         os.link(self.work_dir + '/454AllContigs.fna', out_fa)
         os.link(self.work_dir + '/454ReadStatus.txt', out_stat)
-        self.option('output').set_path(out_stat)
+        #self.option('output', out_stat)
+        #self.logger.info(self.option('output'))
         self.logger.info("设置newbler分析结果目录成功")
 
     def run(self):

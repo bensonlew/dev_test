@@ -4,27 +4,30 @@
 import os
 import shutil
 from biocluster.core.exceptions import OptionError
-from biocluster.module import  Module
+from biocluster.module import Module
+
+
 class GenePredictModule(Module):
     """
     宏基因组基因预测模块
     author: guhaidong
     last_modify: 2017.08.31
     """
+
     def __init__(self, work_id):
         super(GenePredictModule, self).__init__(work_id)
         option = [
             {"name": "input_fasta", "type": "infile", "format": "sequence.fasta_dir"},  # 输入文件夹，去掉小于最短contig长度的序列
             {"name": "min_gene", "type": "string", "default": "100"},  # 输入最短基因长度，如100
-            {"name": "out", "type": "outfile", "format": "sequence.fasta"},  #输出文件，基因预测输出路径
+            {"name": "out", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，基因预测输出路径
         ]
         self.add_option(option)
-        self._is_mix = False  #判断是否为混拼结果
-        self.metagene_tools = []  #run_metagene并行运行tools列表
+        self._is_mix = False  # 判断是否为混拼结果
+        self.metagene_tools = []  # run_metagene并行运行tools列表
         self.metagene_stat = self.add_tool('gene_structure.metagene_stat')
         self.len_distribute = self.add_tool('sequence.length_distribute')
         self.step.add_steps("metagene", "metagene_stat", "len_distribute")
-        self.sum_tools = []  #根据此变量移动结果文件
+        self.sum_tools = []  # 根据此变量移动结果文件
 
     def check_options(self):
         """
@@ -127,7 +130,7 @@ class GenePredictModule(Module):
         self.run_metagene()
         super(GenePredictModule, self).run()
 
-    def linkdir(self,dirpath,dirname):
+    def linkdir(self, dirpath, dirname):
         """
         link一个文件夹下所有文件到module的output目录
         :param dirpath: 传入文件夹路径
@@ -158,7 +161,7 @@ class GenePredictModule(Module):
         :return:
         """
         self.logger.info("设置结果目录")
-        for i,tool in enumerate(self.sum_tools):
+        for i, tool in enumerate(self.sum_tools):
             if i == 0:
                 if self._is_mix:
                     pass

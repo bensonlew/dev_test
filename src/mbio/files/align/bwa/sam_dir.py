@@ -30,6 +30,8 @@ class SamDirFile(Directory):
             for file in filelist:
                 if file.endswith('.sam'):
                     pass
+                elif file.endswith('list.txt'):  # added by guhaidong 20170915
+                    pass
                 else:
                     raise FileError("文件夹中必须都是sam格式的文件")
             return True
