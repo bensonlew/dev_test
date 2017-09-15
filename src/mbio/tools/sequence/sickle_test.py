@@ -63,7 +63,8 @@ class SickleTestAgent(Agent):
             if not self.option("fastq_l").is_set:
                 raise OptionError("请传入PE左端序列文件")
         if not self.option("fastq_dir").is_set:
-            if self.option('fq_type') in ["SE","PSE"] and not self.option("fastq_s").is_set:
+ #           if self.option('fq_type') in ["SE","PSE"] and not self.option("fastq_s").is_set:
+            if self.option('fq_type') in ["SE"] and not self.option("fastq_s").is_set:  #9.15 modified by zouxuan
                 raise OptionError("请传入SE序列文件")
 
     def set_resource(self):
