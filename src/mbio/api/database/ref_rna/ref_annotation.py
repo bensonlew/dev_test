@@ -291,7 +291,8 @@ class RefAnnotation(Base):
             if db == "total":
                 total_tran = result["transcript"]
                 total_gene = result["gene"]
-            if db in ["pfam", "total_anno", "total"]:
+            #增加数据库类型，区分有注释的基因和有分类的基因
+            if db in ["pfam", "total_anno", "total_anno_nsp","total_class", "total"]:
                 data = [
                     ('stat_id', stat_id),
                     ('type', result["type"]),
