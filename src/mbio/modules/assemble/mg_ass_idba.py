@@ -74,7 +74,7 @@ class MgAssIdbaModule(Module):
         db = Config().mongo_client.tsanger_metagenomic
         # db = Config().mongo_client[Config().MONGODB]
         collection = db['mg_data_stat']
-        object_id = ObjectId(self.option['data_id'])
+        object_id = ObjectId(self.option('data_id'))
         # object_id = '111111111111111111111111'
         self.qc_file = self.get_list()
         results = collection.find({'data_stat_id': object_id})
@@ -486,24 +486,30 @@ class MgAssIdbaModule(Module):
             if os.path.isfile(oldfiles[i]):
                 os.link(oldfiles[i], newfiles[i])
             elif os.path.isdir(oldfiles[i]):
-                os.link(oldfiles[i], newdir)
+                # os.link(oldfiles[i], newdir)
+                oldfile_basename = os.path.basename(oldfiles[i])
+                self.linkdir(oldfiles[i], os.path.join(newdir, oldfile_basename))
 
     def set_output(self):
         """
         将结果文件复制到output文件夹下面
         :return:
         """
+        if os.path.exists(self.output_dir):
+            shutil.rmtree(self.output_dir)
         if self.option('method') == 'single':
             self.linkdir(self.contig_stat.output_dir, self.output_dir)
-            self.option('contig').set_path(self.output_dir)
+            # self.option('contig').set_path(self.output_dir)
+            self.option('contig', self.output_dir)
         elif self.option('method') == 'multiple':
             stat_file = '/assembly.stat'
             # new_mix_file = '/Newbler_Mix.contig.fa'
             if os.path.exists(self.output_dir + stat_file):
                 os.remove(self.output_dir + stat_file)
-            os.link(self.contig_stat.output_dir + stat_file, self.output_dir + stat_file)
             self.linkdir(self.sort_result.output_dir, self.output_dir)
+            os.link(self.contig_stat.output_dir + stat_file, self.output_dir + stat_file)
             self.option('contig').set_path(self.output_dir + '/predict')
+            # self.option('conitg', self.output_dir + '/predict')
         self.linkdir(self.len_distribute.output_dir, self.output_dir + '/len_distribute')
         self.logger.info("设置结果目录")
         self.end()

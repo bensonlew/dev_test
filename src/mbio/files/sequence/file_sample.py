@@ -60,8 +60,8 @@ class FileSampleFile(File):
                 if os.path.isfile(full_name):
                     self.file_sample[line[0]] = line[1]
                 if self.col == 3:  # modify by qiuping 2016.07.22,add 3 lines
-                    if line[2] not in ['l', 'r']:
-                        raise FileError('为PE测序时，标识左右两端的字段不符合要求：l,r')
+                    if line[2] not in ['l', 'r', 's']:  # modify by guhaidong 20170915,add str 's'
+                        raise FileError('为PE测序时，标识左右两端的字段不符合要求：l,r,s')
         return sample, name
 
     def get_sample_str(self):

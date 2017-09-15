@@ -13,7 +13,7 @@ class MgAssSoapdenovoModule(Module):
     """
     宏基因运用soapdenovo2组装
     author: guhaidong
-    last_modify: 2017.09.04
+    last_modify: 2017.09.15
     """
     def __init__(self, work_id):
         super(MgAssSoapdenovoModule, self).__init__(work_id)
@@ -72,8 +72,8 @@ class MgAssSoapdenovoModule(Module):
         db = Config().mongo_client.tsanger_metagenomic
         # db = Config().mongo_client[Config().MONGODB]
         collection = db['mg_data_stat']
-        #object_id = ObjectId(self.option['data_id'])
-        object_id = '111111111111111111111111'
+        object_id = ObjectId(self.option('data_id'))
+        # object_id = '111111111111111111111111'
         self.qc_file = self.get_list()
         results = collection.find({'data_stat_id': object_id})
         if not results.count():
@@ -286,7 +286,9 @@ class MgAssSoapdenovoModule(Module):
             if os.path.isfile(oldfiles[i]):
                 os.link(oldfiles[i], newfiles[i])
             elif os.path.isdir(oldfiles[i]):
-                os.link(oldfiles[i], newdir)
+                # os.link(oldfiles[i], newdir)
+                oldfile_basename = os.path.basename(oldfiles[i])
+                self.linkdir(oldfiles[i], os.path.join(newdir, oldfile_basename))
 
     def set_output(self):
         """
