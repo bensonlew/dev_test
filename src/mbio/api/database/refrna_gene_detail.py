@@ -575,22 +575,22 @@ class RefrnaGeneDetail(Base):
                 if ('MSTRG' not in trans_ll) and ('TCONS' not in trans_ll):
                     transcript_info[new_ind] = dict()
                     # 已知转录本输入的是cds和pep信息, 其键值索引是转录本的ensembl编号.
-                    # if trans_ll in trans_cds_info.keys():
-                    #     transcript_info[new_ind]["cds"] = trans_cds_info[trans_ll]
-                    # else:
-                    #     transcript_info[new_ind]["cds"] = '-'
-                    #
-                    # if trans_ll in trans_pep_info.keys():
-                    #     transcript_info[new_ind]["pep"] = trans_pep_info[trans_ll]
-                    # else:
-                    #     transcript_info[new_ind]["pep"] = '-'
+                    if trans_ll in trans_cds_info.keys():
+                        transcript_info[new_ind]["cds"] = trans_cds_info[trans_ll]
+                    else:
+                        transcript_info[new_ind]["cds"] = '-'
+
+                    if trans_ll in trans_pep_info.keys():
+                        transcript_info[new_ind]["pep"] = trans_pep_info[trans_ll]
+                    else:
+                        transcript_info[new_ind]["pep"] = '-'
 
                     if trans_ll in trans_sequence.keys():
-                        # transcript_info[new_ind]["sequence"] = trans_sequence[trans_ll]
+                        transcript_info[new_ind]["sequence"] = trans_sequence[trans_ll]
                         transcript_info[new_ind]["length"] = len(trans_sequence[trans_ll])
                     else:
                         transcript_info[new_ind]["length"] = '-'
-                        # transcript_info[new_ind]["sequence"] = '-'
+                        transcript_info[new_ind]["sequence"] = '-'
                 else:
                     if trans_ll in trans_location_info.keys():
                         tmp_value = trans_location_info[trans_ll]
@@ -601,11 +601,11 @@ class RefrnaGeneDetail(Base):
                         new_transcript_info[new_ind] = dict(start='-', end='-')
 
                     if trans_ll in trans_sequence.keys():
-                        # new_transcript_info[new_ind]['sequence'] = trans_sequence[trans_ll]
+                        new_transcript_info[new_ind]['sequence'] = trans_sequence[trans_ll]
                         new_transcript_info[new_ind]['length'] = len(trans_sequence[trans_ll])
                     else:
                         print('{} was not found in {}'.format(trans_ll, transcript_path))
-                        # new_transcript_info[new_ind]['sequence'] = '-'
+                        new_transcript_info[new_ind]['sequence'] = '-'
                         new_transcript_info[new_ind]['length'] = '-'
 
             # get known gene description and gene name
@@ -664,7 +664,7 @@ class RefrnaGeneDetail(Base):
                     ("transcript", transcripts),
                     ("transcript_number", transcript_num),
                     ("gene_type", gene_type),
-                    # ("gene_sequence", gene_sequence),
+                    ("gene_sequence", gene_sequence),
                     ("gene_length", gene_length),
                     ("gene_ncbi", ncbi),  # only display one site
                     ("gene_ensembl", ensembl),
