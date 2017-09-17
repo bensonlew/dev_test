@@ -9,20 +9,21 @@ import threading
 import re
 
 
-class MetagenNrAgent(Agent):
+class MgNrStatAgent(Agent):
     """
     nr_stat.py 等功能 v1.0
     author: zhouxuan
-    last_modify: 2017.0602
+    last_modify: 2017.0913
+    last modify by: shaohua.yuan
     """
 
     def __init__(self, parent):
-        super(MetagenNrAgent, self).__init__(parent)
+        super(MgNrStatAgent, self).__init__(parent)
         options = [
             {"name": "taxon_out", "type": "infile", "format": "annotation.nr.nr_taxon"},
             # 比对到nr库的结果文件query_taxons_detail.xls
             {"name": "reads_profile_table", "type": "infile", "format": "sequence.profile_table"}
-            ]
+        ]
         self.add_option(options)
 
     def check_options(self):
@@ -39,24 +40,24 @@ class MetagenNrAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
             ['query_taxons_detail.xls', 'xls', '序列详细物种分类文件']
-            ])
-        super(MetagenNrAgent, self).end()
+        ])
+        super(MgNrStatAgent, self).end()
 
 
-class MetagenNrTool(Tool):
+class MgNrStatTool(Tool):
     def __init__(self, config):
-        super(MetagenNrTool, self).__init__(config)
+        super(MgNrStatTool, self).__init__(config)
         self._version = "1.0"
         self.python_path = "program/Python/bin/python"
-        self.python_script = self.config.SOFTWARE_DIR + '/bioinfo/taxon/scripts/nr_profile.py'
-        self.python_script_2 = self.config.SOFTWARE_DIR + '/bioinfo/taxon/scripts/metagen_nr_taxlevel.py'
+        self.python_script = self.config.SOFTWARE_DIR + '/bioinfo/taxon/scripts/mg_nr_profile.py'
+        # self.python_script_2 = self.config.SOFTWARE_DIR + '/bioinfo/taxon/scripts/metagen_nr_taxlevel.py'
 
     def run(self):
         """
         运行
         :return:
         """
-        super(MetagenNrTool, self).run()
+        super(MgNrStatTool, self).run()
         self.run_nr_stat()
         self.set_output()
         self.end()
@@ -69,7 +70,7 @@ class MetagenNrTool(Tool):
         except Exception as e:
             self.logger.info("nr_stat(detail_to_level) failed")
             raise Exception("nr_stat(detail_to_level) failed {}".format(e))
-        os.remove(self.work_dir + "/gene_taxons.xls")   # 删除没有用的结果文件
+        os.remove(self.work_dir + "/gene_taxons.xls")  # 删除没有用的结果文件
         os.remove(self.work_dir + "/gene_taxons_detail.xls")
         self.new_query_taxons = os.path.join(self.work_dir, "new_query_taxons.xls")
         self.rm_1(self.work_dir + "/query_taxons.xls", self.new_query_taxons)
@@ -94,15 +95,15 @@ class MetagenNrTool(Tool):
         else:
             self.set_error("tax_profile failed")
             raise Exception("tax_profile failed")
-        # cmd2 = self.python_path + ' {} -i {} -l 1,2,3,4,5,6,7 -o {}'.\
-        #     format(self.python_script_2, self.output_dir + "/tax_profile.xls", self.output_dir)
-        # command2 = self.add_command('tax_level', cmd2).run()
-        # self.wait(command2)
-        # if command2.return_code == 0:
-        #     self.logger.info("tax_level succeed")
-        # else:
-        #     self.set_error("tax_level failed")
-        #     raise Exception("tax_level failed")
+            # cmd2 = self.python_path + ' {} -i {} -l 1,2,3,4,5,6,7 -o {}'.\
+            #     format(self.python_script_2, self.output_dir + "/tax_profile.xls", self.output_dir)
+            # command2 = self.add_command('tax_level', cmd2).run()
+            # self.wait(command2)
+            # if command2.return_code == 0:
+            #     self.logger.info("tax_level succeed")
+            # else:
+            #     self.set_error("tax_level failed")
+            #     raise Exception("tax_level failed")
 
     def set_output(self):
         self.logger.info("start set_output")
