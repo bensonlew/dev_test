@@ -25,6 +25,7 @@ class CdhitUnigeneModule(Module):
         self.merge = self.add_tool("cluster.cdhit_merge")
         self.para = []
         self.length_tool = self.add_tool("sequence.length_distribute")
+        self.step.add_steps('split','single','merge','length')
 
     def check_options(self):
         if not 0.75 <= self.option("identity") <= 1:
@@ -38,12 +39,26 @@ class CdhitUnigeneModule(Module):
         else:
             self.number = self.option("number")
 
+    def set_step(self, event):
+        if 'start' in event['data'].keys():
+            event['data']['start'].start()
+        if 'end' in event['data'].keys():
+            event['data']['end'].finish()
+        self.step.update()
+
+    def finish_update(self, event):
+        step = getattr(self.step, event['data'])
+        step.finish()
+        self.step.update()
+
     def div_fasta(self):
         self.split.set_options({"gene_tmp_fa": self.option('gene_tmp_fa'),
                                 "ou_dir": self.work_dir + '/gene.uniGeneset.fa.cd-hit-para-tmp',
                                 "number": self.number
                                 })
         self.logger.info(self.split)
+        self.split.on("start", self.set_step, {'start': self.step.split})
+        self.split.on("end", self.set_step, {'end': self.step.split})
         self.split.on("end", self.single_compare)
         self.split.run()
 
@@ -55,6 +70,8 @@ class CdhitUnigeneModule(Module):
              "identity": self.option("identity"),
              "coverage": self.option("coverage")
              })
+        self.single.on("start", self.set_step, {'start': self.step.single})
+        self.singlet.on("end", self.set_step, {'end': self.step.single})
         if self.number > 1:
             self.single.on("end", self.add_para)
         else:
@@ -65,7 +82,7 @@ class CdhitUnigeneModule(Module):
     #        self.para[event["data"]].run
 
     def add_para(self):
-        #        self.para_run.on("end",self.set_output)
+        n = 1
         for i in range(1, self.number):
             para = self.add_module("cluster.cdhit_para")
             opts = {
@@ -76,21 +93,17 @@ class CdhitUnigeneModule(Module):
                 "identity": self.option("identity")
             }
             para.set_options(opts)
+            step = getattr(self.step, 'para_{}'.format(n))
+            step.start()
+            para.on("end", self.finish_update, "para_{}".format(n))
+            n += 1
             self.para.append(para)
-            #            if i == 1:
-            #                self.para[0].run()
             if i >= 2:
-                #                tmp_para = self.para[i-1].run()
                 self.para[i - 2].on("end", self.para[i - 1].run)
-                #        self.para[self.number-2].on("end",self.merge_run)
         if len(self.para) == 1:
             self.para[0].on('end', self.merge_run)
         else:
             self.para[self.number - 2].on("end", self.merge_run)
-        # self.on_rely(self.para,self.merge_run)
-        #        self.logger.info(self.para[0])
-        #        self.para[0].on('end',self.para[1].run)
-        #        self.para[1].on('end',self.para[2].run)
         self.para[0].run()
 
     def merge_run(self):
@@ -98,6 +111,8 @@ class CdhitUnigeneModule(Module):
             "compare_dir": self.work_dir + '/gene.uniGeneset.fa.cd-hit-para-tmp',
         }
         self.merge.set_options(opts)
+        self.merge.on("start", self.set_step, {'start': self.step.merge})
+        self.merge.on("end", self.set_step, {'end': self.step.merge})
         self.merge.on('end', self.length_state)
         self.merge.run()
 
@@ -107,6 +122,8 @@ class CdhitUnigeneModule(Module):
             "len_range": "200,300,400,500,600,800",
         }
         self.length_tool.set_options(opts)
+        self.length_tool.on("start", self.set_step, {'start': self.step.length})
+        self.length_tool.on("end", self.set_step, {'end': self.step.length})
         self.length_tool.on('end', self.set_output)
         self.length_tool.run()
 
