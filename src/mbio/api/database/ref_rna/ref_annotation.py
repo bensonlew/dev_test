@@ -1035,7 +1035,7 @@ class RefAnnotation(Base):
                     ('term_type', term_type),
                     ('go_term', item),
                     ('seq_number', len(seq_list)),
-                    ('seq_list', seq_list)
+                    # ('seq_list', seq_list)
                 ]
                 data = SON(data)
                 data_list.append(data)
