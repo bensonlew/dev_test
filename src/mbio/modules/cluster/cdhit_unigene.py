@@ -71,7 +71,7 @@ class CdhitUnigeneModule(Module):
              "coverage": self.option("coverage")
              })
         self.single.on("start", self.set_step, {'start': self.step.single})
-        self.singlet.on("end", self.set_step, {'end': self.step.single})
+        self.single.on("end", self.set_step, {'end': self.step.single})
         if self.number > 1:
             self.single.on("end", self.add_para)
         else:
