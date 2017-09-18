@@ -55,16 +55,19 @@ class ExtractFastqBySamTool(Tool):
         self.perl_script = self.config.SOFTWARE_DIR + '/bioinfo/seq/scripts/get_fq_bysam.pl'
 
     def fastq_form_sam(self):
+        n = 0  # add n to count by guhaidong 20170918
         samples = self.samples
         extract_list = os.path.join(self.output_dir, "list.txt")
         with open(extract_list, "wb") as w:
             for sample in samples:
+                n += 1  # added by guhaidong 20170918
                 if self.option("fq_type") in ["PE", "PSE"]:
                     sam_pe = os.path.join(self.option("sam").prop["path"], samples[sample]["pe"])
                     sam_pe_cmd = '{} {} {} {} {} {}'.format(self.perl_path, self.perl_script, sam_pe, 'pe',
                                                             self.option("extract_type"),
                                                             os.path.join(self.output_dir, sample))
-                    command = self.add_command('pe_cmd_{}'.format('pe'), sam_pe_cmd).run()
+                    # command = self.add_command('pe_cmd_{}'.format('pe'), sam_pe_cmd).run()
+                    command = self.add_command('pe_cmd_{}'.format(n), sam_pe_cmd).run()  # modified by guhaidong 20170918
                     self.wait(command)
                     if command.return_code == 0:
                         self.logger.info("运行{}完成".format(command.name))
@@ -78,7 +81,8 @@ class ExtractFastqBySamTool(Tool):
                     sam_se_cmd = '{} {} {} {} {} {}'.format(self.perl_path, self.perl_script, sam_se, 'se',
                                                             self.option("extract_type"),
                                                             os.path.join(self.output_dir, sample))
-                    command = self.add_command('se_cmd_{}'.format('se'), sam_se_cmd).run()
+                    # command = self.add_command('se_cmd_{}'.format('se'), sam_se_cmd).run()
+                    command = self.add_command('se_cmd_{}'.format(n), sam_se_cmd).run()  # modified by guhaidong 20170918
                     self.wait(command)
                     if command.return_code == 0:
                         self.logger.info("运行{}完成".format(command.name))
