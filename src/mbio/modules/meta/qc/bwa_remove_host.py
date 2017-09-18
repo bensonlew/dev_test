@@ -71,14 +71,53 @@ class BwaRemoveHostModule(Module):
             "fq_type": self.option('fq_type'),
             "sam": self.bwa.option('sam'),
         })
-        self.extract_fastq.on('end', self.set_output, 'extract_fastq')
+        # self.extract_fastq.on('end', self.set_output, 'extract_fastq')
+        self.extract_fastq.on('end', self.set_output)  # modified by guhaidong 20170918
         self.extract_fastq.run()
 
+    def linkdir(self, dirpath, dirname):
+        """
+        link一个文件夹下的所有文件到本module的output目录
+        :param dirpath: 传入文件夹路径
+        :param dirname: 新的文件夹名称
+        :return:
+        """
+        allfiles = os.listdir(dirpath)
+        newdir = os.path.join(self.work_dir, dirname)
+        if not os.path.exists(newdir):
+            os.mkdir(newdir)
+        oldfiles = [os.path.join(dirpath, i) for i in allfiles]
+        newfiles = [os.path.join(newdir, i) for i in allfiles]
+        for newfile in newfiles:
+            if os.path.exists(newfile):
+                if os.path.isfile(newfile):
+                    os.remove(newfile)
+                else:
+                    os.system('rm -r %s' % newfile)
+        for i in range(len(allfiles)):
+            if os.path.isfile(oldfiles[i]):
+                os.link(oldfiles[i], newfiles[i])
+            elif os.path.isdir(oldfiles[i]):
+                oldfile_basename = os.path.basename(oldfiles[i])
+                self.linkdir(oldfiles[i], os.path.join(newdir, oldfile_basename))
+
     def set_output(self):
-        self.option("result_fq_dir", self.extract_fastq.option("reasult_dir"))
+        # self.option("result_fq_dir", self.extract_fastq.option("reasult_dir"))
+        self.linkdir(self.extract_fastq.option("reasult_dir").prop['path'], self.output_dir)  #modified by guhaidong 20170918
+        self.option("result_fq_dir", self.output_dir)  # modified by guhaidong 20170918
         self.end()
 
     def run(self):
         super(BwaRemoveHostModule, self).run()
         self.run_bwa()
         self.on_rely([self.bwa, self.extract_fastq], self.set_output)
+
+    def end(self):
+        result_dir = self.add_upload_dir(self.output_dir)
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+        ])
+        result_dir.add_regexp_rules([
+            ["", "", ""]
+        ])
+        super(BwaRemoveHostModule, self).end()

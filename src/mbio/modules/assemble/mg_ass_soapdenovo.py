@@ -298,7 +298,7 @@ class MgAssSoapdenovoModule(Module):
         self.linkdir(self.contig_stat.output_dir, self.output_dir)
         self.linkdir(self.len_distribute.output_dir, self.output_dir + '/len_distribute')
         self.logger.info("设置结果目录")
-        self.option('contig') = self.output_dir
+        self.option('contig').set_path(self.output_dir)
         self.end()
 
     def end(self):
