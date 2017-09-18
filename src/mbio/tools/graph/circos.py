@@ -15,7 +15,7 @@ class CircosAgent(Agent):
         options = [
             {"name": "data_table", "type": "infile", "format": "toolapps.table"},
             {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},
-            {"name": "merge_value", "type": "float"}  #合并小于此数值的区域的值
+            {"name": "combined_value", "type": "float"}  #合并小于此数值的区域的值
         ]
         self.add_option(options)
         self.step.add_steps("circos")
@@ -30,9 +30,11 @@ class CircosAgent(Agent):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "Circos结果目录"]
-        ])
+        # result_dir.add_relpath_rules([
+        #     [".", "Circos结果目录"],
+        #     ["./result_data", "xls", "结果表"],
+        # ])
+        super(CircosAgent, self).end()
 
 
 class CircosTool(Tool):
@@ -70,7 +72,7 @@ class CircosTool(Tool):
         return group_samples
 
     def get_group_data_table(self):
-        if self.option('group_table').is_set and self.option("group_method") in ["average", "sum", "median"]:
+        if self.option('group_table').is_set:
             group_samples = self.get_group_detail()
             self.logger.info(group_samples)
             with open(self.new_data, "r") as f:
@@ -100,25 +102,29 @@ class CircosTool(Tool):
                                     summary += int(item[i])
                                 tmp.append(str(summary))
                             w.write('\t'.join(tmp) + "\n")
+                    data_table_stat(table_path)
+        else:
+            data_table_stat(table_path)
 
-
-    def data_table_stat(self):
+    def data_table_stat(self, fp):
         fp = self.option("data_table").prop["path"]
-        data = pd.read_table(fp, header=0)
-        self.
-        with open(fp, "r") as f, open("new_data.xls", "w") as w:
+        with open(fp, "r") as f, open("new_data.xls", "w") as w, open(self.output_dir + "/result_data", "w") as w1:
             lines = f.readlines()
-            header = lines[0]
-            w.write("#name\tall\n")
+            header = lines[0].strip().split("\t")
+            w.write('\t'.join(header) + "\t" + "all\n")
+            w1.write("#name\tall\n")
             for line in lines[1:]:
                 item = line.strip().split("\t")
                 new_line = []
-                w.write(item[0] + "\t")
+                w.write('\t'.join(item) + "\t")
+                w1.write(item[0] + "\t")
                 sum = 0
                 for i in range(1, len(item)):
-                    sum += item[i]
+                    sum += float(item[i])
+                w.write(str(sum) + "\n")
+                w1.write(str(sum) + "\n")
 
-    def merge_value(fp, combined_value, out):
+    def combined_value_stat(self, fp, combined_value, out):
         """
         对
         """
@@ -158,3 +164,11 @@ class CircosTool(Tool):
                     other_sum += others[s]
                     other_value.append(str(others[s]))
                 w.write("others" + "\t" + '\t'.join(other_value) + "\t" + str(other_sum) + "\n")
+
+    def run(self):
+        super(CircosTool, self).run()
+        self.new_data = "new_data.xls"
+        if self.option("combined_value"):
+            self.combined_value_stat(self.option("data_table").prop["path"], self.option("combined_value"), self.new_data)
+        # self.data_table_stat()
+        self.end()
