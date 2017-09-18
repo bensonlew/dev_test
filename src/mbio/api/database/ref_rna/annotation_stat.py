@@ -186,6 +186,20 @@ class AnnotationStat(Base):
         ]
         data = SON(data)
         data_list.append(data)
+        # 细节表里添加一条记录，与流程保持一致,表示NR SWISSPROT PFAM三个库注释的并集 刘彬旭
+        data = [
+            ('stat_id', stat_id),
+            ('type', "total_anno_nsp"),
+            ('transcript', len(total_anno_tran)),
+            ('gene', len(total_anno_gene)),
+            ('transcript_percent', round(float(len(total_anno_tran))/total_tran, 4)),
+            ('gene_percent', round(float(len(total_anno_gene))/total_gene, 4)),
+            ('gene_list', ",".join(total_anno_gene)),
+            ('transcript_list', ",".join(total_anno_tran))
+        ]
+        data = SON(data)
+        data_list.append(data)
+
         try:
             collection = self.db['sg_annotation_stat_detail']
             collection.insert_many(data_list)
