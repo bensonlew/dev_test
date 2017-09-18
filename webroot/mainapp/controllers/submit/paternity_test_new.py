@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'moli.zhou'
+# __author__ = 'moli.zhou'、
+# last modified by hongdong.xuan 20170914
 import web
 import json
 import datetime
@@ -17,8 +18,6 @@ class PaternityTestNew(PtController):
     def POST(self):
         data = web.input()
         print data
-        client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
-        # params_name = ['fathe去除_id', 'err_min', 'dedup','submit_location']
         params_name = ['father_id', 'err_min', 'dedup']
         for param in params_name:
             if not hasattr(data, param):
@@ -26,6 +25,9 @@ class PaternityTestNew(PtController):
                 return json.dumps(info)
         father_info = PT().get_query_info(data.father_id)
         ref_info = PT().get_ref_info(data.father_id)
+        if not ref_info:
+            info = {'success': False, 'info': '自由交互的分析，无法运行该接口！'}
+            return json.dumps(info)
         if not father_info:
             info = {'success': False, 'info': 'father_id不存在'}
             return json.dumps(info)
@@ -33,9 +35,7 @@ class PaternityTestNew(PtController):
         task_type = 'workflow'
         params_json = {
             'err_min': int(data.err_min),
-            'dedup': data.dedup,
-            # 'submit_location': data.submit_location,
-            # 'task_type': 'reportTask'
+            'dedup': data.dedup
         }
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
         mongo_data = [
@@ -51,18 +51,15 @@ class PaternityTestNew(PtController):
         options = {
             "ref_fasta": str(ref_info['ref_fasta']),
             "targets_bedfile": str(ref_info['targets_bedfile']),
-
             "dad_id": str(father_info['dad_id']),
             "mom_id": father_info['mom_id'],
             "preg_id": father_info['preg_id'],
             "ref_point": str(ref_info['ref_point']),
-
             "err_min": int(data.err_min),
             "dedup_num": data.dedup,
             "pt_father_id": str(main_table_id),
-            "update_info": update_info,
+            "update_info": update_info
         }
-        print options
         self.set_sheet_data(name=task_name, options=options,module_type=task_type, params=params)
         task_info = super(PaternityTestNew, self).POST()
         return json.dumps(task_info)

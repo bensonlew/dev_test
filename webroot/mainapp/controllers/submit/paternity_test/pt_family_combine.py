@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zhouxuan'
+# lasted modified by hongdongxuan at 20170914
 import web
 import json
 import datetime
 from mainapp.models.mongo.submit.paternity_test_mongo import PaternityTest as PT
 from mainapp.controllers.project.pt_controller import PtController
 from mainapp.libs.param_pack import *
+import re
 
 
 class PtFamilyCombine(PtController):
@@ -39,10 +41,16 @@ class PtFamilyCombine(PtController):
             params_json['dedup_start'] = data.dedup_start
             params_json['dedup_end'] = data.dedup_end
         params = json.dumps(params_json, sort_keys=True, separators=(',', ':'))
-        if hasattr(data, 'dad_id'):
-            task_id = data.dad_group + '_' + data.dad_id + '_' + data.mom_id + '_' + data.preg_id + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        if data.new_dad_id or data.new_mom_id or data.new_preg_id:
+            task_id = "Report_" + data.dad_group + '_' + data.dad_id + '_' + data.mom_id + '_' + data.preg_id + '_' \
+                      + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         else:
-            task_id = data.dad_group + '__' + data.mom_id + '_' + data.preg_id + '_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            if not data.dad_id:
+                filter_name = "_"
+            else:
+                filter_name = data.dad_id
+            task_id = "Dedup_" + data.dad_group + '_' + filter_name + '_' + data.mom_id + '_' + data.preg_id + '_' + \
+                      datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         mongo_data = [
             ('params', params),
             ('name', task_id),
@@ -84,29 +92,29 @@ class PtFamilyCombine(PtController):
         :param data:网页端传入的数据(是否全库查重的参数必须传递)
         :return: 检查结果
         """
-        params_name = ['mom_id', 'dad_group', 'preg_id',  'err_min', 'member_id', 'dedup_all']
+        params_name = ['mom_id', 'dad_group', 'preg_id', 'dad_id', 'err_min', 'member_id', 'dedup_all']
         success = []
         for names in params_name:
             if not (hasattr(data, names)):
                 success.append("缺少参数{}".format(names))
-        # 当有新的id时个数必须为三并且一定要有dad_id
-        WQ_number = ['new_mom_id', 'new_dad_id', 'new_preg_id']
-        num = 0
-        for i in WQ_number:
-            if not(hasattr(data, i)):
-                num += 1
-        if num == 3:
-            pass
-        elif num == 0:
-            if not hasattr(data, 'dad_id'):
-                success.append("替换编号时必须要有父本id")
-        else:
-            success.append("新编号参数不全")
+        if data.new_dad_id or data.new_mom_id or data.new_preg_id:
+            if not data.new_dad_id or not data.new_mom_id or not data.new_preg_id:
+                success.append("必须同时输入新的父本，母本，胎儿的编号，否则后面无法进行家系分析！")
+            if not data.dad_id:
+                success.append("缺少父本过滤器参数，必须输入完整的父本组，过滤器，母本，胎儿数据，否则后面无法进行家系分析！")
         # 如果不全库查重的话，必须同时给定起始查重编号和末端查重编号
         if data.dedup_all == 'false':
-            if hasattr(data, 'dedup_start'):
-                if not hasattr(data, 'dedup_end'):
-                    success.append("查重参数不全".format(names))
+            if data.dedup_start and data.dedup_end:
+                if len(str(data.dedup_start)) != 4 or len(str(data.dedup_end)) != 4:
+                    success.append("区域查重的起始样本编号与结束样本编号必须是年份+月份四位数，example：1708（17年08月）")
+                if int(data.dedup_start) > int(data.dedup_end):
+                    success.append("区域查重的起始样本编号必须要小于结束样本编号！")
+            # else:
+            #     success.append("区域查重时缺少起始样本编号或者结束样本编号！")
+        else:
+            if data.dedup_start or data.dedup_end:
+                success.append("进行了全库查重就不能进行区域查重，请提交参数的时候，不要填写起始样本编号与结束样本编号！")
+            pass
         return success
 
 
