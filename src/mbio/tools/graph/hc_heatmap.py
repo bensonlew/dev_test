@@ -27,7 +27,7 @@ class HcHeatmapAgent(Agent):
             {"name": "row_number", "type": "string", "default": "10"},  # 行数
             {"name": "data_T", "type": "string", "default": "false"},
             {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # modify by zengjing 20170907
-            {"name": "group_method", "type": "string", "default": "no"}
+            {"name": "group_method", "type": "string", "default": "none"}  # 组内合并参数none,sum,average,middle
         ]
         self.add_option(options)
         self.step.add_steps('hc_heatmap')
@@ -55,8 +55,8 @@ class HcHeatmapAgent(Agent):
         if self.option("col_method") not in ['average', 'complete', 'single', 'no']:
             raise OptionError("请选择正确列聚类方式")
         if self.option("group_table").is_set:
-            if self.option("group_method") not in ["no", "average", "sum", "median"]:
-                raise OptionError("分组样本计算方式只能为no,average,sum,median")
+            if self.option("group_method") not in ["none", "average", "sum", "middle"]:
+                raise OptionError("分组样本计算方式只能为none,average,sum,none")
 
     def set_resource(self):
         """
@@ -122,7 +122,7 @@ class HcHeatmapTool(Tool):
         self.new_data = os.path.join(self.work_dir, "new_data.xls")
         self.get_new_data(old_path=self.new_table, new_path=self.new_data,
                           col_number=self.option("col_number"), row_number=self.option("row_number"), t=self.option('data_T'))
-        if self.option('group_table').is_set and self.option("group_method") in ["average", "sum", "median"]:
+        if self.option('group_table').is_set and self.option("group_method") in ["average", "sum", "middle"]:
             group_samples = self.get_group_detail()
             self.logger.info(group_samples)
             with open(self.new_data, "r") as f:
@@ -164,7 +164,7 @@ class HcHeatmapTool(Tool):
                                         tmp.append(str(summary))
                                     elif self.option("group_method") == "average":
                                         tmp.append(str(average))
-                                    elif self.option("group_method") == "median":
+                                    elif self.option("group_method") == "middle":
                                         tmp.append(str(midian))
                                 w.write('\t'.join(tmp) + "\n")
                         self.create_tree(table_path, group)
