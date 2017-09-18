@@ -17,23 +17,23 @@ class SickleTestAgent(Agent):
     def __init__(self, parent):
         super(SickleTestAgent, self).__init__(parent)
         options = [
-                {"name": "fastq_r", "type": "infile", "format": "sequence.fastq"},  # 输入文件PE的右端序列
-                {"name": "fastq_l", "type": "infile", "format": "sequence.fastq"},  # PE的左端序列
-                {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # SE序列
-                {"name": "sickle_r", "type": "outfile", "format": "sequence.fastq"},  # PE的右端输出结果
-                {"name": "sickle_l", "type": "outfile", "format": "sequence.fastq"},  # PE的左端输出结果
-                {"name": "sickle_un", "type": "outfile", "format": "sequence.fastq"},  # PE的未配对输出结果
-                {"name": "sickle_s", "type": "outfile", "format": "sequence.fastq"},  # SE输出结果
-                {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
-                {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
-                {"name": "quality", "type": "int", "default": 30},
-                {"name": "length", "type": "int", "default": 30},
-                {"name": "qual_type", "type": "string", "default": 'sanger'},
-                # {"name": "no_fiveprime", "type": "int", "default": '-x'},
-                {"name": "truncate-n", "type": "bool", "default": True},
-                {"name": "fq_type", "type": "string"}, # PE ,SE,PSE
-                #{"name": "pipeline", "type": "string", "default": ''}
-                # 判断是否是meta_genomic流程，设置不同的set_output  add by zhouxuan 20170527
+            {"name": "fastq_r", "type": "infile", "format": "sequence.fastq"},  # 输入文件PE的右端序列
+            {"name": "fastq_l", "type": "infile", "format": "sequence.fastq"},  # PE的左端序列
+            {"name": "fastq_s", "type": "infile", "format": "sequence.fastq"},  # SE序列
+            {"name": "sickle_r", "type": "outfile", "format": "sequence.fastq"},  # PE的右端输出结果
+            {"name": "sickle_l", "type": "outfile", "format": "sequence.fastq"},  # PE的左端输出结果
+            {"name": "sickle_un", "type": "outfile", "format": "sequence.fastq"},  # PE的未配对输出结果
+            {"name": "sickle_s", "type": "outfile", "format": "sequence.fastq"},  # SE输出结果
+            {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
+            {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # fastq文件夹
+            {"name": "quality", "type": "int", "default": 30},
+            {"name": "length", "type": "int", "default": 30},
+            {"name": "qual_type", "type": "string", "default": 'sanger'},
+            # {"name": "no_fiveprime", "type": "int", "default": '-x'},
+            {"name": "truncate-n", "type": "bool", "default": True},
+            {"name": "fq_type", "type": "string"},  # PE ,SE,PSE
+            # {"name": "pipeline", "type": "string", "default": ''}
+            # 判断是否是meta_genomic流程，设置不同的set_output  add by zhouxuan 20170527
         ]
         self.add_option(options)
         self.step.add_steps('sickle')
@@ -53,25 +53,28 @@ class SickleTestAgent(Agent):
         """
         检测参数是否正确
         """
-        if not self.option("fastq_dir").is_set and not self.option("fastq_r").is_set and not self.option("fastq_s").is_set:
+        if not self.option("fastq_dir").is_set and not self.option("fastq_r").is_set and not self.option(
+                "fastq_s").is_set:
             raise OptionError("请传入fastq序列文件或者文件夹")
-        if self.option('fq_type') not in ['PE', 'SE','PSE']:
+        if self.option('fq_type') not in ['PE', 'SE', 'PSE']:
             raise OptionError("请说明序列类型，PE or SE or 'PSE'?")
-        if not self.option("fastq_dir").is_set and self.option('fq_type') in ["PE","PSE"]:
+        if not self.option("fastq_dir").is_set and self.option('fq_type') in ["PE", "PSE"]:
             if not self.option("fastq_r").is_set:
                 raise OptionError("请传入PE右端序列文件")
             if not self.option("fastq_l").is_set:
                 raise OptionError("请传入PE左端序列文件")
         if not self.option("fastq_dir").is_set:
- #           if self.option('fq_type') in ["SE","PSE"] and not self.option("fastq_s").is_set:
-            if self.option('fq_type') in ["SE"] and not self.option("fastq_s").is_set:  #9.15 modified by zouxuan
+            #           if self.option('fq_type') in ["SE","PSE"] and not self.option("fastq_s").is_set:
+            if self.option('fq_type') in ["SE"] and not self.option(
+                    "fastq_s").is_set:  # PSE输入也只为双端文件 modified by zouxuan
                 raise OptionError("请传入SE序列文件")
 
     def set_resource(self):
         """
         所需资源
         """
-        self._cpu = 11
+        # self._cpu = 11
+        self.cpu = 2  # 此软件为单线程，cpu设置过大易浪费资源  modified by zouxuan
         self._memory = '5G'
 
     def end(self):
@@ -87,6 +90,7 @@ class SickleTestTool(Tool):
     """
     version 1.0
     """
+
     def __init__(self, config):
         super(SickleTestTool, self).__init__(config)
         self.sickle_path = 'bioinfo/seq/sickle-1.33/'
@@ -99,16 +103,19 @@ class SickleTestTool(Tool):
         if self.option('fq_type') in ["PSE"]:
             fq_r_path = self.option("fastq_r").prop['path']
             fq_l_path = self.option("fastq_l").prop['path']
-            cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'.\
-                   format(fq_l_path, fq_r_path, 'sickle_l.fastq', 'sickle_r.fastq', 'sickle_s.fastq',
+            cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'. \
+                format(fq_l_path, fq_r_path, 'sickle_l.fastq', 'sickle_r.fastq', 'sickle_s.fastq',
                        self.option('qual_type'),
                        self.option('quality'), self.option('length'), self.truncate_n)
         elif self.option('fq_type') in ["PE"]:
+            fq_r_path = self.option("fastq_r").prop['path']  # 之前不符合pep8规则 add by zouxuan
+            fq_l_path = self.option("fastq_l").prop['path']  # 之前不符合pep8规则 add by zouxuan
             cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'. \
-                   format(fq_l_path, fq_r_path, 'sickle_l.fastq', 'sickle_r.fastq', 'sickle_un.fq',
+                format(fq_l_path, fq_r_path, 'sickle_l.fastq', 'sickle_r.fastq', 'sickle_un.fq',
                        self.option('qual_type'),
                        self.option('quality'), self.option('length'), self.truncate_n)
-        elif self.option('fq_type') in ["SE"]:
+        # elif self.option('fq_type') in ["SE"]:
+        else:  # 之前不符合pep8规则 modified by zouxuan
             fq_s_path = self.option("fastq_s").prop['path']
             cmd = self.sickle_path + 'sickle se -f {} -o {} -t {} -q {} -l {} {}'.format(
                 fq_s_path, 'sickle_s.fastq', self.option('qual_type'), self.option('quality'),
@@ -131,39 +138,41 @@ class SickleTestTool(Tool):
         samples = self.get_list()
         self.logger.info(samples)
         commands = []
-        sRead=""
+        sread = ""
         if self.option("fq_type") == "PE":
-            sRead="s.fq"
-        if self.option("fq_type") =="PSE":
-            sRead="s.fastq"
+            sread = "s.fq"
+        if self.option("fq_type") == "PSE":
+            sread = "s.fastq"
         with open(output_list, "wb") as w:
-            if self.option("fq_type") in ["PE","PSE"]:
+            if self.option("fq_type") in ["PE", "PSE"]:
                 for sample in samples:
                     fq_r_path = os.path.join(fq_dir, samples[sample]["r"])
                     fq_l_path = os.path.join(fq_dir, samples[sample]["l"])
-                    cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'.\
-                    format(fq_l_path, fq_r_path, '{}_sickle_l.fastq'.format(sample), '{}_sickle_r.fastq'.format(sample),
-                               sample+"_sickle_"+sRead, self.option('qual_type'), self.option('quality'),
+                    cmd = self.sickle_path + 'sickle pe -f {} -r {} -o {} -p {} -s {} -t {} -q {} -l {} {}'. \
+                        format(fq_l_path, fq_r_path, '{}_sickle_l.fastq'.format(sample),
+                               '{}_sickle_r.fastq'.format(sample),
+                               sample + "_sickle_" + sread, self.option('qual_type'), self.option('quality'),
                                self.option('length'), self.truncate_n)
                     self.logger.info(cmd)
                     self.logger.info("开始运行sickle_{}".format(sample.lower()))
                     command = self.add_command("sickle_{}".format(sample.lower()), cmd)
                     command.run()
                     commands.append(command)
-                    w.write(sample+"_sickle_l.fastq\t"+ sample+"\tl\n"+sample+"_sickle_r.fastq\t"+ sample+ "\tr\n")
+                    w.write(
+                        sample + "_sickle_l.fastq\t" + sample + "\tl\n" + sample + "_sickle_r.fastq\t" + sample + "\tr\n")
                     if self.option("fq_type") in ["PSE"]:
-                        w.write(sample+"_sickle_s.fastq\t"+ sample+"\ts\n")
+                        w.write(sample + "_sickle_s.fastq\t" + sample + "\ts\n")
             elif self.option("fq_type") in ["SE"]:
                 for sample in samples:
                     fq_s_path = os.path.join(fq_dir, samples[sample])
-                    cmd = self.sickle_path + 'sickle se -f {} -o {} -t {} -q {} -l {} {}'.\
+                    cmd = self.sickle_path + 'sickle se -f {} -o {} -t {} -q {} -l {} {}'. \
                         format(fq_s_path, '{}_sickle_s.fastq'.format(sample), self.option('qual_type'),
                                self.option('quality'), self.option('length'), self.truncate_n)
                     self.logger.info(cmd)
                     self.logger.info("开始运行sickle")
                     command = self.add_command("sickle_{}".format(sample.lower()), cmd)
                     command.run()
-                    w.write(sample+"_sickle_s.fastq\t"+ sample+"\n")
+                    w.write(sample + "_sickle_s.fastq\t" + sample + "\n")
         return commands
 
     def get_list(self):

@@ -15,11 +15,12 @@ class HiseqQcTestModule(Module):
     author: qindanhua
     last_modify: 2016.07.25
     """
+
     def __init__(self, work_id):
         super(HiseqQcTestModule, self).__init__(work_id)
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},  # fastq文件夹
-            {"name": "fq_type", "type": "string","default": "PE"},  # PE OR SE
+            {"name": "fq_type", "type": "string", "default": "PE"},  # PE OR SE
             {"name": "clip_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # SE去接头输出结果文件夹
             {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切输出结果文件夹(包括左右段)
             {"name": "sickle_r_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 质量剪切右端输出结果文件夹
@@ -54,12 +55,12 @@ class HiseqQcTestModule(Module):
                 OptionError("缺少list文件")
             row_num = len(open(list_path, "r").readline().split())
             # self.logger.info(row_num)
-            if self.option('fq_type') in ["PE","PSE"] and row_num != 3:
+            if self.option('fq_type') in ["PE", "PSE"] and row_num != 3:
                 raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
             elif self.option('fq_type') == "SE" and row_num != 2:
                 raise OptionError("SE序列list文件应该包括文件名、样本名两列")
-        # if not self.option('fastq_dir').prop['has_list_file']:
-        #     raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
+                # if not self.option('fastq_dir').prop['has_list_file']:
+                #     raise OptionError('fastq文件夹中必须含有一个名为list.txt的文件名--样本名的对应文件')
 
     def finish_update(self, event):
         step = getattr(self.step, event['data'])
@@ -81,7 +82,7 @@ class HiseqQcTestModule(Module):
         for f in self.samples:
             fq_s = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f])
             clipper = self.add_tool('sequence.fastx_clipper')
-            self.step.add_steps('clipper_{}'.format(n)) 
+            self.step.add_steps('clipper_{}'.format(n))
             clipper.set_options({
                 "fastq_s": fq_s,
             })
@@ -178,12 +179,12 @@ class HiseqQcTestModule(Module):
         sickle.run()
         self.sickle.append(sickle)
 
-    def rename(self, event):
-        obj = event["bind_object"]
-        for f in os.listdir(obj.output_dir):
-            old_name = os.path.join(obj.output_dir, f)
-            new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
-            os.rename(old_name, new_name)
+    # def rename(self, event):   #目前脚本中暂时用不上，因此注释掉 modified by zouxuan
+    #    obj = event["bind_object"]
+    #    for f in os.listdir(obj.output_dir):
+    #        old_name = os.path.join(obj.output_dir, f)
+    #        new_name = os.path.join(obj.output_dir, event["data"] + "_" + f)
+    #        os.rename(old_name, new_name)
 
     def adapt(self, event):
         obj = event["bind_object"]
@@ -250,7 +251,9 @@ class HiseqQcTestModule(Module):
                         os.link(f, os.path.join(sickle_l_dir, f_name))
                     elif "sickle_s.fastq" in f:
                         sample_name = f_name.split("_sickle_s.fastq")[0]
-                        w.write("{}\t{}\n".format(f_name, sample_name))
+                        # w.write("{}\t{}\n".format(f_name, sample_name))
+                        w.write("{}\t{}\t{}\n".format(f_name, sample_name,
+                                                      "s"))  # list文件single reads补充s标识，modified by zouxuan ,
                     else:
                         w.write("\n")
                     target_path = os.path.join(sickle_dir, f_name)
@@ -267,14 +270,14 @@ class HiseqQcTestModule(Module):
             #     self.option("seqprep_dir").set_path(seqprep_dir)
             #     self.option('sickle_r_dir', sickle_r_dir)
             #     self.option('sickle_l_dir', sickle_l_dir)
-                # r_files = os.listdir(self.option('sickle_r_dir').prop['path'])
-                # l_files = os.listdir(self.option('sickle_l_dir').prop['path'])
-                # r_file = ' '.join(r_files)
-                # l_file = ' '.join(l_files)
-                # os.system('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
-                # self.logger.info('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
-                # self.option('fq_l', self.work_dir + '/left.fq')
-                # self.option('fq_r', self.work_dir + '/right.fq')
+            # r_files = os.listdir(self.option('sickle_r_dir').prop['path'])
+            # l_files = os.listdir(self.option('sickle_l_dir').prop['path'])
+            # r_file = ' '.join(r_files)
+            # l_file = ' '.join(l_files)
+            # os.system('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
+            # self.logger.info('cd {} && cat {} > {}/left.fq && cd {} && cat {} > {}/right.fq'.format(sickle_l_dir, l_file, self.work_dir, sickle_r_dir, r_file, self.work_dir))
+            # self.option('fq_l', self.work_dir + '/left.fq')
+            # self.option('fq_r', self.work_dir + '/right.fq')
             # elif self.option('fq_type') == 'SE':
             #     shutil.rmtree(seqprep_dir)
             #     shutil.rmtree(sickle_r_dir)
@@ -284,17 +287,17 @@ class HiseqQcTestModule(Module):
             #         target_path = os.path.join(clip_dir, f_name)
             #         os.link(f, target_path)
             #     self.option("clip_dir").set_path(clip_dir)
-                # files = self.option('sickle_dir').prop['fastq_basename']
-                # s_file = ' '.join(files)
-                # os.system('cd {} && cat {} > {}/single.fq'.format(sickle_dir, s_file, self.work_dir))
-                # self.option('fq_s', self.work_dir + '/single.fq')
-                # self.logger.info("done")
+            # files = self.option('sickle_dir').prop['fastq_basename']
+            # s_file = ' '.join(files)
+            # os.system('cd {} && cat {} > {}/single.fq'.format(sickle_dir, s_file, self.work_dir))
+            # self.option('fq_s', self.work_dir + '/single.fq')
+            # self.logger.info("done")
             self.end()
 
     def run(self):
         self.logger.info('{}'.format(self.events))
         # super(QualityControlModule, self).run()
-        if self.option("fq_type") in ["PE","PSE"]:
+        if self.option("fq_type") in ["PE", "PSE"]:
             self.seqprep_run()
         else:
             self.clipper_run()
@@ -304,7 +307,7 @@ class HiseqQcTestModule(Module):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        if self.option("fq_type") in ["PE","PSE"]:
+        if self.option("fq_type") in ["PE", "PSE"]:
             result_dir.add_relpath_rules([
                 [r".", "", "结果输出目录"],
                 [r"./seqprep_dir/", "文件夹", "PE去接头后fastq文件输出目录"],
