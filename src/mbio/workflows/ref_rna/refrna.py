@@ -1075,15 +1075,15 @@ class RefrnaWorkflow(Workflow):
         self.logger.info("进行第二阶段导表")
         self.export_exp_rsem_fpkm(test)
         greenlets_list_sec.append(gevent.spawn(self.export_ref_gene_set))
-        greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_gene))
-        greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_trans))
+        # greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_gene))  commented by gdq!
+        # greenlets_list_sec.append(gevent.spawn(self.export_ref_diff_trans))  commented by gdq!
         greenlets_list_sec.append(gevent.spawn(self.export_cor))
         greenlets_list_sec.append(gevent.spawn(self.export_pca))
         gevent.joinall(greenlets_list_sec)
         self.logger.info("进行第三阶段导表")
         greenlets_list_third.append(gevent.spawn(self.export_gene_set))
-        greenlets_list_third.append(gevent.spawn(self.export_diff_gene))
-        greenlets_list_third.append(gevent.spawn(self.export_diff_trans))
+        greenlets_list_third.append(gevent.spawn(self.export_diff_gene_and_refgene))
+        greenlets_list_third.append(gevent.spawn(self.export_diff_trans_and_reftrans))
         gevent.joinall(greenlets_list_third)
         self.logger.info("导表完成")
         # self.export_as()
@@ -1362,15 +1362,16 @@ class RefrnaWorkflow(Workflow):
                     self.logger.info("基因name和compare_name匹配错误")
 
     @time_count
-    def export_diff_trans(self):
+    def export_diff_trans_and_reftrans(self):
         gevent.sleep()
+        # ----------------create main table  and dump transcript info to db-----------------------
         path = self.exp.output_dir + "/diff/trans_diff"
         exp_path = self.exp.output_dir + "/rsem"
-        with open(exp_path + "/transcripts.counts.matrix", 'r+') as f1:
-            sample = f1.readline().strip().split("\t")
+        with open(exp_path + "/transcripts.counts.matrix", 'r') as f1:
+            sample = f1.readline().strip().split("\t")[1:]
         compare_column = self.compare_detail
-        params = {}
         merge_path = path + "/merge.xls"
+        params = dict()
         params['group_id'] = str(self.group_id)
         params['control_id'] = str(self.control_id)
         params['group_detail'] = dict()
@@ -1389,26 +1390,60 @@ class RefrnaWorkflow(Workflow):
         params['diff_method'] = self.option("diff_method")
         params["type"] = "trans"
         class_code = self.exp.mergersem.work_dir + "/class_code"
-        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
-                                                        compare_column_specimen=compare_column_specimen,ref_all='all',value_type=self.option("exp_way"),
-                                                        class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
+        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample,
+                                                        compare_column=compare_column,
+                                                        compare_column_specimen=compare_column_specimen,
+                                                        ref_all='all',
+                                                        value_type=self.option("exp_way"),
+                                                        class_code=class_code,
+                                                        diff_exp_dir=path + "/diff_stat_dir",
                                                         express_id=self.express_id,
                                                         express_method="rsem",
                                                         is_duplicate=self.option("is_duplicate"),
-                                                        query_type="transcript", major=True,
-                                                        group_id=params["group_id"], workflow=True)
-        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='all',query_type='transcript',
-                                            class_code=class_code,workflow=True)
+                                                        query_type="transcript",
+                                                        major=True,
+                                                        group_id=params["group_id"],
+                                                        workflow=True)
+        self.api_exp.add_diff_summary_detail(diff_express_id, count_path=merge_path,
+                                             ref_all='all', query_type='transcript',
+                                             class_code=class_code, workflow=True)
+        # ----------------------dump ref trans info to db. added by gudeqing---------------
+        path = self.exp.output_dir + "/ref_diff/trans_ref_diff"
+        diff_exp_dir = path + "/diff_stat_dir"
+        merge_path = path + "/merge.xls"
+        diff_exp_files = os.listdir(diff_exp_dir)
+        for f in diff_exp_files:
+            if re.search(r'_edgr_stat.xls$', f):
+                con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
+                name = con_exp[0]
+                compare_name = con_exp[1]
+                self.add_express_diff_detail(express_diff_id=diff_express_id,
+                                             name=name,
+                                             compare_name=compare_name,
+                                             ref_all='ref',
+                                             diff_stat_path=os.path.join(diff_exp_dir, f),
+                                             workflow=True,
+                                             class_code=class_code,
+                                             query_type="transcript",
+                                             pvalue_padjust=params["pvalue_padjust"])
+        """添加summary表"""
+        self.api_exp.add_diff_summary_detail(diff_express_id=diff_express_id,
+                                             count_path=merge_path,
+                                             ref_all='ref',
+                                             query_type="transcript",
+                                             class_code=class_code,
+                                             workflow=True)
 
     @time_count
-    def export_diff_gene(self):
+    def export_diff_gene_and_refgene(self):
         gevent.sleep()
+        # ----------------create main table and dump gene info to db------------------------------
         path = self.exp.output_dir + "/diff/genes_diff"
         exp_path = self.exp.output_dir + "/rsem"
-        with open(exp_path + "/genes.counts.matrix", 'r+') as f1:
+        with open(exp_path + "/genes.counts.matrix", 'r') as f1:
             sample = f1.readline().strip().split("\t")
         compare_column = self.compare_detail
-        params = {}
+        params = dict()
         merge_path = path + "/merge.xls"
         params['group_id'] = str(self.group_id)
         params['control_id'] = str(self.control_id)
@@ -1427,93 +1462,127 @@ class RefrnaWorkflow(Workflow):
         params['pvalue'] = self.option("diff_fdr_ci")
         params['diff_method'] = self.option("diff_method")
         class_code = self.exp.mergersem.work_dir + "/class_code"
-        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
-                                                        compare_column_specimen=compare_column_specimen,ref_all='all',value_type=self.option("exp_way"),
-                                                        class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
+        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample,
+                                                        compare_column=compare_column,
+                                                        compare_column_specimen=compare_column_specimen,
+                                                        ref_all='all',
+                                                        value_type=self.option("exp_way"),
+                                                        class_code=class_code,
+                                                        diff_exp_dir=path + "/diff_stat_dir",
                                                         express_id=self.express_id,
                                                         express_method="rsem",
                                                         is_duplicate=self.option("is_duplicate"),
                                                         query_type="gene", major=True,
                                                         group_id=params["group_id"], workflow=True)
-        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='all',query_type='gene',
-                                            class_code=class_code,workflow=True)
-
-    @time_count
-    def export_ref_diff_trans(self):
-        gevent.sleep()
-        path = self.exp.output_dir + "/ref_diff/trans_ref_diff"
-        exp_path = self.exp.output_dir + "/rsem"
-        with open(exp_path + "/transcripts.counts.matrix", 'r+') as f1:
-            sample = f1.readline().strip().split("\t")
-        compare_column = self.compare_detail
-        params = {}
-        merge_path = path + "/merge.xls"
-        params['group_id'] = str(self.group_id)
-        params['control_id'] = str(self.control_id)
-        params['group_detail'] = dict()
-        compare_column_specimen = dict()
-        for i in range(len(self.group_category)):
-            key = self.group_category[i]
-            value = self.group_detail[i].keys()
-            value2 = self.group_detail[i].values()
-            params['group_detail'][key] = value
-            compare_column_specimen[key] = value2
-        self.logger.info(params['group_detail'])  # 打印group_detail
-        params['express_id'] = str(self.express_id)
-        params['fc'] = 2
-        params['pvalue_padjust'] = 'padjust'  # 默认为padjust
-        params['pvalue'] = self.option("diff_fdr_ci")
-        params['diff_method'] = self.option("diff_method")
-        params["type"] = "trans"
-        class_code = self.exp.mergersem.work_dir + "/class_code"
-        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
-                                                        compare_column_specimen=compare_column_specimen,ref_all='ref',value_type=self.option("exp_way"),
-                                                        class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
-                                                        express_id=self.express_id,
-                                                        express_method="rsem",
-                                                        is_duplicate=self.option("is_duplicate"),
-                                                        query_type="transcript", major=True,
-                                                        group_id=params["group_id"], workflow=True)
-        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='ref',query_type='transcript',
-                                            class_code=class_code,workflow=True)
-
-    @time_count
-    def export_ref_diff_gene(self):
-        gevent.sleep()
+        self.api_exp.add_diff_summary_detail(diff_express_id,
+                                             count_path=merge_path,
+                                             ref_all='all',
+                                             query_type='gene',
+                                             class_code=class_code,
+                                             workflow=True)
+        # ----------------------dump ref genes info to db. added by gudeqing---------------
         path = self.exp.output_dir + "/ref_diff/genes_ref_diff"
-        exp_path = self.exp.output_dir + "/rsem"
-        with open(exp_path + "/genes.counts.matrix", 'r+') as f1:
-            sample = f1.readline().strip().split("\t")
-        compare_column = self.compare_detail
-        params = {}
+        diff_exp_dir = path + "/diff_stat_dir"
         merge_path = path + "/merge.xls"
-        params['group_id'] = str(self.group_id)
-        params['control_id'] = str(self.control_id)
-        params['group_detail'] = dict()
-        params["type"] = "gene"
-        compare_column_specimen = dict()
-        for i in range(len(self.group_category)):
-            key = self.group_category[i]
-            value = self.group_detail[i].keys()
-            value2 = self.group_detail[i].values()
-            params['group_detail'][key] = value
-            compare_column_specimen[key] = value2
-        params['express_id'] = str(self.express_id)
-        params['fc'] = 2
-        params['pvalue_padjust'] = 'padjust'  # 默认为padjust
-        params['pvalue'] = self.option("diff_fdr_ci")
-        params['diff_method'] = self.option("diff_method")
-        class_code = self.exp.mergersem.work_dir + "/class_code"
-        diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
-                                                        compare_column_specimen=compare_column_specimen,ref_all='ref',value_type=self.option("exp_way"),
-                                                        class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
-                                                        express_id=self.express_id,
-                                                        express_method="rsem",
-                                                        is_duplicate=self.option("is_duplicate"),
-                                                        query_type="gene", major=True,
-                                                        group_id=params["group_id"], workflow=True)
-        self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='ref',query_type='gene',
-                                            class_code=class_code,workflow=True)
+        diff_exp_files = os.listdir(diff_exp_dir)
+        for f in diff_exp_files:
+            if re.search(r'_edgr_stat.xls$', f):
+                con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
+                name = con_exp[0]
+                compare_name = con_exp[1]
+                self.add_express_diff_detail(express_diff_id=diff_express_id,
+                                             name=name,
+                                             compare_name=compare_name,
+                                             ref_all='ref',
+                                             diff_stat_path=os.path.join(diff_exp_dir, f),
+                                             workflow=True,
+                                             class_code=class_code,
+                                             query_type="gene",
+                                             pvalue_padjust=params["pvalue_padjust"])
+        """添加summary表"""
+        self.api_exp.add_diff_summary_detail(diff_express_id=diff_express_id,
+                                             count_path=merge_path,
+                                             ref_all='ref',
+                                             query_type="gene",
+                                             class_code=class_code,
+                                             workflow=True)
+
+    # @time_count
+    # def export_ref_diff_trans(self):
+    #     gevent.sleep()
+    #     path = self.exp.output_dir + "/ref_diff/trans_ref_diff"
+    #     exp_path = self.exp.output_dir + "/rsem"
+    #     with open(exp_path + "/transcripts.counts.matrix", 'r+') as f1:
+    #         sample = f1.readline().strip().split("\t")
+    #     compare_column = self.compare_detail
+    #     params = {}
+    #     merge_path = path + "/merge.xls"
+    #     params['group_id'] = str(self.group_id)
+    #     params['control_id'] = str(self.control_id)
+    #     params['group_detail'] = dict()
+    #     compare_column_specimen = dict()
+    #     for i in range(len(self.group_category)):
+    #         key = self.group_category[i]
+    #         value = self.group_detail[i].keys()
+    #         value2 = self.group_detail[i].values()
+    #         params['group_detail'][key] = value
+    #         compare_column_specimen[key] = value2
+    #     self.logger.info(params['group_detail'])  # 打印group_detail
+    #     params['express_id'] = str(self.express_id)
+    #     params['fc'] = 2
+    #     params['pvalue_padjust'] = 'padjust'  # 默认为padjust
+    #     params['pvalue'] = self.option("diff_fdr_ci")
+    #     params['diff_method'] = self.option("diff_method")
+    #     params["type"] = "trans"
+    #     class_code = self.exp.mergersem.work_dir + "/class_code"
+    #     diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
+    #                                                     compare_column_specimen=compare_column_specimen,ref_all='ref',value_type=self.option("exp_way"),
+    #                                                     class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
+    #                                                     express_id=self.express_id,
+    #                                                     express_method="rsem",
+    #                                                     is_duplicate=self.option("is_duplicate"),
+    #                                                     query_type="transcript", major=True,
+    #                                                     group_id=params["group_id"], workflow=True)
+    #     self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path,ref_all='ref',query_type='transcript',
+    #                                         class_code=class_code,workflow=True)
+
+    # @time_count
+    # def export_ref_diff_gene(self):
+    #     gevent.sleep()
+    #     path = self.exp.output_dir + "/ref_diff/genes_ref_diff"
+    #     exp_path = self.exp.output_dir + "/rsem"
+    #     with open(exp_path + "/genes.counts.matrix", 'r+') as f1:
+    #         sample = f1.readline().strip().split("\t")
+    #     compare_column = self.compare_detail
+    #     params = {}
+    #     merge_path = path + "/merge.xls"
+    #     params['group_id'] = str(self.group_id)
+    #     params['control_id'] = str(self.control_id)
+    #     params['group_detail'] = dict()
+    #     params["type"] = "gene"
+    #     compare_column_specimen = dict()
+    #     for i in range(len(self.group_category)):
+    #         key = self.group_category[i]
+    #         value = self.group_detail[i].keys()
+    #         value2 = self.group_detail[i].values()
+    #         params['group_detail'][key] = value
+    #         compare_column_specimen[key] = value2
+    #     params['express_id'] = str(self.express_id)
+    #     params['fc'] = 2
+    #     params['pvalue_padjust'] = 'padjust'  # 默认为padjust
+    #     params['pvalue'] = self.option("diff_fdr_ci")
+    #     params['diff_method'] = self.option("diff_method")
+    #     class_code = self.exp.mergersem.work_dir + "/class_code"
+    #     diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample, compare_column=compare_column,
+    #                                                     compare_column_specimen=compare_column_specimen,ref_all='ref',value_type=self.option("exp_way"),
+    #                                                     class_code=class_code, diff_exp_dir=path + "/diff_stat_dir",
+    #                                                     express_id=self.express_id,
+    #                                                     express_method="rsem",
+    #                                                     is_duplicate=self.option("is_duplicate"),
+    #                                                     query_type="gene", major=True,
+    #                                                     group_id=params["group_id"], workflow=True)
+    #     self.api_exp.add_diff_summary_detail(diff_express_id, count_path = merge_path, ref_all='ref',query_type='gene',
+    #                                         class_code=class_code,workflow=True)
 
     @time_count
     def export_cor(self):
