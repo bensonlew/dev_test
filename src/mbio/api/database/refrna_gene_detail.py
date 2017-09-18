@@ -122,7 +122,7 @@ class RefrnaGeneDetail(Base):
         """
         cds_dict = dict()
         cds_pattern_match = re.compile(r'>([^\s]+)').match
-        with open(cds_path, 'r+') as f:
+        with open(cds_path, 'r') as f:
             j = 0
             trans_id, cds_id, cds_sequence = '', '', ''
             for line in f:
@@ -303,7 +303,7 @@ class RefrnaGeneDetail(Base):
         :return: dict, gene:{chr, strand, start, end}
         """
         gene_info = dict()
-        with open(gene_bed_path, 'r+') as f:
+        with open(gene_bed_path, 'r') as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -332,7 +332,7 @@ class RefrnaGeneDetail(Base):
         gene2trans_dict = dict()
         gene2name_dict = dict()
         trans2class_code = dict()
-        with open(class_code, 'r+') as f1:
+        with open(class_code, 'r') as f1:
             f1.readline()
             for line in f1:
                 if not line.strip():
@@ -355,7 +355,7 @@ class RefrnaGeneDetail(Base):
         """
         seq = dict()
         match_name = re.compile(r'>([^\s]+)').match
-        with open(fasta_file, 'r+') as fasta:
+        with open(fasta_file, 'r') as fasta:
             j = 0
             seq_id, sequence = '', ''
             for line in fasta:
