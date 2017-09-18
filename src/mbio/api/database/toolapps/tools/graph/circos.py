@@ -22,11 +22,21 @@ class Circos(Base):
     @report_check
     def run(self):
         """运行函数"""
-        self.main_id = self.circos_in(self.output_dir + '/result_data', group_name=None)
-        self.table_ids = self.table_in()
+        if self.bind_object._task.option("group_table").is_set:
+            group_name = self.bind_object._task.option("group_table").prop["group_scheme"]
+            self.bind_object.logger.info(group_name)
+            for g in group_name:
+                fp = self.output_dir + "/{}_result_data".format(g)
+                self.main_id = self.circos_in(fp, g)
+                self.table_ids = self.table_in(fp, g)
+        else:
+            fp = self.output_dir + "/all_result_data"
+            self.main_id = self.circos_in(fp)
+            self.table_ids = self.table_in(fp)
 
-    def table_in(self):
-        self.insert_table(self.output_dir + '/result_data', 'circos图结果表', '画circos图时使用的数据')
+    def table_in(self, fp, group=None):
+        """导入表格信息"""
+        self.insert_table(fp, 'circos图结果表', '画circos图时使用的数据', group_name=group)
 
     def insert_table(self, fp, name, desc, group_name=None):
         with open(fp) as f:
@@ -64,6 +74,7 @@ class Circos(Base):
                 desc='弦图',
                 status='failed',
                 attrs=new_head,
+                group_name=group_name,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )).inserted_id
             insert_data = []
@@ -80,6 +91,7 @@ class Circos(Base):
             self.bind_object.logger.info("circos画图数据导入开始")
             try:
                 self.db['circos_detail'].insert_many(insert_data)
+                self.db['circos'].update_one({'_id': circos_id}, {'$set': {'status': 'end'}})
             except Exception as e:
                 self.bind_object.logger.info("circos画图数据导入出错{}".format(e))
                 raise Exception("circos画图数据导入出错{}".format(e))
