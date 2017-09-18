@@ -1737,49 +1737,45 @@ class RefAnnotation(Base):
                     ('anno_type', anno_type),
                 ]
                 try:
-                    data.append(('transcript_id', line[1]))
-                except:
-                    data.append(('transcript_id', None))
-                try:
-                    data.append(('gene_name', line[2]))
+                    data.append(('gene_name', line[1]))
                 except:
                     data.append(('gene_name', None))
                 try:
-                    data.append(('cog', line[3]))
-                    data.append(('cog_description', line[5]))
+                    data.append(('cog', line[2]))
+                    data.append(('cog_description', line[4]))
                 except:
                     data.append(('cog', None))
                     data.append(('cog_description', None))
                 try:
-                    data.append(('nog', line[4]))
-                    data.append(('nog_description', line[6]))
+                    data.append(('nog', line[3]))
+                    data.append(('nog_description', line[5]))
                 except:
                     data.append(('nog', None))
                     data.append(('nog_description', None))
                 try:
-                    data.append(('ko_id', line[7]))
-                    data.append(('ko_name', line[8]))
+                    data.append(('ko_id', line[6]))
+                    data.append(('ko_name', line[7]))
                 except:
                     data.append(('ko_id', None))
                     data.append(('ko_name', None))
                 try:
-                    data.append(('pathways', line[9]))
+                    data.append(('pathways', line[8]))
                 except:
                     data.append(('pathways', None))
                 try:
-                    data.append(('pfam', line[10]))
+                    data.append(('pfam', line[9]))
                 except:
                     data.append(('pfam', None))
                 try:
-                    data.append(('go', line[11]))
+                    data.append(('go', line[10]))
                 except:
                     data.append(('go', None))
                 try:
-                    data.append(('nr', line[12]))
+                    data.append(('nr', line[11]))
                 except:
                     data.append(('nr', None))
                 try:
-                    data.append(('swissprot', line[13]))
+                    data.append(('swissprot', line[12]))
                 except:
                     data.append(('swissprot', None))
                 data = SON(data)
