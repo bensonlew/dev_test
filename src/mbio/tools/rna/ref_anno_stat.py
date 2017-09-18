@@ -122,7 +122,7 @@ class RefAnnoStatAgent(Agent):
         :return:
         """
         self._cpu = 1
-        self._memory = '3G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
