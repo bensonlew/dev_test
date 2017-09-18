@@ -17,9 +17,10 @@ class PtCustomer(Base):
         super(PtCustomer, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
         self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
+        self.database_ref = self.mongo_client[Config().MONGODB+'_paternity_test']  # 测试机上专用,放到正式机后要注释
 
-        self.mongo_client_ref = Config().biodb_mongo_client
-        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
+        # self.mongo_client_ref = Config().biodb_mongo_client   # 放到sanger这里要修改,要启用
+        # self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
 
     def add_pt_customer(self, main_id=None, customer_file=None):
         if customer_file == "None":
@@ -203,7 +204,7 @@ class PtCustomer(Base):
         customer_message_collection = self.database["sg_pt_customer"]
         family_id_list = []
         for i in sample_list:
-            m = re.match('WQ([0-9]{8,})-(M|F|S)(.*)', i)
+            m = re.match('WQ([0-9]{2,})-(M|F|S)(.*)', i)
             family_id = 'WQ' + m.group(1)
             if family_id in family_id_list:
                 continue
@@ -229,14 +230,19 @@ class PtCustomer(Base):
                         dad_ = dad
                     for mom in mom_id:
                         if 'T' in mom:
-                            l = re.match('WQ([0-9]{8,})-(M.*)-T(.*)', mom)
+                            l = re.match('WQ([0-9]{2,})-(M.*)-T(.*)', mom)
                         else:
-                            l = re.match('WQ([0-9]{8,})-(M.*)', mom)
+                            l = re.match('WQ([0-9]{2,})-(M.*)', mom)
                         mom_ = l.group(2)
                         name = dad_ + '-' + mom_
                         if customer_message_collection.find_one({"name": name}):
                             self.bind_object.logger.info('{}——该家系信息完整'.format(name))
                         else:
+                            try:
+                                ref_main_collection.remove({"sample_id": i})
+                                self.bind_object.logger.info('删除样本{}成功！'.format(i))
+                            except:
+                                raise Exception("删除样本{}失败！".format(i))
                             self.bind_object.logger.info('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
                             raise Exception('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
             else:

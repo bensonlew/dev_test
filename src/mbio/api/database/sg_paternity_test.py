@@ -19,8 +19,8 @@ class SgPaternityTest(Base):
         super(SgPaternityTest, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
         self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
-        self.mongo_client = Config().biodb_mongo_client
-        self.database_ref = self.mongo_client['sanger_paternity_test_ref']  # 正式机的参考库
+        self.mongo_client_ref = Config().biodb_mongo_client
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']  # 正式机的参考库
 
     @report_check
     def add_sg_father(self,dad,mom,preg,batch_id,member_id,type=None):
@@ -113,18 +113,21 @@ class SgPaternityTest(Base):
         :param pt_father_id:pt_father交互表的_id
         :param dad_id:父本id
         '''
+        self.bind_object.logger.info("father主表更新1")
         collection_result = self.database['sg_pt_father_analysis']
         collection = self.database['sg_father']
-        case = collection.find_one({"_id":father_id})
+        # case = collection.find_one({"_id":father_id})
         # dad_id = case['dad_id']
-        if  collection_result.find_one({'dad_id':dad_id}):
+        if collection_result.find_one({'dad_id':dad_id}):
+            self.bind_object.logger.info("dad_id存在")
             result_case = collection_result.find_one({'pt_father_id':pt_father_id, "dad_id":dad_id})
         else:
             result_case = collection_result.find_one({'pt_father_id': pt_father_id, "dad_id": 'NA'})
+            self.bind_object.logger.info("dad_id为NA")
         result = result_case['result']
 
         try:
-            collection.update({"_id": father_id}, {'$set': {"pt_father_id": pt_father_id,'result':result}})
+            collection.find_one_and_update({"_id": father_id}, {'$set': {"pt_father_id": pt_father_id,'result':result}})
         except Exception as e:
             self.bind_object.logger.error('更新father主表结果出错：{}'.format(e))
         else:
@@ -173,7 +176,8 @@ class SgPaternityTest(Base):
         '''
         try:
             collection = self.database['sg_pt_father']
-            collection.update({"_id": pt_father_id}, {'$set': {"status": "end"}})
+            # collection.update({"_id": pt_father_id}, {'$set': {"status": "end"}})
+            collection.find_one_and_update({"_id": pt_father_id}, {'$set': {"status": "end"}})
         except Exception as e:
             self.bind_object.logger.error('更新pt_father主表状态出错：{}'.format(e))
         else:
@@ -245,11 +249,10 @@ class SgPaternityTest(Base):
                 line = line.split('\t')
                 if line[0] == "chrom":
                     continue
-                if line[44] == 'Mis':
-                    Mis = '错配'
-                else:
-                    Mis = '-'
-
+                # if line[44] == 'Mis':
+                #     Mis = '错配'
+                # else:
+                #     Mis = '-'
                 if line[8] == 'NA':
                     dad_rf = 'NA'
                 else:
@@ -310,7 +313,7 @@ class SgPaternityTest(Base):
                     "mj_dp": line[41],
                     "mj_gene": line[42],
                     "is_test": line[43],
-                    "is_mis": Mis,
+                    "is_mis": line[44],
                     "mustbe": line[45],
                     "mustnotbe": line[46],
                     "good": line[47],
@@ -367,9 +370,9 @@ class SgPaternityTest(Base):
                 temp_fp = eval(line[4])
                 RCP = temp_fp / (temp_fp + 1)
                 if RCP > 0.5:
-                    rcp_result = ">99.99%"
+                    rcp_result = "> 99.99%"
                 else:
-                    rcp_result = "<0.01%"
+                    rcp_result = "< 0.01%"
                 insert_data = {
                     # "task_id": self.bind_object.id,
                     "pt_father_id": pt_father_id,
@@ -443,6 +446,10 @@ class SgPaternityTest(Base):
                 line = line.split('\t')
                 if line[0] == "检测位点编号":
                     continue
+                if line[5] == 'Mis':
+                    Mis = '错配'
+                else:
+                    Mis = '-'
                 insert_data = {
                     # "task_id": self.bind_object.id,
                     "pt_father_id": pt_father_id,
@@ -451,7 +458,7 @@ class SgPaternityTest(Base):
                     "dad_geno": line[2],
                     "mom_geno": line[3],
                     "preg_geno": line[4],
-                    "is_mis": line[5]
+                    "is_mis": Mis
                 }
                 sg_pt_family_detail.append(insert_data)
             try:
@@ -529,9 +536,10 @@ class SgPaternityTest(Base):
 
     def sample_size(self, sample_id, batch_id):
         collection = self.database['sg_pt_problem_sample']
-        self.mongo_client_ref = Config().biodb_mongo_client
-        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
-        ref_data = self.database_ref['sg_pt_ref_main'].find_one({"sample_id": sample_id})
+        # self.mongo_client_ref = Config().biodb_mongo_client   # 线上
+        # self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
+        # ref_data = self.database_ref['sg_pt_ref_main'].find_one({"sample_id": sample_id})
+        ref_data = self.database['sg_pt_ref_main'].find_one({"sample_id": sample_id})  # 线下
         split_data_name = ref_data["split_data_name"]
         try:
             collection.insert_one({'sample_id': sample_id,
