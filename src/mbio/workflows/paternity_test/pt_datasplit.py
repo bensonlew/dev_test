@@ -139,7 +139,7 @@ class PtDatasplitWorkflow(Workflow):
         with open(file_path, 'r') as f:
             for line in f:
                 line = line.strip().split('\t')
-                if re.match('WQ([0-9]{8,})-(M|F|S)(.*)', line[3]):
+                if re.match('WQ([0-9]{2,})-(M|F|S)(.*)', line[3]):
                     self.pt_sample_name.append(line[3])
                 if re.match('(.*)WQ(.+)', line[3]):
                     n += 1
@@ -200,7 +200,7 @@ class PtDatasplitWorkflow(Workflow):
         self.data_dir = self.data_split.output_dir + "/MED"
         sample_name = os.listdir(self.data_dir)
         for j in sample_name:
-            p = re.match('Sample_WQ([0-9]{8,})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
+            p = re.match('Sample_WQ([0-9]{2,})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
             q = re.match('Sample_WS([0-9]{8,})(.*)', j)
             if p:
                 self.sample_name_wq.append(j)

@@ -43,9 +43,11 @@ class SingleWorkflow(Workflow):
 
     def run_mongo(self):  # shenghe 20170111 工具模块暂时使用的导表方式
         """
-        尝试执行api.database.toolapps下面的与workflow/module/tool对应目录的导表类的run方法
+        尝试执行api.database.toolapps下面的
+        与workflow/module/tool对应目录的导表类的run方法
 
-        例如： src.mbio.tools.meta.beta_diversity.pca 结束后执行 src.mbio.api.database.toolapps.tools.meta.beta_diversity.pca
+        例如： src.mbio.tools.meta.beta_diversity.pca 结束后
+        执行 src.mbio.api.database.toolapps.tools.meta.beta_diversity.pca
         """
         class_name = get_clsname_form_path(self._sheet.name, tp='')
         dir_name = {
