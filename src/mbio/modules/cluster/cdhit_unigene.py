@@ -85,6 +85,7 @@ class CdhitUnigeneModule(Module):
         n = 1
         for i in range(1, self.number):
             para = self.add_module("cluster.cdhit_para")
+            self.step.add_steps('para_{}'.format(n))
             opts = {
                 "first": i,
                 "last": self.number,
