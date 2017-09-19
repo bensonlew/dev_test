@@ -69,7 +69,7 @@ class HcHeatmapAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "Heatmap结果目录"],
-            ["./result_data", "xls", "结果表"],
+            # ["./.*result_data", "xls", "结果表"],
             ["./row_tre", "tre", "行聚类树"],
             ["./col_tre", "tre", "列聚类树"],
         ])
@@ -278,10 +278,14 @@ class HcHeatmapTool(Tool):
             if re.search('(\.pdf)$', name):
                 os.remove(os.path.join(self.output_dir, name))
         groups = list(set(groups))
-        for g in groups:
-            new_table = os.path.join(self.work_dir, "{}_table.xls".format(g))
-            if os.path.exists(new_table):
-                os.link(new_table, os.path.join(self.output_dir, "{}_result_data".format(g)))
+        if groups:
+            for g in groups:
+                new_table = os.path.join(self.work_dir, "{}_table.xls".format(g))
+                if os.path.exists(new_table):
+                    os.link(new_table, os.path.join(self.output_dir, "{}_result_data".format(g)))
+        else:
+            if not os.path.exists(os.path.join(self.output_dir, "new_result_data")):
+                os.link(self.work_dir + "/new_table.xls", os.path.join(self.output_dir, "new_result_data"))
 
     def run(self):
         """
