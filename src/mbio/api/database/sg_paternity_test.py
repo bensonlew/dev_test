@@ -412,6 +412,10 @@ class SgPaternityTest(Base):
                     qc = 'qualified'
                 else:
                     qc = 'unqualified'
+                if eval(line[7]) >= 95:
+                    mom_preg = '{}  Yes'.format(line[7])
+                else:
+                    mom_preg = '{}  No'.format(line[7])
                 insert_data = {
                     # "task_id": self.bind_object.id,
                     "pt_father_id": pt_father_id,
@@ -422,7 +426,7 @@ class SgPaternityTest(Base):
                     "s_signal": line[4],
                     "mom_id": line[5],
                     "dp_mom": line[6],
-                    "mom_preg": line[7],
+                    "mom_preg": mom_preg,
                     "qc": qc
                 }
                 sg_pt_family_detail.append(insert_data)
@@ -517,13 +521,13 @@ class SgPaternityTest(Base):
                     "test_pos_n": line[1],
                     "err_pos_n": line[2],
                     "err_rate": line[3],
-                    "fq": line[4],
+                    "fq": format(eval(line[4]), '.2e'),  # 科学计数法保留两位
                     "dp": line[5],
                     "eff_rate": line[6],
                     "ineff_rate": line[7],
                     "result": line[8],
                     "rcp": rcp_result,
-                    "dad_time": dad_time,
+                    "dad_time": dad_time
                 }
                 sg_pt_family_detail.append(insert_data)
             try:
@@ -534,7 +538,7 @@ class SgPaternityTest(Base):
             else:
                 self.bind_object.logger.info("导入查重表格成功")
 
-    def sample_size(self, sample_id, batch_id):
+    def sample_size(self, sample_id, batch_id, tab_none):
         collection = self.database['sg_pt_problem_sample']
         # self.mongo_client_ref = Config().biodb_mongo_client   # 线上
         # self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
@@ -545,7 +549,8 @@ class SgPaternityTest(Base):
             collection.insert_one({'sample_id': sample_id,
                                    'split_data_name': split_data_name,
                                    'batch_id': batch_id,
-                                   'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+                                   'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                   'tab_none': tab_none})
         except Exception as e:
             self.bind_object.logger.error('导入问题样本出错：{}'.format(e))
             raise Exception('导入问题样本出错：{}'.format(e))
