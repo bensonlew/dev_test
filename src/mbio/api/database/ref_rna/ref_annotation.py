@@ -836,8 +836,14 @@ class RefAnnotation(Base):
             for g in func_type[thekey]:
                 detail = func_decs[g]
                 category = '[' + g + ']' + ' ' + detail
-                cog_list = list(set(funlist['COG'][g]))
-                nog_list = list(set(funlist['NOG'][g]))
+                try:
+                    cog_list = list(set(funlist['COG'][g]))
+                except:
+                    cog_list = []
+                try:
+                    nog_list = list(set(funlist['NOG'][g]))
+                except:
+                    nog_list = []
                 data = [
                     ('cog_id', cog_id),
                     ('seq_type', seq_type),
