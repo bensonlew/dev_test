@@ -62,6 +62,8 @@ class SoapDenovoAgent(Agent):
             raise OptionError('必须输入平均插入片段的长度')
         if not self.option('kmer'):
             raise OptionError('必须输入kmer值')
+        if self.option('mem') > 250:
+            raise OptionError('内存设置不可超过250')
         return True
 
     def set_resource(self):

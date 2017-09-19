@@ -64,8 +64,8 @@ class DedupAnalysisAgent(Agent):
         设置所需资源，需在之类中重写此方法 self._cpu ,self._memory
         :return:
         """
-        self._cpu = 6
-        self._memory = '50G'
+        self._cpu = 16
+        self._memory = '35G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -86,8 +86,9 @@ class DedupAnalysisTool(Tool):
         super(DedupAnalysisTool, self).__init__(config)
         self._version = '1.0.1'
 
-        self.R_path = 'program/R-3.3.1/bin/'
+        self.R_path = self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/'
         self.script_path = self.config.SOFTWARE_DIR + '/bioinfo/medical/scripts/'
+        self.software = 'program/parafly-r2013-01-21/bin/bin/ParaFly'
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
 
@@ -95,47 +96,74 @@ class DedupAnalysisTool(Tool):
         dad_list = self.option('dad_list').split(',')
         if not os.path.isdir(self.work_dir + '/result'):
             os.mkdir(self.work_dir + '/result')
-        n = 0
-        for dad_tab in dad_list:
-            dad = re.match(".*(WQ[0-9]*-F.*)\.tab", dad_tab)
-            dad_name = dad.group(1)
-            mom = re.match(".*(WQ[0-9]*-M.*)\.tab", self.option("mom_tab").prop['path'])
-            mom_name = mom.group(1)
-            preg = re.match(".*(WQ[0-9]*-S.*)\.tab", self.option("preg_tab").prop['path'])
-            preg_name = preg.group(1)
-
+        # n = 0
+        cmd_1 = []
+        cmd_2 = []
+        mom = re.match(".*(WQ[0-9]*-M.*)\.tab", self.option("mom_tab").prop['path'])
+        mom_name = mom.group(1)
+        preg = re.match(".*(WQ[0-9]*-S.*)\.tab", self.option("preg_tab").prop['path'])
+        preg_name = preg.group(1)
+        for dad_tab in dad_list:  # cmd1的相关
             tab2family_cmd = "{}Rscript {}family_joined.R {} {} {} {} {} {}". \
                 format(self.R_path, self.script_path, dad_tab,
                     self.option("mom_tab").prop['path'], self.option("preg_tab").prop['path'],
                     self.option("err_min"), self.option("ref_point").prop['path'],self.work_dir + '/result')
-            self.logger.info(tab2family_cmd)
-            self.logger.info("开始运行家系合并")
-            cmd = self.add_command("tab2family_cmd_{}".format(n), tab2family_cmd).run()
-            self.wait(cmd)
+            cmd_1.append(tab2family_cmd)
 
-            if cmd.return_code == 0:
-                self.logger.info("运行家系合并成功")
+        n = len(cmd_1) / 15  #
+        if len(cmd_1) % 15 != 0:
+            n += 1
+        for i in range(0, n):
+            cmd_file = os.path.join(self.work_dir, 'list_{}.txt'.format(i + 1))
+            wrong_cmd = os.path.join(self.work_dir, 'failed_cmd_{}.txt'.format(i + 1))
+            with open(cmd_file, 'w') as c:
+                for n in range(0, 15):
+                    if len(cmd_1) == 0:
+                        break
+                    cmd = cmd_1.pop()
+                    c.write(cmd + "\n")
+            p_cmd = '{} -c {} -CPU 6 -failed_cmds {}'.format(self.software, cmd_file, wrong_cmd)
+            command = self.add_command('all_cmd_{}'.format(i + 1), p_cmd).run()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("运行{}完成".format(command.name))
             else:
-                self.set_error('运行家系{}合并出错'.format(dad_tab))
-                raise Exception("运行家系合并出错")
+                self.set_error("运行{}出错".format(command.name))
+                raise Exception("运行{}出错".format(command.name))
 
+        mom = re.match(".*(WQ[0-9]*-M.*)\.tab", self.option("mom_tab").prop['path'])
+        mom_name = mom.group(1)
+        preg = re.match(".*(WQ[0-9]*-S.*)\.tab", self.option("preg_tab").prop['path'])
+        preg_name = preg.group(1)
+        for dad_tab in dad_list:  # cmd2的相关
+            dad = re.match(".*(WQ[0-9]*-F.*)\.tab", dad_tab)
+            dad_name = dad.group(1)
             tab_name = dad_name + '_' +mom_name+'_'+preg_name+'_family_joined_tab.Rdata'
             if os.path.exists(self.work_dir + '/result/' + tab_name):
                 analysis_cmd = "{}Rscript {}data_analysis.R {} {}".\
                     format(self.R_path,self.script_path,self.work_dir + '/result/' + tab_name, self.work_dir + '/result')
-                self.logger.info(analysis_cmd)
-                self.logger.info("开始运行家系的分析")
-                cmd = self.add_command("analysis_cmd_{}".format(n), analysis_cmd).run()
-                self.wait(cmd)
+                cmd_2.append(analysis_cmd)
 
-                if cmd.return_code == 0:
-                    self.logger.info("运行家系分析成功")
-                else:
-                    self.set_error('运行家系{}分析出错'.format(dad_tab))
-                    raise Exception("运行家系分析出错")
+        n = len(cmd_2) / 15
+        if len(cmd_2) % 15 != 0:
+            n += 1
+        for i in range(0, n):
+            cmd_file = os.path.join(self.work_dir, 'list_2_{}.txt'.format(i + 1))
+            wrong_cmd = os.path.join(self.work_dir, 'failed_cmd_2_{}.txt'.format(i + 1))
+            with open(cmd_file, 'w') as c:
+                for n in range(0, 15):
+                    if len(cmd_2) == 0:
+                        break
+                    cmd = cmd_2.pop()
+                    c.write(cmd + "\n")
+            p_cmd = '{} -c {} -CPU 6 -failed_cmds {}'.format(self.software, cmd_file, wrong_cmd)
+            command = self.add_command('all_cmd_2_{}'.format(i + 1), p_cmd).run()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("运行{}完成".format(command.name))
             else:
-                pass
-            n = n+1
+                self.set_error("运行{}出错".format(command.name))
+                raise Exception("运行{}出错".format(command.name))
 
     def set_output(self):
         """

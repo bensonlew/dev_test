@@ -14,7 +14,7 @@ class MgAssIdbaModule(Module):
     """
     宏基因运用idba组装
     author: guhaidong
-    last_modify: 2017.09.11
+    last_modify: 2017.09.19
     """
 
     def __init__(self, work_id):
@@ -22,6 +22,7 @@ class MgAssIdbaModule(Module):
         options = [
             {"name": "data_id", "type": "string"},  # 主表任务ID，导出测序量与样品类型
             {"name": "QC_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 输入文件，质控后的文件夹
+            {"name": "assemble_tool", "type": "string", "default": "idba"},  # 拼接工具选择{idba|megahit}
             {"name": "method", "type": "string"},  # 拼接方法选择{simple|multiple}
             {"name": "min_contig", "type": "int", "default": 300},  # 输入最短contig长度，默认300
             {"name": "contig", "type": "outfile", "format": "sequence.fasta_dir"},  # 输出contig路径, sample.contig.fa
@@ -35,12 +36,43 @@ class MgAssIdbaModule(Module):
         self.single_module = []  # idba拼接，混拼后加入第一次混拼过程
         self.bowtie_module = []  # bowtie2 map reads
         self.extract_fq_module = []  # 根据sam文件提取reads
-        self.newbler = self.add_tool("assemble.newbler")
-        if self.option('method') == 'single':
-            self.step.add_steps("idba", "contig_stat", "length_distribute")
-        else:
-            self.step.add_steps("idba", "bowtie2", "extract_fq", "cat_reads", "mix_assem", "cut_length", "newbler",
+        '''
+        if self.option('assemble_tool') == 'idba':
+            self.idba = self.add_tool('assemble.idba')
+            self.step.add_steps("idba")
+        elif self.option('assemble_tool') == 'megahit':
+            self.megahit = self.add_tool('assemble.megahit')
+            self.step.add_steps('megahit')
+        if self.option('method') == 'simple':
+            self.contig_stat = self.add_tool("assemble.contig_stat")
+            self.len_distribute = self.add_tool("sequence.length_distribute")
+            self.step.add_steps("contig_stat", "length_distribute")
+        elif self.option('method') == 'multiple':
+            self.bowtie2 = self.add_tool("align.bowtie2")
+            self.extract_fq = self.add_tool('sequence.extract_fastq_by_sam')
+            self.cat_reads = self.add_tool("sequence.cat_reads")
+            self.mix_assem = self.add_tool("assemble.megahit")
+            self.cut_length = self.add_tool('sequence.cut_length')
+            self.newbler = self.add_tool("assemble.newbler")
+            self.sort_result = self.add_tool("assemble.sort_idba_result")
+            self.contig_stat = self.add_tool("assemble.contig_stat")
+            self.len_distribute = self.add_tool("sequence.length_distribute")
+            self.step.add_steps("bowtie2", "extract_fq", "cat_reads", "mix_assem", "cut_length", "newbler",
                                 "sort_result", "contig_stat", "length_distribute")
+        '''
+        self.idba = self.add_tool('assemble.idba')
+        self.megahit = self.add_tool('assemble.megahit')
+        self.bowtie2 = self.add_tool("align.bowtie2")
+        self.extract_fq = self.add_tool('sequence.extract_fastq_by_sam')
+        self.cat_reads = self.add_tool("sequence.cat_reads")
+        self.mix_assem = self.add_tool("assemble.megahit")
+        self.cut_length = self.add_tool('sequence.cut_length')
+        self.newbler = self.add_tool("assemble.newbler")
+        self.sort_result = self.add_tool("assemble.sort_idba_result")
+        self.contig_stat = self.add_tool("assemble.contig_stat")
+        self.len_distribute = self.add_tool("sequence.length_distribute")
+        self.step.add_steps("idba", "megahit", "bowtie2", "extract_fq", "cat_reads", "mix_assem", "cut_length",
+                            "newbler", "sort_result", "contig_stat", "length_distribute")
 
     def check_options(self):
         """
@@ -96,7 +128,7 @@ class MgAssIdbaModule(Module):
                 "fastq2": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['r'],
                 "sample_name": key,
                 "split_num": split_num,
-                "mem": 20,  # assem_mem，测试提供
+                "mem": 50,  # assem_mem，测试提供
             })
             if self.option('method') == 'simple':
                 opts['min_contig'] = self.option('min_contig')
@@ -110,6 +142,62 @@ class MgAssIdbaModule(Module):
             self.idba.on('end', self.finish_update, 'IDBA_{}'.format(n))
             self.single_module.append(self.idba)
             self.sum_tools.append(self.idba)
+            n += 1
+        if len(self.single_module) == 1:
+            if self.option('method') == 'multiple':
+                self.single_module[0].on('end', self.bowtie2_run)
+            else:
+                self.single_module[0].on('end', self.contig_stat_run)
+        else:
+            if self.option('method') == 'multiple':
+                self.on_rely(self.single_module, self.bowtie2_run)
+                self.step.bowtie2.start()
+            else:
+                self.on_rely(self.single_module, self.contig_stat_run)
+                self.step.contig_stat.start()
+            self.step.update()
+        for module in self.single_module:
+            module.run()
+
+    def megahit_run(self):
+        """
+        进行megahit拼接
+        :return:
+        """
+        n = 0
+        db = Config().mongo_client.tsanger_metagenomic
+        collection = db['mg_data_stat']
+        object_id = ObjectId(self.option('data_id'))
+        self.qc_file = self.get_list()
+        results = collection.find({'data_stat_id': object_id})
+        if not results.count():
+            raise Exception('没有找到样品集数据')
+        if results is None:
+            raise Exception('没有找到样品集数据2')
+        raw_rd_len, base_num, insert_dic, sample_type = self.get_dic(results)
+        for key in insert_dic.keys():
+            assem_mem, split_num = self.get_mem(sample_type[key], base_num[key])  # 计算运行内存及是否需要拆分
+            self.sample.append(key)
+            self.megahit = self.add_tool('assemble.megahit')
+            self.step.add_steps('MEGAHIT_{}'.format(n))
+            opts = ({
+                "fastq1": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['l'],
+                "fastq2": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['r'],
+                "sample_name": key,
+                "mem": 20,  # assem_mem，测试提供
+            })
+            if self.option('method') == 'simple':
+                opts['min_contig'] = self.option('min_contig')
+            else:
+                opts['min_contig'] = 200
+            if 's' in self.qc_file[key].keys():
+                opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['s']
+            self.megahit.set_options(opts)
+            step = getattr(self.step, 'MEGAHIT_{}'.format(n))
+            step.start()
+            self.megahit.on('end', self.finish_update, 'MEGAHIT_{}'.format(n))
+            self.single_module.append(self.megahit)
+            self.sum_tools.append(self.megahit)
             n += 1
         if len(self.single_module) == 1:
             if self.option('method') == 'multiple':
@@ -173,7 +261,7 @@ class MgAssIdbaModule(Module):
                 'sam': module.option('sam_file'),  # 测试一下这样传参
             })
             file_dir = os.listdir(module.option('sam_file').prop['path'])
-            #name = os.path.basename(module.option('sam_file').prop['path']).split('.')[0]
+            # name = os.path.basename(module.option('sam_file').prop['path']).split('.')[0]
             for files in file_dir:
                 if 'single.sam' in files:
                     opts['fq_type'] = 'PSE'
@@ -202,7 +290,6 @@ class MgAssIdbaModule(Module):
         :return:
         """
         self.get_fq_file()
-        self.cat_reads = self.add_tool("sequence.cat_reads")
         self.cat_reads.set_options({
             'map_dir': self.work_dir + '/unmap_dir',
         })
@@ -216,10 +303,10 @@ class MgAssIdbaModule(Module):
         """
         对没有mapping到contig的reads进行混合拼接
         """
-        self.mix_assem = self.add_tool("assemble.megahit")
         opts = ({
             'mem': 100,  # 使用多少内存需要测试
             'mem_mode': 'mem',
+            'sample_name': 'megahit',
         })
         file_list = os.listdir(self.cat_reads.output_dir)
         for file in file_list:
@@ -243,7 +330,6 @@ class MgAssIdbaModule(Module):
         :return:
         """
         self.get_contig_file()
-        self.cut_length = self.add_tool('sequence.cut_length')
         self.cut_length.set_options({
             'contig': self.work_dir + '/contig_dir'
         })
@@ -272,7 +358,6 @@ class MgAssIdbaModule(Module):
         整合混拼结果
         :return:
         """
-        self.sort_result = self.add_tool("assemble.sort_idba_result")
         self.sort_result.set_options({
             'idba_contig': self.cut_length.option('cut_contig'),
             'newbler': self.newbler.output_dir,
@@ -290,7 +375,6 @@ class MgAssIdbaModule(Module):
         :return:
         """
         self.get_contig_file()
-        self.contig_stat = self.add_tool("assemble.contig_stat")
         self.contig_stat.set_options({
             "contig_dir": self.work_dir + '/contig_dir',
             "assembly_stat": "assembly.stat",
@@ -308,7 +392,6 @@ class MgAssIdbaModule(Module):
         长度分布
         :return:
         """
-        self.len_distribute = self.add_tool("sequence.length_distribute")
         self.len_distribute.set_options({
             "fasta_dir": self.contig_stat.output_dir,
             "len_range": "200,400,500,600,800,1000,1500,2000,3000",
@@ -452,15 +535,18 @@ class MgAssIdbaModule(Module):
         运行
         :return:
         """
-        self.idba_run()
-        #if self.option('method') == 'multiple':
-            #self.bowtie2_run()
+        if self.option('assemble_tool') == 'idba':
+            self.idba_run()
+        elif self.option('assemble_tool') == 'megahit':
+            self.megahit_run()
+            # if self.option('method') == 'multiple':
+            # self.bowtie2_run()
             # self.cat_reads_run()
             # self.mix_assem_run()
             # self.cut_length_run()
             # self.newbler_run()
             # self.sort_idba_result_run()
-        #self.contig_stat_run()
+        # self.contig_stat_run()
         super(MgAssIdbaModule, self).run()
 
     def linkdir(self, dirpath, dirname):
@@ -497,7 +583,8 @@ class MgAssIdbaModule(Module):
         """
         if os.path.exists(self.output_dir):
             shutil.rmtree(self.output_dir)
-        if self.option('method') == 'single':
+        os.mkdir(self.output_dir)
+        if self.option('method') == 'simple':
             self.linkdir(self.contig_stat.output_dir, self.output_dir)
             # self.option('contig').set_path(self.output_dir)
             self.option('contig', self.output_dir)

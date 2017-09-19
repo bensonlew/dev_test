@@ -32,7 +32,8 @@ class GroupTableFile(TableFile):
             self.new_file = self.get_newtable(code_dic['encoding'])
             self.check_info(self.new_file)  # 判断是否符合数据表格的要求
             info = self.get_file_info()
-            self.set_property("group_scheme", info[1])
+            self.set_property("group_scheme", info[1])  # 分组方案中涉及的分组名称
+            self.set_property('sample_name', info[0])  # 分组方案中涉及的样本
         else:
             raise FileError("文件路径不正确，请设置正确的文件路径!")
 
@@ -50,15 +51,15 @@ class GroupTableFile(TableFile):
             else:
                 is_empty = False
             header = list()
-            len_ = len(line)
-            for i in range(1, len_):
+            len_ = len(line)  # 标明group文件有几列
+            for i in range(1, len_):  # 记录列名,也就是记录分组方案的名称
                 header.append(line[i])
             for line in f:
                 line = line.rstrip()
                 line = re.split("\t", line)
                 row += 1
                 if line[0] not in sample:
-                    sample.append(line[0])
+                    sample.append(line[0])  # 记录所有分组方案中的样本名称
             return (sample, header, is_empty)
 
     def sub_group(self, target_path, header):
@@ -89,9 +90,15 @@ class GroupTableFile(TableFile):
                 line = re.split("\t", line)
                 sub_line.append(line[0])
                 for i in my_index:
-                    sub_line.append(line[i])
-                new_line = "\t".join(sub_line)
-                w.write(new_line + "\n")
+                    if line[i] == '' or line[i] == ' ':  # add by wzy 20170909
+                        pass
+                    else:
+                        sub_line.append(line[i])
+                if len(sub_line) > 1:  # add by wzy 20170909
+                    new_line = "\t".join(sub_line)
+                    w.write(new_line + "\n")
+                else:
+                    pass
 
     @staticmethod
     def check_info(file_path):
@@ -125,3 +132,9 @@ class GroupTableFile(TableFile):
         if super(GroupTableFile, self).check():
             self.get_info()
             return True
+
+if __name__ == '__main__':
+    a = GroupTableFile()
+    a.set_path('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/group2.txt')
+    a.get_info()
+    a.sub_group('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/group1.txt', ['group1'])

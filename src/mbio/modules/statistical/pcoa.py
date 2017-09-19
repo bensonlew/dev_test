@@ -20,6 +20,7 @@ class PcoaModule(Module):
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "T", "type": "string", "default": "column"},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # modify by zengjing 20170907
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
         ]
         self.add_option(options)

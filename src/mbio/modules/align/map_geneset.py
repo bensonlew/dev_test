@@ -32,7 +32,7 @@ class MapGenesetModule(Module):
         self.build = self.add_tool("align.bwt_builder")
         self.unigene_profile = self.add_tool("statistical.unigene_profile")
         self.aligner = []
-        self.step.add_steps('bwt_build', 'soap_align')
+        self.step.add_steps('bwt_build')
         self.samples = {}
 
     def check_options(self):
@@ -65,16 +65,20 @@ class MapGenesetModule(Module):
             event['data']['end'].finish()
         self.step.update()
 
+    def finish_update(self, event):
+        step = getattr(self.step, event['data'])
+        step.finish()
+        self.step.update()
+
     def build_index(self):
         self.build.set_options({"fafile": self.option("fafile")})
         self.logger.info("build index")
         self.build.on("start", self.set_step, {'start': self.step.bwt_build})
         self.build.on("end", self.set_step, {'end': self.step.bwt_build})
-        self.build.on("end", self.set_step, {'start': self.step.soap_align})
         self.build.on("end", self.soap_align)
         self.build.run()
 
-    def getcolumn(self, filename, splitregex='\t'):
+    def get_column(self, filename, splitregex='\t'):
         with open(filename, 'rt') as handle:
             for ln in handle:
                 items = re.split(splitregex, ln)
@@ -89,8 +93,10 @@ class MapGenesetModule(Module):
 
     def soap_align(self):
         self.samples = self.get_list()
-        for x, y in self.getcolumn(self.option("insertsize").prop['path']):
+        n = 1
+        for x, y in self.get_column(self.option("insertsize").prop['path']):
             align = self.add_tool("align.soap_aligner")
+            self.step.add_steps('align_{}'.format(n))
             align.set_options({
                 "sample": x,
                 "insertSize": y,
@@ -105,6 +111,10 @@ class MapGenesetModule(Module):
                 "mismatch": self.option("mismatch"),
                 "identity": self.option("identity")
             })
+            step = getattr(self.step, 'align_{}'.format(n))
+            step.start()
+            align.on("end", self.finish_update, "align_{}".format(n))
+            n += 1
             self.aligner.append(align)
             self.logger.info(x + str(y))
             self.logger.info(self.samples[x]["r"] + self.samples[x]["l"] + self.samples[x]["s"])

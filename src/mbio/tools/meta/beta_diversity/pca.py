@@ -21,11 +21,13 @@ class PcaAgent(Agent):
         super(PcaAgent, self).__init__(parent)
         options = [
             {"name": "otutable", "type": "infile",
-             "format": "meta.otu.otu_table, meta.otu.tax_summary_dir, toolapps.table"},  # modify by zhouxuan 20170623
+             "format": "meta.otu.otu_table, meta.otu.tax_summary_dir, toolapps.table"},
+            # modify by zhouxuan 20170623 小工具的模块是指定toolapps.table这个文件类型的
             {"name": "level", "type": "string", "default": "otu"},
             {"name": "eigenvalue", "type": "string", "default": "row"},  # column
             {"name": "envtable", "type": "infile", "format": "meta.otu.group_table"},
-            {"name": "envlabs", "type": "string", "default": ""}
+            {"name": "envlabs", "type": "string", "default": ""},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table"}  # modify by zhouxuan 20170823
         ]
         self.add_option(options)
         self.step.add_steps('PCAanalysis')
@@ -97,17 +99,29 @@ class PcaAgent(Agent):
         self._memory = '5G'
 
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "PCA分析结果输出目录"],
-            ["./pca_importance.xls", "xls", "主成分解释度表"],
-            ["./pca_rotation.xls", "xls", "物种主成分贡献度表"],
-            ["./pca_sites.xls", "xls", "样本坐标表"],
-            ["./pca_envfit_factor_scores.xls", "xls", "哑变量环境因子表"],
-            ["./pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
-            ["./pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
-            ["./pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
-        ])
+        if self.option('group_table').is_set:
+            result_dir = self.add_upload_dir(self.output_dir)
+            result_dir.add_relpath_rules([
+                [".", "", "PCA分析结果输出目录"],
+            ])
+            result_dir.add_regexp_rules([
+                [".+/pca_importance.xls", "xls", "主成分解释度表"],
+                [".+/pca_rotation.xls", "xls", "物种主成分贡献度表"],
+                [".+/pca_sites.xls", "xls", "样本坐标表"],
+                [".+/.+_group.xls$", "xls", "样本坐标表"],
+            ])
+        else:
+            result_dir = self.add_upload_dir(self.output_dir)
+            result_dir.add_relpath_rules([
+                [".", "", "PCA分析结果输出目录"],
+                ["./pca_importance.xls", "xls", "主成分解释度表"],
+                ["./pca_rotation.xls", "xls", "物种主成分贡献度表"],
+                ["./pca_sites.xls", "xls", "样本坐标表"],
+                ["./pca_envfit_factor_scores.xls", "xls", "哑变量环境因子表"],
+                ["./pca_envfit_factor.xls", "xls", "哑变量环境因子坐标表"],
+                ["./pca_envfit_vector_scores.xls", "xls", "数量型环境因子表"],
+                ["./pca_envfit_vector.xls", "xls", "数量型环境因子坐标表"],
+            ])
         # print self.get_upload_files()
         super(PcaAgent, self).end()
 
@@ -121,7 +135,6 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         self.cmd_path = 'bioinfo/statistical/scripts/ordination.pl'
         self.script_path = "bioinfo/meta/scripts/beta_diver.sh"
         self.R_path = os.path.join(self.config.SOFTWARE_DIR, 'program/R-3.3.1/bin/R')
-
 
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
         T1 = pd.read_table(T1, sep='\t', dtype=str)
@@ -159,6 +172,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         # else:
         #     return otu_path
 
+    """
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
             raise Exception('过滤otu表样本的样本名称应为列表')
@@ -179,7 +193,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
                 return newfile
         except IOError:
             raise Exception('无法打开OTU相关文件或者文件不存在')
-
+    """
 
     def get_new_env(self):
         """
@@ -197,16 +211,36 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         运行
         """
         super(PcaTool, self).run()
-        self.run_ordination()
+        if self.option('group_table').is_set:
+            if self.option('eigenvalue') == 'row':
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otutable').prop['col_sample']:
+                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
+            else:
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otutable').prop['row_sample']:
+                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
+            group_de = self.option('group_table').prop['group_scheme']
+            self.logger.info(group_de)
+            for i in group_de:
+                name = []
+                name.append(i)
+                target_path = os.path.join(self.work_dir, i + '_group.xls')
+                self.logger.info(target_path)
+                self.option('group_table').sub_group(target_path, name)
+                self.run_ordination(i, target_path, 'cmd_' + i.lower(), 'pca_' + i.lower())
+        else:
+            self.run_ordination()
+        self.end()
 
     def formattable(self, tablepath):
-        this_table = ''
-        with open(tablepath) as table:
-            if table.read(1) == '#':
-                newtable = os.path.join(self.work_dir, 'temp_format.table')
-                with open(newtable, 'w') as w:
-                    w.write(table.read())
-                this_table = newtable
+        # this_table = ''  # 感觉没有用注释掉 zhouxuan
+        # with open(tablepath) as table:
+        #     if table.read(1) == '#':
+        #         newtable = os.path.join(self.work_dir, 'temp_format.table')
+        #         with open(newtable, 'w') as w:
+        #             w.write(table.read())
+        #         this_table = newtable
         this_table = tablepath
         if self.option('eigenvalue') != 'row':
             newtable = this_table + '.T'
@@ -224,13 +258,12 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
             table_list = map(lambda *a: '\t'.join(a) + '\n', *table_list)
             w.writelines(table_list)
 
-
-    def run_ordination(self):
+    def run_ordination(self, group=None, group_table=None, cmd1='cmd', cmd2='pca'):
         """
         运行ordination.pl
         """
-        old_otu_table = self.get_otu_table()
-        if self.option('envtable').is_set:
+        old_otu_table = self.get_otu_table()  # 根据level返回进行计算的otu表，特殊的format类型才会进行。小工具不用判断
+        if self.option('envtable').is_set:  # 小工具不用判断
             old_env_table = self.get_new_env()
             self.otu_table = self.work_dir + '/new_otu.xls'
             self.env_table = self.work_dir + '/new_env.xls'
@@ -238,7 +271,12 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
                 self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
         else:
             self.otu_table = old_otu_table
-        real_otu_path = self.formattable(self.otu_table)
+        if group:
+            target_path = os.path.join(self.work_dir, group + '_datatable.xls')
+            self.option('otutable').get_table_of_main_table(old_otu_table, target_path, group_table)
+            real_otu_path = target_path
+        else:
+            real_otu_path = self.formattable(self.otu_table)  # 获取转置文件
         cmd = self.cmd_path
         cmd += ' -type pca -community %s -outdir %s' % (
             real_otu_path, self.work_dir)
@@ -246,7 +284,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
             cmd += ' -pca_env T -environment %s' % self.env_table
         self.logger.info('运行ordination.pl程序计算pca')
         self.logger.info(cmd)
-        cmd1 = self.add_command("cmd.r", cmd).run()
+        cmd1 = self.add_command(cmd1, cmd).run()  # 命令1运行
         self.wait(cmd1)
         if cmd1.return_code == 0:
             self.logger.info("生成 cmd.r 文件成功")
@@ -255,31 +293,30 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
             self.set_error('无法生成 cmd.r 文件')
         cmd_ = self.script_path + ' %s %s' % (self.R_path, self.work_dir + "/cmd.r")
         self.logger.info(cmd_)
-        cmd2 = self.add_command("pca", cmd_).run()
+        cmd2 = self.add_command(cmd2, cmd_).run()  # 命令2 运行
         self.wait(cmd2)
         if cmd2.return_code == 0:
             self.logger.info("pca计算成功")
         else:
             self.logger.info('pca计算失败')
             self.set_error('R程序计算pca失败')
-        # try:
-        #     subprocess.check_output(cmd, shell=True)
-        #     self.logger.info('生成 cmd.r 文件成功')
-        # except subprocess.CalledProcessError:
-        #     self.logger.info('生成 cmd.r 文件失败')
-        #     self.set_error('无法生成 cmd.r 文件')
-        # try:
-        #     subprocess.check_output(self.config.SOFTWARE_DIR +
-        #                             '/program/R-3.3.1/bin/R --restore --no-save < %s/cmd.r' % self.work_dir, shell=True)
-        #     self.logger.info('pca计算成功')
-        # except subprocess.CalledProcessError:
-        #     self.logger.info('pca计算失败')
-        #     self.set_error('R程序计算pca失败')
         self.logger.info('运行ordination.pl程序计算pca完成')
-        allfiles = self.get_filesname()
-        self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls')
-        self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls')
-        self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls')
+        if group:
+            os.link(self.work_dir + "/cmd.r", self.work_dir + "/" + group + "cmd.r")
+            os.remove(self.work_dir + "/cmd.r")
+            group_r_path = os.path.join(self.output_dir, group)
+            os.mkdir(group_r_path)
+            allfiles = self.get_filesname()
+            self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls', group)
+            self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls', group)
+            self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls', group)
+            os.link(group_table, os.path.join(group_r_path, os.path.basename(group_table)))  # 分组文件link到结果目录下
+            os.rename(self.work_dir + '/pca', self.work_dir + '/pca_' + group)
+        else:
+            allfiles = self.get_filesname()
+            self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls')
+            self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls')
+            self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls')
         if self.option('envtable').is_set:
             if allfiles[3]:
                 self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_envfit_factor_scores.xls')
@@ -289,16 +326,19 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
                                      self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls')
                 self.linkfile(self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls', 'pca_envfit_vector_scores.xls')
                 self.linkfile(self.work_dir + '/pca/' + allfiles[6], 'pca_envfit_vector.xls')
-        self.end()
+        # self.end()
 
-    def linkfile(self, oldfile, newname):
+    def linkfile(self, oldfile, newname, group=None):
         """
         link文件到output文件夹
         :param oldfile: 资源文件路径
         :param newname: 新的文件名
         :return:
         """
-        newpath = os.path.join(self.output_dir, newname)
+        if group:
+            newpath = os.path.join(self.output_dir, group, newname)
+        else:
+            newpath = os.path.join(self.output_dir, newname)
         if os.path.exists(newpath):
             os.remove(newpath)
         os.link(oldfile, newpath)

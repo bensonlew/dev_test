@@ -298,6 +298,7 @@ class PtDedupWorkflow(Workflow):
             preg_id = self.family_id[i][2]
             # self.logger.info("iiii%s" % dad_id)
             # self.name_list.remove(dad_id)   # 20170704 xuanhongdong
+# <<<<<<< Updated upstream
             # dad_list = []
             #
             # for i in self.name_list[0:2]:  # 20170704 zhouxuan modify self.name_list → self.name_list[0:2]
@@ -323,6 +324,30 @@ class PtDedupWorkflow(Workflow):
                 pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
                 self.tools_dedup.append(pt_analysis_dedup)
                 n += 1
+# =======
+#             dad_list = []
+#
+#             for i in self.name_list:  # 20170704 zhouxuan modify self.name_list → self.name_list[0:2]
+#                 dad_list.append(self.output_dir + '/' + i + '.tab')
+#             dad_list = ",".join(dad_list)
+#
+#
+#             pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
+#             self.step.add_steps('dedup_{}'.format(n))
+#             pt_analysis_dedup.set_options({
+#                     "dad_list": dad_list,  # 数据库的tab文件
+#                     "mom_tab": self.output_dir + '/' + mom_id +'.tab',
+#                     "preg_tab": self.output_dir +'/' + preg_id+'.tab',
+#                     "ref_point": self.option("ref_point"),
+#                     "err_min": self.option("err_min")
+#             }
+#             )
+#             step = getattr(self.step, 'dedup_{}'.format(n))
+#             step.start()
+#             pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
+#             self.tools_dedup.append(pt_analysis_dedup)
+#             n += 1
+# >>>>>>> Stashed changes
 
         for j in range(len(self.tools_dedup)):
             self.tools_dedup[j].on('end', self.set_output, 'dedup')
