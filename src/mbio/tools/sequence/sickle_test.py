@@ -74,7 +74,7 @@ class SickleTestAgent(Agent):
         所需资源
         """
         # self._cpu = 11
-        self.cpu = 2  # 此软件为单线程，cpu设置过大易浪费资源  modified by zouxuan
+        self._cpu = 2  # 此软件为单线程，cpu设置过大易浪费资源  modified by zouxuan
         self._memory = '5G'
 
     def end(self):
