@@ -107,6 +107,10 @@ class PtFamilyCombine(PtController):
             if data.dedup_start and data.dedup_end:
                 if len(str(data.dedup_start)) != 4 or len(str(data.dedup_end)) != 4:
                     success.append("区域查重的起始样本编号与结束样本编号必须是年份+月份四位数，example：1708（17年08月）")
+                try:
+                    int(data.dedup_start) or int(data.dedup_end)
+                except:
+                    success.append("起始样本编号与结束样本编号输入不正确，example：1708！")
                 if int(data.dedup_start) > int(data.dedup_end):
                     success.append("区域查重的起始样本编号必须要小于结束样本编号！")
             # else:
