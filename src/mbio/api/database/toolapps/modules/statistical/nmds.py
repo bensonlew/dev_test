@@ -19,6 +19,7 @@ class Nmds(Base):
             self._db_name = 'ttoolapps'
         self.check()
         self.sample_list = []
+        self.specimen_ids_dict  = {}
 
     def get_group_detail(self, group_table):
         """
@@ -56,8 +57,8 @@ class Nmds(Base):
             self.bind_object.logger.info(group_detail)
         else:
             group_detail = None
-        self.main_id = self.nmds_in(group_detail)
         self.table_ids = self.table_in(group_detail)
+        self.main_id = self.nmds_in(group_detail)
 
     def table_in(self, group_detail=None):
         """
@@ -91,7 +92,7 @@ class Nmds(Base):
             self.db['table_detail'].insert_many(insert_data)
             self.bind_object.logger.info('table表导入结束')
             self.bind_object.logger.info('开始导入样本id')
-            self.insert_specimens(self.sample_list)
+            self.specimen_ids_dict = self.insert_specimens(self.sample_list)
         return table_id
 
     def nmds_in(self, group_detail=None):
@@ -108,6 +109,7 @@ class Nmds(Base):
                 name='nmds',
                 desc='nmds分析',
                 status='end',
+                # specimen_ids=self.specimen_ids_dict.values(),
                 group_detail=group_detail,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 stress=stress,
@@ -126,11 +128,13 @@ class Nmds(Base):
                 sample_num = line[1:]
                 otu_detail = dict()
                 otu_detail['nmds_id'] = nmds_id
-                otu_detail['row_name'] = line[0]
+                otu_detail['specimen_name'] = line[0]
+                # otu_detail['specimen_id'] = self.specimen_ids_dict[line[0]]
                 r_list.append(line[0])  # 后续画图做准备
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = float(sample_num[i])  # 保证画图时取到的数据是数值型
                 insert_data.append(otu_detail)
+            self.db['nmds'].update_one({"_id": nmds_id}, {"$set": {"attrs": new_head}})
             try:
                 self.db['nmds_detail'].insert_many(insert_data)
             except Exception as e:

@@ -57,7 +57,7 @@ class SimpleBarAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "柱形图结果目录"],
-            ["./final_value.xls", "xls", "结果表"],
+            # ["./.*final_value.xls", "xls", "结果表"],
         ])
         super(SimpleBarAgent, self).end()
 
@@ -93,6 +93,10 @@ class SimpleBarTool(Tool):
                 self.option("input_table").get_table_of_main_table(input_table, sample_dir + '/input_' + str(i + 1), group_table)
                 new_input_table = sample_dir + '/input_' + str(i + 1)
                 if self.option("calculation") == "none":  # 组内合并为none
+                    middle_input = self.work_dir + '/middle_input.xls'
+                    final_input = self.work_dir + "/final_input.xls"  # 样本在列，方便计算
+                    combined_txt = self.work_dir + "/final_table.xls"
+                    value_table = self.work_dir + "/final_value.xls"
                     cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s" % (
                         input_table, self.option('method'), middle_input, final_input, combined_txt, value_table, self.option("combined_value"))
                     cmd_list.append(cmd)
@@ -156,8 +160,9 @@ class SimpleBarTool(Tool):
                 input_path = self.work_dir + '/' + self.option("group_table").prop['group_scheme'][i] + "/" + \
                              self.option("group_table").prop['group_scheme'][i]
                 output_path = self.output_dir + "/" + self.option("group_table").prop['group_scheme'][i]
-                os.link(input_path + '_final_value.xls', output_path + '_final_value.xls')  # 丰度表格
-                os.link(input_path + '_final_table.xls', output_path + '_matrix_bar.xls')  # 百分比表格
+                if self.option("calculation") != "none":
+                    os.link(input_path + '_final_value.xls', output_path + '_final_value.xls')  # 丰度表格
+                    os.link(input_path + '_final_table.xls', output_path + '_matrix_bar.xls')  # 百分比表格
             if self.option("calculation") == "none":
                 os.link(self.work_dir + '/final_value.xls', self.output_dir + '/final_value.xls')   # 丰度表格
                 os.link(self.work_dir + '/final_table.xls', self.output_dir + '/matrix_bar.xls')    # 百分比表格
@@ -183,4 +188,3 @@ class SimpleBarTool(Tool):
         self.create_common_table()
         self.set_output()
         self.end()
-

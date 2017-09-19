@@ -19,6 +19,7 @@ class Pcoa(Base):
             self._db_name = 'ttoolapps'
         self.check()
         self.sample_list = []
+        self.specimen_ids_dict = {}
 
     @report_check
     def run(self):
@@ -30,8 +31,8 @@ class Pcoa(Base):
             self.bind_object.logger.info(group_detail)
         else:
             group_detail = None
-        self.main_id = self.pcoa_in(group_detail)
         self.table_ids = self.table_in(group_detail)
+        self.main_id = self.pcoa_in(group_detail)
 
     def get_group_detail(self, group_table):
         """
@@ -100,25 +101,25 @@ class Pcoa(Base):
             self.bind_object.logger.info('table表导入结束')
             if fp == self.output_dir + '/Pcoa/pcoa_sites.xls':
                 self.bind_object.logger.info('开始导入样本id')
-                self.insert_specimens(self.sample_list)
+                self.specimen_ids_dict = self.insert_specimens(self.sample_list)
         return table_id
 
     def pcoa_in(self, group_detail=None):
         """
         导入pcoa相关信息
         """
-        self.bind_object.logger.info('主表导入')
-        pcoa_id = self.db['pcoa'].insert_one(SON(
-            project_sn=self.bind_object.sheet.project_sn,
-            task_id=self.bind_object.id,
-            name='pcoa',
-            desc='pcoa分析',
-            status='end',
-            group_detail=group_detail,
-            created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        )).inserted_id
-        self.bind_object.logger.info('主表导入结束')
         with open(self.output_dir + '/Pcoa/pcoa_sites.xls', 'r') as s:
+            self.bind_object.logger.info('主表导入')
+            pcoa_id = self.db['pcoa'].insert_one(SON(
+                project_sn=self.bind_object.sheet.project_sn,
+                task_id=self.bind_object.id,
+                name='pcoa',
+                desc='pcoa分析',
+                status='end',
+                group_detail=group_detail,
+                specimen_ids=self.specimen_ids_dict.values(),
+                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            )).inserted_id
             self.bind_object.logger.info("pcoa画图数据表导入开始")
             insert_data = []
             head = s.next().strip('\r\n')  # windows换行符
@@ -131,11 +132,13 @@ class Pcoa(Base):
                 sample_num = line[1:]
                 otu_detail = dict()
                 otu_detail['pcoa_id'] = pcoa_id
-                otu_detail['row_name'] = line[0]
+                otu_detail['specimen_name'] = line[0]
+                otu_detail['specimen_id'] = self.specimen_ids_dict[line[0]]
                 r_list.append(line[0])  # 后续画图做准备
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = float(sample_num[i])  # 保证画图时取到的数据是数值型
                 insert_data.append(otu_detail)
+            self.db['pcoa'].update_one({"_id": pcoa_id}, {"$set": {"attrs": r_list}})
             try:
                 self.db['pcoa_detail'].insert_many(insert_data)
             except Exception as e:
