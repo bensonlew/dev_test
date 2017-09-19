@@ -151,8 +151,8 @@ class HcHeatmapTool(Tool):
                                     summary = 0
                                     mid_list = []
                                     for i in new_sample_index[s]:
-                                        summary += int(item[i])
-                                        mid_list.append(int(item[i]))
+                                        summary += float(item[i])
+                                        mid_list.append(float(item[i]))
                                     mid_list.sort()
                                     size = len(mid_list)
                                     if size % 2 == 0:
@@ -161,11 +161,11 @@ class HcHeatmapTool(Tool):
                                         midian = mid_list[(size-1)/2]
                                     average = summary / size
                                     if self.option("group_method") == "sum":
-                                        tmp.append(str(summary))
+                                        tmp.append(str(round(summary, 4)))
                                     elif self.option("group_method") == "average":
-                                        tmp.append(str(average))
+                                        tmp.append(str(round(average, 4)))
                                     elif self.option("group_method") == "middle":
-                                        tmp.append(str(midian))
+                                        tmp.append(str(round(midian, 4)))
                                 w.write('\t'.join(tmp) + "\n")
                         self.create_tree(table_path, group)
                     else:
@@ -239,13 +239,11 @@ class HcHeatmapTool(Tool):
 
     def set_output(self):
         file_name = os.listdir(self.output_dir)
-        groups = []
         if self.option('row_method') != 'no' and self.option('col_method') == 'no':
             for name in file_name:
                 m = re.match(r"hcluster_tree_(.+)_table.xls(.*).tre$", name)
                 if m:
                     group = m.group(1)
-                    groups.append(group)
                     os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_row_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
             self.logger.info("存在行聚类树")
@@ -254,7 +252,6 @@ class HcHeatmapTool(Tool):
                 m = re.match(r"hcluster_tree_(.+)_table.xls(.*).tre$", name)
                 if m:
                     group = m.group(1)
-                    groups.append(group)
                     os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_col_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
             self.logger.info("存在列聚类树")
@@ -263,29 +260,26 @@ class HcHeatmapTool(Tool):
                 m = re.match(r"hcluster_tree_(.+)_table.xls(.*)\.tre$", name)
                 if m:
                     group = m.group(1)
-                    groups.append(group)
                     new = os.path.join(self.output_dir, "{}_col_tre".format(group))
                     os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_col_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
                 n = re.match(r"hcluster_tree_(.+)_table.xls(.*)\.ttre$", name)
                 if n:
                     group = n.group(1)
-                    groups.append(group)
                     os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_row_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
         file_name_2 = os.listdir(self.output_dir)
         for name in file_name_2:
             if re.search('(\.pdf)$', name):
                 os.remove(os.path.join(self.output_dir, name))
-        groups = list(set(groups))
-        if groups:
-            for g in groups:
-                new_table = os.path.join(self.work_dir, "{}_table.xls".format(g))
-                if os.path.exists(new_table):
-                    os.link(new_table, os.path.join(self.output_dir, "{}_result_data".format(g)))
-        else:
-            if not os.path.exists(os.path.join(self.output_dir, "new_result_data")):
-                os.link(self.work_dir + "/new_table.xls", os.path.join(self.output_dir, "new_result_data"))
+        table_files = os.listdir(self.work_dir)
+        for f in table_files:
+            t = re.search(r"(.+)_table.xls$", f)
+            if t:
+                g = t.group(1)
+                out = os.path.join(self.output_dir, "{}_result_data".format(g))
+                if not os.path.exists(out):
+                    os.link(os.path.join(self.work_dir, f), out)
 
     def run(self):
         """
