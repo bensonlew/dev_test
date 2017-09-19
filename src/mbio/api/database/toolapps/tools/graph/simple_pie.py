@@ -25,7 +25,7 @@ class SimplePie(Base):
         """
         运行函数
         """
-        if self.bind_object._task.option("group_table").is_set:
+        if self.bind_object._task.option("group_table").is_set and self.bind_object._task.option("calculation") != 'none':
             for i in self.bind_object._task.option("group_table").prop['group_scheme']:
                 self.main_id = self.simple_pie_in(i)
                 self.table_ids = self.table_in(i)
