@@ -650,7 +650,7 @@ class ExpressModule(Module):
             if self.option("express_method").lower() == 'rsem':
                 self.judge_list = [self.genes_corr, self.trans_corr, self.mergersem1,
                                    self.genes_pca, self.trans_pca, self.genes_diffRexp_ref,
-                                   self.trans_diffRexp_ref, self.genes_diffRexp_ref]
+                                   self.trans_diffRexp_ref, self.genes_diffRexp, self.trans_diffRexp]
             elif self.option("express_method").lower() == 'kallisto':
                 self.judge_list = [self.trans_diffRexp, self.trans_corr, self.trans_pca]
             elif self.option("express_method").lower() == 'featurecounts':
