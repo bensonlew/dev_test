@@ -472,7 +472,7 @@ class TabFile(Base):
                 line = line.split(":")
 
                 if line[0] == 'dp1':
-                    if float(line[1]) >=50:
+                    if float(line[1]) >= 50:
                         color = "green"
                     elif float(line[1]) < 40:
                         color = "red"
@@ -533,6 +533,34 @@ class TabFile(Base):
                 self.bind_object.logger.error('导入qc表格出错：{}'.format(e))
             else:
                 self.bind_object.logger.info("导入qc表格成功")
+
+    def problem_sample_qc(self, file, sample_id):
+        """
+        该函数适用于问题样本的qc文件的导表
+        :return:
+        """
+        qc_detail = list()
+        with open(file, 'r') as f:
+            for line in f:
+                line = line.strip()
+                line = line.split(":")
+                if len(line) == 2:
+                    value = line[1]
+                else:
+                    value = ''
+                insert_data = {
+                    "qc": line[0],
+                    "value": value,
+                    "sample_id": sample_id
+                }
+                qc_detail.append(insert_data)
+            try:
+                collection = self.database['sg_pt_qc']
+                collection.insert_many(qc_detail)
+            except Exception as e:
+                self.bind_object.logger.error('导入异常样本qc表格出错：{}'.format(e))
+            else:
+                self.bind_object.logger.info("导入异常样本qc表格成功")
 
     def sample_qc_addition_dc(self,sample_id):  # modify by zhouxuan 20170728
         collection = self.database['sg_pt_qc']
