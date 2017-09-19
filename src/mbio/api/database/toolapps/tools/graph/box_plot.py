@@ -35,7 +35,7 @@ class BoxPlot(Base):
         导入box_plot图相关信息
         """
         self.bind_object.logger.info("开始箱线图导表")
-        box_file = self.output_dir + '/box_data.xls'
+        box_file = self.output_dir + '/boxplot.xls'
         with open(box_file) as f:
             box_plot_id = self.db['box_plot'].insert_one(SON(
                 project_sn=self.bind_object.sheet.project_sn,
@@ -46,8 +46,6 @@ class BoxPlot(Base):
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )).inserted_id
             lines = f.readlines()
-            lines = [line for line in lines if (line != "\r\n") and (line != "\n")]
-            lines = [line for line in lines if not re.search(r"^(\s*\t+?)\s*\t*\n*", line)]
             samples = []
             insert_data = []
             for line in lines[1:]:
@@ -57,45 +55,54 @@ class BoxPlot(Base):
                 if len(line_split) == 6:
                     pass
                 else:
-                    insert_filter.append(float(line_split[6]))
+                    insert_filter = line_split[6].split(";")
                 data_list = [float(line_split[1]), float(line_split[2]), float(line_split[3]), float(line_split[4]), float(line_split[5]), insert_filter]
                 data = SON(sample_name=line_split[0], box_id=box_plot_id, box_data=data_list)
                 insert_data.append(data)
             self.db['box_plot_detail'].insert_many(insert_data)
-            self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples}})
-            return box_plot_id
+        if self.bind_object._task.option("group_table").is_set:
+            group_dict = {}
+            all_group_file = os.listdir(self.output_dir)
+            for group_file in all_group_file:
+                if group_file.startswith("group"):
+                    group_file = os.path.join(self.output_dir, group_file)
+                    with open(group_file)as fr:
+                        lines = fr.readlines()
+                        group_name
+        self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples}})
+        return box_plot_id
 
     def table_in(self):
         """
         导入表格相关信息
         """
         self.bind_object.logger.info("开始表格导表")
-        value_table = self.insert_table(self.output_dir + '/box_data.xls', '箱线图数据表', '箱线图数据表格')
+        value_table = self.insert_table(self.output_dir + '/boxplot.xls', '箱线图数据表', '箱线图数据表格')
         return [value_table]
 
     def insert_table(self, fp, name, desc):
+        insert_data = []
+        attr = ["#name"]
+        table_id = self.db['table'].insert_one(SON(
+            project_sn=self.bind_object.sheet.project_sn,
+            task_id=self.bind_object.id,
+            name=name,
+            desc=desc,
+            status='failed',
+            created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        )).inserted_id
         with open(fp) as f:
             lines = f.readlines()
             columns = lines[0].strip().split("\t")
-            insert_data = []
-            table_id = self.db['table'].insert_one(SON(
-                project_sn=self.bind_object.sheet.project_sn,
-                task_id=self.bind_object.id,
-                name=name,
-                attrs=columns,
-                desc=desc,
-                status='end',
-                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            )).inserted_id
-        with open(fp) as f:
-            lines = f.readlines()
-            columns = lines[0].strip().split("\t")
+            for i in columns:
+                attr.append(i)
             for line2 in lines[1:]:
                 line_split = line2.strip().split('\t')
-                data = dict(zip(columns, line_split))
+                data = dict(zip(attr, line_split))
                 data['table_id'] = table_id
                 insert_data.append(data)
             self.db['table_detail'].insert_many(insert_data)
+            self.db['table'].update_one({'_id': table_id}, {'$set': {'status': 'end', 'attrs': columns}})
 
         return table_id
 
