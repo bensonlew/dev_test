@@ -46,6 +46,7 @@ class BoxPlotAgent(Agent):
         if not self.option("input_table"):
             raise OptionError("参数input_table不能为空")
 
+
     def set_resource(self):
         """
         设置所需资源

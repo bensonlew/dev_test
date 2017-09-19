@@ -7,6 +7,7 @@ import os
 import datetime
 from bson import SON
 from biocluster.config import Config
+from collections import defaultdict
 
 
 class BoxPlot(Base):
@@ -36,6 +37,7 @@ class BoxPlot(Base):
         """
         self.bind_object.logger.info("开始箱线图导表")
         box_file = self.output_dir + '/boxplot.xls'
+        box_group_name = []
         with open(box_file) as f:
             box_plot_id = self.db['box_plot'].insert_one(SON(
                 project_sn=self.bind_object.sheet.project_sn,
@@ -61,15 +63,25 @@ class BoxPlot(Base):
                 insert_data.append(data)
             self.db['box_plot_detail'].insert_many(insert_data)
         if self.bind_object._task.option("group_table").is_set:
-            group_dict = {}
+            insert_group_data = []
             all_group_file = os.listdir(self.output_dir)
             for group_file in all_group_file:
+                group_dict = defaultdict(list)
                 if group_file.startswith("group"):
                     group_file = os.path.join(self.output_dir, group_file)
                     with open(group_file)as fr:
                         lines = fr.readlines()
-                        group_name
-        self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples}})
+                        group_name = lines[0].strip().split("\t")[1]
+                        box_group_name.append(group_name)
+                        for line in lines[1:]:
+                            sample = line.strip().split("\t")[0]
+                            group = line.strip().split("\t")[1]
+                            group_dict[group].append(sample)
+                            print group_dict
+                        group_data = SON(box_id=box_plot_id, group=group_name, group_data=group_dict)
+                        insert_group_data.append(group_data)
+            self.db['box_group'].insert_many(insert_group_data)
+        self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples, 'group_name':box_group_name}})
         return box_plot_id
 
     def table_in(self):
