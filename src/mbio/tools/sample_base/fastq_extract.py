@@ -40,7 +40,7 @@ class FastqExtractAgent(Agent):
 
     def set_resource(self):
         self._cpu = 4
-        self._memory = "4G"
+        self._memory = "10G"
 
 
 class Sample(object):
