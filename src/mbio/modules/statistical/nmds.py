@@ -19,7 +19,7 @@ class NmdsModule(Module):
         options = [
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
             {"name": "otu_table", "type": "infile", "format": "toolapps.table, meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            {"name": "T", "type": "string", "default": "row"},
+            {"name": "T", "type": "string", "default": "column"},
             {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # modify by zengjing 20170911
         ]
         self.add_option(options)
@@ -44,18 +44,18 @@ class NmdsModule(Module):
             raise OptionError('请选择正确的距离算法')
         if not self.option('otu_table').is_set:
             raise OptionError('请正确设置输入文件')
-        if self.option('T') == 'column':
+        if self.option('T') == 'row':
             self.otu_table = self.t_table(self.option('otu_table').prop['path'])
         else:
             self.otu_table = self.option('otu_table').prop['path']
         if self.option("group_table").is_set:
             if self.option('T') == 'row':
                 for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otu_table').prop['col_sample']:
+                    if i not in self.option('otu_table').prop['row_sample']:
                         raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
             else:
                 for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otu_table').prop['row_sample']:
+                    if i not in self.option('otu_table').prop['col_sample']:
                         raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
 
     def t_table(self, table_file):
