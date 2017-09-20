@@ -82,7 +82,7 @@ class SimplePieTool(Tool):
         cmd_list = []
         input_table = self.option("input_table").prop['new_table']
         # 有分组方案时，判断组内合并方式，建立每个分组方案的命令
-        if self.option("group_table").is_set:
+        if self.option("group_table").is_set and self.option("calculation") != "none":
             for i in range(len(self.option("group_table").prop['group_scheme'])):
                 select_group = []
                 sample_dir = self.work_dir + '/' + self.option("group_table").prop['group_scheme'][i]
@@ -93,19 +93,10 @@ class SimplePieTool(Tool):
                 self.option("input_table").get_table_of_main_table(input_table, sample_dir + '/input_' + str(i + 1),
                                                                    group_table)
                 new_input_table = sample_dir + '/input_' + str(i + 1)
-            if self.option("calculation") == "none":  # 组内合并为none
-                middle_input = self.work_dir + '/middle_input.xls'
-                final_input = self.work_dir + "/final_input.xls"  # 样本在列，方便计算
-                combined_txt = self.work_dir + "/final_table.xls"
-                value_table = self.work_dir + "/final_value.xls"
-                cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s" % (
-                    input_table, self.option('method'), middle_input, final_input, combined_txt, value_table,
-                    self.option("combined_value"))
-                cmd_list.append(cmd)
-                self.logger.info(cmd)
-            else:
-                middle_input = sample_dir + '/middle_input.xls'
-                final_input = sample_dir + "/final_input.xls"  # 样本在列，方便计算
+                middle_input = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
+                    i] + '_middle_input.xls'
+                final_input = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
+                    i] + "_final_input.xls"  # 样本在列，方便计算
                 combined_txt = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
                     i] + "_final_table.xls"
                 value_table = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
@@ -140,6 +131,7 @@ class SimplePieTool(Tool):
                 else:
                     self.set_error("运行{}运行出错!".format(command.name))
                     raise Exception("运行饼图运行出错，请检查输入的表格是否正确")
+
         else:
             middle_input = self.work_dir + "/middle_input.xls"  # 样本在行
             final_input = self.work_dir + "/final_input.xls"  # 样本在列，方便计算
