@@ -135,7 +135,7 @@ class RefassembleStatTool(Tool):
         """
         all_file = os.listdir(self.option('all_files_dir'))
         for f in all_file:
-            if f.endswith("change_id_merged.fa"):
+            if f.endswith("merged.fa"):
                 files = os.path.join(self.option('all_files_dir'), f)
                 steps = [200, 300, 600, 1000]
                 for step in steps:

@@ -1,10 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import re
+import os
 import time
 import datetime
 import types
 import unittest
+import sqlite3
 from collections import OrderedDict, defaultdict
 from bson.objectid import ObjectId
 from bson.son import SON
@@ -120,7 +122,7 @@ class RefrnaGeneDetail(Base):
         """
         cds_dict = dict()
         cds_pattern_match = re.compile(r'>([^\s]+)').match
-        with open(cds_path, 'r+') as f:
+        with open(cds_path, 'r') as f:
             j = 0
             trans_id, cds_id, cds_sequence = '', '', ''
             for line in f:
@@ -301,7 +303,7 @@ class RefrnaGeneDetail(Base):
         :return: dict, gene:{chr, strand, start, end}
         """
         gene_info = dict()
-        with open(gene_bed_path, 'r+') as f:
+        with open(gene_bed_path, 'r') as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -330,7 +332,7 @@ class RefrnaGeneDetail(Base):
         gene2trans_dict = dict()
         gene2name_dict = dict()
         trans2class_code = dict()
-        with open(class_code, 'r+') as f1:
+        with open(class_code, 'r') as f1:
             f1.readline()
             for line in f1:
                 if not line.strip():
@@ -353,7 +355,7 @@ class RefrnaGeneDetail(Base):
         """
         seq = dict()
         match_name = re.compile(r'>([^\s]+)').match
-        with open(fasta_file, 'r+') as fasta:
+        with open(fasta_file, 'r') as fasta:
             j = 0
             seq_id, sequence = '', ''
             for line in fasta:
@@ -381,6 +383,29 @@ class RefrnaGeneDetail(Base):
             print '提取序列信息为空'
         print "从{}共统计出{}条序列信息".format(fasta_file, len(seq))
         return seq
+
+    @staticmethod
+    def build_seq_database(seq_dicts, db_path):
+        """
+        :param seq_dicts: {table_name, seq_dict}
+        :param db_path: abs path of seq db to be build.
+        :return:
+        """
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        # Create table
+
+        for table_name in seq_dicts:
+            cursor.execute('DROP TABLE IF EXISTS {}'.format(table_name))
+            cursor.execute('CREATE TABLE {} (seq_id text, sequence text)'.format(table_name))
+            seq_dict = seq_dicts[table_name]
+            for seq_id in seq_dict:
+                seq = seq_dict[seq_id]  # seq_id is transcript_id or gene_id
+                if type(seq) == dict:
+                    seq = seq_dict[seq_id]['sequence']
+                cursor.execute("INSERT INTO {} VALUES ('{}', '{}')".format(table_name, seq_id, seq))
+        conn.commit()
+        conn.close()
 
     def add_gene_detail_class_code_detail(self, class_code,
                                           biomart_path=None,
@@ -447,6 +472,10 @@ class RefrnaGeneDetail(Base):
                 ('created_ts', create_time.strftime('%Y-%m-%d %H:%M:%S')), ('status', 'end'),
                 ('name', 'Gene_detail_' + create_time.strftime("%Y%m%d_%H%M%S")),
                 ('transcripts_total_length', all_transcript_length)]
+        if not test_this:
+            data.append(('refrna_seqdb', self.bind_object.work_dir + '/refrna_seqs.db'))
+        else:
+            data.append(('refrna_seqdb', os.path.join(os.getcwd(), 'refrna_seqs.db')))
         collection = self.db["sg_express_class_code"]
         class_code_id = collection.insert_one(SON(data)).inserted_id
         print("导入Gene_detail主表信息完成！")
@@ -495,6 +524,17 @@ class RefrnaGeneDetail(Base):
             query_pep = self.query_pep_from_blast_result
         else:
             raise Exception('blast_id or blast_xls must be specified')
+
+        # ----------build seq database----------
+        seq_dicts = dict(gene=gene_sequence_dict, transcript=trans_sequence,
+                         pep=trans_pep_info, cds=trans_cds_info)
+        if not test_this:
+            db_path = self.bind_object.work_dir + '/refrna_seqs.db'
+        else:
+            db_path = os.path.join(os.getcwd(), 'refrna_seqs.db')
+
+        self.build_seq_database(seq_dicts, db_path)
+        # -------------------------------------
 
         data_list = list()
         new_num = 0
