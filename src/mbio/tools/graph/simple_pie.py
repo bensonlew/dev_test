@@ -94,9 +94,9 @@ class SimplePieTool(Tool):
                                                                    group_table)
                 new_input_table = sample_dir + '/input_' + str(i + 1)
                 middle_input = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
-                    i]  + '_middle_input.xls'
+                    i] + '_middle_input.xls'
                 final_input = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
-                    i]  + "_final_input.xls"  # 样本在列，方便计算
+                    i] + "_final_input.xls"  # 样本在列，方便计算
                 combined_txt = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
                     i] + "_final_table.xls"
                 value_table = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
