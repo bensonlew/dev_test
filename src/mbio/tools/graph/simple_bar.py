@@ -92,25 +92,25 @@ class SimpleBarTool(Tool):
                 group_table = sample_dir + '/group_' + str(i + 1)
                 self.option("input_table").get_table_of_main_table(input_table, sample_dir + '/input_' + str(i + 1), group_table)
                 new_input_table = sample_dir + '/input_' + str(i + 1)
-                if self.option("calculation") == "none":  # 组内合并为none
-                    middle_input = self.work_dir + '/middle_input.xls'
-                    final_input = self.work_dir + "/final_input.xls"  # 样本在列，方便计算
-                    combined_txt = self.work_dir + "/final_table.xls"
-                    value_table = self.work_dir + "/final_value.xls"
-                    cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s" % (
-                        input_table, self.option('method'), middle_input, final_input, combined_txt, value_table, self.option("combined_value"))
-                    cmd_list.append(cmd)
-                    self.logger.info(cmd)
-                else:
-                    middle_input = sample_dir + '/middle_input.xls'
-                    final_input = sample_dir + "/final_input.xls"  # 样本在列，方便计算
-                    combined_txt = sample_dir + "/" + self.option("group_table").prop['group_scheme'][i] + "_final_table.xls"
-                    value_table = sample_dir + "/" + self.option("group_table").prop['group_scheme'][i] + "_final_value.xls"
-                    cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s -group %s -calculation %s" % (
-                        new_input_table, self.option('method'), middle_input, final_input, combined_txt, value_table, self.option("combined_value"),
-                        sample_dir + '/group_' + str(i + 1), self.option("calculation"))
-                    self.logger.info(cmd)
-                    cmd_list.append(cmd)
+            if self.option("calculation") == "none":  # 组内合并为none
+                middle_input = self.work_dir + '/middle_input.xls'
+                final_input = self.work_dir + "/final_input.xls"  # 样本在列，方便计算
+                combined_txt = self.work_dir + "/final_table.xls"
+                value_table = self.work_dir + "/final_value.xls"
+                cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s" % (
+                    input_table, self.option('method'), middle_input, final_input, combined_txt, value_table, self.option("combined_value"))
+                cmd_list.append(cmd)
+                self.logger.info(cmd)
+            else:
+                middle_input = sample_dir + '/middle_input.xls'
+                final_input = sample_dir + "/final_input.xls"  # 样本在列，方便计算
+                combined_txt = sample_dir + "/" + self.option("group_table").prop['group_scheme'][i] + "_final_table.xls"
+                value_table = sample_dir + "/" + self.option("group_table").prop['group_scheme'][i] + "_final_value.xls"
+                cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s -group %s -calculation %s" % (
+                    new_input_table, self.option('method'), middle_input, final_input, combined_txt, value_table, self.option("combined_value"),
+                    sample_dir + '/group_' + str(i + 1), self.option("calculation"))
+                self.logger.info(cmd)
+                cmd_list.append(cmd)
             # 循环投递
             self.logger.info('运行python脚本，进行计算')
             n = len(cmd_list) / 15

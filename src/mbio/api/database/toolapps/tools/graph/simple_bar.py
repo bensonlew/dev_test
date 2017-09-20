@@ -40,11 +40,11 @@ class SimpleBar(Base):
         导入simple_bar图相关信息
         """
         self.bind_object.logger.info("开始柱形图导表")
-        if self.bind_object._task.option("group_table").is_set:
+        if self.bind_object._task.option("group_table").is_set and self.bind_object._task.option("calculation") != 'none':
             bar = self.insert_bar(self.output_dir + '/' + group + '_matrix_bar.xls', 'bar', '一个样本多个值的柱形图表格', group)
 
         else:
-            bar = self.insert_bar(self.output_dir + '/matrix_bar.xls', 'bar', '一个样本多个值的柱形图表格', group)
+            bar = self.insert_bar(self.output_dir + '/matrix_bar.xls', 'bar', '一个样本多个值的柱形图表格')
         return [bar]
 
     def insert_bar(self, fp, name, desc, group_name=None):
@@ -86,11 +86,11 @@ class SimpleBar(Base):
         导入表格相关信息
         """
         self.bind_object.logger.info("开始表格导表")
-        if self.bind_object._task.option("group_table").is_set:
+        if self.bind_object._task.option("group_table").is_set and self.bind_object._task.option("calculation") != 'none':
             value_table = self.insert_table(self.output_dir + '/' + group + '_final_value.xls', '柱形图数据表', '柱形图数据表格',
                                             group)
         else:
-            value_table = self.insert_table(self.output_dir + '/final_value.xls', '柱形图数据表', '柱形图数据表格', group)
+            value_table = self.insert_table(self.output_dir + '/final_value.xls', '柱形图数据表', '柱形图数据表格')
         return [value_table]
 
     def insert_table(self, fp, name, desc, group_name=None):
