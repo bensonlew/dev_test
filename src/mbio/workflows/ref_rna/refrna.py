@@ -1417,7 +1417,7 @@ class RefrnaWorkflow(Workflow):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 name = con_exp[0]
                 compare_name = con_exp[1]
-                self.add_express_diff_detail(express_diff_id=diff_express_id,
+                self.api_exp.add_express_diff_detail(express_diff_id=diff_express_id,
                                              name=name,
                                              compare_name=compare_name,
                                              ref_all='ref',
@@ -1490,7 +1490,7 @@ class RefrnaWorkflow(Workflow):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 name = con_exp[0]
                 compare_name = con_exp[1]
-                self.add_express_diff_detail(express_diff_id=diff_express_id,
+                self.api_exp.add_express_diff_detail(express_diff_id=diff_express_id,
                                              name=name,
                                              compare_name=compare_name,
                                              ref_all='ref',
