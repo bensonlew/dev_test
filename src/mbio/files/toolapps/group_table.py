@@ -100,6 +100,35 @@ class GroupTableFile(TableFile):
                 else:
                     pass
 
+    def get_group_detail(self):
+        """
+        根据分组文件得到具体的分组方案
+        """
+        group_samples = {}  # 分组对应中新样本对应的旧样本
+        with open(self.prop['path'], "r") as f:
+            line = f.readline().rstrip()
+            line = re.split("\t", line)
+            if line[1] == "##empty_group##":
+                is_empty = True
+            else:
+                is_empty = False
+            for i in range(1, len(line)):
+                group_samples[line[i]] = {}
+            for item in f:
+                item = item.rstrip().split("\t")
+                for i in range(1, len(line)):
+                    try:
+                        if item[i] and item[i] not in group_samples[line[i]]:
+                            group_samples[line[i]][item[i]] = []
+                            group_samples[line[i]][item[i]].append(item[0])
+                        elif item[i]:
+                            group_samples[line[i]][item[i]].append(item[0])
+                        else:
+                            print "{}样本不在分组方案{}内".format(item[0], line[i])
+                    except:
+                        print "{}样本不在分组方案{}内".format(item[0], line[i])
+        return group_samples
+
     @staticmethod
     def check_info(file_path):
         with open(file_path, 'r') as f:
@@ -137,6 +166,9 @@ class GroupTableFile(TableFile):
 
 if __name__ == '__main__':
     a = GroupTableFile()
-    a.set_path('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/group2.txt')
+    # a.set_path('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/group2.txt')
+    a.set_path('/mnt/ilustre/users/sanger-dev/sg-users/zengjing/toolapps/hc_heatmap/more_group.txt')
     a.get_info()
-    a.sub_group('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/group1.txt', ['group1'])
+    a.sub_group('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/group1.txt', ['BBB'])
+    group_detail = a.get_group_detail()
+    print group_detail
