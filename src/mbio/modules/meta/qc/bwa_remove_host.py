@@ -71,8 +71,7 @@ class BwaRemoveHostModule(Module):
             "fq_type": self.option('fq_type'),
             "sam": self.bwa.option('sam'),
         })
-        # self.extract_fastq.on('end', self.set_output, 'extract_fastq')
-        self.extract_fastq.on('end', self.set_output)  # modified by guhaidong 20170918
+        # self.extract_fastq.on('end', self.set_output, 'extract_fastq')  # modified by guhaidong 20170918
         self.extract_fastq.run()
 
     def linkdir(self, dirpath, dirname):
@@ -102,22 +101,13 @@ class BwaRemoveHostModule(Module):
                 self.linkdir(oldfiles[i], os.path.join(newdir, oldfile_basename))
 
     def set_output(self):
-        # self.option("result_fq_dir", self.extract_fastq.option("reasult_dir"))
+        self.option("result_fq_dir", self.extract_fastq.option("reasult_dir"))
         self.linkdir(self.extract_fastq.option("reasult_dir").prop['path'], self.output_dir)  #modified by guhaidong 20170918
-        self.option("result_fq_dir", self.output_dir)  # modified by guhaidong 20170918
+        # self.option("result_fq_dir", self.output_dir)  # modified by guhaidong 20170918
         self.end()
 
     def run(self):
         super(BwaRemoveHostModule, self).run()
-        self.run_bwa()
         self.on_rely([self.bwa, self.extract_fastq], self.set_output)
+        self.run_bwa()
 
-    def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "结果输出目录"],
-        ])
-        result_dir.add_regexp_rules([
-            ["", "", ""]
-        ])
-        super(BwaRemoveHostModule, self).end()
