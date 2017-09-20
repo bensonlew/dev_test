@@ -160,17 +160,13 @@ class SimplePieTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set output")
-        if self.option("group_table").is_set:
+        if self.option("group_table").is_set and self.option("calculation") != "none":
             for i in range(len(self.option("group_table").prop['group_scheme'])):
                 input_path = self.work_dir + '/' + self.option("group_table").prop['group_scheme'][i] + "/" + \
                              self.option("group_table").prop['group_scheme'][i]
                 output_path = self.output_dir + "/" + self.option("group_table").prop['group_scheme'][i]
-                if self.option("calculation") != "none":
-                    os.link(input_path + '_final_value.xls', output_path + '_final_value.xls')  # 丰度表格
-                    os.link(input_path + '_final_table.xls', output_path + '_matrix_pie.xls')  # 百分比表格
-            if self.option("calculation") == "none":
-                os.link(self.work_dir + '/final_value.xls', self.output_dir + '/final_value.xls')   # 丰度表格
-                os.link(self.work_dir + '/final_table.xls', self.output_dir + '/matrix_pie.xls')    # 百分比表格
+                os.link(input_path + '_final_value.xls', output_path + '_final_value.xls')  # 丰度表格
+                os.link(input_path + '_final_table.xls', output_path + '_matrix_pie.xls')  # 百分比表格
         else:
             os.link(self.work_dir + '/final_value.xls', self.output_dir + '/final_value.xls')  # 丰度表格
             os.link(self.work_dir + '/final_table.xls', self.output_dir + '/matrix_pie.xls')  # 百分比表格
