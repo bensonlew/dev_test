@@ -40,11 +40,11 @@ class SimplePie(Base):
         导入simple_pie图相关信息
         """
         self.bind_object.logger.info("开始饼图导表")
-        if self.bind_object._task.option("group_table").is_set:
+        if self.bind_object._task.option("group_table").is_set and self.bind_object._task.option("calculation") != 'none':
             pie = self.insert_pie(self.output_dir + '/' + group + '_matrix_pie.xls', 'pie', '一个样本多个值的饼图表格', group)
 
         else:
-            pie = self.insert_pie(self.output_dir + '/matrix_pie.xls', 'pie', '一个样本多个值的饼图表格', group)
+            pie = self.insert_pie(self.output_dir + '/matrix_pie.xls', 'pie', '一个样本多个值的饼图表格')
         return [pie]
 
     def insert_pie(self, fp, name, desc, group_name=None):
@@ -88,11 +88,11 @@ class SimplePie(Base):
         导入表格相关信息
         """
         self.bind_object.logger.info("开始表格导表")
-        if self.bind_object._task.option("group_table").is_set:
+        if self.bind_object._task.option("group_table").is_set and self.bind_object._task.option("calculation") != 'none':
             value_table = self.insert_table(self.output_dir + '/' + group + '_final_value.xls', '饼图数据表', '饼图的数据表格',
                                             group)
         else:
-            value_table = self.insert_table(self.output_dir + '/final_value.xls', '饼图数据表', '饼图的数据表格', group)
+            value_table = self.insert_table(self.output_dir + '/final_value.xls', '饼图数据表', '饼图的数据表格')
         return [value_table]
 
     def insert_table(self, fp, name, desc, group_name=None):
