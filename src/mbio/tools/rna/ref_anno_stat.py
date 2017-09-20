@@ -122,7 +122,7 @@ class RefAnnoStatAgent(Agent):
         :return:
         """
         self._cpu = 1
-        self._memory = '3G'
+        self._memory = '10G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -528,6 +528,10 @@ class RefAnnoStatTool(Tool):
             w.write('type\ttranscripts\tgenes\ttranscripts_percent\tgenes_percent\n')
             tmp = []
             tmp_gene = []
+            tmp_annot = []
+            tmp_annot_gene = []
+            tmp_class = []
+            tmp_class_gene = []
             anno_num['total']['gene'] = len(self.option('gene_file').prop['gene_list'])
             anno_num['total']['tran'] = len(self.tran_list)
             for db in self.anno_list:
@@ -536,11 +540,29 @@ class RefAnnoStatTool(Tool):
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(db, len(self.anno_list[db]), len(self.gene_anno_list[db]),  str(tran_db_percent), str(gene_db_percent)))
                 tmp += self.anno_list[db]
                 tmp_gene += self.gene_anno_list[db]
+                # 区分功能注释和功能分类总基因数量 刘彬旭
+                if db == 'nr' or db == 'pfam' or db == 'swissprot':
+                    tmp_annot += self.anno_list[db]
+                    tmp_annot_gene += self.gene_anno_list[db]
+                if db == 'go' or db == 'kegg' or db == 'cog':
+                    tmp_class += self.anno_list[db]
+                    tmp_class_gene += self.gene_anno_list[db]
+
             anno_num['total_anno']['gene'] = len(set(tmp_gene))
             anno_num['total_anno']['tran'] = len(set(tmp))
+            anno_num['total_anno_nsp']['gene'] = len(set(tmp_annot_gene))
+            anno_num['total_anno_nsp']['tran'] = len(set(tmp_annot))
+            anno_num['total_class']['gene'] = len(set(tmp_class_gene))
+            anno_num['total_class']['tran'] = len(set(tmp_class))
             tran_total_percent = '%0.4g' % (anno_num['total_anno']['tran'] / anno_num['total']['tran'])
             gene_total_percent = '%0.4g' % (anno_num['total_anno']['gene'] / anno_num['total']['gene'])
             w.write('total_anno\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno']['tran'], anno_num['total_anno']['gene'], str(tran_total_percent),  str(gene_total_percent)))
+            total_annot_nsp_tran_percent = '%0.4g' % (anno_num['total_anno_nsp']['tran'] / anno_num['total']['tran'])
+            total_annot_nsp_gene_percent = '%0.4g' % (anno_num['total_anno_nsp']['gene'] / anno_num['total']['gene'])
+            w.write('total_anno_nsp\t{}\t{}\t{}\t{}\n'.format(anno_num['total_anno_nsp']['tran'], anno_num['total_anno_nsp']['gene'], str(total_annot_nsp_tran_percent),  str(total_annot_nsp_gene_percent)))
+            total_class_tran_percent = '%0.4g' % (anno_num['total_class']['tran'] / anno_num['total']['tran'])
+            total_class_gene_percent = '%0.4g' % (anno_num['total_class']['gene'] / anno_num['total']['gene'])
+            w.write('total_class\t{}\t{}\t{}\t{}\n'.format(anno_num['total_class']['tran'], anno_num['total_class']['gene'], str(total_class_tran_percent),  str(total_class_gene_percent)))
             w.write('total\t{}\t{}\t1\t1\n'.format(anno_num['total']['tran'], anno_num['total']['gene']))
 
     def list_num(self, list_file):
