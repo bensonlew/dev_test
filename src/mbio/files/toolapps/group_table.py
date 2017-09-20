@@ -127,6 +127,8 @@ class GroupTableFile(TableFile):
                         raise FileError('行名中不能存在数字——{}'.format(content))
                     else:
                         pass
+                    if i == '' or i == ' ':
+                        raise FileError('分组中样本不能为空——{}'.format(content))
 
     def check(self):
         if super(GroupTableFile, self).check():
