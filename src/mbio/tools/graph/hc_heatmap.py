@@ -88,42 +88,13 @@ class HcHeatmapTool(Tool):
         self._version = 2.0
         self.new_table = self.option('data_table').prop['new_table']
 
-    def get_group_detail(self):
-        """
-        根据分组文件得到具体的分组方案
-        """
-        group_samples = {}  # 分组对应中新样本对应的旧样本
-        with open(self.option('group_table').prop['path'], "r") as f:
-            line = f.readline().rstrip()
-            line = re.split("\t", line)
-            if line[1] == "##empty_group##":
-                is_empty = True
-            else:
-                is_empty = False
-            for i in range(1, len(line)):
-                group_samples[line[i]] = {}
-            for item in f:
-                item = item.rstrip().split("\t")
-                for i in range(1, len(line)):
-                    try:
-                        if item[i] and item[i] not in group_samples[line[i]]:
-                            group_samples[line[i]][item[i]] = []
-                            group_samples[line[i]][item[i]].append(item[0])
-                        elif item[i]:
-                            group_samples[line[i]][item[i]].append(item[0])
-                        else:
-                            self.logger.info("{}样本不在分组方案{}内".format(item[0], line[i]))
-                    except:
-                        self.logger.info("{}样本不在分组方案{}内".format(item[0], line[i]))
-        return group_samples
-
     def get_group_data_table(self):
         """筛选出丰度为前多少的行和列的数据并根据分组方案得到合并的二维表格"""
         self.new_data = os.path.join(self.work_dir, "new_data.xls")
         self.get_new_data(old_path=self.new_table, new_path=self.new_data,
                           col_number=self.option("col_number"), row_number=self.option("row_number"), t=self.option('data_T'))
         if self.option('group_table').is_set and self.option("group_method") in ["average", "sum", "middle"]:
-            group_samples = self.get_group_detail()
+            group_samples = self.option('group_table').get_group_detail()
             self.logger.info(group_samples)
             with open(self.new_data, "r") as f:
                 lines = f.readlines()
