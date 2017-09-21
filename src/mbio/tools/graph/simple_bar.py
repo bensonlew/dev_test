@@ -82,7 +82,7 @@ class SimpleBarTool(Tool):
         cmd_list = []
         input_table = self.option("input_table").prop['new_table']
         # 有分组方案时，判断组内合并方式，建立每个分组方案的命令
-        if self.option("group_table").is_set:
+        if self.option("group_table").is_set and self.option("calculation") != "none":
             for i in range(len(self.option("group_table").prop['group_scheme'])):
                 select_group = []
                 sample_dir = self.work_dir + '/' + self.option("group_table").prop['group_scheme'][i]
@@ -90,24 +90,20 @@ class SimpleBarTool(Tool):
                 select_group.append(self.option("group_table").prop['group_scheme'][i])
                 self.option('group_table').sub_group(sample_dir + '/group_' + str(i + 1), select_group)  # 获得用于计算的一个分组方案
                 group_table = sample_dir + '/group_' + str(i + 1)
-                self.option("input_table").get_table_of_main_table(input_table, sample_dir + '/input_' + str(i + 1), group_table)
+                self.option("input_table").get_table_of_main_table(input_table, sample_dir + '/input_' + str(i + 1),
+                                                                   group_table)
                 new_input_table = sample_dir + '/input_' + str(i + 1)
-            if self.option("calculation") == "none":  # 组内合并为none
-                middle_input = self.work_dir + '/middle_input.xls'
-                final_input = self.work_dir + "/final_input.xls"  # 样本在列，方便计算
-                combined_txt = self.work_dir + "/final_table.xls"
-                value_table = self.work_dir + "/final_value.xls"
-                cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s" % (
-                    input_table, self.option('method'), middle_input, final_input, combined_txt, value_table, self.option("combined_value"))
-                cmd_list.append(cmd)
-                self.logger.info(cmd)
-            else:
-                middle_input = sample_dir + '/middle_input.xls'
-                final_input = sample_dir + "/final_input.xls"  # 样本在列，方便计算
-                combined_txt = sample_dir + "/" + self.option("group_table").prop['group_scheme'][i] + "_final_table.xls"
-                value_table = sample_dir + "/" + self.option("group_table").prop['group_scheme'][i] + "_final_value.xls"
+                middle_input = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
+                    i] + '_middle_input.xls'
+                final_input = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
+                    i] + "_final_input.xls"  # 样本在列，方便计算
+                combined_txt = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
+                    i] + "_final_table.xls"
+                value_table = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
+                    i] + "_final_value.xls"
                 cmd = self.Python_path + self.path + " -i %s -method %s -i1 %s -i2 %s -o1 %s -o2 %s -combined %s -group %s -calculation %s" % (
-                    new_input_table, self.option('method'), middle_input, final_input, combined_txt, value_table, self.option("combined_value"),
+                    new_input_table, self.option('method'), middle_input, final_input, combined_txt, value_table,
+                    self.option("combined_value"),
                     sample_dir + '/group_' + str(i + 1), self.option("calculation"))
                 self.logger.info(cmd)
                 cmd_list.append(cmd)
@@ -155,17 +151,13 @@ class SimpleBarTool(Tool):
         将结果文件链接至output
         """
         self.logger.info("set output")
-        if self.option("group_table").is_set:
+        if self.option("group_table").is_set and self.option("calculation") != "none":
             for i in range(len(self.option("group_table").prop['group_scheme'])):
                 input_path = self.work_dir + '/' + self.option("group_table").prop['group_scheme'][i] + "/" + \
                              self.option("group_table").prop['group_scheme'][i]
                 output_path = self.output_dir + "/" + self.option("group_table").prop['group_scheme'][i]
-                if self.option("calculation") != "none":
-                    os.link(input_path + '_final_value.xls', output_path + '_final_value.xls')  # 丰度表格
-                    os.link(input_path + '_final_table.xls', output_path + '_matrix_bar.xls')  # 百分比表格
-            if self.option("calculation") == "none":
-                os.link(self.work_dir + '/final_value.xls', self.output_dir + '/final_value.xls')   # 丰度表格
-                os.link(self.work_dir + '/final_table.xls', self.output_dir + '/matrix_bar.xls')    # 百分比表格
+                os.link(input_path + '_final_value.xls', output_path + '_final_value.xls')  # 丰度表格
+                os.link(input_path + '_final_table.xls', output_path + '_matrix_bar.xls')  # 百分比表格
         else:
             os.link(self.work_dir + '/final_value.xls', self.output_dir + '/final_value.xls')  # 丰度表格
             os.link(self.work_dir + '/final_table.xls', self.output_dir + '/matrix_bar.xls')  # 百分比表格

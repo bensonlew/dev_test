@@ -64,22 +64,39 @@ class BoxPlot(Base):
             self.db['box_plot_detail'].insert_many(insert_data)
         if self.bind_object._task.option("group_table").is_set:
             insert_group_data = []
-            all_group_file = os.listdir(self.output_dir)
-            for group_file in all_group_file:
-                group_dict = defaultdict(list)
-                if group_file.startswith("group"):
-                    group_file = os.path.join(self.output_dir, group_file)
-                    with open(group_file)as fr:
-                        lines = fr.readlines()
-                        group_name = lines[0].strip().split("\t")[1]
-                        box_group_name.append(group_name)
-                        for line in lines[1:]:
-                            sample = line.strip().split("\t")[0]
-                            group = line.strip().split("\t")[1]
-                            group_dict[group].append(sample)
-                            print group_dict
-                        group_data = SON(box_id=box_plot_id, group=group_name, group_data=group_dict)
-                        insert_group_data.append(group_data)
+            if self.bind_object._task.option("sed_group") == '':
+                all_group_file = os.listdir(self.output_dir)
+                for group_file in all_group_file:
+                    group_dict = defaultdict(list)
+                    if group_file.startswith("group"):
+                        group_file = os.path.join(self.output_dir, group_file)
+                        with open(group_file)as fr:
+                            lines = fr.readlines()
+                            group_name = lines[0].strip().split("\t")[1]
+                            box_group_name.append(group_name)
+                            for line in lines[1:]:
+                                sample = line.strip().split("\t")[0]
+                                group = line.strip().split("\t")[1]
+                                group_dict[group].append(sample)
+                            group_data = SON(box_id=box_plot_id, group=group_name, group_data=group_dict)
+                            insert_group_data.append(group_data)
+            else:
+                select_group_file = [self.output_dir + '/first_group.xls', self.output_dir + '/sed_group.xls']
+                for group_file in select_group_file:
+                    group_dict = defaultdict(list)
+                    if group_file.endswith("group.xls"):
+                        group_file = os.path.join(self.output_dir, group_file)
+                        with open(group_file)as fr:
+                            lines = fr.readlines()
+                            group_name = lines[0].strip().split("\t")[1]
+                            box_group_name.append(group_name)
+                            for line in lines[1:]:
+                                sample = line.strip().split("\t")[0]
+                                group = line.strip().split("\t")[1]
+                                group_dict[group].append(sample)
+                            group_data = SON(box_id=box_plot_id, group=group_name, group_data=group_dict)
+                            print group_data
+                            insert_group_data.append(group_data)
             self.db['box_group'].insert_many(insert_group_data)
         self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples, 'group_name':box_group_name}})
         return box_plot_id

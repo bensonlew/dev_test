@@ -22,8 +22,8 @@ class BoxPlotAgent(Agent):
             {"name": "input_table", "type": "infile", "format": "toolapps.table"},  # 输入的表格，矩阵
             {"name": "method", "type": "string", "default": "row"},  # 统计数据的方向，row,column
             {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # 输入的分组表格，矩阵
-            # {"name": "first_group", "type": "string", "default": ""},  # 一级分组名称
-            # {"name": "sed_group", "type": "string", "default": ""},  # 二级分组名称
+            {"name": "first_group", "type": "string", "default": ""},  # 一级分组名称
+            {"name": "sed_group", "type": "string", "default": ""},  # 二级分组名称
         ]
         self.add_option(options)
         self.step.add_steps('box_plot')
@@ -45,7 +45,15 @@ class BoxPlotAgent(Agent):
         """
         if not self.option("input_table"):
             raise OptionError("参数input_table不能为空")
-
+        if self.option('group_table').is_set and self.option("sed_group") != '':
+            if self.option("first_group") == '':
+                raise OptionError("必须填写一级分组方案名称，才能填写二级分组方案名称")
+            else:
+                pass
+            if self.option('first_group') not in self.option("group_table").prop['group_scheme']:
+                raise OptionError("填写的分组方案名称%s在分组文件中不存在，请核实！"%(self.option('first_group')))
+            if self.option('sed_group') not in self.option("group_table").prop['group_scheme']:
+                raise OptionError("填写的分组方案名称%s在分组文件中不存在，请核实！" % (self.option('sed_group')))
 
     def set_resource(self):
         """
@@ -119,11 +127,19 @@ class BoxPlotTool(Tool):
                 for i in self.option('group_table').prop['sample_name']:
                     if i not in self.option('input_table').prop['col_sample']:
                         raise Exception('分组文件中的样本{}不存在于表格第一行中，查看是否是数据取值选择错误'.format(i))
-            group_list = self.option("group_table").prop['group_scheme']
-            for i in range(len(group_list)):
-                select_list = []
-                select_list.append(group_list[i])
-                self.option('group_table').sub_group(self.output_dir + '/group_' + str(i + 1), select_list)
+            if self.option("sed_group") == '':
+                group_list = self.option("group_table").prop['group_scheme']
+                for i in range(len(group_list)):
+                    select_list = []
+                    select_list.append(group_list[i])
+                    self.option('group_table').sub_group(self.output_dir + '/group_' + str(i + 1), select_list)
+            else:
+                first_list = []
+                second_list = []
+                first_list.append(self.option("first_group"))
+                second_list.append(self.option("sed_group"))
+                self.option('group_table').sub_group(self.output_dir + '/first_group.xls', first_list)
+                self.option('group_table').sub_group(self.output_dir + '/sed_group.xls', second_list)
         self.create_common_table()
         self.box_plot_run()
         self.end()
