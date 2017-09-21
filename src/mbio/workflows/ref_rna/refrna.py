@@ -1215,7 +1215,7 @@ class RefrnaWorkflow(Workflow):
             # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
             pass
         self.api_exp = self.api.refrna_express
-        rsem_dir = self.exp.output_dir + "/rsem"
+        rsem_dir = self.exp.output_dir + "/rsem1"
         if self.option("is_duplicate"):
             group_fpkm_path = self.exp.mergersem.work_dir + "/group"
             is_duplicate = True
@@ -1242,8 +1242,8 @@ class RefrnaWorkflow(Workflow):
             value = self.group_detail[i].keys()
             params['group_detail'][key] = value
         self.logger.info(params['group_detail'])
-        distri_path = self.exp.mergersem.work_dir
-        class_code = self.exp.mergersem.work_dir + "/class_code"
+        distri_path = self.exp.mergersem1.work_dir
+        class_code = self.exp.mergersem1.work_dir + "/class_code"
         self.express_id = self.api_exp.add_express(rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
                                                    class_code=class_code, samples=samples, params=params, major=True, distri_path=distri_path)
 
