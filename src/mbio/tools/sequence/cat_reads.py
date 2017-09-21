@@ -18,7 +18,7 @@ class CatReadsAgent(Agent):
     def __init__(self, parent):
         super(CatReadsAgent, self).__init__(parent)
         options = [
-            {"name": "map_dir", "type": "infile", "format": "sequence.fastq_dir"},  #输入合并序列fq路径
+            {"name": "map_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 输入合并序列fq路径
         ]
         self.add_option(options)
         self.step.add_steps('cat_reads')
@@ -62,7 +62,7 @@ class CatReadsTool(Tool):
         合并序列
         :return:
         """
-        sample_names,file_dict = self.get_info()
+        sample_names, file_dict = self.get_info()
         have_s_fq = False
         cmd1 = self.sh_path + 'cat_seq.sh'
         cmd2 = self.sh_path + 'cat_seq.sh'

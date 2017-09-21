@@ -180,8 +180,8 @@ class MetageneTool(Tool):
         :return:
         """
         self.logger.info("设置结果目录")
-        outfasta1 = self.output_dir + '/../../Metagene/output/' + self.option('sample_name') + '.metagene.fna'
-        outfasta2 = self.output_dir + '/../../Metagene/output/' + self.option('sample_name') + '.metagene.more' + self.option('min_gene') + '.fa'
+        outfasta1 = self.output_dir + '/' + self.option('sample_name') + '.metagene.fna'
+        outfasta2 = self.output_dir + '/' + self.option('sample_name') + '.metagene.more' + self.option('min_gene') + '.fa'
         if os.path.exists(outfasta1):
             os.remove(outfasta1)
         if os.path.exists(outfasta2):

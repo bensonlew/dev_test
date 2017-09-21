@@ -15,6 +15,7 @@ class LengthDistributeAgent(Agent):
     author: 顾海东
     last_modify: 2017.09.08
     """
+
     def __init__(self, parent):
         super(LengthDistributeAgent, self).__init__(parent)
         options = [
@@ -80,10 +81,11 @@ class LengthDistributeTool(Tool):
         :return:
         """
         super(LengthDistributeTool, self).run()
-        #self.get_distribute()
+        # self.get_distribute()
         self.step_count()
         self.set_output()
         self.end()
+
     '''
     def get_distribute(self):
         """
@@ -132,4 +134,3 @@ class LengthDistributeTool(Tool):
         """
         self.logger.info("设置结果目录")
         self.logger.info("设置assemble_stat分析结果目录成功")
-

@@ -32,7 +32,7 @@ class MapGenesetModule(Module):
         self.build = self.add_tool("align.bwt_builder")
         self.unigene_profile = self.add_tool("statistical.unigene_profile")
         self.aligner = []
-        self.step.add_steps('bwt_build', 'soap_align')
+        self.step.add_steps('bwt_build')
         self.samples = {}
 
     def check_options(self):
@@ -53,10 +53,8 @@ class MapGenesetModule(Module):
             if not os.path.exists(list_path):
                 OptionError("缺少list文件")
             row_num = len(open(list_path, "r").readline().split())
-            if self.option('fq_type') == "PE" and row_num != 3:
+            if row_num != 3:
                 raise OptionError("PE序列list文件应该包括文件名、样本名和左右端说明三列")
-            elif self.option('fq_type') == "SE" and row_num != 2:
-                raise OptionError("SE序列list文件应该包括文件名、样本名两列")
         if not self.option("insertsize").is_set:
             raise OptionError("必须提供插入片段文件")
 
@@ -67,16 +65,20 @@ class MapGenesetModule(Module):
             event['data']['end'].finish()
         self.step.update()
 
+    def finish_update(self, event):
+        step = getattr(self.step, event['data'])
+        step.finish()
+        self.step.update()
+
     def build_index(self):
         self.build.set_options({"fafile": self.option("fafile")})
         self.logger.info("build index")
         self.build.on("start", self.set_step, {'start': self.step.bwt_build})
         self.build.on("end", self.set_step, {'end': self.step.bwt_build})
-        self.build.on("end", self.set_step, {'start': self.step.soap_align})
         self.build.on("end", self.soap_align)
         self.build.run()
 
-    def getcolumn(self, filename, splitregex='\t'):
+    def get_column(self, filename, splitregex='\t'):
         with open(filename, 'rt') as handle:
             for ln in handle:
                 items = re.split(splitregex, ln)
@@ -91,8 +93,10 @@ class MapGenesetModule(Module):
 
     def soap_align(self):
         self.samples = self.get_list()
-        for x, y in self.getcolumn(self.option("insertsize").prop['path']):
+        n = 1
+        for x, y in self.get_column(self.option("insertsize").prop['path']):
             align = self.add_tool("align.soap_aligner")
+            self.step.add_steps('align_{}'.format(n))
             align.set_options({
                 "sample": x,
                 "insertSize": y,
@@ -107,6 +111,10 @@ class MapGenesetModule(Module):
                 "mismatch": self.option("mismatch"),
                 "identity": self.option("identity")
             })
+            step = getattr(self.step, 'align_{}'.format(n))
+            step.start()
+            align.on("end", self.finish_update, "align_{}".format(n))
+            n += 1
             self.aligner.append(align)
             self.logger.info(x + str(y))
             self.logger.info(self.samples[x]["r"] + self.samples[x]["l"] + self.samples[x]["s"])
@@ -136,6 +144,8 @@ class MapGenesetModule(Module):
 
     def set_output(self):
         self.linkdir(self.unigene_profile.output_dir, "gene_profile")
+        self.option('reads_abundance', self.unigene_profile.option("reads_abundance"))
+        self.option('rpkm_abundance', self.unigene_profile.option("rpkm_abundance"))
         self.end()
 
     def linkdir(self, dirpath, dirname):
@@ -153,11 +163,6 @@ class MapGenesetModule(Module):
                 os.remove(newfile)
         for i in range(len(allfiles)):
             os.link(oldfiles[i], newfiles[i])
-
-    def linkfile(self, target, filename):
-        if os.path.exists(target):
-            os.remove(target)
-        os.link(filename, target)
 
     def run(self):
         super(MapGenesetModule, self).run()

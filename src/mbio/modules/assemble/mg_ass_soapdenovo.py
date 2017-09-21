@@ -13,7 +13,7 @@ class MgAssSoapdenovoModule(Module):
     """
     宏基因运用soapdenovo2组装
     author: guhaidong
-    last_modify: 2017.09.04
+    last_modify: 2017.09.15
     """
     def __init__(self, work_id):
         super(MgAssSoapdenovoModule, self).__init__(work_id)
@@ -25,13 +25,14 @@ class MgAssSoapdenovoModule(Module):
             {"name": "reverse_seq", "type": "string", "default": "0"},   # 配置文件的其他参数
             {"name": "asm_flags", "type": "string", "default": "3"},  # 配置文件的其他参数
             {"name": "rank", "type": "string", "default": "1"},  # 配置文件的其他参数
-            {"name": "min_contig", "type": "string", "default": "500"},  # 输入最短contig长度，默认500
-            {"name": "scafSeq", "type": "outfile", "format": "sequence.fasta"},  # 输出文件,sample.scafSeq
-            {"name": "scaftig", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，scaffold去掉N后的序列
-            {"name": "cut_more_scaftig", "type": "outfile", "format": "sequence.fasta"},
+            {"name": "min_contig", "type": "int", "default": 500},  # 输入最短contig长度，默认500
+            # {"name": "scafSeq", "type": "outfile", "format": "sequence.fasta"},  # 输出文件,sample.scafSeq
+            # {"name": "scaftig", "type": "outfile", "format": "sequence.fasta"},  # 输出文件，scaffold去掉N后的序列
+            {"name": "contig", "type": "outfile", "format": "sequence.fasta"},
             # 输出文件，去掉小于最短contig长度的序列
         ]
         self.add_option(options)
+        self.qc_file = {}  # 质控数据信息
         self.sum_tools = []
         self.tools = []
         self.single_module = []
@@ -67,11 +68,13 @@ class MgAssSoapdenovoModule(Module):
         :return:
         """
         n = 0
-        db = Config().mongo_client.sanger_biodb
+        #db = Config().mongo_client.sanger_biodb
+        db = Config().mongo_client.tsanger_metagenomic
         # db = Config().mongo_client[Config().MONGODB]
         collection = db['mg_data_stat']
-        #object_id = ObjectId(self.option['data_id'])
-        object_id = '111111111111111111111111'
+        object_id = ObjectId(self.option('data_id'))
+        # object_id = '111111111111111111111111'
+        self.qc_file = self.get_list()
         results = collection.find({'data_stat_id': object_id})
         if not results.count():
             raise Exception('没有找到样品集数据')
@@ -85,10 +88,11 @@ class MgAssSoapdenovoModule(Module):
             for kmer in self.kmer_list:
                 self.SOAPdenovo2 = self.add_module('assemble.single_soap_denovo')
                 self.step.add_steps('SOAPdenovo2_{}'.format(n))
-                self.SOAPdenovo2.set_options({
-                    "fastq1": self.option('QC_dir').prop['path']+'/' + key + '.sickle.l.fastq',
-                    "fastq2": self.option('QC_dir').prop['path']+'/' + key + '.sickle.r.fastq',
+                opts = ({
+                    "fastq1": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['l'],
+                    "fastq2": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['r'],
                     "fastqs": self.option('QC_dir').prop['path']+'/' + key + '.sickle.s.fastq',
+                    "sample_name": key,
                     "mem": 50, # assem_mem,
                     "max_rd_len": raw_rd_len[key],
                     "insert_size": insert_dic[key],
@@ -96,8 +100,11 @@ class MgAssSoapdenovoModule(Module):
                     "asm_flags": self.option('asm_flags'),
                     "rank": self.option('rank'),
                     "kmer": kmer,
-                    "min_contig": self.option('min_contig')
+                    "min_contig": str(self.option('min_contig'))
                 })
+                if 's' in self.qc_file[key].keys():
+                    opts['fastqs'] = self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['s']
+                self.SOAPdenovo2.set_options(opts)
                 step = getattr(self.step, 'SOAPdenovo2_{}'.format(n))
                 step.start()
                 self.SOAPdenovo2.on('end', self.finish_update, 'SOAPdenovo2_{}'.format(n))
@@ -148,6 +155,34 @@ class MgAssSoapdenovoModule(Module):
         self.len_distribute.run()
         self.step.length_distribute.finish()
         self.step.update()
+
+    def get_list(self):
+        """
+        根据QC路径下list.txt，将文件信息转换成字典
+        :return: dic:file_dic[sample_name][file_type]
+        """
+        file_dic = dict()
+        logfile = open("log.txt", "w")
+        ab_rout = self.option('QC_dir').prop['path'] + '/list.txt'
+        logfile.write(ab_rout)
+        with open(ab_rout, 'r') as list_file:
+            for line in list_file:
+                info = line.split('\t')
+                name = info[1]
+                type = info[2].split('\n')[0]
+                if type not in ['l', 's', 'r']:
+                    raise OptionError('质控样品的类型错误，必须为l/r/s之一')
+                if name in file_dic.keys():
+                    if type in file_dic[name].keys():
+                        raise OptionError('质控list表中包含重复的样品及其pse类型，请检查质控list.txt ')
+                    else:
+                        file_dic[name][type] = info[0]
+                        logfile.write(name + '\t' + type + '\n')
+                else:
+                    file_dic[name] = {type: info[0]}
+                    logfile.write(name + '\t' + type + '\n')
+        logfile.close()
+        return file_dic
 
     def get_mem(self,type,base_number):
         """
@@ -251,7 +286,9 @@ class MgAssSoapdenovoModule(Module):
             if os.path.isfile(oldfiles[i]):
                 os.link(oldfiles[i], newfiles[i])
             elif os.path.isdir(oldfiles[i]):
-                os.link(oldfiles[i], newdir)
+                # os.link(oldfiles[i], newdir)
+                oldfile_basename = os.path.basename(oldfiles[i])
+                self.linkdir(oldfiles[i], os.path.join(newdir, oldfile_basename))
 
     def set_output(self):
         """
@@ -261,6 +298,7 @@ class MgAssSoapdenovoModule(Module):
         self.linkdir(self.contig_stat.output_dir, self.output_dir)
         self.linkdir(self.len_distribute.output_dir, self.output_dir + '/len_distribute')
         self.logger.info("设置结果目录")
+        self.option('contig').set_path(self.output_dir)
         self.end()
 
     def end(self):

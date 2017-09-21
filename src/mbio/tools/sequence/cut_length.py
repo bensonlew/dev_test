@@ -12,16 +12,16 @@ class CutLengthAgent(Agent):
     cut_length:split_length.pl根据序列长度阈值对输入路径中的序列进行拆分，然后用combine_contig.pl将短序列合并为一个文件
     version 1.0
     author: guhaidong
-    last_modify: 2017.09.06
+    last_modify: 2017.09.13
     """
 
     def __init__(self, parent):
         super(CutLengthAgent, self).__init__(parent)
         options = [
-            {"name": "contig", "type": "infile", "format": "sequence.fasta_dir"},  #输入contig文件路径
+            {"name": "contig", "type": "infile", "format": "sequence.fasta_dir"},  # 输入contig文件路径
             {"name": "cut_length", "type": "float", "default": "1000"},  # 拆分序列长度标准，默认1000
             {"name": "cut_contig", "type": "outfile", "format": "sequence.fasta_dir"},  # 输出contig文件路径
-            {"name": "short_contig", "type": "outfile", "format": "sequence.fasta"},  #输出供newbler拼接使用的contig文件
+            {"name": "short_contig", "type": "outfile", "format": "sequence.fasta"},  # 输出供newbler拼接使用的contig文件
         ]
         self.add_option(options)
         self.step.add_steps('cut_length')
@@ -112,8 +112,8 @@ class CutLengthTool(Tool):
         :return:
         """
         self.logger.info("设置结果目录")
-        self.option['short_contig'] = os.path.join(self.output_dir, "newbler_input.fa")
-        self.option['cut_contig'] = self.output_dir
+        self.option('short_contig').set_path(os.path.join(self.output_dir, "newbler_input.fa"))
+        self.option('cut_contig').set_path(self.output_dir)
         self.logger.info("设置结果目录成功")
 
     def run(self):

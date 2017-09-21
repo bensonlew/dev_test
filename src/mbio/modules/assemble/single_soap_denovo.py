@@ -2,25 +2,28 @@
 # __author__ = 'wangzhaoyue'
 
 import os
-import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
+
+
 class SingleSoapDenovoModule(Module):
     """
     宏基因运用SOAPdenovo2进行单个样本单个kmer组装
     author: wangzhaoyue
     last_modify: 2017.06.05
     """
+
     def __init__(self, work_id):
         super(SingleSoapDenovoModule, self).__init__(work_id)
         options = [
             {"name": "fastq1", "type": "infile", "format": "sequence.fastq"},  # 输入文件,sample.sickle.l.fastq
             {"name": "fastq2", "type": "infile", "format": "sequence.fastq"},  # 输入文件,sample.sickle.r.fastq
             {"name": "fastqs", "type": "infile", "format": "sequence.fastq"},  # 输入文件,sample.sickle.s.fastq
-            {"name": "mem", "type": "int", "default": 100}, # 拼接内存
+            {"name": "sample_name", "type": "string"},  # 样品名称
+            {"name": "mem", "type": "int", "default": 100},  # 拼接内存
             {"name": "max_rd_len", "type": "string"},  # read最大读长
             {"name": "insert_size", "type": "string"},  # 平均插入片段长度
-            {"name": "reverse_seq", "type": "string", "default": "0"},   # 配置文件的其他参数
+            {"name": "reverse_seq", "type": "string", "default": "0"},  # 配置文件的其他参数
             {"name": "asm_flags", "type": "string", "default": "3"},  # 配置文件的其他参数
             {"name": "rank", "type": "string", "default": "1"},  # 配置文件的其他参数
             {"name": "kmer", "type": "string"},  # k_mer值，例"39"
@@ -46,8 +49,6 @@ class SingleSoapDenovoModule(Module):
             raise OptionError('必须输入*l.fastq文件')
         if not self.option('fastq2'):
             raise OptionError('必须输入*r.fastq文件')
-        if not self.option('fastqs'):
-            raise OptionError('必须输入*s.fastq文件')
         if not self.option('max_rd_len'):
             raise OptionError('必须输入read的最大长度')
         if not self.option('insert_size'):
@@ -61,10 +62,10 @@ class SingleSoapDenovoModule(Module):
 
     def SOAPdenovo2_run(self):
         self.SOAPdenovo2 = self.add_tool('assemble.soap_denovo')
-        self.SOAPdenovo2.set_options({
+        opts = ({
             "fastq1": self.option('fastq1'),
             "fastq2": self.option('fastq2'),
-            "fastqs": self.option('fastqs'),
+            "sample_name": self.option('sample_name'),
             "max_rd_len": self.option('max_rd_len'),
             "mem": self.option('mem'),
             "insert_size": self.option('insert_size'),
@@ -73,6 +74,9 @@ class SingleSoapDenovoModule(Module):
             "rank": self.option('rank'),
             "kmer": self.option('kmer'),
         })
+        if self.option('fastqs'):
+            opts['fastqs'] = self.option('fastqs')
+        self.SOAPdenovo2.set_options(opts)
         self.SOAPdenovo2.on('end', self.get_contig_run)
         self.SOAPdenovo2.run()
         self.sum_tools.append(self.SOAPdenovo2)

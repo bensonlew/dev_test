@@ -401,6 +401,7 @@ class RefAnnoStatTool(Tool):
                     nr_venn = self.option('nr_xml').prop['hit_query_list']
                     nr_gene_venn = self.option('gene_nr_table').prop['query_list']
                     self.get_venn(venn_list=nr_venn, output=self.output_dir + '/venn/nr_venn.txt')
+                    self.get_venn(venn_list=nr_venn, output=self.output_dir + '/venn/nr_venn.txt')
                     self.get_venn(venn_list=nr_gene_venn, output=self.output_dir + '/venn/gene_nr_venn.txt')
                     self.anno_list['nr'] = nr_venn
                     self.gene_anno_list['nr'] = nr_gene_venn
@@ -585,13 +586,15 @@ class RefAnnoStatTool(Tool):
                 try:
                     query_cog = item[4].split(";")
                     for q in query_cog:
-                        query_ids.append(q)
+                        if q:
+                            query_ids.append(q)
                 except:
                     pass
                 try:
                     query_nog = item[5].split(";")
                     for q in query_nog:
-                        query_ids.append(q)
+                        if q:
+                            query_ids.append(q)
                 except:
                     pass
             query_ids = list(set(query_ids))

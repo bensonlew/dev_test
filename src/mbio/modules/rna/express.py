@@ -260,7 +260,7 @@ class ExpressModule(Module):
         self.mergersem.run()
 
     def mergersem1_run(self):
-        dir_path = self.output_dir+ '/rsem'
+        dir_path = self.output_dir+ '/rsem1'
         if not os.path.exists(dir_path):
             raise Exception("{}文件不存在，请检查！".format(dir_path))
         if self.option("exp_way") == 'fpkm':

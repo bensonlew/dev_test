@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guhaidong'
 import os
-import shutil
+import re
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-import re
 
 
 class Bowtie2Agent(Agent):
@@ -13,8 +12,9 @@ class Bowtie2Agent(Agent):
     运用bowtie2将reads map至contig
     version v2.2.9
     author: guhaidong
-    last_modify: 2017.8.21
+    last_modify: 2017.9.12
     """
+
     def __init__(self, parent):
         super(Bowtie2Agent, self).__init__(parent)
         options = [
@@ -62,19 +62,19 @@ class Bowtie2Agent(Agent):
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
-        #result_dir.add_relpath_rules([
-        #    [".", "", "结果输出目录"],
-        #])
-        #result_dir.add_regexp_rules([
-        #    ["", "", ""]
-        #])
+        result_dir.add_relpath_rules([
+            [".", "", "结果输出目录"],
+        ])
+        result_dir.add_regexp_rules([
+            ["", "", ""]
+        ])
         super(Bowtie2Agent, self).end()
 
 
 class Bowtie2Tool(Tool):
     def __init__(self, config):
         super(Bowtie2Tool, self).__init__(config)
-        #self.version = "v2.2.9"
+        # self.version = "v2.2.9"
         self.bowtie2_path = '/bioinfo/align/bowtie2-2.2.9/'
         self.index_prefix = ''
         self.samp_name = os.path.basename(self.option('fastq1').path).split('.')[0]
@@ -89,19 +89,20 @@ class Bowtie2Tool(Tool):
             os.mkdir(self.output_dir)
         ref_file_name = os.path.basename(self.option('ref_fasta').path)
         self.index_prefix = ref_file_name.split('.')[0]
-        #self.logger.info("ref_file_name: " + ref_file_name)
-        if not os.path.exists(self.output_dir + "/" + self.index_prefix + ".rev.2.bt2"):
-            cmd = "{}bowtie2-build  {}  {}/{}".format(self.bowtie2_path, self.option("ref_fasta").path, self.work_dir, self.index_prefix)
+        # self.logger.info("ref_file_name: " + ref_file_name)
+        if os.path.exists(self.output_dir + "/" + self.index_prefix + ".rev.2.bt2"):
+            self.logger.info("%s已存在index，跳过bowtie2_index" % self.index_prefix)
+        else:
+            cmd = "{}bowtie2-build  {}  {}/{}".format(self.bowtie2_path, self.option("ref_fasta").path, self.work_dir,
+                                                      self.index_prefix)
             self.logger.info('运行bowtie2_index')
-            #self.logger.info('debugging information:' + cmd)
+            # self.logger.info('debugging information:' + cmd)
             command = self.add_command("bowtie2_index_cmd", cmd).run()
             self.wait(command)
             if command.return_code == 0:
                 self.logger.info("bowtie2_index运行完成")
             else:
                 self.set_error("bowtie2_index运行出错！")
-        else:
-            self.logger.info("%s已存在index，跳过bowtie2_index" % (self.index_prefix))
 
     def run_bowtie2_map(self):
         """
@@ -111,10 +112,12 @@ class Bowtie2Tool(Tool):
         """
         self.logger.info('运行bowtie2 比对 pair reads')
         list_file = open(self.output_dir + '/list.txt', 'w')
-        list_file.write("{}.pair.sam\t{}\tPE\n".format(self.samp_name, self.samp_name))
-        cmd = "{}bowtie2  -p 2 -x {}/{}  -1  {}  -2  {}  -S  {}/{}.pair.sam ".format(self.bowtie2_path, \
-                self.work_dir, self.index_prefix, self.option("fastq1").path, self.option("fastq2").path, \
-                self.output_dir, self.samp_name)
+        list_file.write("{}.pair.sam\t{}\tpe\n".format(self.samp_name, self.samp_name))
+        cmd = "{}bowtie2  -p 2 -x {}/{}  -1  {}  -2  {}  -S  {}/{}.pair.sam ".format(self.bowtie2_path,
+                                                                                     self.work_dir, self.index_prefix,
+                                                                                     self.option("fastq1").path,
+                                                                                     self.option("fastq2").path,
+                                                                                     self.output_dir, self.samp_name)
         command = self.add_command("bowtie2_map_pair", cmd).run()
         self.wait(command)
         if command.return_code == 0:
@@ -122,12 +125,14 @@ class Bowtie2Tool(Tool):
         else:
             list_file.close()
             self.set_error("bowtie2_map_pair运行出错！")
-        #self.logger.info("fastqs is : " + self.option("fastqs").path)
-        if self.option("fastqs").path != None:
+        # self.logger.info("fastqs is : " + self.option("fastqs").path)
+        if self.option("fastqs"):
             self.logger.info("运行bowtie2 比对 single reads")
-            list_file.write("{}.single.sam\t{}\tSE\n".format(self.samp_name, self.samp_name))
-            cmd = "{}bowtie2  -p  6  -x  {}/{}  -U  {}  -S  {}/{}.single.sam".format(self.bowtie2_path,\
-                    self.work_dir, self.index_prefix, self.option("fastqs").path, self.output_dir, self.samp_name)
+            list_file.write("{}.single.sam\t{}\tse\n".format(self.samp_name, self.samp_name))
+            cmd = "{}bowtie2  -p  6  -x  {}/{}  -U  {}  -S  {}/{}.single.sam".format(self.bowtie2_path,
+                                                                                     self.work_dir, self.index_prefix,
+                                                                                     self.option("fastqs").path,
+                                                                                     self.output_dir, self.samp_name)
             command = self.add_command("bowtie2_map_single", cmd).run()
             self.wait(command)
             if command.return_code == 0:
@@ -136,6 +141,7 @@ class Bowtie2Tool(Tool):
                 list_file.close()
                 self.set_error("bowtie2_map_single运行出错！")
         list_file.close()
+
     def set_output(self):
         """
         将结果文件复制到output文件夹下面
