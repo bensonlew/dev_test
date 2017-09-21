@@ -1417,11 +1417,7 @@ class RefrnaWorkflow(Workflow):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 name = con_exp[0]
                 compare_name = con_exp[1]
-<<<<<<< HEAD
-                self.api_exp.add_express_diff_detail(express_diff_id=diff_express_id,
-=======
                 self.api.refrna_express.add_express_diff_detail(express_diff_id=diff_express_id,
->>>>>>> tsg
                                              name=name,
                                              compare_name=compare_name,
                                              ref_all='ref',
@@ -1431,11 +1427,7 @@ class RefrnaWorkflow(Workflow):
                                              query_type="transcript",
                                              pvalue_padjust=params["pvalue_padjust"])
         """添加summary表"""
-<<<<<<< HEAD
-        self.api_exp.add_diff_summary_detail(diff_express_id=diff_express_id,
-=======
         self.api.refrna_express.add_diff_summary_detail(diff_express_id=diff_express_id,
->>>>>>> tsg
                                              count_path=merge_path,
                                              ref_all='ref',
                                              query_type="transcript",
@@ -1498,11 +1490,7 @@ class RefrnaWorkflow(Workflow):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 name = con_exp[0]
                 compare_name = con_exp[1]
-<<<<<<< HEAD
-                self.api_exp.add_express_diff_detail(express_diff_id=diff_express_id,
-=======
                 self.api.refrna_express.add_express_diff_detail(express_diff_id=diff_express_id,
->>>>>>> tsg
                                              name=name,
                                              compare_name=compare_name,
                                              ref_all='ref',
@@ -1512,11 +1500,7 @@ class RefrnaWorkflow(Workflow):
                                              query_type="gene",
                                              pvalue_padjust=params["pvalue_padjust"])
         """添加summary表"""
-<<<<<<< HEAD
-        self.api_exp.add_diff_summary_detail(diff_express_id=diff_express_id,
-=======
         self.api.refrna_express.add_diff_summary_detail(diff_express_id=diff_express_id,
->>>>>>> tsg
                                              count_path=merge_path,
                                              ref_all='ref',
                                              query_type="gene",
