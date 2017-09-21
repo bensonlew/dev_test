@@ -1734,7 +1734,8 @@ class RefrnaWorkflow(Workflow):
         transcript_path = self.exp.transcript_abstract.output_dir + "/exons.fa"
         class_code_info = self.exp.mergersem.work_dir + "/class_code"
         blast_xls = self.new_annotation.nr_annot.option("blast_table").prop["path"]
-        species = self.json_dict[self.option("ref_genome")]["name"]
+        # species = self.json_dict[self.option("ref_genome")]["name"]
+        species = self.json_dict[self.option("ref_genome")]["ensemble_web"]
         self.api_gene_detail.add_gene_detail_class_code_detail(class_code_info,
                                                                 assembly_method=self.option("assemble_method"),
                                                                 biomart_path=biomart_path,
