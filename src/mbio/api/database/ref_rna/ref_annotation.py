@@ -1342,7 +1342,8 @@ class RefAnnotation(Base):
                     'number_of_seqs': int(line[4]),
                     'seq_list': line[5],
                     'graph_id': pdfid,
-                    'graph_png_id': graph_png_id
+                    'graph_png_id': graph_png_id,
+                    'hyperlink': line[-1]
                 }
                 data_list.append(insert_data)
         try:
