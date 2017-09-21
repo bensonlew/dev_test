@@ -19,7 +19,7 @@ class VennTableAgent(Agent):
     def __init__(self, parent):
         super(VennTableAgent, self).__init__(parent)
         options = [
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir,denovo_rna.express.express_matrix，toolapps.table"},
+            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table,meta.otu.tax_summary_dir,denovo_rna.express.express_matrix,toolapps.table"},
             {"name": "group_table", "type": "infile", "format": " meta.otu.group_table, toolapps.group_table"},  # 输入的group表格
             # # {"name": "venn_table.xls", "type": "outfile", "format": "meta.otu.venn_table"},  # 输入的Venn表格
             {"name": "level", "type": "string", "default": "otu"}  # 物种水平
@@ -126,7 +126,7 @@ class VennTableTool(Tool):
                 os.mkdir(sample_dir)
                 select_group.append(self.option("group_table").prop['group_scheme'][i])
                 self.option('group_table').sub_group(sample_dir + '/venn_group_' + str(i+1), select_group)
-                self.option("input_table").get_table_of_main_table(otu_table, sample_dir + '/input_' + str(i + 1),
+                self.option("otu_table").get_table_of_main_table(otu_table, sample_dir + '/input_' + str(i + 1),
                                                                    group_file)
                 venn_cmd = '%spython %svenn_table.py -i %s -g %s -o %scmd_%s.r' % (self.python_path, self.venn_path, sample_dir + '/input_' + str(i + 1), sample_dir + '/venn_group_' + str(i+1), sample_dir + '/', i+1)
                 get_cmd_list.append(venn_cmd)  # 存放所有生成cmd.r的命令
@@ -196,13 +196,8 @@ class VennTableTool(Tool):
         """
         super(VennTableTool, self).run()
         if self.option("group_table").format == 'toolapps.group_table':
-            if self.option('eigenvalue') == 'row':
                 for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otutable').prop['col_sample']:
-                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
-            else:
-                for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otutable').prop['row_sample']:
+                    if i not in self.option('otu_table').prop['col_sample']:
                         raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
         self._create_venn_table()
         self.set_output()
