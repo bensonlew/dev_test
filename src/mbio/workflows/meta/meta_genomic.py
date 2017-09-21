@@ -126,6 +126,8 @@ class MetaGenomicWorkflow(Workflow):
             raise OptionError("cdhit coverage必须在0,1之间")
         if not 0 < self.option("soap_identity") < 1:
             raise OptionError("soap identity必须在0，1之间")
+        if not self.option('insertsize'):
+            raise OptionError("必须输入插入片段")
         return True
 
     def get_json(self):
@@ -168,7 +170,7 @@ class MetaGenomicWorkflow(Workflow):
             opts['QC_dir'] = self.rm_host.option('result_fq_dir')
         else:
             opts['QC_dir'] = self.qc_fastq
-        if self.option('assemble_type') == "soapdenovo":
+        if self.option('assemble_type') == 'soapdenovo':
             self.set_run(opts, self.assem_soapdenovo, 'assem', self.step.assem)
         else:
             if self.option('assemble_type') == 'idba':
@@ -185,7 +187,7 @@ class MetaGenomicWorkflow(Workflow):
         opts = {
             'min_gene': str(self.option('min_gene')),
         }
-        if self.option('assemble_type') == "soapdenovo":
+        if self.option('assemble_type') == 'soapdenovo':
             opts['input_fasta'] = self.assem_soapdenovo.option('contig')
         else:
             opts['input_fasta'] = self.assem_idba.option('contig')
@@ -202,9 +204,10 @@ class MetaGenomicWorkflow(Workflow):
         }
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
 
-    def run_nr(self, event):
+    def run_nr(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             'query_type': "prot",
             'database': 'nr',
         }
@@ -212,7 +215,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_kegg(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             'query_type': "prot",
             'database': 'kegg',
         }
@@ -220,7 +224,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_cog(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             'query_type': "prot",
             'database': 'eggnog',
         }
@@ -240,7 +245,6 @@ class MetaGenomicWorkflow(Workflow):
             opts['cog_xml_dir'] = self.cog.option('outxml')
             self.anno_tool.append(self.cog)
         self.set_run(opts, self.anno, 'anno', self.step.anno)
-        pass
 
     def run_cazy(self):
         opts = {
@@ -283,6 +287,8 @@ class MetaGenomicWorkflow(Workflow):
             self.move_dir(obj.output_dir, 'assemble')
         if event['data'] == 'gene_predict':
             self.move_dir(obj.output_dir, 'predict')
+        if event['data'] == 'gene_set':
+            self.move_dir(obj.output_dir, 'geneset')
         if event['data'] == 'anno':
             self.move_dir(obj.output_dir, 'anno')  # 怎样将nr、cog、kegg拆开
         if event['data'] == 'cazy':
@@ -367,6 +373,55 @@ class MetaGenomicWorkflow(Workflow):
     def export_XXX(self):
         pass
 
+    def test_run(self):
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_DATA_AFTER_END = False
+        task_info = self.api.api('task_info.ref')
+        task_info.add_task_info()
+        self.rm_host.on('end', self.run_assem)
+        self.assem_soapdenovo.on('end', self.run_gene_predict)
+        self.assem_idba.on('end', self.run_gene_predict)
+        self.gene_predict.on('end', self.run_gene_set)
+        if self.option('nr'):
+            self.gene_set.on('end', self.run_nr)
+        if self.option('kegg'):
+            self.gene_set.on('end', self.run_kegg)
+        if self.option('cog'):
+            self.gene_set.on('end', self.run_cog)
+        if self.option('cazy'):
+            self.gene_set.on('end', self.run_cazy)
+            self.all_anno.append(self.cazy)
+        if self.option('ardb'):
+            self.gene_set.on('end', self.run_ardb)
+            self.all_anno.append(self.ardb)
+        if self.option('card'):
+            self.gene_set.on('end', self.run_card)
+            self.all_anno.append(self.card)
+        if self.option('vfdb'):
+            self.gene_set.on('end', self.run_vfdb)
+            self.all_anno.append(self.vfdb)
+        if len(self.anno_tool) != 0:
+            self.on_rely(self.anno_tool, self.run_anno)
+            self.all_anno.append(self.anno)
+        if len(self.all_anno) == 0:
+            self.gene_set.on('end', self.end)
+        else:
+            self.on_rely(self.all_anno, self.end)
+        self.anno.option('reads_profile_table', '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls')
+        self.anno.option('nr_xml_dir', '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/MetaDiamond/output/blast.xml')
+        self.anno.option('kegg_xml_dir', '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/MetaDiamond2/outputblast.xml')
+        self.anno.option('cog_xml_dir', '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/MetaDiamond1/output/blast.xml')
+        '''
+        self.anno.set_options({
+            'reads_profile_table':'/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls',
+            'nr_xml_dir': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/MetaDiamond/output/blast.xml',
+            'kegg_xml_dir': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/MetaDiamond2/outputblast.xml',
+            'cog_xml_dir': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/MetaDiamond1/output/blast.xml',
+        })
+        '''
+        self.run_anno()
+        super(MetaGenomicWorkflow, self).run()
+
     def run(self):
         """
         运行 meta_genomic workflow
@@ -379,35 +434,39 @@ class MetaGenomicWorkflow(Workflow):
         self.rm_host.on('end', self.run_assem)
         self.assem_soapdenovo.on('end', self.run_gene_predict)
         self.assem_idba.on('end', self.run_gene_predict)
+        self.gene_predict.on('end', self.run_gene_set)
         if self.option('nr'):
-            self.gene_predict.on('end', self.run_nr)
+            self.gene_set.on('end', self.run_nr)
         if self.option('kegg'):
-            self.gene_predict.on('end', self.run_kegg)
+            self.gene_set.on('end', self.run_kegg)
         if self.option('cog'):
-            self.gene_predict.on('end', self.run_cog)
+            self.gene_set.on('end', self.run_cog)
         if self.option('cazy'):
-            self.gene_predict.on('end', self.run_cazy)
+            self.gene_set.on('end', self.run_cazy)
             self.all_anno.append(self.cazy)
         if self.option('ardb'):
-            self.gene_predict.on('end', self.run_ardb)
+            self.gene_set.on('end', self.run_ardb)
             self.all_anno.append(self.ardb)
         if self.option('card'):
-            self.gene_predict.on('end', self.run_card)
+            self.gene_set.on('end', self.run_card)
             self.all_anno.append(self.card)
         if self.option('vfdb'):
-            self.gene_predict.on('end', self.run_vfdb)
+            self.gene_set.on('end', self.run_vfdb)
             self.all_anno.append(self.vfdb)
         if len(self.anno_tool) != 0:
             self.on_rely(self.anno_tool, self.run_anno)
             self.all_anno.append(self.anno)
         if len(self.all_anno) == 0:
-            self.gene_predict.on('end', self.set_output)
+            self.gene_set.on('end', self.end)
         else:
-            self.on_rely(self.all_anno, self.set_output)
+            self.on_rely(self.all_anno, self.end)
         # '''
         if self.option('rm_host'):
             self.run_rm_host()
         else:
-            self.run_assem()
+            # self.run_assem()
+            self.run_nr()
+            self.run_kegg()
+            self.run_cog()
         # '''
         super(MetaGenomicWorkflow, self).run()
