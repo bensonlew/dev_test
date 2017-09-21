@@ -31,7 +31,7 @@ class Nmds(Base):
             for group in self.group_detail:
                 specimen_ids_dict = self.table_in(group)
                 self.insert_group(group, specimen_ids_dict)
-                self.main_id = self.nmds_in(group, specimen_ids_dict)
+                self.main_id = self.nmds_in(specimen_ids_dict, group)
         else:
             specimen_ids_dict = self.table_in()
             self.main_id = self.nmds_in(specimen_ids_dict)
@@ -72,7 +72,7 @@ class Nmds(Base):
             specimen_ids_dict = self.insert_specimens(sample_list)
         return specimen_ids_dict
 
-    def nmds_in(self, group=None, specimen_ids_dict=None):
+    def nmds_in(self, specimen_ids_dict, group=None):
         """
         导入nmds相关信息
         """
