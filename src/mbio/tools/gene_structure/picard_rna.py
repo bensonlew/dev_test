@@ -78,7 +78,19 @@ class PicardRnaTool(Tool):
         """
        
         """
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar MarkDuplicates I={} O={} CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT M=dedup_add_sorted.metrics".format(self.picard_path, add_sorted_bam, \
+        # 增加MAX_FILE_HANDLES_FOR_READ_ENDS_MAP参数， 原因是投递节点打开文件数目限制
+
+        os.system("ulimit -n 65536")
+        self.logger.info("提高临时文件数量限制")
+        #command = self.add_command("ulimit_num", cmd)
+        #command.run()
+        #self.wait()
+        #if command.return_code == 0:
+        #    self.logger.info("完成提高文件数量!")
+        #else:
+        #    self.set_error("提高文件数量 ulimit -n 65536出错！")
+
+        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar MarkDuplicates I={} O={} CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=5000 M=dedup_add_sorted.metrics".format(self.picard_path, add_sorted_bam, \
         "dedup_add_sorted.bam")
         self.logger.info("使用picard对bam文件进行重复标记")
         command = self.add_command("markduplicates", cmd)
