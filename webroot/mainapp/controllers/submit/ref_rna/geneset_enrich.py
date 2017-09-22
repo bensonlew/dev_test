@@ -41,15 +41,12 @@ class GenesetEnrichAction(RefRnaController):
         if data.anno_type == "go":
             table_name = "Go"
             collection_name = "sg_geneset_go_enrich"
-            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)',
-                       'ref_rna.export_go_list(go_list)', 'ref_rna.export_class_code_for_enrich(class_code)']
+            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)', 'ref_rna.export_go_list(go_list)']
             infile = {"go_list": data.geneset_id}
         elif data.anno_type == "kegg":
             table_name = "Kegg"
             collection_name = "sg_geneset_kegg_enrich"
-            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)',
-                       'ref_rna.export_kegg_table(kegg_table)', "ref_rna.export_add_info(add_info)",
-                       'ref_rna.export_class_code_for_enrich(class_code)']
+            to_file = ['ref_rna.export_gene_list(genset_list)', 'ref_rna.export_all_list(all_list)', 'ref_rna.export_kegg_table(kegg_table)', "ref_rna.export_add_info(add_info)"]
             infile = {"kegg_table": data.geneset_id, "add_info": geneset_info['task_id'] + "\t" + data.geneset_type}
         else:
             info = {'success': False, 'info': '不支持该富集分子!'}
@@ -79,8 +76,7 @@ class GenesetEnrichAction(RefRnaController):
             "method": data.method,
             # "annotation_id": data.annotation_id,
             "genset_list": data.geneset_id,
-            "all_list": data.geneset_id,
-            "class_code": task_info['task_id'] + "\t" + data.geneset_type
+            "all_list": data.geneset_id
             }
         options.update(infile)
         print("lllllllll")
