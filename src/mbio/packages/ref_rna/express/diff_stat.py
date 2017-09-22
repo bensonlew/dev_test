@@ -146,7 +146,11 @@ class DiffStat(object):
                     other_count_log2 = log(other_count+0.1)/float(log(2))
 
                 ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
-                logfc = float(line[-4])
+                tmp_ = '.' + control + '_vs'
+                if tmp_ in edgr_result:
+                    logfc = float(line[-4])
+                else:
+                    logfc = -float(line[-4])
                 if logfc > 0:
                     reg = 'up'
                 elif logfc < 0:
