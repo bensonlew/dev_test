@@ -77,7 +77,7 @@ class DiffStat(object):
         return round(mean_count, 3), round(mean_fpkm, 3)
 
     def diff_stat(self, express_info, edgr_result, control, other, output, group_info=None,
-                  diff_ci=0.05, fc=2, diff_fdr_ci=0.05, pvalue_padjust="padjust"):
+                  diff_ci=0.05, fc=2, diff_fdr_ci=0.05, pvalue_padjust="padjust", regulate=True):
         """
         :param express_info: 字典，键为基因名，值为Express对象
         :param edgr_result: 分析得到的结果文件
