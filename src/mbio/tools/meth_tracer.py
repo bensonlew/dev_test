@@ -76,7 +76,7 @@ class MethTracerTool(Tool):
 		
 		#log_file = self.work_dir + '/cmd.log'
 		#_cmd = self.Python_path + self.cmd_path + ' -jobID %s -log %s' % (self.option('jobID'), log_file)
-		_cmd = self.Python_path + self.cmd_path + ' -jobID %s ' % self.option('jobID')
+		_cmd = self.Python_path + self.cmd_path + ' -jobID %s ' % self.option('jobID') + ' -log {} '.format("cmd1.log") # modify by hongdongxuan 20170922
 		self.logger.info("run ctMethTracer.py")
 
 		_cmd1 = self.add_command("meth_tracer.sh", _cmd).run()
