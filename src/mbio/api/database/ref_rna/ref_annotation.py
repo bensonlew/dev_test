@@ -291,7 +291,8 @@ class RefAnnotation(Base):
             if db == "total":
                 total_tran = result["transcript"]
                 total_gene = result["gene"]
-            if db in ["pfam", "total_anno", "total"]:
+            #增加数据库类型，区分有注释的基因和有分类的基因
+            if db in ["pfam", "total_anno", "total_anno_nsp","total_class", "total"]:
                 data = [
                     ('stat_id', stat_id),
                     ('type', result["type"]),
@@ -387,44 +388,15 @@ class RefAnnotation(Base):
         data_list = []
         with open(blast_path, 'r') as f:
             lines = f.readlines()
-            flag, hit = None, None
+            flag = None
             for line in lines[1:]:
                 line = line.strip().split('\t')
                 query_name = line[5]
                 hit_name = line[10]
                 if flag == query_name:
-                    if hit == hit_name:
-                        pass
-                    else:
-                        flag = query_name
-                        hit = hit_name
-                        data = {
-                            'blast_id': blast_id,
-                            'seq_type': seq_type,
-                            'anno_type': anno_type,
-                            'database': database,
-                            'score': float(line[0]),
-                            'e_value': float(line[1]),
-                            'hsp_len': int(line[2]),
-                            'identity_rate': round(float(line[3]), 4),
-                            'similarity_rate': round(float(line[4]), 4),
-                            'query_id': line[5],
-                            'q_len': int(line[6]),
-                            'q_begin': line[7],
-                            'q_end': line[8],
-                            'q_frame': line[9],
-                            'hit_name': line[10],
-                            'hit_len': int(line[11]),
-                            'hsp_begin': line[12],
-                            'hsp_end': line[13],
-                            'hsp_frame': line[14],
-                            'description': line[15]
-                        }
-                        collection = self.db['sg_annotation_blast_detail']
-                        collection.insert_one(data).inserted_id
+                    pass
                 else:
                     flag = query_name
-                    hit = hit_name
                     data = {
                         'blast_id': blast_id,
                         'seq_type': seq_type,
@@ -450,13 +422,6 @@ class RefAnnotation(Base):
                     collection = self.db['sg_annotation_blast_detail']
                     collection.insert_one(data).inserted_id
         self.bind_object.logger.info("导入blast信息：%s成功!" % (blast_path))
-        # try:
-        #     collection = self.db['sg_annotation_blast_detail']
-        #     collection.insert_many(data_list)
-        # except Exception, e:
-        #     raise Exception("导入blast信息：%s出错!" % (blast_path))
-        # else:
-        #     self.bind_object.logger.info("导入blast信息：%s成功!" % (blast_path))
 
     @report_check
     def add_annotation_nr(self, name=None, params=None, stat_id=None):
@@ -871,8 +836,14 @@ class RefAnnotation(Base):
             for g in func_type[thekey]:
                 detail = func_decs[g]
                 category = '[' + g + ']' + ' ' + detail
-                cog_list = list(set(funlist['COG'][g]))
-                nog_list = list(set(funlist['NOG'][g]))
+                try:
+                    cog_list = list(set(funlist['COG'][g]))
+                except:
+                    cog_list = []
+                try:
+                    nog_list = list(set(funlist['NOG'][g]))
+                except:
+                    nog_list = []
                 data = [
                     ('cog_id', cog_id),
                     ('seq_type', seq_type),
@@ -1070,7 +1041,7 @@ class RefAnnotation(Base):
                     ('term_type', term_type),
                     ('go_term', item),
                     ('seq_number', len(seq_list)),
-                    ('seq_list', seq_list)
+                    # ('seq_list', seq_list)
                 ]
                 data = SON(data)
                 data_list.append(data)
@@ -1772,49 +1743,45 @@ class RefAnnotation(Base):
                     ('anno_type', anno_type),
                 ]
                 try:
-                    data.append(('transcript_id', line[1]))
-                except:
-                    data.append(('transcript_id', None))
-                try:
-                    data.append(('gene_name', line[2]))
+                    data.append(('gene_name', line[1]))
                 except:
                     data.append(('gene_name', None))
                 try:
-                    data.append(('cog', line[3]))
-                    data.append(('cog_description', line[5]))
+                    data.append(('cog', line[2]))
+                    data.append(('cog_description', line[4]))
                 except:
                     data.append(('cog', None))
                     data.append(('cog_description', None))
                 try:
-                    data.append(('nog', line[4]))
-                    data.append(('nog_description', line[6]))
+                    data.append(('nog', line[3]))
+                    data.append(('nog_description', line[5]))
                 except:
                     data.append(('nog', None))
                     data.append(('nog_description', None))
                 try:
-                    data.append(('ko_id', line[7]))
-                    data.append(('ko_name', line[8]))
+                    data.append(('ko_id', line[6]))
+                    data.append(('ko_name', line[7]))
                 except:
                     data.append(('ko_id', None))
                     data.append(('ko_name', None))
                 try:
-                    data.append(('pathways', line[9]))
+                    data.append(('pathways', line[8]))
                 except:
                     data.append(('pathways', None))
                 try:
-                    data.append(('pfam', line[10]))
+                    data.append(('pfam', line[9]))
                 except:
                     data.append(('pfam', None))
                 try:
-                    data.append(('go', line[11]))
+                    data.append(('go', line[10]))
                 except:
                     data.append(('go', None))
                 try:
-                    data.append(('nr', line[12]))
+                    data.append(('nr', line[11]))
                 except:
                     data.append(('nr', None))
                 try:
-                    data.append(('swissprot', line[13]))
+                    data.append(('swissprot', line[12]))
                 except:
                     data.append(('swissprot', None))
                 data = SON(data)

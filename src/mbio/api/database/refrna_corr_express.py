@@ -24,7 +24,7 @@ class RefrnaCorrExpress(Base):
     def add_pca_table(self, pca_path, express_level = None,group_id=None,group_detail=None,name=None, params=None, express_id=None, detail=True, seq_type=None):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         params = {}
-        # params ['group_id'] = "58f01bbca4e1af488e52de3d"
+        params['express_id'] = str(express_id)
         # group_detail = {"A":["58d8a96e719ad0adae70fa14","58d8a96e719ad0adae70fa12"], "B":["58d8a96e719ad0adae70fa11","58d8a96e719ad0adae70fa13"]}
         # params["group_detail"] = group_detail
         if group_id and group_detail:
@@ -139,10 +139,10 @@ class RefrnaCorrExpress(Base):
             correlation_tree = t.readline().strip()
             raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', correlation_tree)
             tree_list = [i[1] for i in raw_samp]
-        # if not params:
-        #     params = dict()
-        #     params['express_id'] = express_id
-        params = {}
+        if not params:
+             params = dict()
+             params['express_id'] = str(express_id)
+        #params = {}
         # params ['group_id'] = "589c22a27e9e39880600002a"
         # group_detail = {"a1":["589c113da4e1af32c1c0929c","589c113da4e1af32c1c0929d"], "a2":["589c113da4e1af32c1c0929e","589c113da4e1af32c1c0929f"]}
         # params["group_detail"] = group_detail

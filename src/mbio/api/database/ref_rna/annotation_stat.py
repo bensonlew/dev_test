@@ -110,6 +110,7 @@ class AnnotationStat(Base):
         collection = self.db["sg_annotation_stat_detail"]
         results = collection.find({"stat_id": old_stat_id})
         data_list, data = [], []
+        total_anno_tran, total_anno_gene = [], []
         for result in results:
             db = result["type"]
             if db == "total":
@@ -123,16 +124,24 @@ class AnnotationStat(Base):
                 ('transcript_percent', result["transcript_percent"]),
                 ('gene_percent', result["gene_percent"])
             ]
-            if db in ["total_anno", "total"]:
+            if db == "total":
                 data = SON(data)
                 data_list.append(data)
             if db == "pfam":
                 data.append(('gene_list', result["gene_list"]))
                 data.append(('transcript_list', result["transcript_list"]))
+                for g in result["gene_list"].split(","):
+                    total_anno_gene.append(g)
+                for t in result["transcript_list"].split(","):
+                    total_anno_tran.append(t)
                 data = SON(data)
                 data_list.append(data)
         nr_ids = self.stat(stat_path=nr_blast)
         gene_nr_ids = self.stat(stat_path=gene_nr_blast)
+        for t in nr_ids:
+            total_anno_tran.append(t)
+        for g in gene_nr_ids:
+            total_anno_gene.append(g)
         data = [
             ('stat_id', stat_id),
             ('type', "nr"),
@@ -147,6 +156,10 @@ class AnnotationStat(Base):
         data_list.append(data)
         sw_ids = self.stat(stat_path=sw_blast)
         gene_sw_ids = self.stat(stat_path=gene_sw_blast)
+        for t in sw_ids:
+            total_anno_tran.append(t)
+        for g in gene_sw_ids:
+            total_anno_gene.append(g)
         data = [
             ('stat_id', stat_id),
             ('type', "swissprot"),
@@ -159,6 +172,34 @@ class AnnotationStat(Base):
         ]
         data = SON(data)
         data_list.append(data)
+        total_anno_tran = list(set(total_anno_tran))
+        total_anno_gene = list(set(total_anno_gene))
+        data = [
+            ('stat_id', stat_id),
+            ('type', "total_anno"),
+            ('transcript', len(total_anno_tran)),
+            ('gene', len(total_anno_gene)),
+            ('transcript_percent', round(float(len(total_anno_tran))/total_tran, 4)),
+            ('gene_percent', round(float(len(total_anno_gene))/total_gene, 4)),
+            ('gene_list', ",".join(total_anno_gene)),
+            ('transcript_list', ",".join(total_anno_tran))
+        ]
+        data = SON(data)
+        data_list.append(data)
+        # 细节表里添加一条记录，与流程保持一致,表示NR SWISSPROT PFAM三个库注释的并集 刘彬旭
+        data = [
+            ('stat_id', stat_id),
+            ('type', "total_anno_nsp"),
+            ('transcript', len(total_anno_tran)),
+            ('gene', len(total_anno_gene)),
+            ('transcript_percent', round(float(len(total_anno_tran))/total_tran, 4)),
+            ('gene_percent', round(float(len(total_anno_gene))/total_gene, 4)),
+            ('gene_list', ",".join(total_anno_gene)),
+            ('transcript_list', ",".join(total_anno_tran))
+        ]
+        data = SON(data)
+        data_list.append(data)
+
         try:
             collection = self.db['sg_annotation_stat_detail']
             collection.insert_many(data_list)
