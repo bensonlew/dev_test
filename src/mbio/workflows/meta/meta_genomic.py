@@ -233,7 +233,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_anno(self):
         opts = {
-            'reads_profile_table': self.gene_set.option('rpkm_abundance'),
+            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls'
+                # self.gene_set.option('rpkm_abundance'),
         }
         if self.option('nr'):
             opts['nr_xml_dir'] = self.nr.option('outxml')
