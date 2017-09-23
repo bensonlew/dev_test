@@ -48,6 +48,8 @@ class UpdateStatus(Log):
         if 'base_path' in self.data['sync_task_log'].keys():
             content['base_path'] = self.data['sync_task_log']['base_path']
         data['sync_task_log'] = json.dumps(content, cls=CJsonEncoder)
+        self.logger.info('提交到前端content：{}'.format(content))
+        self.logger.info('提交到前端data：{}'.format(data))
         return urllib.urlencode(data)
 
     def update(self):
