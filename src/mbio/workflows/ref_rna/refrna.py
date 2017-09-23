@@ -1215,7 +1215,7 @@ class RefrnaWorkflow(Workflow):
             # self.exp.mergersem = self.exp.add_tool("rna.merge_rsem")
             pass
         self.api_exp = self.api.refrna_express
-        rsem_dir = self.exp.output_dir + "/rsem"
+        rsem_dir = self.exp.output_dir + "/rsem1"
         if self.option("is_duplicate"):
             group_fpkm_path = self.exp.mergersem.work_dir + "/group"
             is_duplicate = True
@@ -1242,8 +1242,8 @@ class RefrnaWorkflow(Workflow):
             value = self.group_detail[i].keys()
             params['group_detail'][key] = value
         self.logger.info(params['group_detail'])
-        distri_path = self.exp.mergersem.work_dir
-        class_code = self.exp.mergersem.work_dir + "/class_code"
+        distri_path = self.exp.mergersem1.work_dir
+        class_code = self.exp.mergersem1.work_dir + "/class_code"
         self.express_id = self.api_exp.add_express(rsem_dir=rsem_dir, group_fpkm_path=group_fpkm_path, is_duplicate=is_duplicate,
                                                    class_code=class_code, samples=samples, params=params, major=True, distri_path=distri_path)
 
@@ -1417,7 +1417,7 @@ class RefrnaWorkflow(Workflow):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 name = con_exp[0]
                 compare_name = con_exp[1]
-                self.api_exp.add_express_diff_detail(express_diff_id=diff_express_id,
+                self.api.refrna_express.add_express_diff_detail(express_diff_id=diff_express_id,
                                              name=name,
                                              compare_name=compare_name,
                                              ref_all='ref',
@@ -1427,7 +1427,7 @@ class RefrnaWorkflow(Workflow):
                                              query_type="transcript",
                                              pvalue_padjust=params["pvalue_padjust"])
         """添加summary表"""
-        self.api_exp.add_diff_summary_detail(diff_express_id=diff_express_id,
+        self.api.refrna_express.add_diff_summary_detail(diff_express_id=diff_express_id,
                                              count_path=merge_path,
                                              ref_all='ref',
                                              query_type="transcript",
@@ -1490,7 +1490,7 @@ class RefrnaWorkflow(Workflow):
                 con_exp = f.split('_edgr_stat.xls')[0].split('_vs_')
                 name = con_exp[0]
                 compare_name = con_exp[1]
-                self.api_exp.add_express_diff_detail(express_diff_id=diff_express_id,
+                self.api.refrna_express.add_express_diff_detail(express_diff_id=diff_express_id,
                                              name=name,
                                              compare_name=compare_name,
                                              ref_all='ref',
@@ -1500,7 +1500,7 @@ class RefrnaWorkflow(Workflow):
                                              query_type="gene",
                                              pvalue_padjust=params["pvalue_padjust"])
         """添加summary表"""
-        self.api_exp.add_diff_summary_detail(diff_express_id=diff_express_id,
+        self.api.refrna_express.add_diff_summary_detail(diff_express_id=diff_express_id,
                                              count_path=merge_path,
                                              ref_all='ref',
                                              query_type="gene",
@@ -1734,7 +1734,8 @@ class RefrnaWorkflow(Workflow):
         transcript_path = self.exp.transcript_abstract.output_dir + "/exons.fa"
         class_code_info = self.exp.mergersem.work_dir + "/class_code"
         blast_xls = self.new_annotation.nr_annot.option("blast_table").prop["path"]
-        species = self.json_dict[self.option("ref_genome")]["name"]
+        # species = self.json_dict[self.option("ref_genome")]["name"]
+        species = self.json_dict[self.option("ref_genome")]["ensemble_web"]
         self.api_gene_detail.add_gene_detail_class_code_detail(class_code_info,
                                                                 assembly_method=self.option("assemble_method"),
                                                                 biomart_path=biomart_path,

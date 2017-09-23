@@ -77,8 +77,8 @@ class RefRnaQc(Base):
                         "g_rate": float(line[8]),
                         "n_rate": float(line[9]),
                         "error_rate": float(line[10]),
-                        "q30_rate": float(line[11]),
-                        "q20_rate": float(line[12]),
+                        "q20_rate": float(line[11]),
+                        "q30_rate": float(line[12]),
                         "gc_rate": float(line[13]),
                         "about_qc": about_qc,
                         "type": fq_type   # 怎么得知待定

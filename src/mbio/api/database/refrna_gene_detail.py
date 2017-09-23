@@ -437,7 +437,7 @@ class RefrnaGeneDetail(Base):
         :param pep_path: pep文件路径， from biomart
         :param transcript_path: 转录本的fa文件, 计算产生的文件
         :param gene_path: 基因的fa文件， 计算产生的文件
-        :param species: 物种名称(拉丁文)
+        :param species: ensembl的物种主页，其包含物种名称(拉丁文)
         :param assembly_method: assemble method, StringTie or Cufflink
         :param test_this: used for test purpose， and task_id will be "demo_test"
         **: liubinxu provide files: biomart_path, biomart_entrez_path, gene2ensembl_path,
@@ -575,22 +575,22 @@ class RefrnaGeneDetail(Base):
                 if ('MSTRG' not in trans_ll) and ('TCONS' not in trans_ll):
                     transcript_info[new_ind] = dict()
                     # 已知转录本输入的是cds和pep信息, 其键值索引是转录本的ensembl编号.
-                    # if trans_ll in trans_cds_info.keys():
-                    #     transcript_info[new_ind]["cds"] = trans_cds_info[trans_ll]
-                    # else:
-                    #     transcript_info[new_ind]["cds"] = '-'
-                    #
-                    # if trans_ll in trans_pep_info.keys():
-                    #     transcript_info[new_ind]["pep"] = trans_pep_info[trans_ll]
-                    # else:
-                    #     transcript_info[new_ind]["pep"] = '-'
+                    if trans_ll in trans_cds_info.keys():
+                        transcript_info[new_ind]["cds"] = trans_cds_info[trans_ll]
+                    else:
+                        transcript_info[new_ind]["cds"] = '-'
+
+                    if trans_ll in trans_pep_info.keys():
+                        transcript_info[new_ind]["pep"] = trans_pep_info[trans_ll]
+                    else:
+                        transcript_info[new_ind]["pep"] = '-'
 
                     if trans_ll in trans_sequence.keys():
-                        # transcript_info[new_ind]["sequence"] = trans_sequence[trans_ll]
+                        transcript_info[new_ind]["sequence"] = trans_sequence[trans_ll]
                         transcript_info[new_ind]["length"] = len(trans_sequence[trans_ll])
                     else:
                         transcript_info[new_ind]["length"] = '-'
-                        # transcript_info[new_ind]["sequence"] = '-'
+                        transcript_info[new_ind]["sequence"] = '-'
                 else:
                     if trans_ll in trans_location_info.keys():
                         tmp_value = trans_location_info[trans_ll]
@@ -601,11 +601,11 @@ class RefrnaGeneDetail(Base):
                         new_transcript_info[new_ind] = dict(start='-', end='-')
 
                     if trans_ll in trans_sequence.keys():
-                        # new_transcript_info[new_ind]['sequence'] = trans_sequence[trans_ll]
+                        new_transcript_info[new_ind]['sequence'] = trans_sequence[trans_ll]
                         new_transcript_info[new_ind]['length'] = len(trans_sequence[trans_ll])
                     else:
                         print('{} was not found in {}'.format(trans_ll, transcript_path))
-                        # new_transcript_info[new_ind]['sequence'] = '-'
+                        new_transcript_info[new_ind]['sequence'] = '-'
                         new_transcript_info[new_ind]['length'] = '-'
 
             # get known gene description and gene name
@@ -645,7 +645,7 @@ class RefrnaGeneDetail(Base):
             else:
                 ncbi = None
             if not is_new:
-                ensembl = "http://www.ensembl.org/{}/Gene/Summary?g={}".format(species, gene_id)
+                ensembl = "{}/Gene/Summary?g={}".format(species.rstrip('/Info/Index'), gene_id)
             else:
                 ensembl = None
             data = [
@@ -664,7 +664,7 @@ class RefrnaGeneDetail(Base):
                     ("transcript", transcripts),
                     ("transcript_number", transcript_num),
                     ("gene_type", gene_type),
-                    # ("gene_sequence", gene_sequence),
+                    ("gene_sequence", gene_sequence),
                     ("gene_length", gene_length),
                     ("gene_ncbi", ncbi),  # only display one site
                     ("gene_ensembl", ensembl),
@@ -726,7 +726,7 @@ class TestFunction(unittest.TestCase):
                                             trans_location_path=trans_bed,
                                             cds_path=cds_path,
                                             pep_path=pep_path,
-                                            species='Mus_musculus',
+                                            species='http://www.ensembl.org/Mus_musculus/Info/Index',
                                             transcript_path=transcript_path,
                                             gene_path=gene_path,
                                             # blast_id=blast_id,

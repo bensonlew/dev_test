@@ -57,7 +57,7 @@ class RefrnaExpress(Base):
                             line[3] = '-'
                         if not line[1]:
                             raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
-                        t_id, gene_id, class_code_type, gene_name = line
+                        t_id, gene_name, class_code_type, gene_id = line
                         data[t_id] = dict(gene_name=gene_name, gene_id=gene_id)
                     else:
                         if not line[1]:

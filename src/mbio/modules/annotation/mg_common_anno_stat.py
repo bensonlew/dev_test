@@ -9,13 +9,13 @@ import shutil
 from biocluster.core.exceptions import OptionError
 
 
-class CommonAnnoStatModule(Module):
+class MgCommonAnnoStatModule(Module):
     """
     宏基因组流程必做注释nr\kegg\cog注释的结果统计模块
     """
 
     def __init__(self, work_id):
-        super(CommonAnnoStatModule, self).__init__(work_id)
+        super(MgCommonAnnoStatModule, self).__init__(work_id)
         options = [
             {"name": "nr_xml_dir", "type": "infile", "format": "align.blast.blast_xml_dir"},  # nr比对结果文件夹
             {"name": "reads_profile_table", "type": "infile", "format": "sequence.profile_table"},  # 样本序列丰度表
@@ -57,7 +57,7 @@ class CommonAnnoStatModule(Module):
         return True
 
     def run(self):
-        super(CommonAnnoStatModule, self).run()
+        super(MgCommonAnnoStatModule, self).run()
         if self.option("nr_xml_dir").is_set:
             self.run_nr_ncbi()
             self.sum_tool.append(self.nr_level)
@@ -268,7 +268,7 @@ class CommonAnnoStatModule(Module):
             self.option('cog_result_dir', self.output_dir + '/cog_result_dir')
         if self.option('kegg_xml_dir').is_set:
             self.option('kegg_result_dir', self.output_dir + '/kegg_result_dir')
-        super(CommonAnnoStatModule, self).end()
+        super(MgCommonAnnoStatModule, self).end()
 
     def linkdir(self, dirpath, dirname):
         """
