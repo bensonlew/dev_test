@@ -57,7 +57,7 @@ class RefrnaExpress(Base):
                             line[3] = '-'
                         if not line[1]:
                             raise Exception('{} has no gene_id in {}'.format(line[0], class_code))
-                        t_id, gene_id, class_code_type, gene_name = line
+                        t_id, gene_name, class_code_type, gene_id = line
                         data[t_id] = dict(gene_name=gene_name, gene_id=gene_id)
                     else:
                         if not line[1]:
@@ -852,7 +852,7 @@ class RefrnaExpress(Base):
         if up_data:
             geneset_length = len(up_data)
             if geneset_length > 0:
-                data_up['geneset_length'] = int(geneset_length)
+                data_up['gene_length'] = int(geneset_length)
                 if up_down == 'up' or up_down == 'down':
                     if type == 'gene':
                         data_up["name"] = '{}_vs_{}_{}_G_{}'.format(name, compare_name, up_down, ref_new)

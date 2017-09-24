@@ -17,10 +17,9 @@ class PtCustomer(Base):
         super(PtCustomer, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
         self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
-        self.database_ref = self.mongo_client[Config().MONGODB+'_paternity_test']  # 测试机上专用,放到正式机后要注释
 
-        # self.mongo_client_ref = Config().biodb_mongo_client   # 放到sanger这里要修改,要启用
-        # self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
+        self.mongo_client_ref = Config().biodb_mongo_client
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
 
     def add_pt_customer(self, main_id=None, customer_file=None):
         if customer_file == "None":
@@ -68,47 +67,46 @@ class PtCustomer(Base):
                     family_name = row_data[contrast_num_index] + "-" + row_data[family_dad_id] + "-" + row_data[family_mom_id]
                     collection = self.database["sg_pt_customer"]
                     result = collection.find_one({"name": family_name})
-                    if result:  # 报告组需要更新数据，所以重新导入的时候，覆盖之前的数据
-                        # continue
-                        collection.remove({"name": family_name})
-                    # else:  # modify by zhouxuan  20170905
-                    if row_data[father_type_index] == '亲子父本全血':
-                        father_type = '全血'
+                    if result:  # 不会有两条信息的name一致
+                        continue
                     else:
-                        father_type = row_data[father_type_index]
-                    mom_id = row_data[contrast_num_index] + '-' + row_data[family_mom_id].split('-')[0]  # 母本编号
-                    dad_id = row_data[contrast_num_index] + '-' + row_data[family_dad_id].split('-')[0]  # 父本编号
-                    if row_data[f_accept_time_index] > row_data[m_accept_time_index]:
-                        accept_time = row_data[f_accept_time_index],
-                        result_time = row_data[f_result_time_index],
-                    else:
-                        accept_time = row_data[m_accept_time_index],
-                        result_time = row_data[m_result_time_index],
-                    insert_data = {
-                        "pt_datasplit_id": ObjectId(main_id),  # 拆分批次
-                        "pt_serial_number": row_data[contrast_num_index],  # 所谓的检案号
-                        "ask_person": row_data[ask_person_index],  # 申请人
-                        "mother_name": row_data[mother_name_index],  #
-                        "mother_type": row_data[mother_type_index],
-                        "mom_id_": row_data[family_mom_id],
-                        "mom_id": mom_id,
-                        "father_name": row_data[father_name_index],
-                        "father_type": father_type,  # father_type 不能写 亲子父本全血
-                        "father_type_origin": row_data[father_type_index],  # 保存原始数据
-                        "dad_id_": row_data[family_dad_id],
-                        "dad_id": dad_id,
-                        "ask_time": row_data[ask_time_index],
-                        "F_accept_time": row_data[f_accept_time_index],
-                        "F_result_time": row_data[f_result_time_index],
-                        "M_accept_time": row_data[m_accept_time_index],
-                        "M_result_time": row_data[m_result_time_index],
-                        "accept_time": accept_time[0],
-                        "result_time": result_time[0],
-                        "name": family_name,
-                        "report_status": row_data[report_status],
-                        'update_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    }
-                    insert.append(insert_data)
+                        if row_data[father_type_index] == '亲子父本全血':
+                            father_type = '全血'
+                        else:
+                            father_type = row_data[father_type_index]
+                        mom_id = row_data[contrast_num_index] + '-' + row_data[family_mom_id].split('-')[0]  # 母本编号
+                        dad_id = row_data[contrast_num_index] + '-' + row_data[family_dad_id].split('-')[0]  # 父本编号
+                        if row_data[f_accept_time_index] > row_data[m_accept_time_index]:
+                            accept_time = row_data[f_accept_time_index],
+                            result_time = row_data[f_result_time_index],
+                        else:
+                            accept_time = row_data[m_accept_time_index],
+                            result_time = row_data[m_result_time_index],
+                        insert_data = {
+                            "pt_datasplit_id": ObjectId(main_id),  # 拆分批次
+                            "pt_serial_number": row_data[contrast_num_index],  # 所谓的检案号
+                            "ask_person": row_data[ask_person_index],  # 申请人
+                            "mother_name": row_data[mother_name_index],  #
+                            "mother_type": row_data[mother_type_index],
+                            "mom_id_": row_data[family_mom_id],
+                            "mom_id": mom_id,
+                            "father_name": row_data[father_name_index],
+                            "father_type": father_type,  # father_type 不能写 亲子父本全血
+                            "father_type_origin": row_data[father_type_index],  # 保存原始数据
+                            "dad_id_": row_data[family_dad_id],
+                            "dad_id": dad_id,
+                            "ask_time": row_data[ask_time_index],
+                            "F_accept_time": row_data[f_accept_time_index],
+                            "F_result_time": row_data[f_result_time_index],
+                            "M_accept_time": row_data[m_accept_time_index],
+                            "M_result_time": row_data[m_result_time_index],
+                            "accept_time": accept_time[0],
+                            "result_time": result_time[0],
+                            "name": family_name,
+                            "report_status": row_data[report_status],
+                            'update_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        }
+                        insert.append(insert_data)
                 else:
                     continue
         if len(insert) == 0:
@@ -204,7 +202,7 @@ class PtCustomer(Base):
         customer_message_collection = self.database["sg_pt_customer"]
         family_id_list = []
         for i in sample_list:
-            m = re.match('WQ([0-9]{2,})-(M|F|S)(.*)', i)
+            m = re.match('WQ([0-9]{8,})-(M|F|S)(.*)', i)
             family_id = 'WQ' + m.group(1)
             if family_id in family_id_list:
                 continue
@@ -230,19 +228,14 @@ class PtCustomer(Base):
                         dad_ = dad
                     for mom in mom_id:
                         if 'T' in mom:
-                            l = re.match('WQ([0-9]{2,})-(M.*)-T(.*)', mom)
+                            l = re.match('WQ([0-9]{8,})-(M.*)-T(.*)', mom)
                         else:
-                            l = re.match('WQ([0-9]{2,})-(M.*)', mom)
+                            l = re.match('WQ([0-9]{8,})-(M.*)', mom)
                         mom_ = l.group(2)
                         name = dad_ + '-' + mom_
                         if customer_message_collection.find_one({"name": name}):
                             self.bind_object.logger.info('{}——该家系信息完整'.format(name))
                         else:
-                            try:
-                                ref_main_collection.remove({"sample_id": i})
-                                self.bind_object.logger.info('删除样本{}成功！'.format(i))
-                            except:
-                                raise Exception("删除样本{}失败！".format(i))
                             self.bind_object.logger.info('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
                             raise Exception('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
             else:

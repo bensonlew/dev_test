@@ -8,7 +8,9 @@ from biocluster.core.function import filter_error_info
 from mainapp.models.workflow import Workflow
 from mainapp.models.mongo.ref_rna import RefRna
 from biocluster.config import Config
+from biocluster.wpm.client import *
 import random
+import datetime
 
 
 class DemoMongodataCopy(object):
@@ -22,7 +24,7 @@ class DemoMongodataCopy(object):
         workflow_id = self.get_new_id(data.task_id)
         task_id1 = data.task_id
         if data.type == 'meta':
-            data = {
+            data_json = {
                 'id': workflow_id,
                 'stage_id': 0,
                 'name': "copy_demo.copy_demo",  # 需要配置
@@ -37,7 +39,7 @@ class DemoMongodataCopy(object):
                 }
             }
         elif data.type == "ref_rna":
-            data = {
+            data_json = {
                 'id': workflow_id,
                 'stage_id': 0,
                 'name': "copy_demo.refrna_copy_demo",  # 需要配置
@@ -53,13 +55,32 @@ class DemoMongodataCopy(object):
             }
             mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
             collection = mongodb['sg_task']
-            nums = collection.count({"task_id": {"$regex": task_id1}})
-            # nums = collection.count({"task_id": {"$regex": "refrna_demo"}})
-            if nums:
-                if nums <= 3:
+            nums1 = collection.count({"task_id": {"$regex": data.task_id}})
+            nums = collection.count({"task_id": {"$regex": data.task_id}, "demo_status": "end"})
+            if nums1:
+                if nums1 <= 3:
+                    id = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+                    json_obj = {
+                        "type": "workflow",
+                        "id": id,
+                        "name": "copy_demo.demo_backup",
+                        "IMPORT_REPORT_DATA": True,
+                        "IMPORT_REPORT_AFTER_END": False,
+                        "options": {
+                            "task_id": data.task_id,
+                            "target_task_id": data.task_id + '_' + id,
+                            "target_project_sn": "refrna_demo",
+                            "target_member_id": "refrna_demo"
+                        }
+                    }
+                    worker = worker_client()
+                    worker.add_task(json_obj)
+                if nums < 3:
                     info = {"success": False, "info": "demo数据正在准备中，请一段时间后再次进行拉取"}
                     return json.dumps(info)
-        workflow_client = Basic(data=data, instant=True)
+            else:
+                info = {"success": False, "info": "demo数据有问题，不能进行拉取"}
+        workflow_client = Basic(data=data_json, instant=True)
         try:
             run_info = workflow_client.run()
             run_info['info'] = filter_error_info(run_info['info'])

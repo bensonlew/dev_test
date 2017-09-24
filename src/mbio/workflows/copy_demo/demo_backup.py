@@ -4,7 +4,7 @@
 """
 对有参RNA demo数据进行备份
 """
-
+from biocluster.config import Config
 from biocluster.workflow import Workflow
 
 
@@ -43,6 +43,10 @@ class DemoBackupWorkflow(Workflow):
                                     db=self.config.MONGODB + "_ref_rna",
                                     )
         copy_task.run()
+        db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        col = db["sg_task"]
+        result = col.find_one({"task_id": self.option("target_task_id"), "project_sn": self.option("target_project_sn")})
+        col.update_one({"_id": result["_id"]}, {"$set": {"demo_status": "end"}})
         self.end()
 
     def end(self):

@@ -437,7 +437,7 @@ class RefrnaGeneDetail(Base):
         :param pep_path: pep文件路径， from biomart
         :param transcript_path: 转录本的fa文件, 计算产生的文件
         :param gene_path: 基因的fa文件， 计算产生的文件
-        :param species: 物种名称(拉丁文)
+        :param species: ensembl的物种主页，其包含物种名称(拉丁文)
         :param assembly_method: assemble method, StringTie or Cufflink
         :param test_this: used for test purpose， and task_id will be "demo_test"
         **: liubinxu provide files: biomart_path, biomart_entrez_path, gene2ensembl_path,
@@ -645,7 +645,7 @@ class RefrnaGeneDetail(Base):
             else:
                 ncbi = None
             if not is_new:
-                ensembl = "http://www.ensembl.org/{}/Gene/Summary?g={}".format(species, gene_id)
+                ensembl = "{}/Gene/Summary?g={}".format(species.rstrip('/Info/Index'), gene_id)
             else:
                 ensembl = None
             data = [
@@ -726,7 +726,7 @@ class TestFunction(unittest.TestCase):
                                             trans_location_path=trans_bed,
                                             cds_path=cds_path,
                                             pep_path=pep_path,
-                                            species='Mus_musculus',
+                                            species='http://www.ensembl.org/Mus_musculus/Info/Index',
                                             transcript_path=transcript_path,
                                             gene_path=gene_path,
                                             # blast_id=blast_id,

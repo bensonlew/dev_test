@@ -8,7 +8,6 @@ from bson import regex
 from bson import ObjectId
 import datetime
 
-
 class TabFile(Base):
     '''
     【亲子鉴定】将生成的tab文件导入mongo之ref的数据库中，主要涉及参考库的操作
@@ -18,12 +17,9 @@ class TabFile(Base):
         # self._db_name = Config().MONGODB
         # self.mongo_client = MongoClient(Config().MONGO_BIO_URI)
         # self.database = self.mongo_client['sanger_paternity_test_v2']
+        self.mongo_client = Config().biodb_mongo_client
+        self.database = self.mongo_client['sanger_paternity_test_ref']
 
-        # self.mongo_client = Config().biodb_mongo_client    # 线上
-        # self.database = self.mongo_client['sanger_paternity_test_ref']
-
-        self.mongo_client = Config().mongo_client   # 线下
-        self.database = self.mongo_client[Config().MONGODB + '_paternity_test']
 
     # @report_check
     def add_pt_tab(self,sample,batch_id):  # moduify by zhouxuan 20170810
@@ -76,11 +72,11 @@ class TabFile(Base):
                 self.bind_object.logger.info("导入tab主表成功")
 
     def update_pt_tab(self,sample):
-        """
+        '''
         分析完后，更新tab主表中的analysised字段为yes
         :param sample:样本名
         :return:
-        """
+        '''
         try:
             collection = self.database['sg_pt_ref_main']
             collection.update({"sample_id": sample}, {'$set':{"analysised": "yes"}})
@@ -92,11 +88,11 @@ class TabFile(Base):
 
     # @report_check
     def add_sg_pt_tab_detail(self,file_path):
-        """
+        '''
         导入样本的tab文件
         :param file_path:tab文件
         :return:
-        """
+        '''
         sg_pt_tab_detail = list()
 
         with open(file_path, 'r') as f:
@@ -143,11 +139,11 @@ class TabFile(Base):
 
     # @report_check
     def tab_exist(self, sample):
-        """
+        '''
         检测样本是否已经做过fastq转tab的流程
         :param sample:
         :return:
-        """
+        '''
         self.bind_object.logger.info('开始检测tab表格')
         collection = self.database['sg_pt_ref']
         result = collection.find_one({'sample_id': sample})
@@ -172,39 +168,40 @@ class TabFile(Base):
             self.bind_object.logger.info("样本{}已存在数据库中".format(sample))
         return result
 
-    def export_tab_file(self, sample, dir, new_sample=None):
+
+    def export_tab_file(self, sample, dir):
         '''
         导出tab file，在查重步骤时可以用到
-         modify by zhouxuan 20170905 保证自由交互部分可以进行相应的id替换
         :param sample:
         :param dir:
         :return:
         '''
         collection = self.database['sg_pt_ref']
-        if new_sample:
-            sample_tab = new_sample + '.tab'
-            sample_name = new_sample
-        else:
-            sample_tab = sample + '.tab'
-            sample_name = sample
-        file_path = os.path.join(dir, sample_tab)
+        sample_tab = sample + '.tab'
+        file = os.path.join(dir, sample_tab)
 
-        if os.path.exists(file_path):
+        if os.path.exists(file):
             pass
         else:
             search_result = collection.find({"sample_id": sample})  # 读出来是个地址
-            if search_result.count() != 0:  # 判断是否找到了相应的结果
-                with open(file_path, 'w+') as f:
-                    for i in search_result:
-                        f.write(sample_name + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
+            # temp = collection.find_one({"sample_id":sample})
+
+            if search_result.count() != 0:
+                final_result = search_result
+                file = os.path.join(dir, sample + '.tab')
+            else:
+                raise Exception('意外报错：没有在数据库中搜到相应sample')
+            with open(file, 'w+') as f:
+                for i in final_result:
+                        f.write(i['sample_id'] + '\t' + i['chrom'] + '\t' + i['pos'] + '\t'
                                 + i['ref'] + '\t' + i['alt'] + '\t' + i['dp'] + '\t'
                                 + i['ref_dp'] + '\t' + i['alt_dp'] + '\n')
-            else:
-                raise Exception('意外报错：没有在数据库中搜到样本{}'.format(sample))
-            if os.path.getsize(file_path):
-                return file_path
+            if os.path.getsize(file):
+            # pass
+                return file
             else:
                 raise Exception('报错：样本数据{}的tab文件为空，可能还未下机'.format(sample))
+
 
     def dedup_sample(self):
         '''
@@ -227,12 +224,11 @@ class TabFile(Base):
         :return:
         '''
         collection = self.database['sg_pt_ref_main']
-        collection_ref = self.database['sg_pt_ref']
-        param = "WQ{}{}-F".format(num, '.*') + '.*'
+        param = "WQ{}-F".format(num) + '.*'
         sample = []
-        for u in collection.find({"sample_id": {"$regex": param}, "analysised": {"$exists": True}}):
-            if collection_ref.find_one({"sample_id": u['sample_id']}):
-                sample.append(u['sample_id'])
+
+        for u in collection.find({"sample_id": {"$regex": param},"batch_id": {"$exists":True}}):
+            sample.append(u['sample_id'])
         sample_new = list(set(sample))
         return sample_new
 
@@ -590,24 +586,3 @@ class TabFile(Base):
             self.bind_object.logger.error('删除深度小于5或者tab为0的样本：{}出错{}'.format(sample_id, e))
         else:
             self.bind_object.logger.info("删除 {} 成功！".format(sample_id))
-
-    def find_father_id(self, case_id, dad_id):
-        """
-        add by  zhouxuan 20170905
-        模糊匹配寻找父本id （亲子鉴定自由交互需要查找）
-        "sample_id": {"$regex": "WQ1708.*M.*"}
-        :param case_id: case号，也就是家系号
-        :return: 返回一个父本列表
-        """
-        dad_list = []
-        collection = self.database['sg_pt_ref_main']
-        collection_ref = self.database['sg_pt_ref']
-        dad = case_id + '.*' + dad_id + '.*'
-        sample_dad = collection.find({"sample_id": {"$regex": dad}, "analysised": {"$exists": True}})
-        if sample_dad:
-            for i in sample_dad:
-                if collection_ref.find_one({"sample_id": i["sample_id"]}):  # 必须有tab文件的才能算有效样本
-                    dad_list.append(i["sample_id"])
-            return dad_list
-        else:
-            raise Exception('按照{}与{}进行模糊匹配没有查找到相应的样本，请更换查询规则，重新运行!'.format(case_id, dad_id))
