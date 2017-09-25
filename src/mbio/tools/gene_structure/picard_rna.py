@@ -90,7 +90,7 @@ class PicardRnaTool(Tool):
         #else:
         #    self.set_error("提高文件数量 ulimit -n 65536出错！")
 
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar MarkDuplicates I={} O={} CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=5000 M=dedup_add_sorted.metrics".format(self.picard_path, add_sorted_bam, \
+        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar MarkDuplicates I={} O={} CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=500 M=dedup_add_sorted.metrics".format(self.picard_path, add_sorted_bam, \
         "dedup_add_sorted.bam")
         self.logger.info("使用picard对bam文件进行重复标记")
         command = self.add_command("markduplicates", cmd)
