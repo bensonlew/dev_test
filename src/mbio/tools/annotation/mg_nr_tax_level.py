@@ -61,7 +61,7 @@ class MgNrTaxLevelTool(Tool):
     def merge_table(self):
         nr_number = 0
         profile_file = os.listdir(self.option('nr_taxon_profile_dir').prop['path'])
-        self.result_name = os.path.join(self.output_dir, "tmp_taxons_profile.xls")
+        self.result_name = os.path.join(self.work_dir, "tmp_taxons_profile.xls")
         if os.path.exists(self.result_name):
             os.remove(self.result_name)
         for i in profile_file:
