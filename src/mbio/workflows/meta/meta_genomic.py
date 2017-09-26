@@ -43,8 +43,7 @@ class MetaGenomicWorkflow(Workflow):
             {'name': 'ref_undefined', "type": 'infile', 'format': 'sequence.fasta_dir'},
             # 未定义的宿主序列所在文件夹，多个宿主cat到一个文件，并作为tool:align.bwa的输入文件，可不提供
             # {'name': 'assemble_tool', 'type': 'string', 'default': 'idba'},  # 选择拼接工具，soapdenovo OR idba
-            {'name': 'assemble_type', 'type': 'string', 'default': 'simple'},
-            # 选择拼接策略，soapdenovo OR idba OR megahit OR multiple
+            {'name': 'assemble_type', 'type': 'string', 'default': 'simple'},  # 选择拼接策略，soapdenovo OR idba OR megahit OR multiple
             {'name': 'min_contig', 'type': 'int', 'default': 300},  # 拼接序列最短长度
             {'name': 'min_gene', 'type': 'int', 'default': 100},  # 预测基因最短长度
             {'name': 'cdhit_identity', 'type': 'float', 'default': 0.95},  # 基因序列聚类相似度
@@ -84,14 +83,8 @@ class MetaGenomicWorkflow(Workflow):
         self.step.add_steps('qc_', 'rm_host', 'assem', 'gene_predict', 'gene_set', 'nr_', 'cog',
                             'kegg', 'anno', 'cazy', 'vfdb', 'ardb', 'card')
         '''初始化自定义变量'''
-        self.IMPORT_REPORT_DATA = True
-        self.IMPORT_REPORT_DATA_AFTER_END = False
         self.anno_tool = []  # nr/kegg/cog注释记录
         self.all_anno = []  # 全部的注释记录
-        self.geneset_id = ''  # geneset主表Object id
-        self.nr_dir = ''  # nr的输出路径
-        self.cog_dir = ''  # cog的输出路径
-        self.kegg_dir = ''  # kegg的输出路径
         if self.option('test'):
             self.option('main_id', '111111111111111111111111')
             self.qc_fastq = self.option('in_fastq')  # 暂未加入质控步骤，输入质控序列
@@ -182,7 +175,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             if self.option('assemble_type') == 'idba':
                 opts['assemble_tool'] = 'idba'
-                opts['method'] = self.option('simple')
+                opts['method'] = 'simple'
             if self.option('assemble_type') == 'megahit':
                 opts['assemble_tool'] = 'megahit'
                 opts['method'] = 'simple'
@@ -213,8 +206,7 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_nr(self):
         opts = {
-            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
-            # self.gene_set.option('uni_fastaa'),
+            'query': self.gene_set.option('uni_fastaa'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             'query_type': "prot",
             'database': 'nr',
         }
@@ -222,8 +214,7 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_kegg(self):
         opts = {
-            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
-            # self.gene_set.option('uni_fastaa'),
+            'query': self.gene_set.option('uni_fastaa'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             'query_type': "prot",
             'database': 'kegg',
         }
@@ -231,8 +222,7 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_cog(self):
         opts = {
-            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
-            # self.gene_set.option('uni_fastaa'),
+            'query': self.gene_set.option('uni_fastaa'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             'query_type': "prot",
             'database': 'eggnog',
         }
@@ -240,8 +230,7 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_anno(self):
         opts = {
-            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls'
-            # self.gene_set.option('rpkm_abundance'),
+            'reads_profile_table': self.gene_set.option('rpkm_abundance'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls'
         }
         if self.option('nr'):
             opts['nr_xml_dir'] = self.nr.option('outxml_dir')
@@ -281,48 +270,29 @@ class MetaGenomicWorkflow(Workflow):
 
     '''处理输出文件'''
 
-    def set_output_and_run_api(self, event):
-        """
-        将各个模块的结果输出至output，并导入数据库
-        """
+    def set_output(self, event):
+        '''
+        将各个模块的结果输出至output
+        '''
         obj = event['bind_object']
         if event['data'] == 'rm_host':
             self.move_dir(obj.output_dir, 'rm_host')
-            self.export_rm_host()
         if event['data'] == 'assem':
             self.move_dir(obj.output_dir, 'assemble')
-            self.export_assemble()
         if event['data'] == 'gene_predict':
             self.move_dir(obj.output_dir, 'predict')
-            self.export_predict()
         if event['data'] == 'gene_set':
             self.move_dir(obj.output_dir, 'geneset')
-            self.export_geneset()
         if event['data'] == 'anno':
-            if self.option('nr'):
-                self.nr_dir = os.path.join(obj.output_dir, 'nr_tax_level')
-                self.move_dir(self.nr_dir, 'nr')
-                self.export_nr()
-            if self.option('cog'):
-                self.cog_dir = os.path.join(obj.output_dir, 'cog_result_dir')
-                self.move_dir(self.cog_dir, 'cog')
-                self.export_cog()
-            if self.option('kegg'):
-                self.kegg_dir = os.path.join(obj.output_dir, 'kegg_result_dir')
-                self.move_dir(self.kegg_dir, 'kegg')
-                self.export_kegg()
+            self.move_dir(obj.output_dir, 'anno')  # 怎样将nr、cog、kegg拆开
         if event['data'] == 'cazy':
             self.move_dir(obj.output_dir, 'cazy')
-            self.export_cazy()
         if event['data'] == 'vfdb':
             self.move_dir(obj.output_dir, 'vfdb')
-            self.export_vfdb()
         if event['data'] == 'ardb':
             self.move_dir(obj.output_dir, 'ardb')
-            self.export_ardb()
         if event['data'] == 'card':
             self.move_dir(obj.output_dir, 'card')
-            self.export_card()
 
     def set_output_all(self):
         """
@@ -330,7 +300,7 @@ class MetaGenomicWorkflow(Workflow):
         """
         pass
 
-    def move_dir(self, olddir, newname):  # 原函数名move2outputdir
+    def move_dir(self, olddir, newname, mode='link'):  # 原函数名move2outputdir
         """
         移动一个目录下所有文件/文件夹到workflow输出路径下，供set_output调用
         """
@@ -382,122 +352,28 @@ class MetaGenomicWorkflow(Workflow):
         pass
 
     '''导表'''
-    '''
+
     def run_api(self, test=False):  # 原run_api_and_set_output
         greenlets_list_first = []  # 一阶段导表
         greenlets_list_sec = []  # 二阶段导表
         greenlets_list_third = []  # 三阶段导表
-        self.IMPORT_REPORT_DATA = True
-        self.IMPORT_REPORT_DATA_AFTER_END = False
-        self.export_qc()
-        self.export_assemble()
-        self.export_gene()
 
     def export_test(self):
         self.api_qc = XXX
         self.group_id = ObjectId(XX)
         self.api_qc.add_control_group(XXX)
-    '''
 
     @time_count
-    def export_rm_host(self):
-        api_rm_host = self.api.meta_genomic.qc_api
-        data_stat_detail = os.path.join(self.rm_host.output_dir, 'stat.list.txt')
-        data_stat_id = api_rm_host.add_data_stat("optimised")
-        if self.option('test'):
-            api_rm_host.add_data_stat_detail(
-                '/mnt/ilustre/users/sanger-dev/workspace/20170919/MetaGenomic_metagenome/BwaRemoveHost/output/stat.list.txt', )
-        else:
-            api_rm_host.add_data_stat_detail(data_stat_detail, data_stat_id[0], data_stat_id[1])
-
-    @time_count
-    def export_assemble(self):
-        api_assemble = self.api.meta_genomic.assemble_gene
-        if self.option('assemble_type') == 'soapdenovo':
-            assemble_stat_detail = os.path.join(self.assem_soapdenovo.output_dir, 'assembly.stat')
-            assemble_stat_id = api_assemble.add_assemble_stat('soapdenovo')
-            len_dir = os.path.join(self.assem_soapdenovo.output_dir, 'len_distribute')
-        else:
-            assemble_stat_detail = os.path.join(self.assem_idba.output_dir, 'assembly.stat')
-            assemble_stat_id = api_assemble.add_assemble_stat(self.option('assemble_type'))
-            len_dir = os.path.join(self.assem_idba.output_dir, 'len_distribute')
-        api_assemble.add_assemble_stat_detail(assemble_stat_id, assemble_stat_detail)
-        api_assemble.add_assem_bar_detail(assemble_stat_id, len_dir)
-
-    @time_count
-    def export_predict(self):
-        api_predict = self.api.meta_genomic.assemble_gene
-        gene_predict_id = api_predict.add_gene_predict()
-        gene_predict_stat = os.path.join(self.gene_predict.output_dir, 'sample.metagene.stat')
-        len_dir = os.path.join(self.gene_predict.output_dir, 'len_distribute')
-        api_predict.add_gene_predict_detail(gene_predict_id, gene_predict_stat)
-        api_predict.add_assem_bar_detail(gene_predict_id, len_dir)
-
-    @time_count
-    def export_geneset(self):
-        api_geneset = self.api.meta_genomic.geneset
-        self.geneset_id = api_geneset.add_geneset(self.gene_set.output, "all", 1)
-        api_geneset.add_geneset_detail_bar(self.geneset_id, self.gene_set.output_dir + '/length_distribute')
-        api_geneset.add_geneset_detail_readsum(self.geneset_id,
-                                               self.gene_set.output_dir + '/gene_profile/top100_reads_number.xls')
-        api_geneset.add_geneset_detail_readsum_relative(self.geneset_id,
-                                                        self.gene_set.output_dir + '/gene_profile/top100_reads_number_relative.xls')
-
-    @time_count
-    def export_nr(self):
-        api_nr = self.api.meta_genomic.mg_anno_nr
-        nr_id = api_nr.add_anno_nr(self.geneset_id, 'all', self.nr_dir + '/nr_anno_result.xls')
-        api_nr.add_anno_nr_detail(nr_id, self.nr_dir)
-
-    @time_count
-    def export_cog(self):
-        api_cog = self.api.meta_genomic.mg_anno_cog
-        cog_id = api_cog.add_anno_cog(self.geneset_id, 'all', self.cog_dir + '/cog_anno_result.xls')
-        api_cog.add_anno_cog_nog(cog_id, self.cog_dir)
-        api_cog.add_anno_cog_function(cog_id, self.cog_dir)
-        api_cog.add_anno_cog_category(cog_id, self.cog_dir)
-
-    @time_count
-    def export_kegg(self):
-        api_kegg = self.api.meta_genomic.mg_anno_kegg
-        kegg_id = api_kegg.add_anno_kegg(self.geneset_id, 'all', self.kegg_dir + '/kegg_anno_result.xls')
-        api_kegg.add_anno_kegg_gene(kegg_id, self.kegg_dir)
-        api_kegg.add_anno_kegg_orthology(kegg_id, self.kegg_dir)
-        api_kegg.add_anno_kegg_module(kegg_id, self.kegg_dir)
-        api_kegg.add_anno_kegg_enzyme(kegg_id, self.kegg_dir)
-        api_kegg.add_anno_kegg_pathway(kegg_id, self.kegg_dir)
-
-    @time_count
-    def export_cazy(self):
-        api_cazy = self.api.meta_genomic.mg_anno_cazy
-        cazy_id = api_cazy.add_anno_cazy(self.geneset_id, 'all', self.cazy.output_dir + '/hmmscan/align_result.txt')
-        api_cazy.add_anno_cazy_family(cazy_id, self.cazy.output_dir + '/anno_result')
-        api_cazy.add_anno_cazy_class(cazy_id, self.cazy.output_dir + '/anno_result')
-
-    @time_count
-    def export_vfdb(self):
+    def export_XXX(self):
         pass
-
-    @time_count
-    def export_ardb(self):
-        api_ardb = self.api.meta_genomic.mg_ano_ardb
-        ardb_id = api_ardb.add_anno_ardb(self.geneset_id, 'all', self.ardb.output_dir + '/gene_ardb_anno.xls')
-        api_ardb.add_anno_ardb_arg(ardb_id, self.ardb.output_dir)
-        api_ardb.add_anno_ardb_type(ardb_id, self.ardb.output_dir)
-        api_ardb.add_anno_ardb_class(ardb_id, self.ardb.output_dir)
-
-    @time_count
-    def export_card(self):
-        api_card = self.api.meta_genomic.mg_anno_card
-        card_id = api_card.add_anno_card(self.geneset_id, 'all', self.card.output_dir + '/gene_card_anno.xls')
-        api_card.add_anno_card_aro(card_id, self.card.output_dir)
-        api_card.add_anno_card_class(card_id, self.card.output_dir)
 
     def run(self):
         """
         运行 meta_genomic workflow
         :return:
         """
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_DATA_AFTER_END = False
         task_info = self.api.api('task_info.ref')
         task_info.add_task_info()
         self.rm_host.on('end', self.run_assem)
@@ -536,9 +412,6 @@ class MetaGenomicWorkflow(Workflow):
         if self.option('rm_host'):
             self.run_rm_host()
         else:
-            # self.run_assem()
-            # self.run_nr()
-            self.run_kegg()
-            # self.run_cog()
+            self.run_assem()
         # '''
         super(MetaGenomicWorkflow, self).run()
