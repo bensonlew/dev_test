@@ -132,7 +132,7 @@ class Geneset(Base):
             data = SON(data)
             data_list.append(data)
         try:
-            collection = self.db['geneset_detail_readsnum']
+            collection = self.db['geneset_readsn']
             # 将detail表名称写在这里
             collection.insert_many(data_list)  # 用insert_many批量导入数据库，insert_one一次只能导入一条记录
         except Exception, e:
@@ -165,7 +165,7 @@ class Geneset(Base):
             data = SON(data)
             data_list.append(data)
         try:
-            collection = self.db['geneset_detail_readsnum_relative']
+            collection = self.db['geneset_readsr']
             # 将detail表名称写在这里
             collection.insert_many(data_list)  # 用insert_many批量导入数据库，insert_one一次只能导入一条记录
         except Exception, e:
