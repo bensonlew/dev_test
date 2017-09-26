@@ -1116,9 +1116,10 @@ class RefrnaWorkflow(Workflow):
             file_path = os.path.join(os.path.split(self.json_path)[0],
                                      self.json_dict[self.option("ref_genome")]["gene_stat"])
             species_name = self.json_dict[self.option("ref_genome")]["name"]
+            species = self.json_dict[self.option("ref_genome")]["taxon_id"]
             ref_anno_version = self.json_dict[self.option("ref_genome")]["assembly"]
             hyperlink = self.json_dict[self.option("ref_genome")]["ensemble_web"]
-            self.api_geno.add_genome_info(file_path=file_path,species_name=species_name, ref_anno_version=ref_anno_version,hyperlink=hyperlink)
+            self.api_geno.add_genome_info(file_path=file_path,species_name=species_name, species=species, ref_anno_version=ref_anno_version,hyperlink=hyperlink)
 
     @time_count
     def export_qc(self):
