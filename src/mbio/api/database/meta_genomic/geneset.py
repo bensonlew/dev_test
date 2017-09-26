@@ -100,7 +100,7 @@ class Geneset(Base):
                 'step_data': step_data,
             }
             try:
-                collection = self.db["geneset_detail_bar"]
+                collection = self.db["geneset_bar"]
                 collection.insert_one(data)
             except Exception, e:
                 self.bind_object.logger.error('导入%s信息出错：%s' % (filename, e))

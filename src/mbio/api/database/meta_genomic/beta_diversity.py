@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zouxuan'
-# last_modify:20170921
+# last_modify:20170926
 from biocluster.api.database.base import Base, report_check
 import os
 import datetime
@@ -30,13 +30,13 @@ class BetaDiversity(Base):
             raise Exception('错误的分析类型')
 
     @report_check
-    def add_beta_diversity(self, dir_path, analysis, env_id, group_id,geneset_id,anno_id,level_id,):
+    def add_beta_diversity(self, dir_path, analysis, env_id, specimen_graphic,geneset_id,anno_id,level_id,):
         self._tables = []  # 记录存入了哪些表格
         _main_collection= self.db['beta_diversity']
         insert_mongo_json = {
             'project_sn': self.bind_object.sheet.project_sn,
             'task_id': self.bind_object.sheet.id,
-            'group_id': group_id,
+            'specimen_graphic': specimen_graphic,
             'level_id': level_id,
             'name':BetaDiversity.get_main_table_name(analysis) +  '_Origin',
             'table_type': analysis,
