@@ -28,6 +28,7 @@ class Geneset(Base):
             catalog_genes = line[0]
             catalog_total_length = line[1]
             catalog_average_length = line[2]
+        os.system('tar czPf '+ file_path + '/gene_profile/reads_profile.tar.gz '+  file_path + '/gene_profile/reads_number.xls ' + file_path + '/gene_profile/reads_number_relative.xls')
         if type == 1:
             insert_data = {
                 'project_sn': project_sn,
