@@ -7,6 +7,7 @@ import os
 import shutil
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fasta_dir import FastaDirFile
+from mbio.files.sequence.file_sample import FileSampleFile
 
 
 class BwaRemoveHostModule(Module):
@@ -21,11 +22,11 @@ class BwaRemoveHostModule(Module):
             # 未定义的宿主序列所在文件夹，多个宿主cat到一个文件，并作为tool:align.bwa的输入文件
             {"name": "head", "type": "string", "default": ""},  # 设置结果头文件
             {"name": "result_fq_dir", "type": "outfile", "format": "sequence.fastq_dir"},
-            # 去宿主结果文件夹，内涵各样平fq文件和对应list文件
+            # 去宿主结果文件夹，内含各样品的fq文件和对应list文件
         ]
         self.add_option(options)
-        self.bwa = self.add_tool("align.bwa")
         self.extract_fastq = self.add_tool("sequence.extract_fastq_by_sam")
+        self.tools = []
 
     def check_options(self):
         """
@@ -43,33 +44,78 @@ class BwaRemoveHostModule(Module):
             raise OptionError("请说明序列类型，PE or SE or 'PSE'?")
         return True
 
+    def get_list(self):
+        list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
+        file_sample = FileSampleFile()
+        file_sample.set_path(list_path)
+        samples = file_sample.get_list()
+        return samples
+
     def run_bwa(self):
-        if self.option("ref_database") != "":
-            self.bwa.set_options({
-                "ref_database": self.option("ref_database"),
-                "fq_type": self.option('fq_type'),
-                "fastq_dir": self.option("fastq_dir"),
-                "head": self.option("head")
-            })
+        self.samples = self.get_list()
+        reslut_path = os.path.join(self.work_dir, "sam_dir")
+        if not os.path.exists(reslut_path):
+            os.mkdir(reslut_path)
+        sam_list_path = os.path.join(reslut_path, "list.txt")
+        with open(sam_list_path, "wb") as w:
+            for f in self.samples:
+                bwa_tool = self.add_tool("align.bwa")
+                bwa_s_tool = self.add_tool("align.bwa")
+                if self.option("fq_type") in ["PE", "PSE"]:
+                    w.write(f + ".sam\t" + f + "\tpe\n")
+                    fq_l = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f]["l"])
+                    fq_r = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f]["r"])
+                    if self.option("ref_database") != "":
+                        bwa_tool.set_options({
+                            "ref_database": self.option("ref_database"),
+                            "fq_type": "PE",
+                            "fastq_r": fq_r,
+                            "fastq_l": fq_l,
+                            "result_path": reslut_path,
+                            "head": self.option("head")
+                        })
+                    else:
+                        bwa_tool.set_options({
+                            "ref_undefined": self.option("ref_undefined"),
+                            "fq_type": "PE",
+                            "fastq_r": fq_r,
+                            "fastq_l": fq_l,
+                            "result_path": reslut_path,
+                            "head": self.option("head")
+                        })
+                    self.tools.append(bwa_tool)
+                if self.option("fq_type") in ["SE", "PSE"]:
+                    w.write(f + "_s.sam\t" + f + "\tse\n")
+                    fq_s = os.path.join(self.option("fastq_dir").prop["path"], self.samples[f]["s"])
+                    if self.option("ref_database") != "":
+                        bwa_s_tool.set_options({
+                            "ref_database": self.option("ref_database"),
+                            "fq_type": "SE",
+                            "fastq_s": fq_s,
+                            "result_path": reslut_path,
+                            "head": self.option("head")
+                        })
+                    else:
+                        bwa_s_tool.set_options({
+                            "ref_undefined": self.option("ref_undefined"),
+                            "fq_type": "SE",
+                            "fastq_s": fq_s,
+                            "result_path": reslut_path,
+                            "head": self.option("head")
+                        })
+                    self.tools.append(bwa_s_tool)
+        if len(self.tools) > 1:
+            self.on_rely(self.tools, self.run_extract_fastq)
         else:
-            #ref_undefined = os.path.join(self.option("ref_undefined").prop["path"], "*.fasta")
-            #all_ref_undefined = os.path.join(self.option("ref_undefined").prop["path"],
-             #                                "ref_undefined/ref_undefined.fasta")
-            #os.system('mkdir -p '+self.option("ref_undefined").prop["path"] + '/ref_undefined')
-            #os.system('cat ' + ref_undefined + ' >' + all_ref_undefined)
-            #all_ref_undefined_path = os.path.join(self.option("ref_undefined").prop["path"], "ref_undefined")
-            self.bwa.set_options({
-                "ref_undefined": self.option("ref_undefined"),
-                "fq_type": self.option('fq_type'),
-                "fastq_dir": self.option("fastq_dir"),
-            })
-        self.bwa.on('end',  self.run_extract_fastq)
-        self.bwa.run()
+            self.tools[0].on('end', self.run_extract_fastq)
+        for tool in self.tools:
+            self.logger.info(tool)
+            tool.run()
 
     def run_extract_fastq(self):
         self.extract_fastq.set_options({
             "fq_type": self.option('fq_type'),
-            "sam": self.bwa.option('sam'),
+            "sam": os.path.join(self.work_dir, "sam_dir"),
         })
         # self.extract_fastq.on('end', self.set_output, 'extract_fastq')  # modified by guhaidong 20170918
         self.extract_fastq.run()
@@ -102,12 +148,11 @@ class BwaRemoveHostModule(Module):
 
     def set_output(self):
         self.option("result_fq_dir", self.extract_fastq.option("reasult_dir"))
-        self.linkdir(self.extract_fastq.option("reasult_dir").prop['path'], self.output_dir)  #modified by guhaidong 20170918
-        # self.option("result_fq_dir", self.output_dir)  # modified by guhaidong 20170918
+        self.linkdir(self.extract_fastq.option("reasult_dir").prop['path'],
+                     self.output_dir)  # modified by guhaidong 20170918
         self.end()
 
     def run(self):
         super(BwaRemoveHostModule, self).run()
-        self.on_rely([self.bwa, self.extract_fastq], self.set_output)
+        self.on_rely(self.extract_fastq, self.set_output)
         self.run_bwa()
-
