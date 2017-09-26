@@ -12,14 +12,14 @@ class FastqExtractModule(Module):
     """
     version 1.0
     author: shijin
-    last_modify: 2017.8.15
+    last_modify: 2017.9.25
     """
     def __init__(self, work_id):
         super(FastqExtractModule, self).__init__(work_id)
         options = [
             {"name": "in_fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},
-            {"name": "output_fq", "type": "output", "format": "sequence.fastq_dir"},
-            {"name": "output_length", "type": "output", "format": "sample.data_dir"},
+            {"name": "output_fq", "type": "outfile", "format": "sequence.fastq_dir"},
+            {"name": "output_length", "type": "outfile", "format": "sample.data_dir"},
             {"name": "output_list", "type": "outfile", "format": "sequence.info_txt"}
 
         ]
@@ -50,10 +50,12 @@ class FastqExtractModule(Module):
             fq_path = self.option("in_fastq").prop["path"] + "/" + f
             fq_list.append(fq_path)
         self.logger.info("开始进行样本合并")
-        os.system("cat {} > {}".format(" ".join(fq_path), self.work_dir + "/cat_sample.fq"))
+        self.logger.info(" ".join(fq_list))
+        os.system("cat {} > {}".format(" ".join(fq_list), self.work_dir + "/cat_sample.fq"))
+        # change by wzy 20170925, join中的内容改为list
         self.logger.info("样本合并完成")
         opts = {
-            "in_fastq": self.option("in_fastq")
+            "in_fastq": self.work_dir + "/cat_sample.fq"  # change by wzy 20170925, 输入文件改为合并后的文件
         }
         run_tool = self.add_tool("sample_base.fastq_extract")
         run_tool.set_options(opts)
@@ -62,7 +64,7 @@ class FastqExtractModule(Module):
         run_tool.run()
 
     def run(self):
-        self.length_stat.on("end", self.end)
+        # self.length_stat.on("end", self.end)  # change by wzy 20170925, 注释掉
         if self.option("in_fastq").format == "sequence.fastq":
             self.fastq_run()
         else:
@@ -71,6 +73,10 @@ class FastqExtractModule(Module):
         super(FastqExtractModule, self).run()
 
     def end(self):
+        # super(FastqExtractModule, self).end()
+        self.option("output_fq").set_path(self.output_dir + "/fastq")
+        self.option("output_length").set_path(self.output_dir + "/length")
+        self.option("output_list").set_path(self.work_dir + "/info.txt")
         super(FastqExtractModule, self).end()
 
     def move_to_output(self):
@@ -109,21 +115,18 @@ class FastqExtractModule(Module):
                 f = open(list_path, "r")
                 f.readline()
                 a.write(f.read())
+        self.option('output_fq').set_path(self.output_dir + '/fastq')
+        self.option('output_list').set_path(self.work_dir + '/info.txt')
         self.end()
-        # self.get_length_stat()
+        # self.get_length_stat()  # change by wzy 20170925, 以下注释掉
 
-    def get_length_stat(self):
-        self.logger.info("移动样本文件过程结束，进入长度统计步骤")
-        opts = {
-            "length_dir": self.output_dir + "/length",
-            "file_sample_list": self.work_dir + "/info.txt"  # 仅用来获取序列的最大长度
-        }
-        self.length_stat.set_options(opts)
-        self.length_stat.on("end", self.end)
-        self.length_stat.run()
+    # def get_length_stat(self):
+    #     self.logger.info("移动样本文件过程结束，进入长度统计步骤")
+    #     opts = {
+    #         "length_dir": self.output_dir + "/length",
+    #         "file_sample_list": self.work_dir + "/info.txt"  # 仅用来获取序列的最大长度
+    #     }
+    #     self.length_stat.set_options(opts)
+    #     self.length_stat.on("end", self.end)
+    #     self.length_stat.run()
 
-    def end(self):
-        self.option("output_fq").set_path(self.output_dir + "/fastq")
-        self.option("output_length").set_path(self.output_dir + "/length")
-        self.option("output_list").set_path(self.work_dir + "/info.txt")
-        super(FastqExtractModule, self).end()
