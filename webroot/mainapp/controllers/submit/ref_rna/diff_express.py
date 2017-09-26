@@ -11,7 +11,7 @@ from mainapp.models.mongo.submit.ref_rna.ref_diff import RefDiff
 import types
 from mainapp.models.mongo.meta import Meta
 from mainapp.models.workflow import Workflow
-from mainapp.controllers.project.ref_express_controller import RefExpressController
+#from mainapp.controllers.project.ref_express_controller import RefExpressController
 from mainapp.controllers.project.ref_rna_controller import RefRnaController
 from mbio.api.to_file.ref_rna import *
 from mainapp.models.mongo.submit.ref_rna import *
