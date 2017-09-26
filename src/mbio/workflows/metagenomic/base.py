@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guhaidong'
 
-"""宏基因组分析工作流"""
+"""宏基因组分析基础分析工作流"""
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError, FileError
@@ -56,6 +56,8 @@ class MetaGenomicWorkflow(Workflow):
             {'name': 'ardb', 'type': 'bool', 'default': True},  # 是否进行ardb注释
             {'name': 'card', 'type': 'bool', 'default': True},  # 是否进行card注释
             {'name': 'vfdb', 'type': 'bool', 'default': True},  # 是否进行vfdb注释
+            {'name': 'group', 'type': 'infile', 'format': 'meta.otu.group_table'},  # 样品分组文件表
+            {'name': 'env_table', 'type': 'infile', 'format': 'meta.otu.group_table'},  # 环境因子表
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -85,6 +87,7 @@ class MetaGenomicWorkflow(Workflow):
         '''初始化自定义变量'''
         self.anno_tool = []  # nr/kegg/cog注释记录
         self.all_anno = []  # 全部的注释记录
+        self.adv = []  # 进行标准分析
         if self.option('test'):
             self.option('main_id', '111111111111111111111111')
             self.qc_fastq = self.option('in_fastq')  # 暂未加入质控步骤，输入质控序列
@@ -175,7 +178,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             if self.option('assemble_type') == 'idba':
                 opts['assemble_tool'] = 'idba'
-                opts['method'] = 'simple'
+                opts['method'] = self.option('simple')
             if self.option('assemble_type') == 'megahit':
                 opts['assemble_tool'] = 'megahit'
                 opts['method'] = 'simple'
@@ -206,7 +209,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_nr(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             'query_type': "prot",
             'database': 'nr',
         }
@@ -214,7 +218,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_kegg(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             'query_type': "prot",
             'database': 'kegg',
         }
@@ -222,22 +227,25 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_cog(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             'query_type': "prot",
             'database': 'eggnog',
         }
+        self.anno_tool.append(self.cog)
         self.set_run(opts, self.cog, 'cog', self.step.cog)
 
     def run_anno(self):
         opts = {
-            'reads_profile_table': self.gene_set.option('rpkm_abundance'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls'
+            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls'
+                # self.gene_set.option('rpkm_abundance'),
         }
         if self.option('nr'):
-            opts['nr_xml_dir'] = self.nr.option('outxml_dir')
+            opts['nr_xml_dir'] = self.nr.option('outxml')
         if self.option('kegg'):
-            opts['kegg_xml_dir'] = self.kegg.option('outxml_dir')
+            opts['kegg_xml_dir'] = self.kegg.option('outxml')
         if self.option('cog'):
-            opts['cog_xml_dir'] = self.cog.option('outxml_dir')
+            opts['cog_xml_dir'] = self.cog.option('outxml')
         self.set_run(opts, self.anno, 'anno', self.step.anno)
 
     def run_cazy(self):
@@ -412,6 +420,9 @@ class MetaGenomicWorkflow(Workflow):
         if self.option('rm_host'):
             self.run_rm_host()
         else:
-            self.run_assem()
+            # self.run_assem()
+            #self.run_nr()
+            self.run_kegg()
+            #self.run_cog()
         # '''
         super(MetaGenomicWorkflow, self).run()
