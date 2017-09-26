@@ -29,6 +29,7 @@ class BwaAgent(Agent):
              "default": "'@RG\\tID:sample\\tLB:rna-seq\\tSM:sample\\tPL:ILLUMINA'"},  # 设置结果头文件
             {"name": "sam", "type": "outfile", "format": "align.bwa.sam_dir"},     # sam格式文件夹,内含对应list文件
             {"name": "method", "type": "string", "default": "align"},     # sam格式文件
+            {"name": "result_path", "type": "string"}  # 当"fastq_dir"参数未提供时，必须设置该参数 add by zhujuan 20170926
         ]
         self.add_option(options)
 
@@ -38,7 +39,7 @@ class BwaAgent(Agent):
         """
         if self.option("ref_database") == "" and not self.option("ref_undefined").is_set:
             raise OptionError("请传入参考序列")
-        if self.option("fastq_dir").is_set and not os.path.exists(self.option("fastq_dir").prop["path"] + "/list.txt"):
+        if self.option("fastq_dir").is_set and not os.path.exists(self.option("fastq_dir").prop['path'] + "/list.txt"):
             raise OptionError("fastq序列文件夹需还有list文件")
         if self.option("method") == "align":
             if self.option('fq_type') not in ['PE', 'SE', 'PSE']:
@@ -51,6 +52,9 @@ class BwaAgent(Agent):
         if not self.option("fastq_dir").is_set and self.option('fq_type') in ["SE", "PSE"]:
             if not self.option("fastq_s").is_set:
                 raise OptionError("请传入SE序列文件")
+        if not self.option("fastq_dir").is_set:
+            if self.option("result_path") == "":
+                raise OptionError("请传入输出结果目录")
         return True
 
     def set_resource(self):
@@ -74,16 +78,16 @@ class BwaTool(Tool):
             ref_fasta = os.path.join("/mnt/ilustre/users/sanger-dev/app/database/",
                                      self.option("ref_database"), ".fasta")  # 数据库宿主所在path, 需要再确定
         if self.option("ref_undefined").is_set:
-            ref_undefined = os.path.join(self.option("ref_undefined").prop["path"], "*.fasta")
-            all_ref_undefined = os.path.join(self.option("ref_undefined").prop["path"],
+            ref_undefined = os.path.join(self.option("ref_undefined").prop['path'], "*.fasta")
+            all_ref_undefined = os.path.join(self.option("ref_undefined").prop['path'],
                                              "ref_undefined/ref_undefined.fasta")
-            os.system('mkdir -p '+self.option("ref_undefined").prop["path"] + '/ref_undefined')
+            os.system('mkdir -p '+self.option("ref_undefined").prop['path'] + '/ref_undefined')
             os.system('cat ' + ref_undefined + ' >' + all_ref_undefined)
-            ref_fasta = os.path.join(self.option("ref_undefined").prop["path"], "ref_undefined/ref_undefined.fasta")
+            ref_fasta = os.path.join(self.option("ref_undefined").prop['path'], "ref_undefined/ref_undefined.fasta")
         if self.option("fastq_dir").is_set:
             self.samples = self.get_list()
             self.fq_dir = True
-            self.fq_dir_path = self.option("fastq_dir").prop["path"]
+            self.fq_dir_path = self.option("fastq_dir").prop['path']
         else:
             self.fq_dir = False
 
@@ -110,7 +114,9 @@ class BwaTool(Tool):
 
     def bwa_sampe(self, outfile, aln_l, aln_r, fastq_l, fastq_r):
         outfile_name = outfile.split("/")[-1]
-        if self.option("head") is None:
+        outfile = fastq_r.split("/")[-1].split(".")[0] + '.sam'
+        outfile = os.path.join(self.option("result_path"), outfile)
+        if self.option("head") == "":
             cmd = "{}bwa sampe -f {} {} {} {} {} {}".format(self.bwa_path, outfile,
                                                             ref_fasta, aln_l, aln_r, fastq_l, fastq_r)
         else:
@@ -131,7 +137,9 @@ class BwaTool(Tool):
 
     def bwa_samse(self, outfile, aln_s, fastq_s):
         outfile_name = outfile.split("/")[-1]
-        if self.option("head") is None:
+        outfile = fastq_s.split("/")[-1].split(".")[0] + '_s.sam'
+        outfile = os.path.join(self.option("result_path"), outfile)
+        if self.option("head") == "":
             cmd = "{}bwa samse -f {} {} {} {}".format(self.bwa_path, outfile, ref_fasta, aln_s, fastq_s)
         else:
             cmd = "{}bwa samse -r {} -f {} {} {} {}".format(self.bwa_path, self.option("head"),
@@ -174,14 +182,14 @@ class BwaTool(Tool):
         with open(sam_list_path, "wb") as w:
             for sample in samples:
                 if self.option("fq_type") in ["PE", "PSE"]:
-                    fq_r = os.path.join(self.option("fastq_dir").prop["path"], samples[sample]["r"])
-                    fq_l = os.path.join(self.option("fastq_dir").prop["path"], samples[sample]["l"])
+                    fq_r = os.path.join(self.option("fastq_dir").prop['path'], samples[sample]["r"])
+                    fq_l = os.path.join(self.option("fastq_dir").prop['path'], samples[sample]["l"])
                     sam_pe_cmd = self.bwa_sampe(os.path.join(self.output_dir, "{}.sam".format(sample)),
                                                 "{}_l.sai".format(sample), "{}_r.sai".format(sample), fq_l, fq_r)
                     sam_commands.append(sam_pe_cmd)
                     w.write(sample+".sam\t"+sample+"\tpe\n")
                 if self.option("fq_type") in ["SE", "PSE"]:
-                    fq_s = os.path.join(self.option("fastq_dir").prop["path"], samples[sample]["s"])
+                    fq_s = os.path.join(self.option("fastq_dir").prop['path'], samples[sample]["s"])
                     sam_se_cmd = self.bwa_samse(os.path.join(self.output_dir, "{}_s.sam".format(sample)),
                                                 "{}_s.sai".format(sample), fq_s)
                     sam_commands.append(sam_se_cmd)
@@ -189,9 +197,9 @@ class BwaTool(Tool):
             return sam_commands
 
     def get_list(self):
-        list_path = self.option("fastq_dir").prop["path"] + "/list.txt"
+        list_path = self.option("fastq_dir").prop['path'] + "/list.txt"
         self.logger.info(list_path)
-        list_path = os.path.join(self.option("fastq_dir").prop["path"], "list.txt")
+        list_path = os.path.join(self.option("fastq_dir").prop['path'], "list.txt")
         if os.path.exists(list_path):
             self.logger.info(list_path)
         sample = {}
@@ -250,9 +258,9 @@ class BwaTool(Tool):
                         self.set_error("运行{}运行出错!".format(sam_cmd.name))
                         return False
             else:
-                if self.option("fq_type") in ["PE ", "PSE"]:
-                    aln_l = self.bwa_aln(self.option("fastq_l").prop["path"], "aln_l.sai")
-                    aln_r = self.bwa_aln(self.option("fastq_r").prop["path"], "aln_r.sai")
+                if self.option("fq_type") in ["PE", "PSE"]:
+                    aln_l = self.bwa_aln(self.option("fastq_l").prop['path'], "aln_l.sai")
+                    aln_r = self.bwa_aln(self.option("fastq_r").prop['path'], "aln_r.sai")
                     self.wait(aln_l, aln_r)
                     if aln_l.return_code == 0:
                         self.logger.info("左端比对完成！")
@@ -262,15 +270,15 @@ class BwaTool(Tool):
                         self.logger.info("右端比对完成！")
                     else:
                         self.set_error("右端比对出错")
-                    self.bwa_sampe("pe.sam", "aln_l.sai", "aln_r.sai", self.option("fastq_l").prop["path"],
-                                   self.option("fastq_r").prop["path"])
+                    self.bwa_sampe("pe.sam", "aln_l.sai", "aln_r.sai", self.option("fastq_l").prop['path'],
+                                   self.option("fastq_r").prop['path'])
                 elif self.option("fq_type") in ["SE", "PSE"]:
-                    aln_s = self.bwa_aln(self.option("fastq_s").prop["path"], "aln_s.sai")
+                    aln_s = self.bwa_aln(self.option("fastq_s").prop['path'], "aln_s.sai")
                     self.wait(aln_s)
                     if aln_s.return_code == 0:
                         self.logger.info("比对完成！")
                     else:
                         self.set_error("比对出错")
-                    self.bwa_samse("se.sam", "aln_s.sai", self.option("fastq_s").prop["path"])
+                    self.bwa_samse("se.sam", "aln_s.sai", self.option("fastq_s").prop['path'])
         self.set_ouput()
         self.end()
