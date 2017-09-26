@@ -65,7 +65,7 @@ class Geneset(Base):
                 'type': type,
                 'specimen': specimen,
                 'download_file': file_path + '/gene_profile/reads_profile.tar.gz',
-                'gene_list' :  file_path + '/gene_profile/gene_list'
+                'gene_list': file_path + '/gene_profile/gene_list'
             }
         collection = self.db['geneset']
         # 将主表名称写在这里
@@ -74,11 +74,11 @@ class Geneset(Base):
         return geneset_id
 
     @report_check
-    def add_geneset_detail_bar(self,geneset_id, length_path):  # 序列长度分布图
+    def add_geneset_detail_bar(self, geneset_id, length_path):  # 序列长度分布图
         if not isinstance(geneset_id, ObjectId):  # 检查传入的geneset_id是否符合ObjectId类型
             if isinstance(geneset_id, types.StringTypes):  # 如果是string类型，则转化为ObjectId
                 geneset_id = ObjectId(geneset_id)
-            else:                                  # 如果是其他类型，则报错
+            else:  # 如果是其他类型，则报错
                 raise Exception('geneset_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.isdir(length_path):  # 检查要上传的数据表路径是否存在
             raise Exception('length_pathh所指定的文件及不存在，请检查！')
@@ -87,7 +87,7 @@ class Geneset(Base):
             spe_step = filename.strip().split('.')[0]
             spe = spe_step.strip().split('_step_')[0]
             step = spe_step.strip().split('_step_')[1]
-            with open(os.path.join(length_path,filename), 'rb') as f:
+            with open(os.path.join(length_path, filename), 'rb') as f:
                 lines = f.readlines()
                 for line in lines[1:-1]:
                     line = line.strip().split('\t')
@@ -107,27 +107,27 @@ class Geneset(Base):
                 self.bind_object.logger.info('导入%s信息成功！' % filename)
 
     @report_check
-    def add_geneset_detail_readsnum(self,geneset_id, readsnum_path):  # 丰度前100的基因的reads number
+    def add_geneset_detail_readsnum(self, geneset_id, readsnum_path):  # 丰度前100的基因的reads number
         if not isinstance(geneset_id, ObjectId):  # 检查传入的geneset_id是否符合ObjectId类型
             if isinstance(geneset_id, types.StringTypes):  # 如果是string类型，则转化为ObjectId
                 geneset_id = ObjectId(geneset_id)
-            else:                                  # 如果是其他类型，则报错
+            else:  # 如果是其他类型，则报错
                 raise Exception('geneset_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(readsnum_path):
             raise Exception('readsnum_path所指定的路径不存在，请检查！')
         data_list = list()  # 存入表格中的信息，然后用insert_many批量导入
         with open(readsnum_path, 'rb') as f:
             lines = f.readlines()
-            line0 =  lines[0].strip().split('\t')
-            sample =line0[1:]
-            data = [('geneset_id',geneset_id)]
+            line0 = lines[0].strip().split('\t')
+            sample = line0[1:]
+            data = [('geneset_id', geneset_id)]
             for line in lines[1:]:
                 line = line.strip().split('\t')
-                data.append(('gene_id',line[0]))
+                data.append(('gene_id', line[0]))
                 i = 1
                 for eachsample in sample:
-                    data.append((eachsample,line[i]))
-                    i+=1
+                    data.append((eachsample, line[i]))
+                    i += 1
             data = SON(data)
             data_list.append(data)
         try:
@@ -140,27 +140,27 @@ class Geneset(Base):
             self.bind_object.logger.info("导入%s信息成功!" % readsnum_path)
 
     @report_check
-    def add_geneset_detail_readsnum_relative(self,geneset_id,readsnum_relative):  # 丰度前100的基因的reads number
+    def add_geneset_detail_readsnum_relative(self, geneset_id, readsnum_relative):  # 丰度前100的基因的reads number
         if not isinstance(geneset_id, ObjectId):  # 检查传入的geneset_id是否符合ObjectId类型
             if isinstance(geneset_id, types.StringTypes):  # 如果是string类型，则转化为ObjectId
                 geneset_id = ObjectId(geneset_id)
-            else:                                  # 如果是其他类型，则报错
+            else:  # 如果是其他类型，则报错
                 raise Exception('geneset_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(readsnum_relative):
             raise Exception('readsnum_relative所指定的路径不存在，请检查！')
         data_list = list()  # 存入表格中的信息，然后用insert_many批量导入
         with open(readsnum_relative, 'rb') as f:
             lines = f.readlines()
-            line0 =  lines[0].strip().split('\t')
-            sample =line0[1:]
-            data = [('geneset_id',geneset_id)]
+            line0 = lines[0].strip().split('\t')
+            sample = line0[1:]
+            data = [('geneset_id', geneset_id)]
             for line in lines[1:]:
                 line = line.strip().split('\t')
-                data.append(('gene_id',line[0]))
+                data.append(('gene_id', line[0]))
                 i = 1
                 for eachsample in sample:
-                    data.append((eachsample,line[i]))
-                    i+=1
+                    data.append((eachsample, line[i]))
+                    i += 1
             data = SON(data)
             data_list.append(data)
         try:
@@ -171,6 +171,3 @@ class Geneset(Base):
             self.bind_object.logger.error("导入%s信息出错:%s" % (readsnum_relative, e))
         else:
             self.bind_object.logger.info("导入%s信息成功!" % readsnum_relative)
-
-
-
