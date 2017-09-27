@@ -7,7 +7,7 @@ from mbio.files.sequence.fastq_dir import FastqDirFile
 from biocluster.core.exceptions import FileError
 from biocluster.config import Config
 
-class ChangeFastqdirAgent(Agent):
+class GenListAgent(Agent):
     """
     diamond version: 0.8.35
     version 1.0
@@ -15,11 +15,12 @@ class ChangeFastqdirAgent(Agent):
     last_modify: 20170316
     """
     def __init__(self, parent):
-        super(ChangeFastqdirAgent, self).__init__(parent)
+        super(GenListAgent, self).__init__(parent)
         options = [
             {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},
             {"name": "fq_type", "type": "string", "default": "PE"},
-            {"name": "samplebase_dir", "type": "outfile", "format": "sequence.fastq_dir"}
+            {"name": "samplebase_dir", "type": "outfile", "format": "sequence.fastq_dir"},
+            {"name": "table_id", "type":"string"}
             ]
         self.add_option(options)
         self.step.add_steps('change_fq_dir')
@@ -42,12 +43,12 @@ class ChangeFastqdirAgent(Agent):
         self._memory = '4G'
 
     def end(self):
-        super(ChangeFastqdirAgent, self).end()
+        super(GenListAgent, self).end()
 
 
-class ChangeFastqdirTool(Tool):
+class GenListTool(Tool):
     def __init__(self, config):
-        super(ChangeFastqdirTool, self).__init__(config)
+        super(GenListTool, self).__init__(config)
         # self.sample_base = Config().SAMPLE_BASE
         self.sample_base = Config().WORK_DIR + "/sample_base"
         if not os.path.exists(self.sample_base):
@@ -116,7 +117,8 @@ class ChangeFastqdirTool(Tool):
 
     def export2database(self):  # 将样本存放于固定的位置
         self.logger.info("开始导入数据库")
-        task_dir = os.path.join(self.sample_base, self.id.split(".")[0])
+        id = self.option("table_id")
+        task_dir = os.path.join(self.sample_base, id)  # 使用table_id生成本地文件夹
         if os.path.exists(task_dir):
             os.system("rm -r {}/*".format(task_dir))
         else:
@@ -134,7 +136,7 @@ class ChangeFastqdirTool(Tool):
         运行
         :return:
         """
-        super(ChangeFastqdirTool, self).run()
+        super(GenListTool, self).run()
         self.get_fastq_info()
         if self.option("fq_type") == "PE":
             self.get_pairs()

@@ -44,7 +44,6 @@ class SplitFastqAgent(Agent):
         self._memory = '3G'
 
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
         super(SplitFastqAgent, self).end()
 
 class SplitFastqTool(Tool):
