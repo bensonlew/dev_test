@@ -17,7 +17,7 @@ class CircosAgent(Agent):
         options = [
             {"name": "data_table", "type": "infile", "format": "toolapps.table"},
             {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},
-            {"name": "combined_value", "type": "float"}  #合并小于此数值的区域的值
+            {"name": "combined_value", "type": "string"}  #合并小于此数值的区域的值
         ]
         self.add_option(options)
         self.step.add_steps("circos")
@@ -118,6 +118,8 @@ class CircosTool(Tool):
 
     def combined_value_stat(self, fp, combined_value, out):
         """对小于此数值的区域进行合并"""
+        if combined_value.endswith("%"):
+            combined_value = float(combined_value.split("%")[0]) / 100
         data = pd.read_table(fp, header=0)
         col_sum = data.sum(axis=1)
         col_value = col_sum.values
@@ -137,7 +139,7 @@ class CircosTool(Tool):
                 flag = False
                 for i in range(1, len(line)):
                     percent = float(line[i]) / float(row_value[i-1])
-                    if percent > combined_value:
+                    if percent > float(combined_value):
                         flag = True
                 if flag:
                     self.logger.info(line)

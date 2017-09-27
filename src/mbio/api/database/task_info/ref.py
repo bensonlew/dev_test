@@ -20,7 +20,7 @@ class Ref(Base):
             ('member_id', self.bind_object.sheet.member_id),
             ('project_sn', self.bind_object.sheet.project_sn),
             ('created_ts', datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
-            ('is_demo', 1),
+            ('is_demo', 0),
             ('demo_id', self.bind_object.sheet.id)
         ]
         self.db['sg_task'].insert_one(SON(json_data))
