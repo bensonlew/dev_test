@@ -107,7 +107,7 @@ class RefAssembly(Base):
         data_list = []
         name_list = []
         for files in relation_files:
-            m = re.search(r'(\S+)\.gtf\..+_[0-9]+\.txt', files)
+            m = re.search(r'(\S+)\.gtf\..+_([0-9])+\.txt', files)
             if m:
                 names = m.group(1)
                 steps = m.group(2)
