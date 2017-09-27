@@ -111,7 +111,7 @@ class DiffStat(object):
                        "{ctrl}_log2_fpkm\t{test}_log2_fpkm\t" \
                        "{ctrl}_log2_count\t{test}_log2_count\t" \
                        "log2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi" \
-                       "\n".format(countS="\t".join(count_), fpkms="\t".join(fpkm_),
+                       "\n".format(counts="\t".join(count_), fpkms="\t".join(fpkm_),
                                    ctrl=control, test=other, )
             else:
                 head = "seq_id\t{ctrl}_count\t{test}_count\t" \

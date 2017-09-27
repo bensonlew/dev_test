@@ -224,10 +224,10 @@ class RefRnaQc(Base):
         spname_spid = self.get_spname_spid()
         col = self.db["sg_specimen"]
         for spname in spname_spid:
-            sp_id = str(spname_spid[spname])
+            sp_id = spname_spid[spname]
             bam_path = dir_path + "/bam/" + spname + ".bam"
             insert_data = {"bam_path": bam_path}
-            col.find_one_and_update({"task_id": sp_id}, {"$set": insert_data})
+            col.find_one_and_update({"_id": sp_id}, {"$set": insert_data})
 
     @report_check
     def add_control_group(self,file, group_id):
