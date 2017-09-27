@@ -36,7 +36,7 @@ class Nmds(Base):
             specimen_ids_dict = self.table_in()
             self.main_id = self.nmds_in(specimen_ids_dict)
 
-    def table_in(self):
+    def table_in(self, group):
         """
 		导入表格相关信息
 		"""
