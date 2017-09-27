@@ -60,7 +60,8 @@ class Fastq2tabModule(Module):
         self.fastq2bam.run()
 
     def bam2tab_run(self):
-        bam_dir = os.path.join(self.work_dir, "Family2bam/output")
+        # bam_dir = os.path.join(self.work_dir, "Family2bam/output")
+        bam_dir = self.fastq2bam.output_dir
         self.bam2tab.set_options({
             "sample_id": self.option("sample_id"),
             "bam_dir": bam_dir,
