@@ -1481,7 +1481,8 @@ class RefrnaWorkflow(Workflow):
                                                         express_method="rsem",
                                                         is_duplicate=self.option("is_duplicate"),
                                                         query_type="gene", major=True,
-                                                        group_id=params["group_id"], workflow=True)
+                                                        group_detail=params['group_detail'],
+                                                        workflow=True)
         self.api_exp.add_diff_summary_detail(diff_express_id,
                                              count_path=merge_path,
                                              ref_all='all',
