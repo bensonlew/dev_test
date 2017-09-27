@@ -938,8 +938,8 @@ class RefrnaExpress(Base):
         #     'group_detail': group_detail,
         #     'control_id': str(control_id)
         # })  # 为更新workflow的params，因为截停
-        if group_id == 'all':
-            params['group_detail'] = {'all': group_detail}
+        # if group_id == 'all':
+        #     params['group_detail'] = {'all': group_detail}
         if params:
             params.update({"submit_location": "express_diff"})
         if not express_method:
@@ -980,8 +980,8 @@ class RefrnaExpress(Base):
             insert_data["trans"] = True
         if compare_column_specimen:
             insert_data["compare_column_specimen"] = compare_column_specimen
-        if group_id == 'all':
-            insert_data['group_detail'] = {'all': group_detail}
+        # if group_id == 'all':
+        #     insert_data['group_detail'] = {'all': group_detail}
         collection = db['sg_express_diff']
         express_diff_id = collection.insert_one(insert_data).inserted_id
         if major:
