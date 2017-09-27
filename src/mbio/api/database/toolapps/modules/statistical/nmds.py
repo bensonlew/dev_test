@@ -18,25 +18,31 @@ class Nmds(Base):
         else:
             self._db_name = 'ttoolapps'
         self.check()
-        self.sample_list = []
+        self.group_detail = {}
 
     @report_check
     def run(self):
         """
         运行函数
         """
-        self.main_id = self.nmds_in()
-        self.table_ids = self.table_in()
-        return self.main_id
-        pass
+        if self.bind_object._task.option("group_table").is_set:
+            self.group_detail = self.bind_object._task.option("group_table").get_group_detail()
+            self.bind_object.logger.info(self.group_detail)
+            for group in self.group_detail:
+                specimen_ids_dict = self.table_in(group)
+                self.insert_group(group, specimen_ids_dict)
+                self.main_id = self.nmds_in(specimen_ids_dict, group)
+        else:
+            specimen_ids_dict = self.table_in()
+            self.main_id = self.nmds_in(specimen_ids_dict)
 
     def table_in(self):
         """
 		导入表格相关信息
 		"""
-        ratation = self.insert_table(self.output_dir + '/Nmds/nmds_sites.xls', 'nmds分析结果表',
-                                     '画图的原始数据表')
-        return [ratation]
+        specimen_ids_dict = self.insert_table(self.output_dir + '/Nmds/nmds_sites.xls', 'nmds分析结果表',
+                                     '画图的原始数据表', group)
+        return specimen_ids_dict
 
     def insert_table(self, fp, name, desc):
         self.bind_object.logger.info('开始导入table表')
@@ -52,19 +58,19 @@ class Nmds(Base):
                 status='end',
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )).inserted_id
+            sample_list = []
             for line in f:
                 line_split = line.strip().split('\t')
-                self.sample_list.append(line_split[0])
+                sample_list.append(line_split[0])
                 data = dict(zip(columns, line_split))
                 data['table_id'] = table_id
                 insert_data.append(data)
             self.db['table_detail'].insert_many(insert_data)
             self.bind_object.logger.info('table表导入结束')
             self.bind_object.logger.info('开始导入样本id')
-            self.insert_specimens(self.sample_list)
         return table_id
 
-    def nmds_in(self):
+    def nmds_in(self, specimen_ids_dict, group=None):
         """
         导入nmds相关信息
         """
@@ -77,7 +83,9 @@ class Nmds(Base):
                 task_id=self.bind_object.id,
                 name='nmds',
                 desc='nmds分析',
-                status='end',
+                status='failed',
+                specimen_ids=specimen_ids_dict.values(),
+                group_name=group,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 stress=stress,
             )).inserted_id
@@ -94,8 +102,9 @@ class Nmds(Base):
                 line = re.split('\t', line)
                 sample_num = line[1:]
                 otu_detail = dict()
-                otu_detail['nmds_id'] = nmds_id
-                otu_detail['row_name'] = line[0]
+                otu_detail['scatter_id'] = scatter_id
+                otu_detail['specimen_name'] = line[0]
+                otu_detail['specimen_id'] = specimen_ids_dict[line[0]]
                 r_list.append(line[0])  # 后续画图做准备
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = float(sample_num[i])  # 保证画图时取到的数据是数值型
@@ -118,6 +127,25 @@ class Nmds(Base):
         ids = self.db['specimen'].insert_many(datas).inserted_ids
         self.bind_object.logger.info("样本id导入结束")
         return SON(zip(specimen_names, ids))
+
+    def insert_group(self, group, specimen_ids_dict):
+        category_names = []
+        specimen_names = []
+        for s1 in self.group_detail[group]:
+            category_names.append(s1)
+            group_specimen_ids = {}
+            for s2 in self.group_detail[group][s1]:
+                try:
+                    group_specimen_ids[str(specimen_ids_dict[s2])] = s2
+                except:
+                    raise Exception("分组方案和结果文件里的样本不一致，请检查特征值是否错误")
+            specimen_names.append(group_specimen_ids)
+        self.db['specimen_group'].insert_one(SON(
+            task_id=self.bind_object.id,
+            category_names=category_names,
+            specimen_names=specimen_names,
+            group_name=group
+        ))
 
     def check(self):
         """
