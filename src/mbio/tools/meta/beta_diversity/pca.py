@@ -78,17 +78,19 @@ class PcaAgent(Agent):
             common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
             if len(common_samples) < 3:
                 raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
-            # if len(self.option('envtable').prop['sample']) > len(samplelist):
-            #     # raise OptionError('OTU表中的样本数量:%s少于环境因子表中的样本数量:%s' % (len(samplelist),
-            #                     #   len(self.option('envtable').prop['sample'])))
-            #     pass
-            # for sample in self.option('envtable').prop['sample']:
-            #     if sample not in samplelist:
-            #         raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)
         table = open(self.gettable())
         if len(table.readlines()) < 3:
             raise OptionError('数据表特征数量必须大于等于2: {}'.format(len(table.readlines())))
         table.close()
+        if self.option('group_table').is_set:
+            if self.option('eigenvalue') == 'row':
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otutable').prop['col_sample']:
+                        raise OptionError('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
+            else:
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otutable').prop['row_sample']:
+                        raise OptionError('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
         return True
 
     def set_resource(self):
@@ -212,14 +214,6 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         """
         super(PcaTool, self).run()
         if self.option('group_table').is_set:
-            if self.option('eigenvalue') == 'row':
-                for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otutable').prop['col_sample']:
-                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
-            else:
-                for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otutable').prop['row_sample']:
-                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
             group_de = self.option('group_table').prop['group_scheme']
             self.logger.info(group_de)
             for i in group_de:

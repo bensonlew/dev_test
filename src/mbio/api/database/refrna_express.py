@@ -852,7 +852,7 @@ class RefrnaExpress(Base):
         if up_data:
             geneset_length = len(up_data)
             if geneset_length > 0:
-                data_up['geneset_length'] = int(geneset_length)
+                data_up['gene_length'] = int(geneset_length)
                 if up_down == 'up' or up_down == 'down':
                     if type == 'gene':
                         data_up["name"] = '{}_vs_{}_{}_G_{}'.format(name, compare_name, up_down, ref_new)

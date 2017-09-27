@@ -57,13 +57,21 @@ class HcHeatmapAgent(Agent):
         if self.option("group_table").is_set:
             if self.option("group_method") not in ["none", "average", "sum", "middle"]:
                 raise OptionError("分组样本计算方式只能为none,average,sum,none")
+            if self.option('data_T') != "false":
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('data_table').prop['row_sample']:
+                        raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
+            else:
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('data_table').prop['col_sample']:
+                        raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
 
     def set_resource(self):
         """
         设置所需资源
         """
-        self._cpu = 10
-        self._memory = '10G'
+        self._cpu = 5
+        self._memory = '5G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -137,6 +145,38 @@ class HcHeatmapTool(Tool):
                                         tmp.append(str(round(average, 4)))
                                     elif self.option("group_method") == "middle":
                                         tmp.append(str(round(midian, 4)))
+                                w.write('\t'.join(tmp) + "\n")
+                        self.create_tree(table_path, group)
+                    else:
+                        raise OptionError("聚类时样本必须大于等于2,{}分组里样本小于2,不能进行聚类".format(group))
+        elif self.option('group_table').is_set:
+            group_samples = self.option('group_table').get_group_detail()
+            self.logger.info(group_samples)
+            with open(self.new_data, "r") as f:
+                lines = f.readlines()
+                line = lines[0].rstrip().split("\t")
+                for group in group_samples:
+                    samples = []
+                    for s1 in group_samples[group]:
+                        for s2 in group_samples[group][s1]:
+                            samples.append(s2)
+                    samples = list(set(samples))
+                    if len(samples) >= 2:
+                        sample_index = {}
+                        for s in samples:
+                            for i in range(len(line)):
+                                if s == line[i]:
+                                    sample_index[s]= i
+                        table_path = os.path.join(self.work_dir, group + "_table.xls")
+                        with open(table_path, "w") as w:
+                            header = line[0] + "\t" + '\t'.join(samples) + "\n"
+                            w.write(header)
+                            for item in lines[1:]:
+                                item = item.rstrip().split("\t")
+                                w.write(item[0] + "\t")
+                                tmp = []
+                                for s in samples:
+                                    tmp.append(item[sample_index[s]])
                                 w.write('\t'.join(tmp) + "\n")
                         self.create_tree(table_path, group)
                     else:
