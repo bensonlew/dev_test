@@ -1396,7 +1396,7 @@ class RefrnaWorkflow(Workflow):
         params['pvalue_padjust'] = 'padjust'  # 默认为padjust
         params['pvalue'] = self.option("diff_fdr_ci")
         params['diff_method'] = self.option("diff_method")
-        params["type"] = "trans"
+        params["type"] = 'transcript'
         class_code = self.exp.mergersem.work_dir + "/class_code"
         diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample,
                                                         compare_column=compare_column,
