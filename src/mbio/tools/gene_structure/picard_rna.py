@@ -55,11 +55,12 @@ class PicardRnaTool(Tool):
         super(PicardRnaTool, self).__init__(config)
         self.picard_path = self.config.SOFTWARE_DIR + "/bioinfo/gene-structure/"
         self.sample_name = ''
+        self.tmp_path = self.config.WORK_DIR + "/tmp/"
 
     def addorreplacereadgroups(self):
         self.sample_name = os.path.basename(self.option("in_bam").prop["path"])[:-4]
         self.logger.info(self.sample_name)
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 VALIDATION_STRINGENCY=SILENT SM={}".format(self.picard_path, self.option("in_bam").prop["path"], "add_sorted.bam", self.sample_name)
+        cmd = "program/sun_jdk1.8.0/bin/java -Djava.io.tmpdir={} -jar {}picard.jar AddOrReplaceReadGroups I={} O={} SO=coordinate LB=HG19 PL=illumina PU=HG19 VALIDATION_STRINGENCY=SILENT SM={}".format(self.tmp_path, self.picard_path, self.option("in_bam").prop["path"], "add_sorted.bam", self.sample_name)
         self.logger.info("使用picard对sam文件进行加头和排序")
         command = self.add_command("addorreplacereadgroups", cmd)
         command.run()
@@ -78,9 +79,10 @@ class PicardRnaTool(Tool):
         """
        
         """
-        # 增加MAX_FILE_HANDLES_FOR_READ_ENDS_MAP参数， 原因是投递节点打开文件数目限制
+        # 增加MAX_FILE_HANDLES_FOR_READ_ENDS_MAP参数， 原因是投递节点打开文件数目限制, 限制缓存
 
         os.system("ulimit -n 65536")
+        os.system("numactl --interleave=all")
         self.logger.info("提高临时文件数量限制")
         #command = self.add_command("ulimit_num", cmd)
         #command.run()
@@ -90,7 +92,7 @@ class PicardRnaTool(Tool):
         #else:
         #    self.set_error("提高文件数量 ulimit -n 65536出错！")
 
-        cmd = "program/sun_jdk1.8.0/bin/java -jar {}picard.jar MarkDuplicates I={} O={} CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=500 M=dedup_add_sorted.metrics".format(self.picard_path, add_sorted_bam, \
+        cmd = "program/sun_jdk1.8.0/bin/java -Djava.io.tmpdir={} -jar {}picard.jar MarkDuplicates I={} O={} CREATE_INDEX=true VALIDATION_STRINGENCY=SILENT MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=500 M=dedup_add_sorted.metrics".format(self.tmp_path, self.picard_path, add_sorted_bam, \
         "dedup_add_sorted.bam")
         self.logger.info("使用picard对bam文件进行重复标记")
         command = self.add_command("markduplicates", cmd)
@@ -121,4 +123,4 @@ class PicardRnaTool(Tool):
             if re.match(r"dedup_add_sorted*", i):
                 shutil.copy(i, self.output_dir)
                 
-        self.end()    
+        self.end()
