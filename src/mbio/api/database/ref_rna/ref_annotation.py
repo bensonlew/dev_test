@@ -724,11 +724,11 @@ class RefAnnotation(Base):
                     ('nog', int(line[3]))
                 ]
                 try:
-                    data.append(('cog_list', line[5]))
+                    data.append(('cog_list', line[4]))
                 except:
                     data.append(('cog_list', None))
                 try:
-                    data.append(('nog_list', line[6]))
+                    data.append(('nog_list', line[5]))
                 except:
                     data.append(('nog_list', None))
                 data = SON(data)
@@ -827,7 +827,8 @@ class RefAnnotation(Base):
                                     funlist['NOG'][fun1].append(nog)
                         except:
                             pass
-                    else:
+
+                        else:
                         try:
                             funlist['NOG'][fun1] = item[5].split(";")
                         except:
