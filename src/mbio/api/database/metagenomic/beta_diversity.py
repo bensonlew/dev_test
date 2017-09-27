@@ -30,7 +30,7 @@ class BetaDiversity(Base):
             raise Exception('错误的分析类型')
 
     @report_check
-    def add_beta_diversity(self, dir_path, analysis, env_id, specimen_graphic,geneset_id,anno_id,level_id,):
+    def add_beta_diversity(self, dir_path, analysis, env_id, specimen_graphic,geneset_id,anno_id,level_id):
         self._tables = []  # 记录存入了哪些表格
         _main_collection= self.db['beta_diversity']
         insert_mongo_json = {
