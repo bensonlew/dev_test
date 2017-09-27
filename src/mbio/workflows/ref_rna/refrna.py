@@ -16,14 +16,22 @@ import functools
 
 patch_all()
 
-def time_count(func):  # 用于统计导表时间
+
+# 定义用于统计导表时间的装饰器
+def time_count(func):
     @functools.wraps(func)
     def wrapper(*args, **kw):
         start = time.time()
+        func_name = func.__name__
+        start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))
+        print('Run ' + func_name + ' at ' + start_time)
         func(*args, **kw)
         end = time.time()
-        print("{}函数执行完毕，该阶段导表已进行{}s".format(func.__name__, end - start))
+        end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))
+        print('End ' + func_name + ' at ' + end_time)
+        print("{}函数执行时间约为{}s".format(func.__name__, end - start))
     return wrapper
+
 
 class RefrnaWorkflow(Workflow):
     def __init__(self, wsheet_object):
