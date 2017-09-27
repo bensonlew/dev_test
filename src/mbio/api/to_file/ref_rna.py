@@ -150,6 +150,9 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
             if not one_record:
                 raise Exception("生成kegg_table出错：kegg_id:{}在sg_annotation_kegg_table中未找到！".format(ObjectId(kegg_id)))
             for result in results:
+                if 'hyperlink' not in result:
+                    bind_obj.logger.debug(result['ko_id'] + result['query_id'] + '-> no hyperlink')
+                    result['hyperlink'] = 'None'
                 w.write('{}\t{}\t{}\t{}\t{}\n'.format(result['query_id'], result['ko_id'], result['ko_name'], result['hyperlink'], result['paths']))
     return kegg_path
 
