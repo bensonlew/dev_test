@@ -68,7 +68,8 @@ class Nmds(Base):
             self.db['table_detail'].insert_many(insert_data)
             self.bind_object.logger.info('table表导入结束')
             self.bind_object.logger.info('开始导入样本id')
-        return table_id
+            specimen_ids_dict = self.insert_specimens(sample_list)
+        return specimen_ids_dict
 
     def nmds_in(self, specimen_ids_dict, group=None):
         """
