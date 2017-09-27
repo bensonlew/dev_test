@@ -6,12 +6,12 @@ from biocluster.config import Config
 import datetime
 
 
-class SampleExtract(object):
+class SampleBase(object):
     def __init__(self):
         self.client = get_mongo_client()
         self.db = self.client["samplebase"]
 
-    def add_sg_seq_sample(self, member_id, type, status):
+    def add_sg_seq_sample(self, member_id, type):
         insert_data = {
             "member_id": member_id,
             "type": type,

@@ -12,10 +12,16 @@ from mainapp.models.mongo.submit.sequence.sample_base import SampleBase as SB
 from biocluster.config import Config
 
 
-class SampleBase(object):
+PACKAGE_URL = "sample_base"
+
+
+class SampleBaseAction(object):
     """
     检测序列文件，获取序列中的样本信息; 序列的格式可能是fastq, 也可能是fasta
     """
+
+    def __init__(self):
+        super(SampleBaseAction, self).__init__()
     @check_sig
     def POST(self):
         """
@@ -34,6 +40,7 @@ class SampleBase(object):
         if data.client not in ["client01", "client03"]:
             info = {"success": False, "info": "未知的client：{}".format(data.client)}
             return json.dumps(info)
+        print data.format
         if data.format not in ["sequence.fasta", "sequence.fastq", "sequence.fasta_dir", "sequence.fastq_dir"]:
             info = {"success": False, "info": "参数format的值不正确"}
             return json.dumps(info)
@@ -54,7 +61,7 @@ class SampleBase(object):
         elif data.format in ["sequence.fasta_dir", "sequence.fastq_dir"] and not os.path.isdir(rel_path):
             info = {"success": False, "info": "文件夹{}不存在".format(file_info["path"])}
             return json.dumps(info)
-        table_id = SB().add_sg_sample(data.member_id, data.type)
+        table_id = SB().add_sg_seq_sample(data.member_id, data.type)
         json_obj = dict()
         if data.type == "rna":  # 对type进行判断
             json_obj["name"] = "sequence.rna_sample"
