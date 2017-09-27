@@ -25,10 +25,15 @@ class CircosAgent(Agent):
     def check_options(self):
         if not self.option("data_table").is_set:
             raise OptionError("缺少输入的数据表格")
+        if self.option("group_table").is_set:
+            sample_names = self.option('group_table').prop['sample_name']
+            for i in sample_names:
+                if i not in self.option('data_table').prop['col_sample']:
+                    raise OptionError('分组文件中的样本{}不存在于表格中，查看是否是数据表行列颠倒'.format(i))
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = "10G"
+        self._cpu = 3
+        self._memory = "5G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
