@@ -320,7 +320,7 @@ class RefrnaWorkflow(Workflow):
                 strand_dir = "firststrand"
             else:
                 strand_dir = "secondstrand"
-            opts.update = ({
+            opts.update({
                 "strand_direct": strand_dir,
                 "fr_stranded": "fr-stranded"
                 })
@@ -1410,7 +1410,7 @@ class RefrnaWorkflow(Workflow):
                                                         is_duplicate=self.option("is_duplicate"),
                                                         query_type="transcript",
                                                         major=True,
-                                                        group_id=params["group_id"],
+                                                        group_detail=params['group_detail'],
                                                         workflow=True)
         self.api_exp.add_diff_summary_detail(diff_express_id, count_path=merge_path,
                                              ref_all='all', query_type='transcript',
