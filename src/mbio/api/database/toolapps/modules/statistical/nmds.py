@@ -36,7 +36,7 @@ class Nmds(Base):
             specimen_ids_dict = self.table_in()
             self.main_id = self.nmds_in(specimen_ids_dict)
 
-    def table_in(self, group):
+    def table_in(self, group=None):
         """
 		导入表格相关信息
 		"""
@@ -44,7 +44,7 @@ class Nmds(Base):
                                      '画图的原始数据表', group)
         return specimen_ids_dict
 
-    def insert_table(self, fp, name, desc):
+    def insert_table(self, fp, name, desc, group=None):
         self.bind_object.logger.info('开始导入table表')
         with open(fp) as f:
             columns = f.readline().strip().split('\t')
@@ -56,6 +56,7 @@ class Nmds(Base):
                 attrs=columns,
                 desc=desc,
                 status='end',
+                group_name=group,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )).inserted_id
             sample_list = []
@@ -79,7 +80,7 @@ class Nmds(Base):
             self.bind_object.logger.info('主表导入')
             for line in f:
                 stress = line.strip('\n')
-            nmds_id = self.db['nmds'].insert_one(SON(
+            scatter_id = self.db['nmds'].insert_one(SON(
                 project_sn=self.bind_object.sheet.project_sn,
                 task_id=self.bind_object.id,
                 name='nmds',
@@ -117,7 +118,7 @@ class Nmds(Base):
                 raise Exception("nmds画图数据导入出错{}".format(e))
             else:
                 self.bind_object.logger.info("nmds画图数据表导入完成")
-        return nmds_id
+        return scatter_id
 
     def insert_specimens(self, specimen_names):
         """
