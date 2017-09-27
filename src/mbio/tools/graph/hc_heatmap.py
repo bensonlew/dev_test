@@ -60,11 +60,11 @@ class HcHeatmapAgent(Agent):
             if self.option('data_T') != "false":
                 for i in self.option('group_table').prop['sample_name']:
                     if i not in self.option('data_table').prop['row_sample']:
-                        raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
+                        raise OptionError('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
             else:
                 for i in self.option('group_table').prop['sample_name']:
                     if i not in self.option('data_table').prop['col_sample']:
-                        raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
+                        raise OptionError('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
 
     def set_resource(self):
         """
