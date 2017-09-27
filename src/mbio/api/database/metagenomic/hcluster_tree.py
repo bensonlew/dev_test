@@ -16,7 +16,7 @@ class HclusterTree(Base):
         self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
-    def add_hcluster_tree(self, file_path, specimen_graphic, geneset_id, anno_id, level_id ):
+    def add_hcluster_tree(self, file_path, specimen_group, geneset_id, anno_id, level_id ):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         created_ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -32,7 +32,7 @@ class HclusterTree(Base):
             'status': 'end',
             'geneset_id': geneset_id,
             'anno_id': anno_id,
-            'specimen_graphic': specimen_graphic,
+            'specimen_group': specimen_group,
             'level_id': level_id,
             'specimen_tree': line
         }

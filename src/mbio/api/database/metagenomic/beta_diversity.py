@@ -30,13 +30,13 @@ class BetaDiversity(Base):
             raise Exception('错误的分析类型')
 
     @report_check
-    def add_beta_diversity(self, dir_path, analysis, env_id, specimen_graphic,geneset_id,anno_id,level_id):
+    def add_beta_diversity(self, dir_path, analysis, env_id, specimen_group,geneset_id,anno_id,level_id):
         self._tables = []  # 记录存入了哪些表格
         _main_collection= self.db['beta_diversity']
         insert_mongo_json = {
             'project_sn': self.bind_object.sheet.project_sn,
             'task_id': self.bind_object.sheet.id,
-            'specimen_graphic': specimen_graphic,
+            'specimen_group': specimen_group,
             'level_id': level_id,
             'name':BetaDiversity.get_main_table_name(analysis) +  '_Origin',
             'table_type': analysis,
@@ -99,6 +99,9 @@ class BetaDiversity(Base):
             if 'db_rda_biplot.xls' in filelist:
                 env_vec_path = dir_path.rstrip('/') + '/Dbrda/db_rda_biplot.xls'
                 self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+            if 'db_rda_importance.xls' in filelist:
+                importance_path = dir_path.rstrip('/') + '/Dbrda/db_rda_importance.xls'
+                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
             self.bind_object.logger.info('beta_diversity:db_RDA分析结果导入数据库完成.')
         elif analysis == 'rda_cca':
             if 'rda' in os.listdir(dir_path.rstrip('/') + '/Rda/')[1]:
