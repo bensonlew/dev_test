@@ -742,7 +742,7 @@ class RefrnaWorkflow(Workflow):
         os.makedirs(target_dir + "/Align/QualityAssessment")
         for file in os.listdir(origin_dir + "/mapping/stat"):  # link bam_stat文件，后期可优化
             file_path = os.path.join(origin_dir + "/mapping/stat", file)
-            os.link(file_path, target_dir + "/Align/AlignStat/" + file.strip(".stat") + "_align_stat.xls")
+            os.link(file_path, target_dir + "/Align/AlignStat/" + file.strip(".stat") + "_align_stat.txt")
         for file in os.listdir(origin_dir + "/map_qc/chr_stat"):  # link chr_distribution.xls
             file_path = os.path.join(origin_dir + "/map_qc/chr_stat", file)
             os.link(file_path, target_dir + "/Align/QualityAssessment/" + file.strip("_stat.xls") + "_distribution.xls")
