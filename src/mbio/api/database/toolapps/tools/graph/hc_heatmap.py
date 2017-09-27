@@ -26,7 +26,7 @@ class HcHeatmap(Base):
         """
         运行函数
         """
-        if self.bind_object._task.option("group_table").is_set and self.bind_object._task.option("group_method") != "none":
+        if self.bind_object._task.option("group_table").is_set:
             group_name = self.bind_object._task.option("group_table").prop["group_scheme"]
             self.bind_object.logger.info(group_name)
             for g in group_name:

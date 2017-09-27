@@ -71,7 +71,6 @@ class Pcoa(Base):
                     line = 'ID' + line
                 line_split = line.strip().split('\t')
                 if fp == self.output_dir + '/Pcoa/pcoa_sites.xls':
-                    # self.sample_list.append(line_split[0])
                     sample_list.append(line_split[0])
                 data = dict(zip(columns, line_split))
                 data['table_id'] = table_id
@@ -80,7 +79,6 @@ class Pcoa(Base):
             self.bind_object.logger.info('table表导入结束')
             if fp == self.output_dir + '/Pcoa/pcoa_sites.xls':
                 self.bind_object.logger.info('开始导入样本id')
-                # self.specimen_ids_dict = self.insert_specimens(self.sample_list)
         return sample_list
 
     def pcoa_in(self, specimen_ids_dict, group=None):
