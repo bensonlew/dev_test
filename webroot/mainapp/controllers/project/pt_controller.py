@@ -63,10 +63,12 @@ class PtController(MetaController):
             self._sheet_data['params'] = params
         return self._sheet_data
 
-    def set_sheet_data_(self, name, options, module_type="workflow", params=None, to_file=None):
+    def set_sheet_data_(self, name, options, module_type="workflow", params=None, _id=None):
         self._post_data = web.input()
-        new_id = '{}_{}'.format(random.randint(1, 1000), datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-        print new_id
+        if not _id:
+            new_id = '{}_{}'.format(random.randint(1, 1000), datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+        else:
+            new_id = _id
         self._sheet_data = {
             'id': new_id,
             'name': name,

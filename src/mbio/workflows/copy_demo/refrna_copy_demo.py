@@ -61,17 +61,17 @@ class RefrnaCopyDemoWorkflow(Workflow):
     def old_task_id(self, time):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         col = db["sg_task"]
-        results = col.find()
-        for result in results:
+        result = col.find_one({"task_id": {"$regex": self.option("task_id") + "_.*_.*"}, "demo_status": "end"})
+        if result:
             old_task_id = result["task_id"]
-            if old_task_id.startswith(self.option("task_id") + "_"):
-            # if old_task_id.startswith("refrna_demo"):
-                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"task_id": self.option("target_task_id")}})
-                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
-                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
-                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"is_demo": 2}})
-                col.find_one_and_update({"_id": result["_id"]}, {"$set": {"created_ts": time}})
-                return old_task_id
+            col.update_one({"_id": result["_id"]}, {"$set": {"task_id": self.option("target_task_id")}})
+            col.update_one({"_id": result["_id"]}, {"$set": {"member_id": self.option("target_member_id")}})
+            col.update_one({"_id": result["_id"]}, {"$set": {"project_sn": self.option("target_project_sn")}})
+            col.update_one({"_id": result["_id"]}, {"$set": {"is_demo": 2}})
+            col.update_one({"_id": result["_id"]}, {"$set": {"created_ts": time}})
+            return old_task_id
+        else:
+            raise Exception("没有备份好的demo数据")
 
     def update_task_id(self, old_task_id, new_task_id, time):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]

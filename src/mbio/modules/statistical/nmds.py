@@ -18,8 +18,9 @@ class NmdsModule(Module):
         self.step.add_steps('distance_calc', 'nmds')
         options = [
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            {"name": "T", "type": "string", "default": "column"}
+            {"name": "otu_table", "type": "infile", "format": "toolapps.table, meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "T", "type": "string", "default": "column"},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # modify by zengjing 20170911
         ]
         self.add_option(options)
         self.matrix = self.add_tool('meta.beta_diversity.distance_calc')
@@ -47,6 +48,15 @@ class NmdsModule(Module):
             self.otu_table = self.t_table(self.option('otu_table').prop['path'])
         else:
             self.otu_table = self.option('otu_table').prop['path']
+        if self.option("group_table").is_set:
+            if self.option('T') == 'row':
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otu_table').prop['row_sample']:
+                        raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
+            else:
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otu_table').prop['col_sample']:
+                        raise Exception('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
 
     def t_table(self, table_file):
         new_table = self.work_dir + '/new_otu_table.xls'

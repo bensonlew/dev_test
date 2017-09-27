@@ -135,7 +135,7 @@ class RefassembleStatTool(Tool):
         """
         all_file = os.listdir(self.option('all_files_dir'))
         for f in all_file:
-            if f.endswith("change_id_merged.fa"):
+            if f.endswith("merged.fa"):
                 files = os.path.join(self.option('all_files_dir'), f)
                 steps = [200, 300, 600, 1000]
                 for step in steps:
@@ -168,7 +168,7 @@ class RefassembleStatTool(Tool):
                 files = os.path.join(self.work_dir, f)
                 steps = [1, 5, 10, 20]
                 for step in steps:
-                    middle_txt = os.path.join(self.work_dir, f + "_" + str(step) + ".txt")
+                    middle_txt = os.path.join(self.work_dir, f + "_" + str(step) + ".test.txt")
                     final_txt = os.path.join(self.work_dir,
                                              f + "_" + str(step) + ".txt")
                     count_trans_or_exons(files, step, middle_txt, final_txt)
@@ -185,7 +185,7 @@ class RefassembleStatTool(Tool):
                 if files.endswith(".txt"):
                     if files != 'log.txt':
                         os.link(self.work_dir + '/' + files, self.output_dir + "/" + files)
-                self.logger.info("设置组装拼接分析结果目录成功")
+            self.logger.info("设置组装拼接分析结果目录成功")
 
         except Exception as e:
             self.logger.info("设置组装拼接分析结果目录失败{}".format(e))
