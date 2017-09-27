@@ -241,8 +241,8 @@ class PtCustomer(Base):
                             try:
                                 ref_main_collection.remove({"sample_id": i})
                                 self.bind_object.logger.info('删除样本{}成功！'.format(i))
-                            except:
-                                raise Exception("删除样本{}失败！".format(i))
+                            except Exception as e:
+                                self.bind_object.logger.info("删除样本{}失败{}！".format(i,e))
                             self.bind_object.logger.info('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
                             raise Exception('{}——该家系信息不存在，请查看{}和{}命名是否正确'.format(name, mom, dad))
             else:

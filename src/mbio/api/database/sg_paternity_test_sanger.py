@@ -2,6 +2,7 @@
 # __author__ = 'moli.zhou'
 import datetime
 import random
+
 from biocluster.api.database.base import Base, report_check
 import re
 from biocluster.config import Config
@@ -9,7 +10,6 @@ from pymongo import MongoClient
 import gridfs
 from mainapp.libs.param_pack import param_pack
 from bson import ObjectId
-
 
 class SgPaternityTest(Base):
     '''
@@ -19,11 +19,10 @@ class SgPaternityTest(Base):
         super(SgPaternityTest, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
         self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
-        self.mongo_client_ref = Config().biodb_mongo_client
-        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']  # 正式机的参考库
+
 
     @report_check
-    def add_sg_father(self,dad,mom,preg,batch_id,member_id,type=None):
+    def add_sg_father(self,dad,mom,preg,batch_id,member_id):
         '''
         添加father主表，一个批次有多少个样本就有多少个主表
         :param dad:父本id
@@ -36,46 +35,55 @@ class SgPaternityTest(Base):
         temp_d = re.search("WQ([0-9]*)-F.*", dad)
         temp_m = re.search(".*-(M.*)", mom)
         temp_s = re.search(".*-(S.*)", preg)
-        if type == 'free':  # 自由交互的主表需要完整记录样本名
-            name = 'check_' + dad + '_' + mom + '_' + preg
-        else:
-            name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
+        name = dad + "-" + temp_m.group(1) + "-" + temp_s.group(1)
         # 信息增加modify by zhouxuan 20170705
 
         pt_collection = self.database["sg_pt_customer"]
-        # -T 表示重上机信息不变 # modify by zhouxuan 20170728
-        # 根据现在的样本名绑定家系信息中的name方便查找家系信息
-        if temp_d and temp_m and temp_s:
-            if re.match('(.*-T)([0-9])', dad):
-                dad_ = ('-').join(dad.split('-')[:-1])
-            else:
-                dad_ = dad
-            if re.match('(.*-T)([0-9])', mom):
-                mom_ = ('-').join(mom.split('-')[:-1])
-                temp_m_ = re.search(".*-(M.*)", mom_)
-            else:
-                temp_m_ = temp_m
-            message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
+        # if re.match(".*-(C.*)", preg):  # 孩子重送样的时候用的是妈妈的重送样的样本(pt医检表里面妈妈的信息会变)
+        #     pt_serial_number = preg.split('-')[0]
+        #     sample_mom = 'MC.*'
+        #     res = pt_collection.find_one({"pt_serial_number": pt_serial_number, "mom_id_": {"$regex": sample_mom}})
+        #     message_id = res['name']
+        # else:
+        if re.match('(.*-T)([0-9])', dad):  # -T 表示重上机信息不变 # modify by zhouxuan 20170728
+            dad_ = ('-').join(dad.split('-')[:-1])
         else:
-            message_id = 'free_WQ'
-        # 对于自由组合而言，只有正确的家系生成的message_id才会有用
+            dad_ = dad
+        if re.match('(.*-T)([0-9])', mom):
+            mom_ = ('-').join(mom.split('-')[:-1])
+            temp_m_ = re.search(".*-(M.*)", mom_)
+        else:
+            temp_m_ = temp_m
+        message_id = dad_ + "-" + temp_m_.group(1)  # 只有父本和母本的名字
 
-        result = pt_collection.find_one({"name": message_id})  # 自由组合可能没有这个
+        result = pt_collection.find_one({"name": message_id})
         if result:
             report_status = result['report_status']
             accept = result['accept_time']
+            # m_accept = result['M_accept_time']
             if report_status == '是':
                 report_status = '1'
             else:
                 report_status = '0'
-            time = accept.split('-')
-            accept_time = datetime.datetime(int(time[0]), int(time[1]), int(time[2]), 0, 0)
-            report_time = accept_time + datetime.timedelta(days=5)
-        else:  # 当自由组合找不到的时候，
-            report_status = '0'
-            report_time = datetime.datetime.now()
+        else:
             self.bind_object.logger.info('该家系信息不全，请查看：{}'.format(message_id))
-            # 这边不需要raise 可以忍受有错误，一方面前面已经判断过一次了，所以不用再次进行判断，另一方面自由组合不需要一定符合家系信息
+            raise Exception('{}-该家系信息不全，请查看是否是样本名存在问题'.format(message_id))
+        # if f_accept > m_accept:  # 这两个时间格式必须一致目前是2017-08-15
+        #     accept = f_accept
+        # else:
+        #     accept = m_accept
+        time = accept.split('-')
+        accept_time = datetime.datetime(int(time[0]), int(time[1]), int(time[2]), 0, 0)
+        # if re.match('(.*)(C)(.*)', temp_s.group(1)):
+        #     report_time = accept_time + datetime.timedelta(days=3)
+        # else:
+        #     self.bind_object.logger.info('此时胎儿不为重送样：{}'.format(preg))
+        report_time = accept_time + datetime.timedelta(days=5)
+        # t = []
+        # t.append(report_time.year)
+        # t.append(report_time.month)
+        # t.append(report_time.day)
+        # ti = ('-').join(str(t))
         if len(str(report_time.month)) == 1:
             ti = str(report_time.year) + '0' + str(report_time.month)
         else:
@@ -84,6 +92,8 @@ class SgPaternityTest(Base):
             ti = ti + '0' + str(report_time.day)
         else:
             ti += str(report_time.day)
+
+        # "name": family_no.group(1)
         insert_data = {
             "dad_id": dad,
             "mom_id": mom,
@@ -113,21 +123,18 @@ class SgPaternityTest(Base):
         :param pt_father_id:pt_father交互表的_id
         :param dad_id:父本id
         '''
-        self.bind_object.logger.info("father主表更新1")
         collection_result = self.database['sg_pt_father_analysis']
         collection = self.database['sg_father']
-        # case = collection.find_one({"_id":father_id})
+        case = collection.find_one({"_id":father_id})
         # dad_id = case['dad_id']
-        if collection_result.find_one({'dad_id':dad_id}):
-            self.bind_object.logger.info("dad_id存在")
+        if  collection_result.find_one({'dad_id':dad_id}):
             result_case = collection_result.find_one({'pt_father_id':pt_father_id, "dad_id":dad_id})
         else:
             result_case = collection_result.find_one({'pt_father_id': pt_father_id, "dad_id": 'NA'})
-            self.bind_object.logger.info("dad_id为NA")
         result = result_case['result']
 
         try:
-            collection.find_one_and_update({"_id": father_id}, {'$set': {"pt_father_id": pt_father_id,'result':result}})
+            collection.update({"_id": father_id}, {'$set': {"pt_father_id": pt_father_id,'result':result}})
         except Exception as e:
             self.bind_object.logger.error('更新father主表结果出错：{}'.format(e))
         else:
@@ -176,8 +183,7 @@ class SgPaternityTest(Base):
         '''
         try:
             collection = self.database['sg_pt_father']
-            # collection.update({"_id": pt_father_id}, {'$set': {"status": "end"}})
-            collection.find_one_and_update({"_id": pt_father_id}, {'$set': {"status": "end"}})
+            collection.update({"_id": pt_father_id}, {'$set': {"status": "end"}})
         except Exception as e:
             self.bind_object.logger.error('更新pt_father主表状态出错：{}'.format(e))
         else:
@@ -249,10 +255,11 @@ class SgPaternityTest(Base):
                 line = line.split('\t')
                 if line[0] == "chrom":
                     continue
-                # if line[44] == 'Mis':
-                #     Mis = '错配'
-                # else:
-                #     Mis = '-'
+                if line[44] == 'Mis':
+                    Mis = '错配'
+                else:
+                    Mis = '-'
+
                 if line[8] == 'NA':
                     dad_rf = 'NA'
                 else:
@@ -313,7 +320,7 @@ class SgPaternityTest(Base):
                     "mj_dp": line[41],
                     "mj_gene": line[42],
                     "is_test": line[43],
-                    "is_mis": line[44],
+                    "is_mis": Mis,
                     "mustbe": line[45],
                     "mustnotbe": line[46],
                     "good": line[47],
@@ -370,9 +377,9 @@ class SgPaternityTest(Base):
                 temp_fp = eval(line[4])
                 RCP = temp_fp / (temp_fp + 1)
                 if RCP > 0.5:
-                    rcp_result = "> 99.99%"
+                    rcp_result = ">99.99%"
                 else:
-                    rcp_result = "< 0.01%"
+                    rcp_result = "<0.01%"
                 insert_data = {
                     # "task_id": self.bind_object.id,
                     "pt_father_id": pt_father_id,
@@ -385,7 +392,7 @@ class SgPaternityTest(Base):
                     "eff_rate": line[6],
                     "ineff_rate": line[7],
                     "result": line[8],
-                    "rcp": rcp_result,
+                    "rcp": rcp_result
                 }
                 sg_pt_family_detail.append(insert_data)
             try:
@@ -412,10 +419,6 @@ class SgPaternityTest(Base):
                     qc = 'qualified'
                 else:
                     qc = 'unqualified'
-                if eval(line[7]) >= 95:
-                    mom_preg = '{}  Yes'.format(line[7])
-                else:
-                    mom_preg = '{}  No'.format(line[7])
                 insert_data = {
                     # "task_id": self.bind_object.id,
                     "pt_father_id": pt_father_id,
@@ -426,8 +429,8 @@ class SgPaternityTest(Base):
                     "s_signal": line[4],
                     "mom_id": line[5],
                     "dp_mom": line[6],
-                    "mom_preg": mom_preg,
-                    "qc": qc
+                    "mom_preg": line[7],
+                    "qc":qc
                 }
                 sg_pt_family_detail.append(insert_data)
             try:
@@ -450,10 +453,6 @@ class SgPaternityTest(Base):
                 line = line.split('\t')
                 if line[0] == "检测位点编号":
                     continue
-                if line[5] == 'Mis':
-                    Mis = '错配'
-                else:
-                    Mis = '-'
                 insert_data = {
                     # "task_id": self.bind_object.id,
                     "pt_father_id": pt_father_id,
@@ -462,7 +461,7 @@ class SgPaternityTest(Base):
                     "dad_geno": line[2],
                     "mom_geno": line[3],
                     "preg_geno": line[4],
-                    "is_mis": Mis
+                    "is_mis": line[5]
                 }
                 sg_pt_family_detail.append(insert_data)
             try:
@@ -507,27 +506,18 @@ class SgPaternityTest(Base):
                     rcp_result = ">99.99%"
                 else:
                     rcp_result = "<0.01%"
-                result = self.database_ref['sg_pt_ref_main'].find_one({"sample_id": line[0],
-                                                                      "storage_time": {"$exists": True}})  # 正式机
-                # result = self.database['sg_pt_ref_main'].find_one({"sample_id": line[0],
-                #                                                    "storage_time": {"$exists": True}})   # 测试机
-                if result:
-                    dad_time = result['storage_time']  # 改样本的入库时间，之前的都没有(在sanger上跑过的才会有)
-                else:
-                    dad_time = ''
                 insert_data = {
                     "pt_father_id": pt_father_id,
                     "dad_id": line[0],
                     "test_pos_n": line[1],
                     "err_pos_n": line[2],
                     "err_rate": line[3],
-                    "fq": format(eval(line[4]), '.2e'),  # 科学计数法保留两位
+                    "fq": line[4],
                     "dp": line[5],
                     "eff_rate": line[6],
                     "ineff_rate": line[7],
                     "result": line[8],
-                    "rcp": rcp_result,
-                    "dad_time": dad_time
+                    "rcp": rcp_result
                 }
                 sg_pt_family_detail.append(insert_data)
             try:
@@ -538,19 +528,17 @@ class SgPaternityTest(Base):
             else:
                 self.bind_object.logger.info("导入查重表格成功")
 
-    def sample_size(self, sample_id, batch_id, tab_none=None):
+    def sample_size(self, sample_id, batch_id):
         collection = self.database['sg_pt_problem_sample']
-        # self.mongo_client_ref = Config().biodb_mongo_client   # 线上
-        # self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
-        ref_data = self.database_ref['sg_pt_ref_main'].find_one({"sample_id": sample_id})  # 线上
-        # ref_data = self.database['sg_pt_ref_main'].find_one({"sample_id": sample_id})  # 线下
+        self.mongo_client_ref = Config().biodb_mongo_client
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
+        ref_data = self.database_ref['sg_pt_ref_main'].find_one({"sample_id": sample_id})
         split_data_name = ref_data["split_data_name"]
         try:
             collection.insert_one({'sample_id': sample_id,
                                    'split_data_name': split_data_name,
                                    'batch_id': batch_id,
-                                   'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                   'tab_none': tab_none})
+                                   'time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
         except Exception as e:
             self.bind_object.logger.error('导入问题样本出错：{}'.format(e))
             raise Exception('导入问题样本出错：{}'.format(e))
