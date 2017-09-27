@@ -141,7 +141,7 @@ class Geneset(Base):
             self.bind_object.logger.info("导入%s信息成功!" % readsnum_path)
 
     @report_check
-    def add_geneset_detail_readsnum_relative(self, geneset_id, readsnum_relative):  # 丰度前100的基因的reads number relative
+    def add_geneset_readsr(self, geneset_id, readsnum_relative):  # 丰度前100的基因的reads number relative
         if not isinstance(geneset_id, ObjectId):  # 检查传入的geneset_id是否符合ObjectId类型
             if isinstance(geneset_id, types.StringTypes):  # 如果是string类型，则转化为ObjectId
                 geneset_id = ObjectId(geneset_id)
