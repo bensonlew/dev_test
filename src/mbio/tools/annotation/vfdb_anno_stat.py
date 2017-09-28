@@ -52,7 +52,8 @@ class VfdbAnnoStatTool(Tool):
     def __init__(self, config):
         super(VfdbAnnoStatTool, self).__init__(config)
         self._version = "1.0"
-        self.script = '/bioinfo/annotation/scripts/vfdb_anno_abudance.pl'
+        self.perl_path = '/program/perl-5.24.0/bin/perl'
+        self.script = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/vfdb_anno_abudance.pl'
 
     def run(self):
         """
@@ -66,7 +67,7 @@ class VfdbAnnoStatTool(Tool):
 
     def run_vfdb_stat(self):
         self.logger.info("start vfdb_stat")
-        cmd = "{} -c {} -pre {} -p {} -o {}".format(self.script, self.option('vfdb_core_anno').prop['path'],self.option('vfdb_predict_anno').prop['path'],self.option('reads_profile_table').prop['path'], self.output_dir)
+        cmd = "{} {} -c {} -pre {} -p {} -o {}".format(self.perl_path, self.script, self.option('vfdb_core_anno').prop['path'],self.option('vfdb_predict_anno').prop['path'],self.option('reads_profile_table').prop['path'], self.output_dir)
         command = self.add_command('vfdb_profile', cmd).run()
         self.wait(command)
         if command.return_code == 0:
@@ -76,7 +77,7 @@ class VfdbAnnoStatTool(Tool):
             raise Exception("vfdb_stat failed")
 
     def set_output(self):
-        if len(os.listdir(self.output_dir)) == 6:
+        if len(os.listdir(self.output_dir)) == 7:
             self.logger.info("结果文件正确生成")
         else:
             self.logger.info("文件个数不正确，请检查")

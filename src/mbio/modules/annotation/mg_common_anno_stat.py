@@ -203,14 +203,14 @@ class MgCommonAnnoStatModule(Module):
             self.relink(obj.output_dir + '/tax_profile.xls',
             self.work_dir + '/tmp_nrstat_result/' + str(self.nrstat_number) + '_tax_profile.xls')
         elif event['data'] == 'nr_level':
-            nr_anno = os.path.join(self.nr_level.output_dir,"tmp_taxons_anno.xls")
-            new_nr_anno = os.path.join(self.output_dir, "nr_tax_level/nr_anno_result.xls")
-            self.relink(nr_anno, new_nr_anno)
+            # nr_anno = os.path.join(self.nr_level.output_dir,"tmp_gene_nr_anno.xls")
+            # new_nr_anno = os.path.join(self.output_dir, "nr_tax_level/gene_nr_anno.xls")
+            #self.relink(nr_anno, new_nr_anno)
             self.linkdir(obj.output_dir, "nr_tax_level")
         elif event['data'] == 'eggnog':
             self.remkdir(self.work_dir + '/tmp_eggnog')
             self.eggnog += 1
-            cog_old = obj.output_dir + '/cog_anno_result.xls'
+            cog_old = obj.output_dir + '/gene_cog_anno.xls'
             linkfile = self.work_dir + '/tmp_eggnog/' + 'eggnog_{}.xls'.format(str(self.eggnog))
             self.relink(cog_old,linkfile)
         elif event['data'] == 'cog_stat':
@@ -222,7 +222,7 @@ class MgCommonAnnoStatModule(Module):
         elif event['data'] == 'kegg_anno':
             self.kegg_anno += 1
             self.remkdir(self.work_dir + '/tmp_kegg_anno/')
-            self.relink(obj.output_dir + '/kegg_anno_result.xls',
+            self.relink(obj.output_dir + '/gene_kegg_anno.xls',
                     self.work_dir + '/tmp_kegg_anno/' + 'kegg_anno_result{}.xls'.format(str(self.kegg_anno)))
             self.relink(obj.output_dir + '/kegg_enzyme_list.xls',
                     self.work_dir + '/tmp_kegg_anno/' + 'kegg_enzyme_list{}.xls'.format(str(self.kegg_anno)))
