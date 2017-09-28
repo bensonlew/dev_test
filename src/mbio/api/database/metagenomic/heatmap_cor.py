@@ -49,14 +49,11 @@ class HeatmapCor(Base):
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         collection = self.db["heatmap_cor"]
+        inserted_id = collection.insert_one(insert_data).inserted_id
         correlation_path = dir_path.rstrip('/') + '/pearsons_correlation.xls'
         pvalue_path = dir_path.rstrip('/') + '/pearsons_pvalue.xls'
-        self.add_heatmap_cor_detail(correlation_path, "correlation", heatmap_cor_id=None, species_tree=None,
-                                    env_tree=None,
-                                    env_list=None, species_list=None)
-        self.add_heatmap_cor_detail(pvalue_path, "pvalue", heatmap_cor_id=None, species_tree=None, env_tree=None,
-                                    env_list=None, species_list=None)
-        inserted_id = collection.insert_one(insert_data).inserted_id
+        self.add_heatmap_cor_detail(correlation_path, "correlation", heatmap_cor_id=inserted_id)
+        self.add_heatmap_cor_detail(pvalue_path, "pvalue", heatmap_cor_id=inserted_id)
         return inserted_id
 
     @report_check
