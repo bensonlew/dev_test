@@ -71,7 +71,7 @@ class MgKeggLevelTool(Tool):
     def merge_table(self):
         kegg_number = 0
         profile_file = os.listdir(self.option('kegg_result_dir').prop['path'])
-        self.anno_result = os.path.join(self.work_dir, "kegg_anno_result.xls")
+        self.anno_result = os.path.join(self.work_dir, "tmp_kegg_anno.xls")
         if os.path.exists(self.anno_result):
             os.remove(self.anno_result)
         for i in profile_file:
@@ -92,7 +92,7 @@ class MgKeggLevelTool(Tool):
     def run_kegg_level_anno(self):
         kegg_anno = self.anno_result
         self.level_anno =  self.work_dir + "/kegg_level_anno.xls"
-        cmd = self.python_path + ' {} -i {} -o {} '.format(self.python_script, kegg_anno, self.level_anno)
+        cmd = self.python_path + ' {} -i {} -o {} '.format(self.python_script, kegg_anno, self.work_dir)
         self.logger.info(cmd)
         command = self.add_command('kegg_level_anno', cmd).run()
         self.wait(command)
@@ -115,8 +115,9 @@ class MgKeggLevelTool(Tool):
             raise Exception("kegg_stat failed")
 
     def set_output(self):
+        os.link(self.work_dir + "/gene_kegg_anno_all.xls", self.output_dir + "/gene_kegg_anno.xls")
         self.logger.info("set_output")
-        if len(os.listdir(self.output_dir)) == 3:
+        if len(os.listdir(self.output_dir)) == 4:
             self.logger.info("OUTPUT RIGHT")
         else:
             raise Exception("OUTPUT WRONG")
