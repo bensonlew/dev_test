@@ -4,8 +4,6 @@
 import web
 import json
 import datetime
-from bson import ObjectId
-import types
 from mainapp.libs.signature import check_sig
 from mainapp.libs.param_pack import *
 from mainapp.models.mongo.ref_rna import RefRna
@@ -74,8 +72,12 @@ class BlastAnnotationAction(RefRnaController):
             "update_info": json.dumps(update_info)
         }
         to_file = ["ref_rna.export_blast_table(blastout_table)"]
-        self.set_sheet_data(name="ref_rna.report.blast_annotation", options=options,
-                            main_table_name="AnnotationStat/" + main_table_name, task_id=stat_info["task_id"], project_sn=stat_info["project_sn"], to_file=to_file)
+        self.set_sheet_data(name="ref_rna.report.blast_annotation",
+                            options=options,
+                            main_table_name="AnnotationStat/" + main_table_name,
+                            task_id=stat_info["task_id"],
+                            project_sn=stat_info["project_sn"],
+                            to_file=to_file, )
         task_info = super(BlastAnnotationAction, self).POST()
         task_info["content"] = {"ids": {"id": str(main_table_id), "name": main_table_name}}
         return json.dumps(task_info)
@@ -83,50 +85,83 @@ class BlastAnnotationAction(RefRnaController):
     def check_options(self, data):
         """
         检查网页端传来的参数是否正确
+         ["stat_id", "nr_evalue", "nr_score", "nr_similarity", "nr_identity",
+          "swissprot_evalue", "swissprot_score", "swissprot_similarity",
+           "swissprot_identity", "submit_location"]
         """
-        params_name = ["stat_id", "nr_evalue", "nr_score", "nr_similarity", "nr_identity", "swissprot_evalue", "swissprot_score", "swissprot_similarity", "swissprot_identity", "submit_location"]
-        success = []
+        warn_info = list()
         if not (hasattr(data, "stat_id")):
-            success.append("缺少参数stat_id")
-        # if not isinstance(data.stat_id, ObjectId):
-        #     if isinstance(data.stat_id, types.StringTypes):
-        #         pass
-        #     else:
-        #         success.append('stat_id,必须为ObjectId对象或其对应的字符串！')
+            warn_info.append("缺少参数stat_id")
+
         if not (hasattr(data, "task_type")):
-            success.append("缺少参数task_type")
+            warn_info.append("缺少参数task_type")
+
         if not (hasattr(data, "nr_evalue")):
             data.nr_evalue = 1e-3
         else:
-            if float(data.nr_evalue) > 1e-3:
-                success.append("NR E-value值需小于1e-3")
+            nr_evalue = str(data.nr_evalue)
+            if not nr_evalue.isdigit():
+                warn_info.append('NR E-value值必须是数字')
+            elif float(data.nr_evalue) > 1e-3:
+                warn_info.append("NR E-value值必须小于1e-3")
+
         if not (hasattr(data, "nr_similarity")):
             data.nr_similarity = 0
         else:
-            if float(data.nr_similarity) < 0 or float(data.nr_similarity) > 100:
-                success.append("NR Similarity值需在0-100范围内")
+            nr_sim = str(data.nr_similarity)
+            if not nr_sim.isdigit():
+                warn_info.append('NR similarity 值必须是数字')
+            elif float(data.nr_similarity) < 0 or float(data.nr_similarity) > 100:
+                warn_info.append("NR Similarity值需在0-100范围内")
+
         if not (hasattr(data, "nr_identity")):
             data.nr_identity = 0
         else:
-            if float(data.nr_identity) < 0 or float(data.nr_identity) > 100:
-                success.append("NR Identity值需在0-100范围内")
+            nr_identity = str(data.nr_identity)
+            if not nr_identity.isdigit():
+                warn_info.append('NR Identity值必须是数字')
+            elif float(data.nr_identity) < 0 or float(data.nr_identity) > 100:
+                warn_info.append("NR Identity值需在0-100范围内")
+
         if not (hasattr(data, "nr_score")):
             data.nr_score = 0
+        else:
+            nr_score = str(data.nr_score)
+            if not nr_score.isdigit():
+                warn_info.append('NR score value 必须是数字')
+
         if not (hasattr(data, "swissprot_similarity")):
             data.swissprot_similarity = 0
         else:
-            if float(data.swissprot_similarity) < 0 or float(data.swissprot_similarity) > 100:
-                success.append("Swiss-Prot Similarity值需在0-100范围内")
+            ss = str(data.swissprot_similarity)
+            if not ss.isdigit():
+                warn_info.append('Swiss-port Similarity 必须是数字')
+            elif float(data.swissprot_similarity) < 0 or float(data.swissprot_similarity) > 100:
+                warn_info.append("Swiss-Prot Similarity值需在0-100范围内")
+
         if not (hasattr(data, "swissprot_evalue")):
             data.swissprot_evalue = 1e-3
         else:
-            if float(data.swissprot_evalue) > 1e-3:
-                success.append("Swiss-Prot E-value值需小于1e-3")
+            se = str(data.swissprot_evalue)
+            if not se.isdigit():
+                warn_info.append('Swiss-Prot E-value必须是数字')
+            elif float(data.swissprot_evalue) > 1e-3:
+                warn_info.append("Swiss-Prot E-value值需小于1e-3")
+
         if not (hasattr(data, "swissprot_identity")):
             data.swissprot_identity = 0
         else:
-            if float(data.swissprot_identity) < 0 or float(data.swissprot_identity) > 100:
-                success.append("Swiss-Prot Identity值需在0-100范围内")
+            si = str(data.swissprot_identity)
+            if not si.isdigit():
+                warn_info.append('Swiss-Prot Identity 必须是数字')
+            elif float(data.swissprot_identity) < 0 or float(data.swissprot_identity) > 100:
+                warn_info.append("Swiss-Prot Identity值需在0-100范围内")
+
         if not (hasattr(data, "swissprot_score")):
             data.swissprot_score = 0
-        return success
+        else:
+            sc = str(data.swissprot_score)
+            if not sc.isdigit():
+                warn_info.append('Swiss-Prot Score 必须是数字')
+
+        return ";".join(warn_info)
