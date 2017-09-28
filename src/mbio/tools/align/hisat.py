@@ -128,27 +128,27 @@ class HisatTool(Tool):
             ref_path = index_ref
         if self.option("seq_method") == "PE":
             if self.option("assemble_method") == "cufflinks":
-                cmd = "{}hisat2 -q --dta-cufflinks -x {} -1 {} -2 {} -S \
+                cmd = "{}hisat2 -p 8 -q --dta-cufflinks -x {} -1 {} -2 {} -S \
                 accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("left_reads").prop["path"],
                            self.option("right_reads").prop["path"])
             elif self.option("assemble_method") == "stringtie":
-                cmd = "{}hisat2 -q --dta -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".\
+                cmd = "{}hisat2 -p 8 -q --dta -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("left_reads").prop["path"],
                            self.option("right_reads").prop["path"])
             else:
-                cmd = "{}hisat2 -q -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".\
+                cmd = "{}hisat2 -p 8 -q -x {} -1 {} -2 {} -S accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("left_reads").prop["path"],
                            self.option("right_reads").prop["path"])
         else:        
             if self.option("assemble_method") == "cufflinks":
-                cmd = "{}hisat2 -q --dta-cufflinks -x {} {} -S accepted_hits.unsorted.sam".\
+                cmd = "{}hisat2 -p 8 -q --dta-cufflinks -x {} {} -S accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
             elif self.option("assemble_method") == "stringtie":
-                cmd = "{}hisat2 -q --dta -x {} {} -S accepted_hits.unsorted.sam".\
+                cmd = "{}hisat2 -p 8  -q --dta -x {} {} -S accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
             else:
-                cmd = "{}hisat2 -q -x {} {} -S accepted_hits.unsorted.sam".\
+                cmd = "{}hisat2 -p 8 -q -x {} {} -S accepted_hits.unsorted.sam".\
                     format(self.hisat_path, ref_path, self.option("single_end_reads").prop["path"])
         if self.option("strand_specific"):
             cmd += " --rna-strandness RF"

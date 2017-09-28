@@ -49,7 +49,7 @@ class CoverageAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 10
+        self._cpu = 2
         self._memory = '10G'
 
     def end(self):

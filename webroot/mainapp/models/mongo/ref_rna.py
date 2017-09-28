@@ -175,8 +175,16 @@ class RefRna(Meta):
             else:
                 return True
 
+    def insert_seq(self, mongo_data):
+        task_id = mongo_data["task_id"]
+        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = mongodb['sg_query_seq']
+        result = collection.find_one({"task_id": task_id})
+        if result:
+            collection.find_one_and_update({"task_id": task_id}, {"$set": mongo_data})
+        else:
+            collection.insert_one(mongo_data)
 
-            
 if __name__ == "__main__":
     data=RefRna()
     d = data.get_express_id("tsg_2000","fpkm","featurecounts")

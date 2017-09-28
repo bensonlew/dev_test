@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # __author__ = "shenghe"
 # last_modify:20160815
 
@@ -87,6 +87,7 @@ class GoEnrichTool(Tool):
         self.out_go_graph = self.output_dir + '/go_lineage'
         self.image_magick_path = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/"
         self.out_adjust_graph = self.output_dir + '/adjust_lineage'
+        self.class_code_dict = {}
 
     def check_list(self):
         """
@@ -111,12 +112,51 @@ class GoEnrichTool(Tool):
                     fw.write(item)
         return new_file_name
 
+    def get_geneset_type(self, diff_file):
+        """
+        查看基因集是已知基因集还是已知基因+新基因 刘彬旭
+        """
+        # class_code_file = self.option("class_code_info").prop["path"]
+        # class_f = open(class_code_file, "r")
+        # class_f.readline()
+
+        #for line in class_f.readlines():
+        #    gene = line.split('\t')[0]
+        #    class_code = line.strip('\n').split('\t')[2]
+        #    self.class_code_dict[gene] = class_code
+
+        #class_f.close()
+        gene_set_f = open(diff_file, 'r')
+        for line in gene_set_f.readlines():
+            if line.startswith('MSTR') or line.startswith('TCON') or line.startswith('XLOC'):
+                gene_set_f.close()
+                return 'all'
+        gene_set_f.close()
+        return 'known'
+
+    def choose_known_background(self):
+        """
+        如果基因集中仅含有已知基因，修改背景注释为已知基因注释 刘彬旭
+        """
+        go_list_file = self.option("go_list").prop["path"]
+        new_go_list = self.work_dir + "/known_go.list"
+        with open(new_go_list, "w") as ngfw, open(go_list_file, "r") as go_list_f:
+            for line in go_list_f.readlines():
+                if line.startswith('MSTR') or line.startswith('TCON') or line.startswith('XLOC'):
+                    pass
+                else:
+                    ngfw.write(line)
+            return new_go_list
+
     def run_enrich(self):
-        cmd0 = "less {}| cut -f1 > {}/all.list".format(self.option('go_list').path, self.work_dir)
+        back_ground = self.option('go_list').prop["path"]
+        if self.get_geneset_type(self.option("diff_list").prop["path"]) == 'known':
+            back_ground = self.choose_known_background()
+        cmd0 = "less {}| cut -f1 > {}/all.list".format(back_ground, self.work_dir)
         os.system(cmd0)
         new_file_name = self.check_list()  # edited by shijin 除去背景中不存在的基因
         cmd = self.python_path + ' ' + self.config.SOFTWARE_DIR + self.go_enrich_path + ' '
-        cmd = cmd + new_file_name + ' ' + self.work_dir + "/all.list" + ' ' + self.option('go_list').path
+        cmd = cmd + new_file_name + ' ' + self.work_dir + "/all.list" + ' ' + back_ground
         cmd = cmd + ' --pval ' + self.option('pval') + ' --indent' + ' --method ' + self.option('method') + ' --outfile ' + self.out_enrich_fp
         cmd = cmd + ' --obo ' + self.obo
         command = self.add_command('go_enrich', cmd)

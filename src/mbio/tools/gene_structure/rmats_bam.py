@@ -102,7 +102,7 @@ class RmatsBamAgent(Agent):
         :return:
         '''
         self._cpu = 10
-        self._memory = '100G'
+        self._memory = '30G'
     
     def end(self):
         """
