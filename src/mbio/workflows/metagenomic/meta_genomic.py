@@ -128,7 +128,7 @@ class MetaGenomicWorkflow(Workflow):
         }
         if self.option('test'):
             self.option('main_id', '111111111111111111111111')
-            self.qc_fastq = self.option('in_fastq')  # 暂未加入质控步骤，输入质控序列
+            #self.qc_fastq = self.qc.option('in_fastq')  # 暂未加入质控步骤，输入质控序列
 
     def check_options(self):
         """
@@ -206,7 +206,7 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_sequence(self):
         opts = {
-            'fastq_dir': self.qc_fastq,
+            'fastq_dir': self.option('in_fastq'),
         }
         self.set_run(opts, self.sequence, 'sequence', self.step.sequence)
 
@@ -220,11 +220,14 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_rm_host(self):
         opts = {
-            'fastq_dir': self.qc_fastq,
             'fq_type': 'PSE',
             'ref_database': self.option('ref_database'),
             'ref_undefined': self.option('ref_undefined'),
         }
+        if self.option('qc'):
+            opts['fastq_dir'] = self.qc.option('sickle_dir')
+        else:
+            opts['fastq_dir'] = self.option('in_fastq')
         self.set_run(opts, self.rm_host, 'rm_host', self.step.rm_host)
 
     def run_assem(self):
@@ -234,8 +237,10 @@ class MetaGenomicWorkflow(Workflow):
         }
         if self.option('rm_host'):
             opts['QC_dir'] = self.rm_host.option('result_fq_dir')
+        elif self.option('qc'):
+            opts['QC_dir'] = self.qc.option('sickle_dir')
         else:
-            opts['QC_dir'] = self.qc_fastq
+            opts['QC_dir'] = self.option('in_fastq')
         if self.option('assemble_type') == 'soapdenovo':
             self.set_run(opts, self.assem_soapdenovo, 'assem', self.step.assem)
         else:
@@ -262,12 +267,17 @@ class MetaGenomicWorkflow(Workflow):
     def run_gene_set(self):
         opts = {
             'gene_tmp_fa': self.gene_predict.option('out'),
-            'QC_dir': self.qc_fastq,
             'insertsize': self.option('insertsize'),
             'cdhit_identity': self.option('cdhit_identity'),
             'cdhit_coverage': self.option('cdhit_coverage'),
             'soap_identity': self.option('soap_identity'),
         }
+        if self.option('rm_host'):
+            opts['QC_dir'] = self.rm_host.option('result_fq_dir')
+        elif self.option('qc'):
+            opts['QC_dir'] = self.qc.option('sickle_dir')
+        else:
+            opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
         self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance')
 
