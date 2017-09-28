@@ -125,6 +125,7 @@ class DbrdaAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "db_rda分析结果目录"],
             ["./db_rda_sites.xls", "xls", "db_rda样本坐标表"],
+            ["./db_rda_importance.xls", "xls", "db_rda主成分解释度"], ##add by zhujuan 2017.08.21
             ["./db_rda_species.xls", "xls", "db_rda物种坐标表"],
             ["./db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
             ["./db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
@@ -269,6 +270,7 @@ class DbrdaTool(Tool):
         # self.logger.info('运行dbrda_r.py程序计算Dbrda成功')
         if return_mess == 0:
             self.linkfile(self.work_dir + '/db_rda_sites.xls', 'db_rda_sites.xls')
+            self.linkfile(self.work_dir + '/db_rda_cont.xls','db_rda_importance.xls') ##add by zhujuan 20170821
             if not self.option('dis_matrix').is_set:
                 self.linkfile(self.work_dir + '/db_rda_species.xls', 'db_rda_species.xls')
             lines = open(self.work_dir + '/env_data.temp').readlines()
