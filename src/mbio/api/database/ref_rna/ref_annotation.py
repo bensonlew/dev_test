@@ -827,8 +827,7 @@ class RefAnnotation(Base):
                                     funlist['NOG'][fun1].append(nog)
                         except:
                             pass
-
-                        else:
+                    else:
                         try:
                             funlist['NOG'][fun1] = item[5].split(";")
                         except:

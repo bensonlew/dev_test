@@ -187,14 +187,12 @@ class DiffStat(object):
                         control_fpkm, other_fpkm, control_fpkm_log2, other_fpkm_log2,
                         control_count_log2, other_count_log2, '%0.4g' % logfc, '%0.4g' % pvalue,
                         '%0.4g' % fdr, sig, reg, ncbi))
-
-                else: 
+                else:
                     w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
                         gene, control_count, other_count, control_fpkm, other_fpkm,
                         control_fpkm_log2, other_fpkm_log2, control_count_log2,other_count_log2,
                         '%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
                     
-
 if __name__ == "__main__":
     pass
     """
@@ -211,5 +209,3 @@ if __name__ == "__main__":
     # # print a.express_info
     # a.diff_stat(express_info=a.express_info, edgr_result='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/DiffExp/edger_result/genes.counts.matrix.E18_1_vs_E18_2.edgeR.DE_results', control='E18_1', other='E18_2', output='/mnt/ilustre/users/sanger-dev/workspace/20161101/TestBase_tsn_50/ExpAnalysis/MergeRsem/', group_info=None, regulate=True, diff_ci=0.05)
     """
-
-
