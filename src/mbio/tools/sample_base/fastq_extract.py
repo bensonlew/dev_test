@@ -40,7 +40,7 @@ class FastqExtractAgent(Agent):
 
     def set_resource(self):
         self._cpu = 4
-        self._memory = "4G"
+        self._memory = "10G"
 
 
 class Sample(object):
@@ -82,6 +82,8 @@ class FastqExtractTool(Tool):
     def parse_fastq(self, f_path):
         with open(f_path) as fastq:
             for line in fastq:
+                self.logger.info(line)
+                self.logger.info("111")
                 m = re.match("@(.+)_(\d+)", line)
                 if not m:
                     self.set_error("fastq文件格式不符合要求，第一行形式应为应为@样本名_序列号")
@@ -89,7 +91,7 @@ class FastqExtractTool(Tool):
                 sample_name = m.group(1)
                 sample = self.return_sample(sample_name)
                 try:
-                    sample.add_new_fastq(line, next(fastq), next(fastq), next(fastq))
+                    sample.add_new_fastq(line, next(fastq), next(fastq), next(fastq))  # 将序列文件拆成多个单样本fq文件
                 except:
                     self.set_error("fastq文件缺失，请检查后几行文件是否完整")
                     raise Exception("fastq文件缺失，请检查后几行文件是否完整")

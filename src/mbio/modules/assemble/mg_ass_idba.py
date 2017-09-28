@@ -306,7 +306,7 @@ class MgAssIdbaModule(Module):
         opts = ({
             'mem': 100,  # 使用多少内存需要测试
             'mem_mode': 'mem',
-            'sample_name': 'megahit',
+            'sample_name': 'Megahit_Mix',
         })
         file_list = os.listdir(self.cat_reads.output_dir)
         for file in file_list:

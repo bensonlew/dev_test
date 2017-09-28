@@ -8,6 +8,7 @@ from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import os
 
+
 class MgNrTaxLevelAgent(Agent):
     """
     nr注释的level统计
@@ -17,6 +18,7 @@ class MgNrTaxLevelAgent(Agent):
         super(MgNrTaxLevelAgent, self).__init__(parent)
         options = [
             {"name": "nr_taxon_profile_dir", "type": "infile", "format": "annotation.mg_anno_dir"},
+            {"name": "nr_taxon_anno_dir", "type": "infile", "format": "annotation.mg_anno_dir"}
         ]
         self.add_option(options)
 
@@ -53,12 +55,33 @@ class MgNrTaxLevelTool(Tool):
         :return:
         """
         super(MgNrTaxLevelTool, self).run()
-        self.merge_table()
+        self.merge_anno_table()
+        self.merge_profile_table()
         self.tax_level()
         self.set_output()
         self.end()
 
-    def merge_table(self):
+    def merge_anno_table(self):
+        nr_anno = 0
+        anno_file = os.listdir(self.option('nr_taxon_anno_dir').prop['path'])
+        self.anno_name = os.path.join(self.output_dir, "tmp_taxons_anno.xls")
+        if os.path.exists(self.anno_name):
+            os.remove(self.anno_name)
+        for i in anno_file:
+            nr_anno += 1
+            file_path = os.path.join(self.option('nr_taxon_anno_dir').prop['path'], i)
+            cmd = '{} {} {}'.format(self.sh_path, file_path, self.anno_name)
+            self.logger.info("start cat {}".format(i))
+            command_name = "cat anno" + str(nr_anno)
+            command = self.add_command(command_name, cmd).run()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("cat {} done".format(i))
+            else:
+                self.set_error("cat {} error".format(i))
+                raise Exception("cat {} error".format(i))
+
+    def merge_profile_table(self):
         nr_number = 0
         profile_file = os.listdir(self.option('nr_taxon_profile_dir').prop['path'])
         self.result_name = os.path.join(self.output_dir, "tmp_taxons_profile.xls")
@@ -69,7 +92,7 @@ class MgNrTaxLevelTool(Tool):
             file_path = os.path.join(self.option('nr_taxon_profile_dir').prop['path'], i)
             cmd = '{} {} {}'.format(self.sh_path, file_path, self.result_name)
             self.logger.info("start cat {}".format(i))
-            command_name = "cat" + str(nr_number)
+            command_name = "cat profile" + str(nr_number)
             command = self.add_command(command_name, cmd).run()
             self.wait(command)
             if command.return_code == 0:

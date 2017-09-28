@@ -26,6 +26,7 @@ class MetaDiamondModule(Module):
             {"name": "evalue", "type": "float", "default": 1e-5},  # evalue值
             {"name": "num_threads", "type": "int", "default": 10},  # cpu数
             {"name": "outxml", "type": "outfile", "format": "align.blast.blast_xml"},  # 输出格式为5时输出
+            {"name": "outxml_dir", "type": "outfile", "format": "align.blast.blast_xml_dir"},    #输出拆分文件比对的xml文件夹
             {"name": "outtable", "type": "outfile", "format": "align.blast.blast_table"},  # 输出格式为6时输出
             # 当输出格式为非5，6时，只产生文件不作为outfile
         ]
@@ -133,6 +134,7 @@ class MetaDiamondModule(Module):
             self.option('outtable').set_path(self.output_dir + "/blast.table")
         os.link(self.catblast.option('blast_result').prop['path'], self.output_dir + '/blast.xml')
         self.option('outxml', self.output_dir + '/blast.xml')
+        self.option('outxml_dir',self.work_dir + '/blast_tmp')
         self.end()
 
     def run(self):

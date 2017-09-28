@@ -187,14 +187,12 @@ class DiffStat(object):
                         control_fpkm, other_fpkm, control_fpkm_log2, other_fpkm_log2,
                         control_count_log2, other_count_log2, '%0.4g' % logfc, '%0.4g' % pvalue,
                         '%0.4g' % fdr, sig, reg, ncbi))
-
                 else:
                     w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
                         gene, control_count, other_count, control_fpkm, other_fpkm,
                         control_fpkm_log2, other_fpkm_log2, control_count_log2,other_count_log2,
                         '%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
-
-
+                    
 if __name__ == "__main__":
     pass
     """

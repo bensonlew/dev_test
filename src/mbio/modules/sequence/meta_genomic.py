@@ -3,6 +3,7 @@
 # __author__ == zhouxuan
 
 import os
+import re
 from biocluster.core.exceptions import OptionError
 from biocluster.module import Module
 
@@ -14,10 +15,12 @@ class MetaGenomicModule(Module):
     def __init__(self, work_id):
         super(MetaGenomicModule, self).__init__(work_id)
         options = [
-            {"name": "fastq_dir", "type": "infile", "format": "paternity_test.data_dir"},
+            #{"name": "fastq_dir", "type": "infile", "format": "paternity_test.data_dir"},
+            {"name": "fastq_dir", "type": "infile", "format": "sequence.fastq_dir"},
         ]
         self.add_option(options)
         self.base_info = self.add_tool("meta.qc.base_info")
+        self.raw_stat = self.add_tool("sequence.fastq_stat")
         self.tools = []
 
     def check_options(self):
@@ -40,11 +43,14 @@ class MetaGenomicModule(Module):
             os.mkdir(reslut_path)
         for i in file_name:
             file_path = os.path.join(self.option('fastq_dir').prop['path'], i)
-            gunzip_fastq = self.add_tool('sequence.fastq_ungz')
-            gunzip_fastq.set_options({
-                "fastq": file_path,
-                "result_path": reslut_path
-            })
+            if re.search('list.txt$', file_path):  # add by zhujuan check "fastq_dir" list.txt
+                pass
+            else:
+                gunzip_fastq = self.add_tool('sequence.fastq_ungz')
+                gunzip_fastq.set_options({
+                    "fastq": file_path,
+                    "result_path": reslut_path
+                })
             self.tools.append(gunzip_fastq)
         if len(self.tools) > 1:
             self.on_rely(self.tools, self.run_base_info)
@@ -59,6 +65,23 @@ class MetaGenomicModule(Module):
         self.base_info.run()
 
     def set_output(self):
+        if os.path.exists(self.work_dir + "/ungiz_dir"):  # add fq'list.txt by zhujuan 20170925 
+            try:
+                self.linkdir(self.work_dir + "/ungiz_dir", "data")
+            except Exception, e:
+                raise Exception('解压的结果linkdir时出错{}'.format(e))
+        list_path = os.path.join(self.option('fastq_dir').prop['path'], "list.txt")
+        if os.path.exists(list_path):
+            list = os.path.join(self.output_dir, "data/list.txt")
+            with open(list_path, "r") as f , open(list, "wb") as w:
+                for line in f:
+                    line = line.split('\t')
+                    fq_name = line[0].split('.fq.')[0]
+                    sample = line[1]
+                    direction = line[2]
+                    w.write(fq_name + '.fq\t' + sample +'\t' + direction )
+        else:
+            raise Exception('list.txt缺失')
         if os.path.exists(self.base_info.output_dir + "/base_info"):
             try:
                 self.linkdir(self.base_info.output_dir + "/base_info", "base_info")

@@ -42,20 +42,25 @@ class HclusterAgent(Agent):
         """
         重写参数检查
         """
-        #if not self.option('dis_matrix').is_set:
-        #    raise OptionError('必须提供输入距离矩阵表')
-        #else:
-        #    self.option('dis_matrix').check()
-        # if self.option('otu_table').format == "meta.otu.tax_summary_dir":
-        #     return self.option('otu_table').prop[''].get_table(self.option('level'))
-        # else:
-        #     return self.option('otu_table').prop['path']
+        if not self.option('otu_table').is_set:
+            raise OptionError('请设置数据表进行分析')
         if self.option('method') not in ['euclidean', 'maximum', 'manhattan', 'canberra', 'binary', 'minkowski']:
             raise OptionError('错误的距离方式：%s' % self.option('method'))
         if self.option('trans') not in ['column', 'row']:  # modify by zhouxuan
             raise OptionError('错误的距离方式：%s' % self.option('trans'))
         if self.option('linkage') not in ['average', 'single', 'complete']:
             raise OptionError('错误的层级聚类方式：%s' % self.option('linkage'))
+        if self.option('group_table').is_set:  # 当有分组的时候，判断分组中的样本是否存在于数据表中
+            if self.option('trans') == 'column':
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otu_table').prop['col_sample']:
+                        raise OptionError('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
+            else:
+                self.logger.info(self.option('group_table').prop['sample_name'])
+                self.logger.info(self.option('otu_table').prop['row_sample'])
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otu_table').prop['row_sample']:
+                        raise OptionError('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
 
     def set_resource(self):
         """
@@ -99,16 +104,8 @@ class HclusterTool(Tool):
         super(HclusterTool, self).run()
         if self.option('group_table').is_set:  # 当有分组的时候，判断分组中的样本是否存在于数据表中
             if self.option('trans') == 'column':
-                for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otu_table').prop['col_sample']:
-                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
                 self.data_table = self.option('otu_table').prop['new_table']  # 不进行转置
             else:
-                self.logger.info(self.option('group_table').prop['sample_name'])
-                self.logger.info(self.option('otu_table').prop['row_sample'])
-                for i in self.option('group_table').prop['sample_name']:
-                    if i not in self.option('otu_table').prop['row_sample']:
-                        raise Exception('分组文件中的样本不存在于表格中，查看是否是数据取值选择错误')
                 self.data_table = self.work_dir + '/T_table.txt'
                 self.t_table(self.option('otu_table').prop['new_table'], self.data_table)
             group_de = self.option('group_table').prop['group_scheme']  # 获取分组文件中的子分组
