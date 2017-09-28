@@ -1,6 +1,3 @@
-/mnt/ilustre/users/bingxu.liu/sanger_dev3$
-
-
 # -*- coding: utf-8 -*-
 # __author__ = 'zengjing'
 import os
@@ -830,7 +827,6 @@ class RefAnnotation(Base):
                                     funlist['NOG'][fun1].append(nog)
                         except:
                             pass
-
                     else:
                         try:
                             funlist['NOG'][fun1] = item[5].split(";")

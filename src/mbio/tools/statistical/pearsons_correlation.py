@@ -58,7 +58,7 @@ class PearsonsCorrelationAgent(Agent):
             raise OptionError("请选择正确的分类水平")
         if not self.option("otutable").is_set:
             raise OptionError('必须提供otu表')
-        if self.option("method") not in ["pearsonr", "spearmanr"]:
+        if self.option("method") not in ["pearsonr", "spearmanr", "kendalltau"]:  # add "kendalltau"(kendall) by zhujuan
             raise OptionError('不支持该相关系数方法')
         self.option('otutable').get_info()
         if self.option('envtable').is_set:
