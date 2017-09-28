@@ -69,7 +69,7 @@ class MgKeggStatTool(Tool):
     def merge_table(self):
         kegg_number = 0
         profile_file = os.listdir(self.option('kegg_result_dir').prop['path'])
-        self.anno_result = os.path.join(self.output_dir, "kegg_anno_result.xls")
+        self.anno_result = os.path.join(self.work_dir, "tmp_kegg_anno.xls")
         self.enzyme_list = os.path.join(self.work_dir, "kegg_enzyme_list.xls")
         self.module_list =  os.path.join(self.work_dir, "kegg_module_list.xls")
         self.pathway_list = os.path.join(self.work_dir, "kegg_pathway_list.xls")

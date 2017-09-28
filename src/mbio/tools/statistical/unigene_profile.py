@@ -57,8 +57,8 @@ class UnigeneProfileTool(Tool):
         super(UnigeneProfileTool, self).__init__(config)
         self._version = "1.0"
         self.perl_path = "program/perl-5.24.0/bin/perl"
-        self.script1_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/statistical/scripts/prepare_profile.pl"
-        self.script2_path = "/mnt/ilustre/users/sanger-dev/app/bioinfo/statistical/scripts/gene_profile.pl"
+        self.script1_path = self.config.PACKAGE_DIR + "/statistical/prepare_profile.pl"
+        self.script2_path = self.config.PACKAGE_DIR + "/statistical/gene_profile.pl"
 
     def mapinfo(self):
         cmd1 = '%s %s %s %s %s %s' % (self.perl_path, self.script1_path, self.option("map_dir").prop['path'],

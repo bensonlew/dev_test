@@ -66,7 +66,7 @@ class MgCogStatTool(Tool):
     def merge_table(self):
         cog_number = 0
         profile_file = os.listdir(self.option('cog_table_dir').prop['path'])
-        self.result_name = os.path.join(self.output_dir, "cog_anno_result.xls")
+        self.result_name = os.path.join(self.output_dir, "gene_cog_anno.xls")
         if os.path.exists(self.result_name):
             os.remove(self.result_name)
         for i in profile_file:

@@ -54,7 +54,7 @@ class DistanceCalcAgent(Agent):
 
     def gettable(self):
         """
-        根据level返回进行计算的otu表-对象
+        根据level返回进行计算的丰度表-对象
         :return tablepath:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
@@ -82,13 +82,13 @@ class DistanceCalcAgent(Agent):
             else:
                 self.option('newicktree').get_info()
                 if len(self.option('newicktree').prop['sample']) != len(otulist):
-                    raise OptionError('进化树中的类群数量:%s与OTU表中的数量:%s不一致'
+                    raise OptionError('进化树中的类群数量:%s与丰度表中的数量:%s不一致'
                                       % (len(self.option('newicktree').prop['sample']),
                                          len(otulist)))
                 tree_sample = self.option('newicktree').prop['sample']
                 for sample in otulist:  # 此处可以进一步优化计算，例如将两个列表变成集合
                     if sample not in tree_sample:
-                        raise OptionError('OTU表名称:%s与进化树文件中的类群不对应' % sample)
+                        raise OptionError('丰度表名称:%s与进化树文件中的类群不对应' % sample)
 
     def set_resource(self):
         """
@@ -117,8 +117,8 @@ class DistanceCalcTool(Tool):
         self.cmd_path = 'program/Python/bin/beta_diversity.py'
         # 设置运行环境变量
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
-        self.real_otu = self.gettable()  # 获取真实的OTU表路劲
-        self.biom = self.biom_otu_table()  # 传入otu表需要转化为biom格式
+        self.real_otu = self.gettable()  # 获取真实的丰度表路劲
+        self.biom = self.biom_otu_table()  # 传入丰度表需要转化为biom格式
 
     def run(self):
         """
@@ -129,7 +129,7 @@ class DistanceCalcTool(Tool):
 
     def gettable(self):
         """
-        根据level返回进行计算的otu表路径
+        根据level返回进行计算的丰度表路径
         :return tablepath:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
