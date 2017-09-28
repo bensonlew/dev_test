@@ -321,7 +321,7 @@ class RefrnaWorkflow(Workflow):
                 strand_dir = "firststrand"
             else:
                 strand_dir = "secondstrand"
-            opts.update = ({
+            opts.update({
                 "strand_direct": strand_dir,
                 "fr_stranded": "fr-stranded"
                 })
