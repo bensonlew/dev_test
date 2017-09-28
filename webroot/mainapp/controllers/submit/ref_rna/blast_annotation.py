@@ -99,69 +99,71 @@ class BlastAnnotationAction(RefRnaController):
         if not (hasattr(data, "nr_evalue")):
             data.nr_evalue = 1e-3
         else:
-            nr_evalue = str(data.nr_evalue)
-            if not nr_evalue.isdigit():
-                warn_info.append('NR E-value值必须是数字')
-            elif float(data.nr_evalue) > 1e-3:
-                warn_info.append("NR E-value值必须小于1e-3")
+            try:
+                if float(data.nr_evalue) > 1e-3:
+                    warn_info.append("NR E-value值必须小于1e-3")
+            except:
+                warn_info.append('输入的NR E-value不是数字 ')
 
         if not (hasattr(data, "nr_similarity")):
             data.nr_similarity = 0
         else:
-            nr_sim = str(data.nr_similarity)
-            if not nr_sim.isdigit():
+            try:
+                if float(data.nr_similarity) < 0 or float(data.nr_similarity) > 100:
+                    warn_info.append("NR Similarity值需在0-100范围内")
+            except:
                 warn_info.append('NR similarity 值必须是数字')
-            elif float(data.nr_similarity) < 0 or float(data.nr_similarity) > 100:
-                warn_info.append("NR Similarity值需在0-100范围内")
 
         if not (hasattr(data, "nr_identity")):
             data.nr_identity = 0
         else:
-            nr_identity = str(data.nr_identity)
-            if not nr_identity.isdigit():
+            try:
+                if float(data.nr_identity) < 0 or float(data.nr_identity) > 100:
+                    warn_info.append("NR Identity值需在0-100范围内")
+            except:
                 warn_info.append('NR Identity值必须是数字')
-            elif float(data.nr_identity) < 0 or float(data.nr_identity) > 100:
-                warn_info.append("NR Identity值需在0-100范围内")
 
         if not (hasattr(data, "nr_score")):
             data.nr_score = 0
         else:
-            nr_score = str(data.nr_score)
-            if not nr_score.isdigit():
+            try:
+                float(data.nr_score)
+            except:
                 warn_info.append('NR score value 必须是数字')
 
         if not (hasattr(data, "swissprot_similarity")):
             data.swissprot_similarity = 0
         else:
-            ss = str(data.swissprot_similarity)
-            if not ss.isdigit():
+            try:
+                if float(data.swissprot_similarity) < 0 or float(data.swissprot_similarity) > 100:
+                    warn_info.append("Swiss-Prot Similarity值需在0-100范围内")
+            except:
                 warn_info.append('Swiss-port Similarity 必须是数字')
-            elif float(data.swissprot_similarity) < 0 or float(data.swissprot_similarity) > 100:
-                warn_info.append("Swiss-Prot Similarity值需在0-100范围内")
 
         if not (hasattr(data, "swissprot_evalue")):
             data.swissprot_evalue = 1e-3
         else:
-            se = str(data.swissprot_evalue)
-            if not se.isdigit():
+            try:
+                if float(data.swissprot_evalue) > 1e-3:
+                    warn_info.append("Swiss-Prot E-value值需小于1e-3")
+            except:
                 warn_info.append('Swiss-Prot E-value必须是数字')
-            elif float(data.swissprot_evalue) > 1e-3:
-                warn_info.append("Swiss-Prot E-value值需小于1e-3")
 
         if not (hasattr(data, "swissprot_identity")):
             data.swissprot_identity = 0
         else:
-            si = str(data.swissprot_identity)
-            if not si.isdigit():
+            try:
+                if float(data.swissprot_identity) < 0 or float(data.swissprot_identity) > 100:
+                    warn_info.append("Swiss-Prot Identity值需在0-100范围内")
+            except:
                 warn_info.append('Swiss-Prot Identity 必须是数字')
-            elif float(data.swissprot_identity) < 0 or float(data.swissprot_identity) > 100:
-                warn_info.append("Swiss-Prot Identity值需在0-100范围内")
 
         if not (hasattr(data, "swissprot_score")):
             data.swissprot_score = 0
         else:
-            sc = str(data.swissprot_score)
-            if not sc.isdigit():
+            try:
+                float(data.swissprot_score)
+            except:
                 warn_info.append('Swiss-Prot Score 必须是数字')
 
         return ";".join(warn_info)
