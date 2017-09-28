@@ -24,7 +24,7 @@ class BlastAnnotationAction(RefRnaController):
         print data
         return_result = self.check_options(data)
         if return_result:
-            info = {"success": False, "info": json.dumps(return_result)}
+            info = {"success": False, "info": return_result}
             return json.dumps(info)
         stat_info = RefRna().get_main_info(data.stat_id, "sg_annotation_stat")
         if not stat_info:
