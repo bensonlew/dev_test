@@ -35,14 +35,14 @@ from biocluster.config import Config
 """
 
 
-class Group(Base):
+class SpecimenGroup(Base):
     def __init__(self, bind_object=None):
-        super(Group, self).__init__(bind_object)
+        super(SpecimenGroup, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
     def add_ini_group_table(self, file_path, spname_spid, task_id=None, sort_samples=False):
-        self.collection = self.db['sg_specimen_group']
+        self.collection = self.db['specimen_group']
         # 解析文件
         with open(file_path) as f:
             names = f.readline().strip()
@@ -78,13 +78,13 @@ class Group(Base):
 
     def update_num_sgotuspecimen(self, spname_spid, samples):
         """
-        更新sg_otu_specimen表加入一组编号字段，用于按照本分组文件排序样本。
+        更新otu_specimen表加入一组编号字段，用于按照本分组文件排序样本。
         :params spname_spid: 样本名对样本id的字典
         :params samples: 样本列表
         """
-        sg_otu_specimen = self.db.sg_otu_specimen
+        otu_specimen = self.db.otu_specimen
         for index, name in enumerate(samples):
-            result = sg_otu_specimen.update_many({'specimen_id': ObjectId(spname_spid[name])},
+            result = otu_specimen.update_many({'specimen_id': ObjectId(spname_spid[name])},
                                                  {"$set": {'order_num': index}})
             if result.matched_count < 1:
                 raise Exception('没有正确将样本分组中的样本顺序更新到mongo数据表中')

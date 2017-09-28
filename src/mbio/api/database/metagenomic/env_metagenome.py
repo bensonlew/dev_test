@@ -11,7 +11,7 @@ from biocluster.config import Config
 class EnvMetagenome(Base):
     def __init__(self, bind_object=None):
         super(EnvMetagenome, self).__init__(bind_object)
-        self._db_name = Config().MONGODBi + '_metagenomic'
+        self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
     def add_env_table(self, file_path, name_to_id, task_id=None, name=None):
@@ -29,8 +29,8 @@ class EnvMetagenome(Base):
             'env_names': ','.join(names),
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
-        main_collection = self.db['sg_env']
-        collections = self.db['sg_env_detail']
+        main_collection = self.db['env']
+        collections = self.db['env_detail']
         data_list = []
         main_env_id = main_collection.insert_one(main_insert_data).inserted_id
         for sp_id, sp_dict in details.items():  # "details" is a dict, and "details"'s values is dict too
