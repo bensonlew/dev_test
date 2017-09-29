@@ -48,7 +48,7 @@ class DbrdaAgent(Agent):
 
     def gettable(self):
         """
-        根据level返回进行计算的otu表对象，否则直接返回参数otutable对象
+        根据level返回进行计算的丰度表对象，否则直接返回参数otutable对象
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
@@ -79,8 +79,8 @@ class DbrdaAgent(Agent):
                 env_collection = set(self.option('envtable').prop['sample'])
                 collection = set(self.option('dis_matrix').prop['samp_list']) & env_collection
                 if len(collection) < 3:
-                    raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(collection)))
-                # if collection == env_collection:  # 检查环境因子的样本是否是OTU表中样本的子集
+                    raise OptionError("环境因子表和丰度表的共有样本数必需大于等于3个：{}".format(len(collection)))
+                # if collection == env_collection:  # 检查环境因子的样本是否是丰度表中样本的子集
                 #     pass
                 # else:
                 #     raise OptionError('环境因子中存在距离矩阵中没有的样本')
@@ -90,20 +90,20 @@ class DbrdaAgent(Agent):
                     raise OptionError('错误或者不支持的距离计算方法')
                 self.option('method', DbrdaAgent.METHOD_DICT[self.option('method')])
                 if not self.option('otutable').is_set:
-                    raise OptionError('没有提供距离矩阵的情况下，必须提供otu表')
+                    raise OptionError('没有提供距离矩阵的情况下，必须提供丰度表')
                 self.real_otu = self.gettable()
                 if self.real_otu.prop['sample_num'] < 3:
-                    raise OptionError('otu表的样本数目少于3，不可进行beta多元分析')
+                    raise OptionError('丰度表的样本数目少于3，不可进行beta多元分析')
                 samplelist = open(self.real_otu.path).readline().strip().split('\t')[1:]
                 # if len(self.option('envtable').prop['sample']) > len(samplelist):
-                #     raise OptionError('OTU表中的样本数量:%s少于环境因子表中的样本数量:%s' % (len(samplelist),
+                #     raise OptionError('丰度表中的样本数量:%s少于环境因子表中的样本数量:%s' % (len(samplelist),
                 #                       len(self.option('envtable').prop['sample'])))
                 # for sample in self.option('envtable').prop['sample']:
                 #     if sample not in samplelist:
-                #         raise OptionError('环境因子中存在，OTU表中的未知样本%s' % sample)
+                #         raise OptionError('环境因子中存在，丰度表中的未知样本%s' % sample)
                 common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
                 if len(common_samples) < 3:
-                    raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
+                    raise OptionError("环境因子表和丰度表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
                 table = open(self.real_otu.path)
                 if len(table.readlines()) < 4:
                     raise OptionError('提供的数据表信息少于3行')
@@ -125,6 +125,7 @@ class DbrdaAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "db_rda分析结果目录"],
             ["./db_rda_sites.xls", "xls", "db_rda样本坐标表"],
+            ["./db_rda_importance.xls", "xls", "db_rda主成分解释度"], ##add by zhujuan 2017.08.21
             ["./db_rda_species.xls", "xls", "db_rda物种坐标表"],
             ["./db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
             ["./db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
@@ -145,7 +146,7 @@ class DbrdaTool(Tool):
             new_otu_table = self.work_dir + '/new_otu_table.xls'
             new_env_table = self.work_dir + '/new_env_table.xls'
             if not self.create_otu_and_env_common(self.otu_table, self.env_table, new_otu_table, new_env_table):
-                self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
+                self.set_error('环境因子表中的样本与丰度表中的样本共有数量少于2个')
             else:
                 self.otu_table = new_otu_table
                 self.env_table = new_env_table
@@ -203,27 +204,27 @@ class DbrdaTool(Tool):
 
     def get_otu_table(self):
         """
-        根据level返回进行计算的otu表路径
+        根据level返回进行计算的丰度表路径
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
             otu_path = self.option('otutable').get_table(self.option('level'))
         else:
             otu_path = self.option('otutable').prop['path']
-        # otu表对象没有样本列表属性
+        # 丰度表对象没有样本列表属性
         return otu_path
         # return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
         #                               os.path.join(self.work_dir + 'temp_filter.otutable'))
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
-            raise Exception('过滤otu表样本的样本名称应为列表')
+            raise Exception('过滤丰度表样本的样本名称应为列表')
         try:
             with open(otu_path, 'rb') as f, open(newfile, 'wb') as w:
                 one_line = f.readline()
                 all_samples = one_line.rstrip().split('\t')[1:]
                 if not ((set(all_samples) & set(filter_samples)) == set(filter_samples)):
-                    raise Exception('提供的过滤样本存在otu表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
+                    raise Exception('提供的过滤样本存在丰度表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
                 if len(all_samples) == len(filter_samples):
                     return otu_path
                 samples_index = [all_samples.index(i) + 1 for i in filter_samples]
@@ -234,7 +235,7 @@ class DbrdaTool(Tool):
                     w.write('\t'.join(new_values) + '\n')
                 return newfile
         except IOError:
-            raise Exception('无法打开OTU相关文件或者文件不存在')
+            raise Exception('无法打开丰度相关文件或者文件不存在')
 
     def run(self):
         """
@@ -269,6 +270,7 @@ class DbrdaTool(Tool):
         # self.logger.info('运行dbrda_r.py程序计算Dbrda成功')
         if return_mess == 0:
             self.linkfile(self.work_dir + '/db_rda_sites.xls', 'db_rda_sites.xls')
+            self.linkfile(self.work_dir + '/db_rda_cont.xls','db_rda_importance.xls') ##add by zhujuan 20170821
             if not self.option('dis_matrix').is_set:
                 self.linkfile(self.work_dir + '/db_rda_species.xls', 'db_rda_species.xls')
             lines = open(self.work_dir + '/env_data.temp').readlines()

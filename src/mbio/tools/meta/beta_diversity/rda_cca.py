@@ -40,7 +40,7 @@ class RdaCcaAgent(Agent):
 
     def gettable(self):
         """
-        根据level返回进行计算的otu表
+        根据level返回进行计算的丰度表
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
@@ -53,9 +53,9 @@ class RdaCcaAgent(Agent):
         重写参数检查
         """
         if not self.option('otutable').is_set:
-            raise OptionError('必须提供otu表')
+            raise OptionError('必须提供丰度表')
         if self.option('otutable').prop['sample_num'] < 3:
-            raise OptionError('otu表的样本数目少于3，不可进行beta多元分析')
+            raise OptionError('丰度表的样本数目少于3，不可进行beta多元分析')
         if self.option('envtable').is_set:
             self.option('envtable').get_info()
             if self.option('envlabs'):
@@ -71,14 +71,14 @@ class RdaCcaAgent(Agent):
             raise OptionError('必须提供环境因子表')
         samplelist = open(self.gettable()).readline().strip().split('\t')[1:]
         # if len(self.option('envtable').prop['sample']) > len(samplelist):
-        #     raise OptionError('OTU表中的样本数量:%s小于环境因子表中的样本数量:%s' % (len(samplelist),
+        #     raise OptionError('丰度表中的样本数量:%s小于环境因子表中的样本数量:%s' % (len(samplelist),
         #                       len(self.option('envtable').prop['sample'])))
         # for sample in self.option('envtable').prop['sample']:
         #     if sample not in samplelist:
-        #         raise OptionError('环境因子中存在，OTU表中的未知样本:%s' % sample)
+        #         raise OptionError('环境因子中存在，丰度表中的未知样本:%s' % sample)
         common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
         if len(common_samples) < 3:
-            raise OptionError("环境因子表和OTU表的共有样本数必须大于等于3个：{}".format(len(common_samples)))
+            raise OptionError("环境因子表和丰度表的共有样本数必须大于等于3个：{}".format(len(common_samples)))
         return True
 
     def set_resource(self):
@@ -106,7 +106,7 @@ class RdaCcaAgent(Agent):
         super(RdaCcaAgent, self).end()
 
 
-class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filter_otu_sample函数生成的表头没有'#'
+class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的丰度表，filter_otu_sample函数生成的表头没有'#'
     def __init__(self, config):
         super(RdaCcaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
@@ -126,27 +126,27 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
 
     def get_otu_table(self):
         """
-        根据level返回进行计算的otu表路径
+        根据level返回进行计算的丰度表路径
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
             otu_path = self.option('otutable').get_table(self.option('level'))
         else:
             otu_path = self.option('otutable').prop['path']
-        # otu表对象没有样本列表属性
+        # 丰度表对象没有样本列表属性
         return otu_path
         # return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
         #                               os.path.join(self.work_dir, 'temp_filter.otutable'))
 
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
-            raise Exception('过滤otu表样本的样本名称应为列表')
+            raise Exception('过滤丰度表样本的样本名称应为列表')
         try:
             with open(otu_path, 'rb') as f, open(newfile, 'wb') as w:
                 one_line = f.readline()
                 all_samples = one_line.rstrip().split('\t')[1:]
                 if not ((set(all_samples) & set(filter_samples)) == set(filter_samples)):
-                    raise Exception('提供的过滤样本存在otu表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
+                    raise Exception('提供的过滤样本存在丰度表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
                 if len(all_samples) == len(filter_samples):
                     return otu_path
                 samples_index = [all_samples.index(i) + 1 for i in filter_samples]
@@ -157,7 +157,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
                     w.write('\t'.join(new_values) + '\n')
                 return newfile
         except IOError:
-            raise Exception('无法打开OTU相关文件或者文件不存在')
+            raise Exception('无法打开丰度相关文件或者文件不存在')
 
 
     def run(self):
@@ -218,7 +218,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
         self.otu_table = self.work_dir + '/new_otu.xls'
         self.env_table = self.work_dir + '/new_env.xls'
         if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
-            self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
+            self.set_error('环境因子表中的样本与丰度表中的样本共有数量少于2个')
         tablepath = self.work_dir + '/remove_zero_line_otu.xls'
         self.remove_zero_line(self.formattable(self.otu_table), tablepath)
         self.env_labs = open(self.env_table, 'r').readline().strip().split('\t')[1:]
@@ -353,7 +353,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的OTU表，filt
 
     def get_species_name(self):  # 20170122 add by zhouxuan
         """
-        判断otu表中的物种数量是否大于30 ，如果大于30，筛选出丰度在前30的物种
+        判断丰度表中的物种数量是否大于30 ，如果大于30，筛选出丰度在前30的物种
         :return: 丰度为前30的物种或者 空的列表
         """
         otu_path = self.get_otu_table()
