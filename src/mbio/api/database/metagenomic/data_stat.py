@@ -35,14 +35,14 @@ class DataStat(Base):
         data_stat_id = collection.insert_one(insert_data).inserted_id
         # 将导表数据通过insert_one函数导入数据库，将此条记录生成的_id作为返回值，给detail表做输入参数
         if data_type in ["raw"]:
-            self.add_data_stat_detail(stat_path, data_stat_id, data_type, raw_data_stat_id = None) 
+            self.add_data_stat_detail(stat_path, data_stat_id, data_type, raw_data_stat_id=None)
             self.add_specimen_graphic(dir_path, task_id)
         if data_type in ["clean", "optimised"]:
             self.add_data_stat_detail(stat_path, data_stat_id, data_type, raw_data_stat_id)
-        return data_stat_id, data_type
+        return data_stat_id
 
     @report_check
-    def add_data_stat_detail(self, stat_path, data_stat_id, data_type, raw_data_stat_id = None):
+    def add_data_stat_detail(self, stat_path, data_stat_id, data_type, raw_data_stat_id=None):
         if not isinstance(data_stat_id, ObjectId):
             if isinstance(data_stat_id, types.StringTypes):
                 data_stat_id = ObjectId(data_stat_id)
@@ -52,14 +52,14 @@ class DataStat(Base):
             raise Exception('stat_path所指定的路径不存在，请检查！')
         data_list = []  # 存入表格中的信息，然后用insert_many批量导入
         if data_type in ["clean", "optimised"]:
-            mydb =  self.db['data_stat_detail'] 
-            raws= mydb.find({"data_stat_id": ObjectId(raw_data_stat_id)})
-            #raws= mydb.find({"data_stat_id": ObjectId("59cde2d3a4e1af116ca21c32")})
+            mydb = self.db['data_stat_detail']
+            raws = mydb.find({"data_stat_id": ObjectId(raw_data_stat_id)})
+            # raws= mydb.find({"data_stat_id": ObjectId("59cde2d3a4e1af116ca21c32")})
             if raws is None:
                 raise Exception('没有找到样品集数据')
             specimen = {}
             for raw in raws:
-                specimen[raw['specimen_name']] = {"raw_read_num":raw['raw_read_num']}
+                specimen[raw['specimen_name']] = {"raw_read_num": raw['raw_read_num']}
                 specimen[raw['specimen_name']]["raw_base"] = raw['raw_base']
         with open(stat_path, 'rb') as f:
             lines = f.readlines()
@@ -75,20 +75,20 @@ class DataStat(Base):
                     data['raw_read_len'] = int(line[3])
                     data['raw_read_num'] = int(line[4])
                     data['raw_base'] = int(line[5])
-                if  data_type == "clean":
+                if data_type == "clean":
                     read_num = specimen[line[0]]["raw_read_num"]
                     base = specimen[line[0]]["raw_base"]
-                    clean_ratio = float(line[1])/read_num
-                    clean_base_ratio = float(line[2])/base
+                    clean_ratio = float(line[1]) / read_num
+                    clean_base_ratio = float(line[2]) / base
                     data['clean_read_num'] = int(line[1])
                     data['clean_base'] = int(line[2])
-                    data['clean_ratio'] = float(line[3])
-                    data['clean_base_ratio'] = float(line[4])
-                if  data_type == "optimised":
+                    data['clean_ratio'] = clean_ratio
+                    data['clean_base_ratio'] = clean_base_ratio
+                if data_type == "optimised":
                     read_num = specimen[line[0]]["raw_read_num"]
                     base = specimen[line[0]]["raw_base"]
-                    opt_ratio= float(line[1])/read_num
-                    opt_base_ratio = float(line[2])/base
+                    opt_ratio = float(line[1]) / read_num
+                    opt_base_ratio = float(line[2]) / base
                     data['opt_read_num'] = int(line[1])
                     data['opt_base'] = int(line[2])
                     data['opt_ratio'] = opt_ratio
@@ -107,12 +107,12 @@ class DataStat(Base):
         data_list = []
         filelist = os.listdir(dir_path.rstrip('/'))
         for i in filelist:
-            line = i.strip().split('.',1)
+            line = i.strip().split('.', 1)
             specimen = line[0]
             if re.search(r'1\.(fastq|fq)\.', line[1]):
-                type = "left"
+                reads_direct = "left"
             elif re.search(r'2\.(fastq|fq)\.', line[1]):
-                type = "right"
+                reads_direct = "right"
             else:
                 raise Exception(line[1])
             data_list = []
@@ -124,7 +124,7 @@ class DataStat(Base):
                     data = {
                         "task_id": task_id,
                         "specimen_name": specimen,
-                        "type": type,
+                        "type": reads_direct,
                         "column": line[0],
                         "min": line[2],
                         "max": line[3],
@@ -145,5 +145,3 @@ class DataStat(Base):
                 self.bind_object.logger.error("导入%s信息出错:%s" % (specimen_graphic, e))
             else:
                 self.bind_object.logger.info("导入%s信息成功!" % specimen_graphic)
-
-
