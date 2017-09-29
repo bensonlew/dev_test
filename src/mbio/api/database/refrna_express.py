@@ -21,6 +21,7 @@ from math import log10
 import pandas as pd
 from gevent.monkey import patch_all
 import gevent
+from mainapp.libs.param_pack import group_detail_sort
 
 patch_all()
 class RefrnaExpress(Base):
@@ -932,16 +933,11 @@ class RefrnaExpress(Base):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
-        # params.update({
-        #     'express_id': express_id,
-        #     'group_id': str(group_id),
-        #     'group_detail': group_detail,
-        #     'control_id': str(control_id)
-        # })  # 为更新workflow的params，因为截停
-        # if group_id == 'all':
-        #     params['group_detail'] = {'all': group_detail}
         if params:
-            params.update({"submit_location": "express_diff"})
+            params["submit_location"] = "express_diff"
+            params['task_id'] = task_id
+            params['task_type'] = ''
+        params['group_detail'] = group_detail_sort(params['group_detail'])
         if not express_method:
             raise Exception("add_express_diff函数需要设置express_method(选择表达量计算软件rsem或featurecounts)参数!")
         if not value_type:
@@ -962,8 +958,7 @@ class RefrnaExpress(Base):
             'name': name if name else re_name,
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'params': (
-                json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
+            'params': json.dumps(params, sort_keys=True, separators=(',', ':')),
             'specimen': samples,
             'status': 'end',
             'compare_column': compare_column,
