@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zhouxuan'
-# modified 2017.05.24
+# modified 2017.09.29
+# last modify by shaohua.yuan
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.config import Config
@@ -79,7 +80,7 @@ class CazyAnnoTool(Tool):
     def run_annot(self):
         cmd1 = '{} {} --out.dm {} --output_dir {} --class_def {} --FamInfo {}'.\
             format(self.python_path, self.script_path, self.option('hmmscan_result').prop['path'],
-                   self.work_dir + "/gene.", self.class_def, self.FamInfo)
+                   self.work_dir + "/gene_", self.class_def, self.FamInfo)
         self.logger.info("start cazy_anno")
         command = self.add_command("cazy_anno", cmd1).run()
         self.wait(command)
@@ -88,11 +89,11 @@ class CazyAnnoTool(Tool):
         else:
             self.set_error("cazy_anno error")
             raise Exception("cazy_anno error")
-        cmd2 = '{} {},{} {} {},{}'.format(self.perl_script, self.work_dir + "/gene.cazy.family.stat.xls",
-                                          self.work_dir + "/gene.cazy.class.stat.xls",
+        cmd2 = '{} {},{} {} {},{}'.format(self.perl_script, self.work_dir + "/gene_cazy_family_stat.xls",
+                                          self.work_dir + "/gene_cazy_class_stat.xls",
                                           self.option('reads_profile_table').prop['path'],
-                                          self.output_dir + '/cazy.family.profile.xls',
-                                          self.output_dir + '/cazy.class.profile.xls')
+                                          self.output_dir + '/cazy_family_profile.xls',
+                                          self.output_dir + '/cazy_class_profile.xls')
         self.logger.info("start cazy_profile")
         command2 = self.add_command("cazy_profile", cmd2).run()
         self.wait(command2)
@@ -103,7 +104,12 @@ class CazyAnnoTool(Tool):
             raise Exception("cazy_profile error")
 
     def set_output(self):
-        if len(os.listdir(self.output_dir)) == 2:
+        old_annofile = self.work_dir + "/gene_cazy_anno.xls"
+        new_annofile = self.output_dir + "/gene_cazy_anno.xls"
+        if os.path.exists(new_annofile):
+            os.remove(new_annofile)
+        os.link(old_annofile, new_annofile)
+        if len(os.listdir(self.output_dir)) == 3:
             self.logger.info("结果文件正确生成")
         else:
             self.logger.info("文件个数不正确，请检查")

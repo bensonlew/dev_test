@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shaohua.yuan'
-# last_modify:2017.8.29
+# last_modify:2017.9.29
 
 from biocluster.module import Module
 import os
