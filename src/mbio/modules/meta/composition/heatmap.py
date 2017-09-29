@@ -155,11 +155,11 @@ class HeatmapModule(Module):
         self.run_sort_samples()
 
     def end(self):
-        shutil.copy(self.sort_samples.output_dir + "/taxa.table.xls", self.output_dir + "/heatmap.taxa.table.xls")
+        shutil.copy(self.sort_samples.output_dir + "/taxa.table.xls", self.output_dir + "/taxa.table.xls")
         shutil.copy(self.sort_samples.output_dir + "/taxa.percents.table.xls",
-                    self.output_dir + "/heatmap.taxa.percents.table.xls")
+                    self.output_dir + "/taxa.percents.table.xls")
         if os.path.exists(self.hcluster.output_dir+"/hcluster.tre"):
-            shutil.copy(self.hcluster.output_dir + "/hcluster.tre", self.output_dir + "/sample_hcluster.tre")
+            shutil.copy(self.hcluster.output_dir + "/hcluster.tre", self.output_dir + "/specimen_hcluster.tre")
         if os.path.exists(self.species_hcluster.output_dir+"/hcluster.tre"):
             shutil.copy(self.species_hcluster.output_dir+"/hcluster.tre", self.output_dir + "/species_hcluster.tre")
         super(HeatmapModule, self).end()
