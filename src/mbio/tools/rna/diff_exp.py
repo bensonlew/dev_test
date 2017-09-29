@@ -280,7 +280,8 @@ class DiffExpTool(Tool):
                 count = []
                 for single_name in sample_name:
                     if single_name not in values.keys():
-                        count.append(str(0))
+                        # count.append(str(0))
+                        count.append('no')
                     else:
                         count.append(str(values[single_name]["count"]))
                 #print values[single_name]
