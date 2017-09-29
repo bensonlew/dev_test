@@ -121,9 +121,11 @@ class DiffStat(object):
                        "log2fc\tpvalue\tpadjust\tsignificant\tregulate\tncbi" \
                        "\n".format(ctrl=control, test=other, )
             w.write(head)
+            diff_tested_genes = set()
             for line in r:
                 line = line.strip('\n').split('\t')
                 gene = line[0]
+                diff_tested_genes.add(gene)
                 pvalue = float(line[-2])
                 fdr = float(line[-1])
                 counts = express_info[gene].counts
@@ -172,6 +174,55 @@ class DiffStat(object):
                 elif pvalue_padjust == 'padjust':
                     sig = check_fc(logfc, fdr, diff_fdr_ci, fc)
 
+                if group_info:
+                    count_data = []
+                    fpkm_data = []
+                    for ss in samples_:
+                        count_.append("{}_count".format(ss))
+                        fpkm_.append("{}_fpkm".format(ss))
+                        count_data.append(str(counts[ss]))
+                        fpkm_data.append(str(fpkms[ss]))
+
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s'
+                            '\n' % (gene, "\t".join(count_data), "\t".join(fpkm_data),
+                                    control_count, other_count,
+                                    control_fpkm, other_fpkm,
+                                    control_fpkm_log2, other_fpkm_log2,
+                                    control_count_log2, other_count_log2,
+                                    '%0.4g' % logfc, '%0.4g' % pvalue,'%0.4g' % fdr, sig,reg,ncbi))
+                else:
+                    w.write('%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' % (
+                        gene, control_count, other_count, control_fpkm, other_fpkm,
+                        control_fpkm_log2, other_fpkm_log2, control_count_log2, other_count_log2,
+                        '%0.4g' % logfc, '%0.4g' % pvalue, '%0.4g' % fdr, sig, reg, ncbi))
+            # add not tested genes back
+            not_diff_tested_genes = set(express_info.keys()) - diff_tested_genes
+            for gene in not_diff_tested_genes:
+                pvalue = 1
+                fdr = 1
+                counts = express_info[gene].counts
+                fpkms = express_info[gene].fpkms
+                if group_info:
+                    control_count, control_fpkm = self.get_mean(con_sams, counts, fpkms)
+                    other_count, other_fpkm = self.get_mean(oth_sams, counts, fpkms)
+                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
+                    control_count_log2 = log(control_count+0.1)/float(log(2))
+                    other_fpkm_log2 = log(other_fpkm+0.1)/log(2)
+                    other_count_log2 = log(other_count+0.1)/float(log(2))
+                else:
+                    control_count = express_info[gene].counts[control]
+                    control_fpkm = express_info[gene].fpkms[control]
+                    other_count = express_info[gene].counts[other]
+                    other_fpkm = express_info[gene].fpkms[other]
+                    control_fpkm_log2 = log(control_fpkm+0.1)/float(log(2))
+                    control_count_log2 = log(control_count+0.1)/float(log(2))
+                    other_fpkm_log2 = log(other_fpkm+0.1)/float(log(2))
+                    other_count_log2 = log(other_count+0.1)/float(log(2))
+
+                ncbi = 'https://www.ncbi.nlm.nih.gov/gquery/?term=' + gene
+                logfc = 0
+                reg = 'no change'
+                sig = 'no'
                 if group_info:
                     count_data = []
                     fpkm_data = []
