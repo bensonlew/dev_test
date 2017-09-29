@@ -98,10 +98,10 @@ class MetaGenomicWorkflow(Workflow):
         self.IMPORT_REPORT_DATA_AFTER_END = False
         self.anno_tool = []  # nr/kegg/cog注释记录
         self.all_anno = []  # 全部的注释记录(用于依赖关系)
-        self.choose_anno = []  # 全部注释记录(字符型，用于物种与功能分析, 含基因集)
-        self.new_table = []  # 构建新丰度表模块
-        self.analysis = []  # 分析模块
-        self.nr_dir = ''  # 结果文件路径，导表时用
+        self.choose_anno = []  # 全部注释记录(字符型，用于物种与功能分析, 含基因集rpkm表)
+        self.new_table = []  # 构建新丰度表模块(module)
+        self.analysis = []  # 分析模块具体分析内容(module/tool)
+        self.nr_dir = ''  # nr注释结果文件路径，导表时用
         self.cog_dir = ''
         self.kegg_dir = ''
         self.anno_table = dict()  # 注释结果表(含所有注释水平，不含丰度)
@@ -351,17 +351,17 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_analysis(self, event):
         for db in self.choose_anno:
-            self.profile_table1[db] = run_new_table(self.anno_table[db], self.gene_set.option('rpkm_abundance'),
-                                                    self.default_level1(db))
+            self.profile_table1[db] = run_new_table(self.anno_table[db], self.anno_table['geneset'],
+                                                    self.default_level1[db])
             if self.default_level2[db] == self.default_level1[db] and event['data'] == 'all':
                 self.profile_table2[db] = self.profile_table1[db]
             elif self.default_level2[db] != self.default_level1[db] and event['data'] == 'all':
-                self.profile_table2[db] = run_new_table(self.anno_table[db], self.gene_set.option('rpkm_abundance'),
-                                                        self.default_level2(db))
+                self.profile_table2[db] = run_new_table(self.anno_table[db], self.anno_table['geneset'],
+                                                        self.default_level2[db])
         for module in self.new_table:
             module.run()
         for db in self.profile_table1.keys():
-            self.run_composition(self.profile_table1[db], group, group_detail)
+            self.run_composition(self.profile_table1[db], group)
         for db in self.profile_table2.keys():
             self.run_compare(self.profile_table2[db], group)
         self.on_rely(self.analysis, self.end)
@@ -379,12 +379,11 @@ class MetaGenomicWorkflow(Workflow):
         new_table_file = self.table.output_dir + '/new_abund_table.xls'
         return new_table_file
 
-    def run_composition(self, abund, group, group_detail):
+    def run_composition(self, abund, group):
         opts = {
             'analysis': 'bar,heatmap,circos',
             'abundtable': abund,
             'group': group,
-            'group_detail': group_detail,
             'species_number': '50',
         }
         self.set_run(opts, self.composition, 'composition', self.step.composition, False)
