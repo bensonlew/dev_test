@@ -80,7 +80,7 @@ class Nmds(Base):
             self.bind_object.logger.info('主表导入')
             for line in f:
                 stress = line.strip('\n')
-            scatter_id = self.db['nmds'].insert_one(SON(
+            scatter_id = self.db['scatter'].insert_one(SON(
                 project_sn=self.bind_object.sheet.project_sn,
                 task_id=self.bind_object.id,
                 name='nmds',
@@ -112,7 +112,8 @@ class Nmds(Base):
                     otu_detail[new_head[i]] = float(sample_num[i])  # 保证画图时取到的数据是数值型
                 insert_data.append(otu_detail)
             try:
-                self.db['nmds_detail'].insert_many(insert_data)
+                self.db['scatter_detail'].insert_many(insert_data)
+                self.db['scatter'].update_one({"_id": scatter_id}, {"$set": {"attrs": r_list, "status": "end"}})
             except Exception as e:
                 self.bind_object.logger.info("nmds画图数据导入出错{}".format(e))
                 raise Exception("nmds画图数据导入出错{}".format(e))
