@@ -203,5 +203,5 @@ class DiffExpressAction(RefRnaController):
                                '此时请选择edgeR做差异分析或者重新设计分组方案')
         elif group_size[0] >= 2:
             if data.diff_method == "DEGseq":
-                success.append('只涉包含多样本的组与组间比较时，我们只推荐DESeq2或者edgeR')
+                success.append('只涉及包含多样本的组与组间比较时，我们只推荐DESeq2或者edgeR')
         return success
