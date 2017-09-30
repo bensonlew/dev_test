@@ -37,9 +37,9 @@ class DiffExpressAction(RefRnaController):
         my_param = dict()
 
         if str(data.group_id) != "all":
-            return_control_id_group_detail = self.check_group_id_control_id(data.control_id,json.loads(data.group_detail))
+            return_control_id_group_detail = self.check_group_id_control_id(data)
             if return_control_id_group_detail:
-                info = {"success":False,"info":'+'.join(return_control_id_group_detail)}
+                info = {"success": False, "info": '+'.join(return_control_id_group_detail)}
                 return json.dumps(info)
 
         task_type = ''
@@ -173,11 +173,11 @@ class DiffExpressAction(RefRnaController):
                 success.append("传入的id：{}不是一个ObjectId对象或字符串类型".format(ids))
         return success
 
-    def check_group_id_control_id(self, control_id, group_detail):
+    def check_group_id_control_id(self, data):
         """检测control_id的样本分组信息是否和group_detail表一一对应"""
+        control_id, group_detail = data.control_id,json.loads(data.group_detail)
         compare_names = self.ref_rna.get_control_id(control_id)
         group_names = group_detail.keys()
-        print 'haha'
         print group_names
         success = []
         unique_compare_names=[]
@@ -190,4 +190,18 @@ class DiffExpressAction(RefRnaController):
                         success.append("分组方案和对照组方案不一致，分组方案没有选择{}".format(str(j),str(j)))
                     else:
                         pass
+        group_size = list()
+        for group in group_detail:
+            group_size.append(len(group_detail[group]))
+        group_size.sort()
+        if group_size[0] == group_size[-1] == 1:
+            if data.diff_method == "DESeq2":
+                success.append('DESeq2不适合处理单样本和单样本比较， 请选择DEGseq或edgeR')
+        elif group_size[0] == 1 and group_size[1] >= 2:
+            if data.diff_method == "DESeq2" or data.diff_method == "DEGseq":
+                success.append('你的分组方案表明可能要进行单样本和多样本的比较，'
+                               '此时请选择edgeR做差异分析或者重新设计分组方案')
+        elif group_size[0] >= 2:
+            if data.diff_method == "DEGseq":
+                success.append('只涉包含多样本的组与组间比较时，我们只推荐DESeq2或者edgeR')
         return success
