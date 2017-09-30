@@ -141,7 +141,8 @@ class RefassembleStatTool(Tool):
                 for step in steps:
                     step_count(files, self.option('all_files_dir') + "/" + f + ".txt", 10, step,
                                self.work_dir + "/trans_count_stat_" + str(step) + ".txt")
-            if f.endswith("change_id_merged.gtf"):
+            # if f.endswith("change_id_merged.gtf"):
+            if f.endswith("add_code_merged.gtf"):
                 files = os.path.join(self.option('all_files_dir'), f)
                 code_count = os.path.join(self.work_dir, "code_num.txt")
                 class_code_count(files, code_count)
