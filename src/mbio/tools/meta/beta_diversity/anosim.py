@@ -68,7 +68,7 @@ class AnosimAgent(Agent):
                                   len(samplelist)))
             for sample in self.option('group').prop['sample']:
                 if sample not in samplelist:
-                    raise OptionError('分组文件的样本(%s)在otu表的样本中不存在' % sample)
+                    raise OptionError('分组文件的样本(%s)在丰度表的样本中不存在' % sample)
         return True
 
     def set_resource(self):

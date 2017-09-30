@@ -4,6 +4,7 @@
 
 """bar / circos / heatmap"""
 import os
+import shutil
 from biocluster.module import Module
 from biocluster.core.exceptions import OptionError
 from mainapp.models.mongo.public.meta.meta import Meta
@@ -30,10 +31,13 @@ class CompositionAnalysisModule(Module):
             self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table)
 
     def check_options(self):
-        for i in ['bar', 'circos', 'heatmap']:
-            if i in self.option('analysis'):
+        analysis = self.option('analysis').split(',')
+        for i in analysis:
+            if i in ['bar', 'circos', 'heatmap']:
+                print i
                 break
             else:
+                print i
                 raise OptionError('没有选择任何分析或者分析类型选择错误：%s' % self.option('analysis'))
         if not self.option("abundtable").is_set:
             raise OptionError("请传入物种/功能/基因丰度表格！")

@@ -44,7 +44,7 @@ class PcaAgent(Agent):
 
     def gettable(self):
         """
-        根据level返回进行计算的otu表
+        根据level返回进行计算的丰度表
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
@@ -77,7 +77,7 @@ class PcaAgent(Agent):
             self.option('envtable').get_info()
             common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
             if len(common_samples) < 3:
-                raise OptionError("环境因子表和OTU表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
+                raise OptionError("环境因子表和丰度表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
         table = open(self.gettable())
         if len(table.readlines()) < 3:
             raise OptionError('数据表特征数量必须大于等于2: {}'.format(len(table.readlines())))
@@ -128,7 +128,7 @@ class PcaAgent(Agent):
         super(PcaAgent, self).end()
 
 
-class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_sample函数生成的表头没有'#'
+class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_otu_sample函数生成的表头没有'#'
     def __init__(self, config):
         super(PcaTool, self).__init__(config)
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
@@ -157,7 +157,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
 
     def get_otu_table(self):
         """
-        根据level返回进行计算的otu表路径
+        根据level返回进行计算的丰度表路径
         :return:
         """
         if self.option('otutable').format == "meta.otu.tax_summary_dir":
@@ -166,7 +166,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
             otu_path = self.option('otutable').prop['new_table']
         else:
             otu_path = self.option('otutable').prop['path']
-        # otu表对象没有样本列表属性
+        # 丰度表对象没有样本列表属性
         return otu_path
         # if self.option('envtable').is_set:
         #     return self.filter_otu_sample(otu_path, self.option('envtable').prop['sample'],
@@ -177,13 +177,13 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
     """
     def filter_otu_sample(self, otu_path, filter_samples, newfile):
         if not isinstance(filter_samples, types.ListType):
-            raise Exception('过滤otu表样本的样本名称应为列表')
+            raise Exception('过滤丰度表样本的样本名称应为列表')
         try:
             with open(otu_path, 'rb') as f, open(newfile, 'wb') as w:
                 one_line = f.readline()
                 all_samples = one_line.rstrip().split('\t')[1:]
                 if not ((set(all_samples) & set(filter_samples)) == set(filter_samples)):
-                    raise Exception('提供的过滤样本存在otu表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
+                    raise Exception('提供的过滤样本存在丰度表中不存在的样本all:%s,filter_samples:%s' % (all_samples, filter_samples))
                 if len(all_samples) == len(filter_samples):
                     return otu_path
                 samples_index = [all_samples.index(i) + 1 for i in filter_samples]
@@ -194,7 +194,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
                     w.write('\t'.join(new_values) + '\n')
                 return newfile
         except IOError:
-            raise Exception('无法打开OTU相关文件或者文件不存在')
+            raise Exception('无法打开丰度相关文件或者文件不存在')
     """
 
     def get_new_env(self):
@@ -256,13 +256,13 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的OTU表，filter_otu_
         """
         运行ordination.pl
         """
-        old_otu_table = self.get_otu_table()  # 根据level返回进行计算的otu表，特殊的format类型才会进行。小工具不用判断
+        old_otu_table = self.get_otu_table()  # 根据level返回进行计算的丰度表，特殊的format类型才会进行。小工具不用判断
         if self.option('envtable').is_set:  # 小工具不用判断
             old_env_table = self.get_new_env()
             self.otu_table = self.work_dir + '/new_otu.xls'
             self.env_table = self.work_dir + '/new_env.xls'
             if not self.create_otu_and_env_common(old_otu_table, old_env_table, self.otu_table, self.env_table):
-                self.set_error('环境因子表中的样本与OTU表中的样本共有数量少于2个')
+                self.set_error('环境因子表中的样本与丰度表中的样本共有数量少于2个')
         else:
             self.otu_table = old_otu_table
         if group:
