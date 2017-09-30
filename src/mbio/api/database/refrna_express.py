@@ -21,7 +21,6 @@ from math import log10
 import pandas as pd
 from gevent.monkey import patch_all
 import gevent
-from mainapp.libs.param_pack import group_detail_sort
 
 patch_all()
 class RefrnaExpress(Base):
@@ -933,11 +932,16 @@ class RefrnaExpress(Base):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
+        # params.update({
+        #     'express_id': express_id,
+        #     'group_id': str(group_id),
+        #     'group_detail': group_detail,
+        #     'control_id': str(control_id)
+        # })  # 为更新workflow的params，因为截停
+        # if group_id == 'all':
+        #     params['group_detail'] = {'all': group_detail}
         if params:
-            params["submit_location"] = "express_diff"
-            params['task_id'] = task_id
-            params['task_type'] = ''
-        params['group_detail'] = group_detail_sort(params['group_detail'])
+            params.update({"submit_location": "express_diff"})
         if not express_method:
             raise Exception("add_express_diff函数需要设置express_method(选择表达量计算软件rsem或featurecounts)参数!")
         if not value_type:
@@ -958,7 +962,8 @@ class RefrnaExpress(Base):
             'name': name if name else re_name,
             'desc': '表达量差异检测主表',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'params': json.dumps(params, sort_keys=True, separators=(',', ':')),
+            'params': (
+                json.dumps(params, sort_keys=True, separators=(',', ':')) if isinstance(params, dict) else params),
             'specimen': samples,
             'status': 'end',
             'compare_column': compare_column,
@@ -1096,7 +1101,8 @@ class RefrnaExpress(Base):
         else:
             self.bind_object.logger.info("导入基因表达差异统计表：%s信息成功!" % diff_stat_path)
 
-    def add_diff_summary_detail(self, diff_express_id, count_path, ref_all,query_type=None, class_code=None,workflow=False):
+    def add_diff_summary_detail(self, diff_express_id, count_path, ref_all, query_type=None,
+                                class_code=None, workflow=False):
         db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
         if not isinstance(diff_express_id, ObjectId):
             if isinstance(diff_express_id, types.StringTypes):
@@ -1109,48 +1115,35 @@ class RefrnaExpress(Base):
             if os.path.exists(class_code):
                 name_seq_id = self.get_gene_name(class_code, query_type, workflow=workflow)
         data_list = list()
-        count_dict = {}
         with open(count_path, 'rb') as f:
-            i = 0
             sample = f.readline().strip().split('\t')
             lensam = len(sample)
             sample = sample[1:lensam]
             for line in f:
-                if i == 0:
-                    i = 1
-                else:
-                        l = line.strip().split('\t')
-                        gene_id = l[0]
-                        alen = len(l)
-                        blen = alen - 2
-                        alen = alen - 1
-                        fpkm = l[1:alen]
-                        #if not re.search(r'yes',"_".join(fpkm)):
-                        # add by khl 20170623 只取出含有yes的信息，否则过滤掉
-                        #    continue
-                        #else:
-                        sum_1 = l[alen]
-                        data = [
-                            ("seq_id", gene_id),
-                            ("express_diff_id", diff_express_id),
-                            ('sum', int(sum_1)),
-                            ('ref_all', ref_all)
-                        ]
-                        if class_code:
-                            if name_seq_id:
-                                if query_type == 'transcript':
-                                    if gene_id in name_seq_id.keys():
-                                        true_gene_id = name_seq_id[gene_id]['gene_id']
-                                        data.append(("gene_id", true_gene_id))
-                        for j in range(blen):
-                            data += [
-                                ('{}_diff'.format(sample[j]), fpkm[j]),
-                            ]
+                l = line.strip().split('\t')
+                gene_id = l[0]
+                alen = len(l)
+                blen = alen - 2
+                alen = alen - 1
+                fpkm = l[1:alen]
+                sum_1 = l[alen]
+                data = [
+                    ("seq_id", gene_id),
+                    ("express_diff_id", diff_express_id),
+                    ('sum', int(sum_1)),
+                    ('ref_all', ref_all)
+                ]
+                if class_code:
+                    if name_seq_id:
+                        if query_type == 'transcript':
+                            if gene_id in name_seq_id.keys():
+                                true_gene_id = name_seq_id[gene_id]['gene_id']
+                                data.append(("gene_id", true_gene_id))
+                for j in range(blen):
+                    data += [('{}_diff'.format(sample[j]), fpkm[j]), ]
 
-                        # print '开始打印data数据'
-                        # print data
-                        data = SON(data)
-                        data_list.append(data)
+                data = SON(data)
+                data_list.append(data)
         try:
             collection = db["sg_express_diff_summary"]
             collection.insert_many(data_list)
