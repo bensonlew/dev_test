@@ -617,19 +617,22 @@ class RefAnnotation(Base):
         data_list = []
         with open(pfam_path, "r") as f:
             lines = f.readlines()
+            last_seq_id = ''
+            last_pfam_id = ''
             for line in lines[1:]:
                 line = line.strip().split("\t")
-                data = [
-                    ('pfam_id', pfam_id),
-                    ('seq_type', seq_type),
-                    ('anno_type', anno_type),
-                    ('seq_id', line[0]),
-                    ('pfam', line[2]),
-                    ('domain', line[3]),
-                    ('description', line[4])
-                ]
-                data = SON(data)
-                data_list.append(data)
+                if line[2] != last_seq_id or line[3] != last_pfam_id:
+                    data = [
+                        ('pfam_id', pfam_id),
+                        ('seq_type', seq_type),
+                        ('anno_type', anno_type),
+                        ('seq_id', line[0]),
+                        ('pfam', line[2]),
+                        ('domain', line[3]),
+                        ('description', line[4])
+                    ]
+                    data = SON(data)
+                    data_list.append(data)
         try:
             collection = self.db['sg_annotation_pfam_detail']
             collection.insert_many(data_list)
@@ -1041,7 +1044,8 @@ class RefAnnotation(Base):
                     ('term_type', term_type),
                     ('go_term', item),
                     ('seq_number', len(seq_list)),
-                    # ('seq_list', seq_list)
+                    ('percent', line[-2]),
+                    #('seq_list', seq_list)
                 ]
                 data = SON(data)
                 data_list.append(data)
