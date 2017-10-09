@@ -6,14 +6,13 @@ import re
 import datetime
 from bson import SON
 from biocluster.config import Config
-import os
 
 
 class Hcluster(Base):
     def __init__(self, bind_object):
         super(Hcluster, self).__init__(bind_object)
         self.output_dir = self.bind_object.output_dir
-        self.work_dir = self.bind_object._task.work_dir
+        self.work_dir = self.bind_object.work_dir
         if Config().MONGODB == 'sanger':
             self._db_name = 'toolapps'
         else:
@@ -25,32 +24,20 @@ class Hcluster(Base):
         """
         运行函数
         """
-        if self.bind_object._task.option('group_table').is_set:
-            group_name_list = os.listdir(self.output_dir)
-            for i in group_name_list:
-                self.main_id = self.hcluster_in(i)
-                self.table_ids = self.table_in(i)
-        else:
-            self.main_id = self.hcluster_in()
-            self.table_ids = self.table_in()
+        self.main_id = self.hcluster_in()
+        self.table_ids = self.table_in()
         return self.main_id
         pass
 
-    def table_in(self, group_name=None):
-        '''
-        导入二维表
-        :param group_name: 分组方案名称
-        :return:
-        '''
-        if group_name:
-            output_dir = os.path.join(self.output_dir, group_name)
-        else:
-            output_dir = self.output_dir
-        ratation = self.insert_table(output_dir + '/data_table', '聚类树原始数据表',
-                                     '生成聚类树的原始数据表', group_name)
+    def table_in(self):
+        """
+		导入表格相关信息
+		"""
+        ratation = self.insert_table(self.output_dir + '/data_table', '聚类树原始数据表',
+                                     '生成聚类树的原始数据表')
         return [ratation]
 
-    def insert_table(self, fp, name, desc, group_name):
+    def insert_table(self, fp, name, desc):
         with open(fp) as f:
             columns = f.readline().strip().split('\t')
             insert_data = []
@@ -62,7 +49,6 @@ class Hcluster(Base):
                 desc=desc,
                 status='end',
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                group_name=group_name,
             )).inserted_id
             for line in f:
                 line_split = line.strip().split('\t')
@@ -72,23 +58,18 @@ class Hcluster(Base):
             self.db['table_detail'].insert_many(insert_data)
         return table_id
 
-    def hcluster_in(self, group_name=None):
+    def hcluster_in(self):
         """
         导入venn图相关信息
         """
-        if group_name:
-            output_dir = os.path.join(self.output_dir, group_name)
-        else:
-            output_dir = self.output_dir
-        with open(output_dir + '/hcluster.tre') as f:
+        with open(self.output_dir + '/hcluster.tre') as f:
             hcluster_id = self.db['tree'].insert_one(SON(
                 project_sn=self.bind_object.sheet.project_sn,
                 task_id=self.bind_object.id,
                 name='hcluster',
                 desc='层次聚类树图',
                 status='end',
-                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                group_name=group_name,
+                created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )).inserted_id
             line = f.readline()
             tree = line.strip()
@@ -96,9 +77,6 @@ class Hcluster(Base):
             sample_list = [i[1] for i in raw_samp]
             self.bind_object.logger.info(tree)
             specimen_ids_dict = self.insert_specimens(sample_list)
-            if group_name:
-                group_path = os.path.join(self.work_dir, group_name + '_group.xls')
-                self.insert_group(specimen_ids_dict, group_name, group_path)
             try:
                 collection = self.db["tree"]
                 collection.update_one({"_id": hcluster_id}, {"$set": {"value": line}})
@@ -107,38 +85,24 @@ class Hcluster(Base):
                 raise Exception("导入tree信息出错:%s" % e)
             else:
                 self.bind_object.logger.info("导入tree信息成功!")
+            # reverse_ids = SON([(str(n), m) for m, n in specimen_ids_dict.iteritems()])  # add by zhouxuan 20170508
+            # self.db['specimen_group'].insert_one(SON(data=[('project_sn', self.bind_object.sheet.project_sn),
+            #                                                ('task_id', self.bind_object.id),
+            #                                                ('visual_type', ['hcluster']),
+            #                                                ('visual_id', [hcluster_id]),
+            #                                                ('name', 'ALL'),
+            #                                                ('category_names', ['ALL']),
+            #                                                ('specimen', [reverse_ids])]))
         return hcluster_id
 
     def insert_specimens(self, specimen_names):  # add by zhouxuan 20170508
+        """
+		"""
         task_id = self.bind_object.id
         project_sn = self.bind_object.sheet.project_sn
         datas = [SON(project_sn=project_sn, task_id=task_id, name=i) for i in specimen_names]
         ids = self.db['specimen'].insert_many(datas).inserted_ids
         return SON(zip(specimen_names, ids))
-
-    def insert_group(self, group_id, group_name, group_path):
-        group_dict = {}
-        group_cat = []
-        with open(group_path, 'r') as g:
-            r = g.readline()
-            for line in g:
-                line = line.strip().split("\t")
-                group_dict[line[0]] = line[1]
-                if line[1] not in group_cat:
-                    group_cat.append(line[1])
-        group_list = []
-        for i in group_cat:
-            dict_ = {}
-            for key in group_id:
-                if group_dict[key] == i:
-                    dict_[str(group_id[key])] = key
-            group_list.append(dict_)
-        self.db['specimen_group'].insert_one(SON(
-            task_id=self.bind_object.id,
-            category_names=group_cat,
-            specimen_names=group_list,
-            group_name=group_name,
-        ))
 
     def check(self):
         """

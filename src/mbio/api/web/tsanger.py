@@ -12,7 +12,7 @@ class Tsanger(Log):
         super(Tsanger, self).__init__(data)
         self._client = "client03"
         self._key = "hM4uZcGs9d"
-        self._url = "http://api.tsg.com/task/add_task_log"
+        self._url = "http://api.tsanger.com/task/add_task_log"
         self._post_data = "%s&%s" % (self.get_sig(), self.post_data)
 
     def update(self):

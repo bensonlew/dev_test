@@ -22,8 +22,8 @@ class GroupTableFile(TableFile):
     def get_info(self):
         if 'path' in self.prop.keys():
             file_name = os.path.basename(self.prop['path'])
-            if file_name.split(".")[-1] != 'txt':
-                raise FileError("文件类型不对,应该为TXT格式,其后缀应该为.txt")
+            # if file_name.split(".")[-1] != 'txt':
+            #     raise FileError("文件类型不对,应该为TXT格式,其后缀应该为.txt")
             f = open(self.prop['path'], 'r')
             code_dic = chardet.detect(f.read())
             if code_dic['encoding'] != 'ascii' and code_dic['encoding'] != 'UTF-16LE':
@@ -32,8 +32,7 @@ class GroupTableFile(TableFile):
             self.new_file = self.get_newtable(code_dic['encoding'])
             self.check_info(self.new_file)  # 判断是否符合数据表格的要求
             info = self.get_file_info()
-            self.set_property("group_scheme", info[1])  # 分组方案中涉及的分组名称
-            self.set_property('sample_name', info[0])  # 分组方案中涉及的样本
+            self.set_property("group_scheme", info[1])
         else:
             raise FileError("文件路径不正确，请设置正确的文件路径!")
 
@@ -51,15 +50,15 @@ class GroupTableFile(TableFile):
             else:
                 is_empty = False
             header = list()
-            len_ = len(line)  # 标明group文件有几列
-            for i in range(1, len_):  # 记录列名,也就是记录分组方案的名称
+            len_ = len(line)
+            for i in range(1, len_):
                 header.append(line[i])
             for line in f:
                 line = line.rstrip()
                 line = re.split("\t", line)
                 row += 1
                 if line[0] not in sample:
-                    sample.append(line[0])  # 记录所有分组方案中的样本名称
+                    sample.append(line[0])
             return (sample, header, is_empty)
 
     def sub_group(self, target_path, header):
@@ -90,44 +89,9 @@ class GroupTableFile(TableFile):
                 line = re.split("\t", line)
                 sub_line.append(line[0])
                 for i in my_index:
-                    if line[i] == '' or line[i] == ' ':  # add by wzy 20170909
-                        pass
-                    else:
-                        sub_line.append(line[i])
-                if len(sub_line) > 1:  # add by wzy 20170909
-                    new_line = "\t".join(sub_line)
-                    w.write(new_line + "\n")
-                else:
-                    pass
-
-    def get_group_detail(self):
-        """
-        根据分组文件得到具体的分组方案
-        """
-        group_samples = {}  # 分组对应中新样本对应的旧样本
-        with open(self.prop['path'], "r") as f:
-            line = f.readline().rstrip()
-            line = re.split("\t", line)
-            if line[1] == "##empty_group##":
-                is_empty = True
-            else:
-                is_empty = False
-            for i in range(1, len(line)):
-                group_samples[line[i]] = {}
-            for item in f:
-                item = item.rstrip().split("\t")
-                for i in range(1, len(line)):
-                    try:
-                        if item[i] and item[i] not in group_samples[line[i]]:
-                            group_samples[line[i]][item[i]] = []
-                            group_samples[line[i]][item[i]].append(item[0])
-                        elif item[i]:
-                            group_samples[line[i]][item[i]].append(item[0])
-                        else:
-                            print "{}样本不在分组方案{}内".format(item[0], line[i])
-                    except:
-                        print "{}样本不在分组方案{}内".format(item[0], line[i])
-        return group_samples
+                    sub_line.append(line[i])
+                new_line = "\t".join(sub_line)
+                w.write(new_line + "\n")
 
     @staticmethod
     def check_info(file_path):
@@ -156,19 +120,8 @@ class GroupTableFile(TableFile):
                         raise FileError('行名中不能存在数字——{}'.format(content))
                     else:
                         pass
-                    if i == '' or i == ' ':
-                        raise FileError('分组中样本不能为空——{}'.format(content))
 
     def check(self):
         if super(GroupTableFile, self).check():
             self.get_info()
             return True
-
-if __name__ == '__main__':
-    a = GroupTableFile()
-    # a.set_path('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/group2.txt')
-    a.set_path('/mnt/ilustre/users/sanger-dev/sg-users/zengjing/toolapps/hc_heatmap/more_group.txt')
-    a.get_info()
-    a.sub_group('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/group1.txt', ['BBB'])
-    group_detail = a.get_group_detail()
-    print group_detail

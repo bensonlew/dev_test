@@ -161,6 +161,7 @@ class PtCustomer(Base):
             for line in f:
                 line = line.strip()
                 line = line.split('\t')
+                self.bind_object.logger.info(line)
                 if re.match('WQ([0-9]*)-.*', line[3]):
                     insert_data = {
                         "type": line[2].strip(),

@@ -47,7 +47,7 @@ class FileSampleFile(File):
                 line = line.split()
                 self.col = len(line)
                 if self.col != 2 and self.col != 3:  # modify by qiuping 2016.07.22
-                    raise FileError('这个文件的列数应该为2(SE)或者3(PE,PSE)')
+                    raise FileError('这个文件的列数应该为2(SE)或者3(PE)')
                 if line[1] not in sample.keys():
                     sample[line[1]] = 1
                 else:  # modify by qiuping 2016.07.22,add 2 lines
@@ -59,9 +59,9 @@ class FileSampleFile(File):
                 full_name = os.path.join(dir_name, line[0])
                 if os.path.isfile(full_name):
                     self.file_sample[line[0]] = line[1]
-                if self.col == 3:  # modify by qiuping 2016.07.22,add 3 lines;modify by zhujuan 2017.08.16
-                    if line[2] not in ['l', 'r','s']:
-                        raise FileError('fastq类型为PE/PSE时，标识左右两端/single-reads的字段不符合要求：l,r,s')
+                if self.col == 3:  # modify by qiuping 2016.07.22,add 3 lines
+                    if line[2] not in ['l', 'r']:
+                        raise FileError('为PE测序时，标识左右两端的字段不符合要求：l,r')
         return sample, name
 
     def get_sample_str(self):
@@ -95,7 +95,6 @@ class FileSampleFile(File):
         return::
            SE时，返回一个字典，样本重复：{'样本名'：'fq文件名，fq文件名'}，否则{'样本名'：'fq文件名'}
            PE时，返回一个字典，样本重复：{'样本名'：{'r'：'fq文件名，fq文件名','l'：'fq文件名，fq文件名'}}，否则{'样本名'：{'r'：'fq文件名'，'l'：'fq文件名'}}
-           PSE时，返回一个字典，样本重复：{'样本名'：{'r'：'fq文件名，fq文件名','l'：'fq文件名，fq文件名','s'：'fq文件名，fq文件名'}},否则{'样本名'：{'r'：'fq文件名'，'l'：'fq文件名', 'd'：'fq文件名'}} #add by zhujuan 2017.08.18
         """
         file_sample = {}
         with open(self.prop['path'], "rb") as l:
@@ -105,27 +104,19 @@ class FileSampleFile(File):
                     if line[1] not in file_sample:
                         if line[2] == 'r':
                             file_sample[line[1]] = {"r": line[0]}
-                        elif line[2] == 'l':
+                        else:
                             file_sample[line[1]] = {"l": line[0]}
-                        elif line[2] == 's':
-                            file_sample[line[1]] = {"s": line[0]}
                     else:
                         if line[2] == 'r':
                             if 'r' in file_sample[line[1]]:
                                 file_sample[line[1]]['r'] += ',{}'.format(line[0])
                             else:
                                 file_sample[line[1]]['r'] = line[0]
-                        elif line[2] == 'l':
+                        else:
                             if 'l' in file_sample[line[1]]:
                                 file_sample[line[1]]['l'] += ',{}'.format(line[0])
                             else:
                                 file_sample[line[1]]['l'] = line[0]
-                        elif line[2] == 's':
-                            if 's' in file_sample[line[1]]:
-                                file_sample[line[1]]['s'] += ',{}'.format(line[0])
-                            else:
-                                file_sample[line[1]]['s'] = line[0]
-
                 if len(line) == 2:
                     if line[1] not in file_sample:
                         file_sample[line[1]] = line[0]
@@ -169,8 +160,8 @@ class FileSampleFile(File):
                     if num >= 2:
                         self.se_repeat = True
             # modify by qindanhua 20161109
-            # for sam in sample.keys():
-            #     if re.search(r'\W', sam):
-            #         raise FileError('样本名应由字母数字下划线组成: %s' %(sam))
+            for sam in sample.keys():
+                if re.search(r'\W', sam):
+                    raise FileError('样本名应由字母数字下划线组成')
             self.check_exists()
             return True
