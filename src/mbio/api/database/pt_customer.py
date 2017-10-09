@@ -248,6 +248,89 @@ class PtCustomer(Base):
             else:
                 continue
 
+    def get_urgency_sample(self, file, batch_id):
+        """
+        用于获取加急样本，并导入到表中
+        :param file:
+        :param batch_id:
+        :return:
+        """
+        file_name = os.path.basename(file)
+        data_id = ("_").join(file_name.split('_')[0:-1])
+        urgency_data = []
+        var_urgency_data = []
+        with open(file, "r") as f:
+            for line in f:
+                line = line.strip()
+                line = line.split('\t')
+                if re.match('WQ([0-9]*)-.*', line[3]):
+                    if line[1] == 'var_urgency':
+                        var_urgency_data.append(line[3])
+                    elif line[1] == 'urgency':
+                        urgency_data.append(line[3])
+                    # elif re.match('WQ([0-9]*)-F.*', line[3]):
+                    #     urgency_data.append(line[3])
+        sample_id_list = var_urgency_data + urgency_data
+        self.bind_object.logger.info("家系信息样本{}，样本个数{}".format(sample_id_list, len(sample_id_list)))
+        insert_data = {
+            "batch_id": ObjectId(batch_id),
+            "sample_id_list": sample_id_list,
+            'split_data_name': data_id,
+            'urgency': 'true',
+            'create_time': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        try:
+            collection = self.database["sg_urgency_info"]
+            m = collection.find_one({"split_data_name": data_id})
+            if m:
+                old_batch_id = m['batch_id']
+                collection.update({"split_data_name": data_id}, {'$set': {"sample_id_list": sample_id_list,
+                                                                          "batch_id": ObjectId(batch_id),
+                                                                          "old_batch_id": old_batch_id}}, upsert=True)
+            else:
+                collection.insert_one(insert_data)
+        except Exception as e:
+            self.bind_object.logger.info('导入加急样本信息出错{}'.format(e))
+            raise Exception('导入加急样本信息出错{}'.format(e))
+        else:
+            self.bind_object.logger.info('导入加急样本信息成功！')
+
+    def update_urgency_info(self, batch_id):
+        """
+        加急样本分析完成后，要将sg_urgency_info中的urgency改为“false”
+        :param batch_id:
+        :return:
+        """
+        try:
+            self.database["sg_urgency_info"].find_one_and_update({"batch_id": ObjectId(batch_id)},
+                                                                 {'$set': {"urgency": 'false'}}, upsert=True)
+        except Exception as e:
+            self.bind_object.logger.info('更新加急样本信息中的urgency失败！{}'.format(e))
+            raise Exception('更新加急样本信息中的urgency失败！{}'.format(e))
+        else:
+            self.bind_object.logger.info('更新加急样本信息中的urgency成功！')
+
+    def get_urgency_type(self, batch_id):
+        collection = self.database["sg_urgency_info"]
+        result = collection.find_one({"batch_id": ObjectId(batch_id)})
+        if result:
+            if str(result['urgency']) == 'true':
+                return True
+            else:
+                return False
+        else:
+            self.bind_object.logger.info("sg_urgency_info中没有找到batch_id对应信息！")
+            raise Exception("sg_urgency_info中没有找到batch_id对应信息！")
+
+    def get_urgency(self, batch_id):
+        collection = self.database["sg_urgency_info"]
+        result = collection.find_one({"batch_id": ObjectId(batch_id)})
+        if result:
+            return result['sample_id_list']
+        else:
+            self.bind_object.logger.info("sg_urgency_info中没有对应的加急信息！")
+            raise Exception("sg_urgency_info中没有对应的加急信息！")
+
     '''
     def family_search(self, family_id,  mom_id_=None, dad_id_=None):
         collection = self.database["sg_pt_customer"]
