@@ -581,6 +581,13 @@ class MetaGenomicWorkflow(Workflow):
             elif len(self.sample_in_group) > 2:
                 self.on_rely(self.all_anno, self.run_analysis, 'all')
                 # self.on_rely(self.analysis, self.end)
+        if self.option('test'):
+            self.run_ardb()
+            self.run_card()
+            self.run_vfdb()
+            #self.run_analysis('all')
+            super(MetaGenomicWorkflow, self).run()
+            return True
         if self.option('qc'):
             self.run_sequence()
         elif self.option('rm_host'):
