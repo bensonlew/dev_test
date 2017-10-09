@@ -17,10 +17,10 @@ class PtCustomer(Base):
         super(PtCustomer, self).__init__(bind_object)
         self.mongo_client = Config().mongo_client
         self.database = self.mongo_client[Config().MONGODB+'_paternity_test']
-        self.database_ref = self.mongo_client[Config().MONGODB+'_paternity_test']  # 测试机上专用,放到正式机后要注释
+        # self.database_ref = self.mongo_client[Config().MONGODB+'_paternity_test']  # 测试机上专用,放到正式机后要注释
 
-        # self.mongo_client_ref = Config().biodb_mongo_client   # 放到sanger这里要修改,要启用
-        # self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
+        self.mongo_client_ref = Config().biodb_mongo_client   # 放到sanger这里要修改,要启用
+        self.database_ref = self.mongo_client_ref['sanger_paternity_test_ref']
 
     def add_pt_customer(self, main_id=None, customer_file=None):
         if customer_file == "None":
