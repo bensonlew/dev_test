@@ -118,7 +118,7 @@ class MgKeggStatTool(Tool):
 
     def set_output(self):
         self.logger.info("set_output")
-        if len(os.listdir(self.output_dir)) == 7:
+        if len(os.listdir(self.output_dir)) == 6:
             try:
                 self.option("kegg_profile_dir", self.output_dir)
             except Exception as e:

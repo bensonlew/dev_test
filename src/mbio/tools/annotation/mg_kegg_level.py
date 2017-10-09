@@ -115,7 +115,10 @@ class MgKeggLevelTool(Tool):
             raise Exception("kegg_stat failed")
 
     def set_output(self):
-        os.link(self.work_dir + "/gene_kegg_anno_all.xls", self.output_dir + "/gene_kegg_anno.xls")
+        newfile = self.output_dir + "/gene_kegg_anno.xls"
+        if os.path.exists(newfile):
+            os.remove(newfile)
+        os.link(self.work_dir + "/gene_kegg_anno_all.xls", newfile)
         self.logger.info("set_output")
         if len(os.listdir(self.output_dir)) == 4:
             self.logger.info("OUTPUT RIGHT")
