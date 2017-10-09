@@ -74,9 +74,24 @@ class PtDedupWorkflow(Workflow):
 
     def fastq2mongo_run(self):
         api_read_tab = self.api.tab_file
-        fastq = os.listdir(self.option('fastq_path').prop['path'])
+        pt_customer = self.api.pt_customer
+        fastq1 = os.listdir(self.option('fastq_path').prop['path'])
         file = []
         file_type = []
+        fastq = []
+        if pt_customer.get_urgency_type(self.option('batch_id')):
+            sample_id_list = pt_customer.get_urgency(self.option('batch_id'))
+            self.logger.info("sample_id_list:{}".format(sample_id_list))
+            if len(sample_id_list) == 0:
+                fastq = fastq1
+            else:
+                for m in sample_id_list:
+                    if str("{}_R1.fastq.gz".format(m)) in fastq1:
+                        fastq.append("{}_R1.fastq.gz".format(m))
+                        fastq.append("{}_R2.fastq.gz".format(m))
+        else:
+            fastq = fastq1
+        # self.logger.info("fastq:{}".format(fastq))
         for j in fastq:
             m = re.match('(.*)_R1.fastq.gz', j)
             if m:
@@ -87,7 +102,8 @@ class PtDedupWorkflow(Workflow):
                 else:
                     self.logger.info(j)
                     pass
-
+        self.logger.info("file:{}".format(file))
+        self.logger.info("file_type:{}".format(file_type))
         n = 0
         for i in file:
             x = api_read_tab.tab_exist(i)
@@ -149,6 +165,7 @@ class PtDedupWorkflow(Workflow):
         self.logger.info("组成的家系个数：%s" % len(self.family_id))
         if not self.family_id:
             self.logger.error("没有符合条件的家系")
+            self.api.pt_customer.update_urgency_info(self.option('batch_id'))
             self.exit(exitcode=1, data='没有符合条件的家系', terminated=False)
             # raise Exception("没有符合条件的家系")
 
@@ -466,5 +483,5 @@ class PtDedupWorkflow(Workflow):
                     api_main.add_father_qc(self.father_id, self.pt_father_id)
                     # 更新单次运行的状态
                 api_main.update_sg_pt_father(self.pt_father_id)
-
+        api_update_status.update_urgency_info(self.option('batch_id'))
         super(PtDedupWorkflow, self).end()

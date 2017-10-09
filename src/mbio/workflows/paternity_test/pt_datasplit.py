@@ -312,7 +312,7 @@ class PtDatasplitWorkflow(Workflow):
                     "ref_fasta": Config().SOFTWARE_DIR + "/database/human/hg38.chromosomal_assembly/ref.fa",
                     "targets_bedfile": Config().SOFTWARE_DIR + "/database/human/pt_ref/snp.chr.sort.3.bed",
                     "ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
-                    "err_min": 11,  # 11
+                    "err_min": 9,  # 11
                     "batch_id": self.option('pt_data_split_id'),
                     "dedup_num": 10,
                     "update_info": update_info,
@@ -415,9 +415,9 @@ class PtDatasplitWorkflow(Workflow):
         db_customer = self.api.pt_customer
         if self.option('family_table').is_set:
             db_customer.family_search(self.pt_sample_name)  # 判断这些样本能组成的家系是否存在家系信息
+        db_customer.get_urgency_sample(self.option('message_table').prop['path'], self.option('pt_data_split_id'))  # 用于获取加急样本，并导表
         dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)
         # 上述记录拆分表是为了再次拆分的时候，上传表格改变就会重新拆分
-
         self.logger.info(dir_list)
         if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
             self.wq_dir = dir_list[0]
