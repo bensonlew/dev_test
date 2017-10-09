@@ -75,8 +75,8 @@ class DataSplitTool(Tool):
 		super(DataSplitTool, self).__init__(config)
 		self._version = "v1.0"
 		self.script_path = "bioinfo/medical/bcl2fastq-2.17/bin/bcl2fastq"
-		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
-		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
+		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
 
 	def run(self):
 		"""
@@ -137,10 +137,12 @@ class DataSplitTool(Tool):
 		:return:
 		"""
 		m = re.match('(.*)_A(.*)/', self.option('data_dir'))
+		# n = re.match('(.*)_A(.*)_.*/', self.option('data_dir'))
 		if m:
-			chip_name = m.group(2)
+			chip_name = m.group(2)[0:9]
 		else:
 			raise Exception('无法获取到相应的数据的芯片名'.format(self.option('data_dir')))
+		self.logger.info("芯片名字:{}".format(chip_name))
 		origin_html = self.output_dir + '/Reports/html/' + chip_name +'/all/all/all/laneBarcode.html'
 		if os.path.exists(origin_html):
 			sample = self.check_yield(origin_html, self.work_dir + '/yield.txt')
