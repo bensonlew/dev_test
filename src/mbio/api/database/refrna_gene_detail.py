@@ -25,9 +25,10 @@ class RefrnaGeneDetail(Base):
         为了获得已知基因的description, gene_type信息
         :param biomart_path: this file must be tab separated.
         :param biomart_type: the type of biomart file
-        :return: dict, gene_id:  {"trans_id": [trans_id], "gene_name": [gene_name],
+        :return: dict1. gene_id:  {"trans_id": [trans_id], "gene_name": [gene_name],
         "chromosome": [chromosome], "gene_type": [gene_type], "description": [desc],
          "strand": [strand], "pep_id": [pep_id], "start": [start], "end": [end]}
+        dict2. pep->transcript
         """
         if biomart_type == "type1":
             gene_id_ind = 0
@@ -66,6 +67,7 @@ class RefrnaGeneDetail(Base):
             raise ValueError('biomart_type should be one of type1, type2, type3')
 
         biomart_info = dict()
+        pep2transcript = dict()
         with open(biomart_path) as f:
             for line in f:
                 if not line.strip():
@@ -103,6 +105,7 @@ class RefrnaGeneDetail(Base):
                 biomart_info[gene_id]['strand'].append(strand)
                 biomart_info[gene_id]['start'].append(start)
                 biomart_info[gene_id]['end'].append(end)
+                pep2transcript[pep_id] = trans_id
 
         if not biomart_info:
             raise Exception("biomart information is None")
@@ -110,7 +113,7 @@ class RefrnaGeneDetail(Base):
         if (not start.isdigit()) or (not end.isdigit()):
             raise NameError('we find "start" or "end" is not digit. Maybe biomart_type is wrong')
         print('Information of {} genes was parsed from biomart file'.format(len(biomart_info)))
-        return biomart_info
+        return biomart_info, pep2transcript
 
     @staticmethod
     def get_cds_seq(cds_path):
@@ -157,10 +160,11 @@ class RefrnaGeneDetail(Base):
         return cds_dict
 
     @staticmethod
-    def get_pep_seq(pep_path):
+    def get_pep_seq(pep_path, p2t):
         """
         get transcript's pep info, including protein sequence
         :param pep_path:
+        :param p2t: dict of pep_id:transcript_id
         :return: dict, trans_id={"name": pep_id, "sequence": pep_sequence,
                                  "sequence_length": len(pep_sequence)}
         """
@@ -177,12 +181,21 @@ class RefrnaGeneDetail(Base):
                     j += 1
                     if j > 1:
                         seq_len = len(pep_sequence)
-                        pep_dict[trans_id] = dict(name=pep_id, sequence=pep_sequence,
-                                                  sequence_length=seq_len)
-                        pep_dict[trans_id_else] = dict(name=pep_id, sequence=pep_sequence,
-                                                       sequence_length=seq_len)
+                        if trans_id:
+                            pep_dict[trans_id] = dict(name=pep_id, sequence=pep_sequence,
+                                                      sequence_length=seq_len)
+                            pep_dict[trans_id_else] = dict(name=pep_id, sequence=pep_sequence,
+                                                           sequence_length=seq_len)
                     pep_id = pep_pattern.match(line).group(1)
-                    trans_id = trans_pattern.search(line).group(1)
+                    try:
+                        trans_id = trans_pattern.search(line).group(1)
+                    except Exception:
+                        if pep_id not in p2t:
+                            print('transcript id -> protein {} failed in biomart'.format(pep_id))
+                            trans_id = None
+                            continue
+                        else:
+                            trans_id = p2t[pep_id]
                     if '.' in trans_id:
                         trans_id_else = trans_id[:trans_id.rfind('.')]
                     else:
@@ -502,11 +515,11 @@ class RefrnaGeneDetail(Base):
         # -------------------------------------------
         # ----------------add gene detail----------------------------------------
         gene2trans, gene2name, trans2class_code = self.parse_class_code_info(class_code)
-        biomart_data = self.biomart(biomart_path, biomart_type=biomart_type)
+        biomart_data, pep2transcript = self.biomart(biomart_path, biomart_type=biomart_type)
         gene_location_info = self.gene_location(gene_location_path)
         trans_location_info = self.gene_location(trans_location_path)
         trans_cds_info = self.get_cds_seq(cds_path)
-        trans_pep_info = self.get_pep_seq(pep_path)
+        trans_pep_info = self.get_pep_seq(pep_path, pep2transcript)
         trans_sequence = self.fasta2dict(transcript_path)
         gene_sequence_dict = self.fasta2dict(gene_path)
         prot2entrez = self.parse_gene2ensembl(gene2ensembl_path)
