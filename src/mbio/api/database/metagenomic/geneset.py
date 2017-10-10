@@ -16,19 +16,28 @@ class Geneset(Base):
         self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
-    def add_geneset(self, file_path, specimen, type):
+    def add_geneset(self, file_path, type):
         if not type in [1, 2]:  # 1对应origin表，包含6个丰度文件路径，无gene_list文件，2对应筛选后的基因表格，则无丰度文件路径
             raise OptionError("type必须为1,或2")
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         created_ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if not os.path.exists(file_path + '/uniGeneset/geneCatalog_stat.xls'):
+            raise Exception('geneCatalog_stat.xls文件不存在，请检查！')
         with open(file_path + '/uniGeneset/geneCatalog_stat.xls', 'rb') as f:
             lines = f.readlines()
             line = lines[1].strip().split('\t')
             catalog_genes = int(line[0])
             catalog_total_length = int(line[1])
             catalog_average_length = round(float(line[2]), 2)
+        if not os.path.exists(file_path + '/gene_profile/reads_number.xls'):
+            raise Exception('reads_number.xls文件不存在，请检查！')
+        if not os.path.exists(file_path + '/gene_profile/reads_number_relative.xls'):
+            raise Exception('reads_number_relative.xls文件不存在，请检查！')
         os.system('tar czPf '+ file_path + '/gene_profile/reads_profile.tar.gz '+  file_path + '/gene_profile/reads_number.xls ' + file_path + '/gene_profile/reads_number_relative.xls')
+        with open(file_path + '/gene_profile/reads_number.xls', 'rb') as file:
+            line = file.readline().strip().split('\t')
+            specimen = ",".join(line[1:-1])
         if type == 1:
             insert_data = {
                 'project_sn': project_sn,
