@@ -61,7 +61,7 @@ class SampleBase(Base):
             self.bind_object.logger.error("表格导入出错:{}".format(e))
 
     @report_check
-    def add_sg_test_specimen_meta(self, sample, info_txt, file_sample):
+    def add_sg_test_specimen_meta(self, sample, info_txt):
         collection = self.db["sg_test_specimen"]
         results = {}
         with open(info_txt, "r") as file:
@@ -69,16 +69,13 @@ class SampleBase(Base):
                 tmp = line.strip().split("\t")
                 if not tmp[1] == sample:
                     continue
-                # file\tsample\tworkdir\tseqs_num\tbase_num\tmean_length\tmin_length\tmax_length
                 results["specimen_name"] = tmp[1]
                 results["sequence_num"] = tmp[3]
                 results["base_num"] = tmp[4]
                 results["mean_length"] = tmp[5]
                 results["min_length"] = tmp[6]
                 results["max_length"] = tmp[7]
-        for key in file_sample.keys():
-            if file_sample[key] == sample:
-                results["file_name"] = key
-        sample_id = collection.insert_one(results).insert_id
+                results["file_name"] = tmp[0]
+        sample_id = collection.insert_one(results).inserted_id
         self.bind_object.logger.info("表格导入成功")
         return sample_id

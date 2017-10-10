@@ -9,6 +9,7 @@ from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
 from mbio.files.sequence.fastq_dir import FastqDirFile
 import os
+import re
 import json
 import shutil
 
@@ -26,7 +27,7 @@ class MetaSampleWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         self.fastq_extract = self.add_module("sample_base.fastq_extract")
-        # self.updata_status_api = self.api.meta_update_status
+        self.updata_status_api = self.api.meta_update_status
 
     def check_options(self):
         """
@@ -54,18 +55,25 @@ class MetaSampleWorkflow(Workflow):
             table_id = "test_01"
         sample_list = self.get_sample()
         for sample in sample_list:
-            sample_id = api_sample.add_sg_test_specimen_meta(sample, self.fastq_extract.option("output_list").prop["path"],
-                                                        self.file_sample)
+            sample_id = api_sample.add_sg_test_specimen_meta(sample, self.fastq_extract.option("output_list").prop["path"])
             api_sample.add_sg_test_batch_specimen(table_id, sample_id, sample)
-    #
+        self.logger.info("完成导表")
+
     def get_sample(self):
         dir_path = self.fastq_extract.option("output_fq").prop["path"]
-        dir = FastqDirFile()
-        dir.set_path(dir_path)
-        dir.check()
-        sample_list = dir.prop["samples"]
-        self.file_sample = dir.prop["file_sample"]
-        self.logger.info(str(sample_list))
+        sample_list = []  # change by wzy,20171009,改变sample_list获取方式
+        all_files = os.listdir(dir_path)
+        for files in all_files:
+            m = re.match(r'(\S*)\.fastq', files)
+            if m:
+                sample_list.append(m.group(1))
+        # a_dir = FastqDirFile()
+        # a_dir.set_path(dir_path)
+        # self.logger.info(dir_path)
+        # a_dir.check()
+        # sample_list = a_dir.prop["samples"]
+        # self.file_sample = a_dir.prop["file_sample"]
+        # self.logger.info(str(sample_list))
         return sample_list
 
     def run_fastq_extract(self):
