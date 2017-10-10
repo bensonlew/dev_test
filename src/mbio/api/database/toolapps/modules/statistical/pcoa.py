@@ -117,7 +117,7 @@ class Pcoa(Base):
                 insert_data.append(otu_detail)
             try:
                 self.db['scatter_detail'].insert_many(insert_data)
-                self.db['scatter'].update_one({"_id": scatter_id}, {"$set": {"attrs": r_list, "status": "end"}})
+                self.db['scatter'].update_one({"_id": scatter_id}, {"$set": {"attrs": new_head, "status": "end"}})
             except Exception as e:
                 self.bind_object.logger.info("pcoa画图数据导入出错{}".format(e))
                 raise Exception("pcoa画图数据导入出错{}".format(e))
