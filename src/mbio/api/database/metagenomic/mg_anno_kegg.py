@@ -57,7 +57,8 @@ class MgAnnoKegg(Base):
             raise Exception('kegg_profile_dir所指定的路径不存在，请检查！')
         with open(kegg_profile_dir + "/kegg_gene_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
-            sams = head.strip().split("\t")[1:len(head) - 1]
+            heads = head.strip().split("\t")
+            sams = heads[1:len(heads) - 1]
             for line in f:
                 line = line.strip().split('\t')
                 gene = line[0]
@@ -67,11 +68,11 @@ class MgAnnoKegg(Base):
                     'gene': gene,
                     #'orthology':KO
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_kegg_gene']
                 anno_kegg_gene_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('gene', unique=True)
+        collection.ensure_index('gene', unique=False)
 
     @report_check
     def add_anno_kegg_orthology(self, anno_kegg_id, kegg_profile_dir):
@@ -84,7 +85,8 @@ class MgAnnoKegg(Base):
             raise Exception('kegg_profile_dir所指定的路径不存在，请检查！')
         with open(kegg_profile_dir + "/kegg_KO_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
-            sams = head.strip().split("\t")[1:len(head) - 1]
+            heads = head.strip().split("\t")
+            sams = heads[1:len(heads) - 1]
             for line in f:
                 line = line.strip().split('\t')
                 KO = line[0]
@@ -94,11 +96,11 @@ class MgAnnoKegg(Base):
                     'orthology':KO,
                     #'description': des
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_kegg_orthology']
                 anno_kegg_orthology_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('orthology', unique=True)
+        collection.ensure_index('orthology', unique=False)
 
     @report_check
     def add_anno_kegg_module(self, anno_kegg_id, kegg_profile_dir):
@@ -111,7 +113,8 @@ class MgAnnoKegg(Base):
             raise Exception('kegg_profile_dir所指定的路径不存在，请检查！')
         with open(kegg_profile_dir + "/kegg_module_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
-            sams = head.strip().split("\t")[1:len(head) - 1]
+            heads = head.strip().split("\t")
+            sams = heads[1:len(heads) - 2]
             for line in f:
                 line = line.strip().split('\t')
                 module = line[0]
@@ -121,11 +124,11 @@ class MgAnnoKegg(Base):
                     'module': module,
                     'description': des
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_kegg_module']
                 anno_kegg_module_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('module', unique=True)
+        collection.ensure_index('module', unique=False)
 
     @report_check
     def add_anno_kegg_enzyme(self, anno_kegg_id, kegg_profile_dir):
@@ -138,7 +141,8 @@ class MgAnnoKegg(Base):
             raise Exception('kegg_profile_dir所指定的路径不存在，请检查！')
         with open(kegg_profile_dir + "/kegg_enzyme_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
-            sams = head.strip().split("\t")[1:len(head) - 1]
+            heads = head.strip().split("\t")
+            sams = heads[1:len(heads) - 2]
             for line in f:
                 line = line.strip().split('\t')
                 enzyme = line[0]
@@ -148,11 +152,11 @@ class MgAnnoKegg(Base):
                     'enzyme': enzyme,
                     'description': des
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_kegg_enzyme']
                 anno_kegg_enzyme_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('enzyme', unique=True)
+        collection.ensure_index('enzyme', unique=False)
 
     @report_check
     def add_anno_kegg_pathway(self, anno_kegg_id, kegg_profile_dir):
@@ -165,7 +169,8 @@ class MgAnnoKegg(Base):
             raise Exception('kegg_profile_dir所指定的路径不存在，请检查！')
         with open(kegg_profile_dir + "/kegg_pathway_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
-            sams = head.strip().split("\t")[1:len(head) - 1]
+            heads = head.strip().split("\t")
+            sams = heads[1:len(heads) - 3]
             for line in f:
                 line = line.strip().split('\t')
                 pathway = line[0]
@@ -177,7 +182,20 @@ class MgAnnoKegg(Base):
                     'description': des,
                     'pathwaymap': map
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_kegg_pathway']
                 anno_kegg_pathway_id = collection.insert_one(insert_data).inserted_id
+        with open(kegg_profile_dir + "/kegg_pathway_img_id.xls", 'rb') as f2: 
+            head = f2.next()
+            for line in f2:
+                line = line.strip().split('\t')
+                ko = line[0]
+                img_id = line[1]
+                if isinstance(img_id, types.StringTypes):
+                     img_id = ObjectId(img_id)
+                collection.update({'pathway': ko}, {'$set': {'pathwayimg': img_id}})
+        collection.ensure_index('pathway', unique=False)
+
+
+

@@ -56,7 +56,7 @@ class MgAnnoCard(Base):
                 raise Exception('anno_card_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(card_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('card_profile_dir所指定的路径不存在，请检查！')
-        with open(card_profile_dir + "/card.ARO.profile.xls", 'rb') as f:
+        with open(card_profile_dir + "/card_ARO_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -70,11 +70,11 @@ class MgAnnoCard(Base):
                     'aro_name': aro_name,
                     'description': description
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_card_aro']
                 anno_card_arg_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('aro', unique=True)
+        collection.ensure_index('aro', unique = False)
 
     @report_check
     def add_anno_card_class(self, anno_card_id, card_profile_dir):
@@ -85,7 +85,7 @@ class MgAnnoCard(Base):
                 raise Exception('anno_card_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(card_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('card_profile_dir所指定的路径不存在，请检查！')
-        with open(card_profile_dir + "/card.class.profile.xls", 'rb') as f:
+        with open(card_profile_dir + "/card_class_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -97,7 +97,7 @@ class MgAnnoCard(Base):
                     'class': classes,
                     # 'description': description
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_card_class']
                 anno_card_class_id = collection.insert_one(insert_data).inserted_id

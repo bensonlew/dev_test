@@ -55,7 +55,7 @@ class MgAnnoArdb(Base):
                 raise Exception('anno_ardb_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(ardb_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('ardb_profile_dir所指定的路径不存在，请检查！')
-        with open(ardb_profile_dir + "/ardb.ARG.profile.xls", 'rb') as f:
+        with open(ardb_profile_dir + "/ardb_ARG_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -67,11 +67,11 @@ class MgAnnoArdb(Base):
                     'arg': arg,
                     # 'orthology':KO
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_ardb_arg']
                 anno_ardb_arg_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('arg', unique=True)
+        collection.ensure_index('arg', unique=False)
 
     @report_check
     def add_anno_ardb_type(self, anno_ardb_id, ardb_profile_dir):
@@ -82,7 +82,7 @@ class MgAnnoArdb(Base):
                 raise Exception('anno_ardb_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(ardb_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('ardb_profile_dir所指定的路径不存在，请检查！')
-        with open(ardb_profile_dir + "/ardb.type.profile.xls", 'rb') as f:
+        with open(ardb_profile_dir + "/ardb_type_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -94,11 +94,11 @@ class MgAnnoArdb(Base):
                     'type': type,
                     # 'antibiotic_type': antibiotic_type
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_ardb_type']
                 anno_ardb_type_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('type', unique=True)
+        collection.ensure_index('type', unique=False)
 
     @report_check
     def add_anno_ardb_class(self, anno_ardb_id, ardb_profile_dir):
@@ -109,7 +109,7 @@ class MgAnnoArdb(Base):
                 raise Exception('anno_ardb_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(ardb_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('ardb_profile_dir所指定的路径不存在，请检查！')
-        with open(ardb_profile_dir + "/ardb.class.profile.xls", 'rb') as f:
+        with open(ardb_profile_dir + "/ardb_class_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -121,8 +121,8 @@ class MgAnnoArdb(Base):
                     'class': classname,
                     # 'class_des': class_des
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_ardb_class']
                 anno_ardb_class_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('class', unique=True)
+        collection.ensure_index('class', unique=False)

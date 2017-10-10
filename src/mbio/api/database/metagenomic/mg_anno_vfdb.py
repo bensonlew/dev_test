@@ -51,7 +51,7 @@ class MgAnnoVfdb(Base):
         return anno_vfdb_id
 
     @report_check
-    def add_anno_vfdb_vfs(self, anno_vfdb_id, vfdb_profile_dir):
+    def add_anno_vfdb_vfs(self, anno_vfdb_id, vfdb_profile_dir, database):
         if not isinstance(anno_vfdb_id, ObjectId):  # 检查传入的anno_vfdb_id是否符合ObjectId类型
             if isinstance(anno_vfdb_id, types.StringTypes):  # 如果是string类型，则转化为ObjectId
                 anno_vfdb_id = ObjectId(anno_vfdb_id)
@@ -59,7 +59,13 @@ class MgAnnoVfdb(Base):
                 raise Exception('anno_vfdb_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(vfdb_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('vfdb_profile_dir所指定的路径不存在，请检查！')
-        with open(vfdb_profile_dir + "/vfdb_core_VF_profile.xls", 'rb') as f:
+        if database == "core":
+            infile = "/vfdb_core_VF_profile.xls"
+        elif database == "predict":
+            infile = "/vfdb_predict_VF_profile.xls"
+        elif database == "all":
+            infile = "/vfdb_all_VF_profile.xls"
+        with open(vfdb_profile_dir + infile, 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -76,13 +82,13 @@ class MgAnnoVfdb(Base):
                                'function': function,
                                'level1': level1,
                                'level2': level2,
-                               'data_type': "core"
+                               'data_type': database
                                }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_vfdb_vfs']
                 anno_vfdb_vfs_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('vfs', unique=True)
+        collection.ensure_index('vfs', unique=False)
 
     @report_check
     def add_anno_vfdb_pie(self, anno_vfdb_id, vfdb_profile_dir):
@@ -95,7 +101,9 @@ class MgAnnoVfdb(Base):
             raise Exception('vfdb_profile_dir所指定的路径不存在，请检查！')
         with open(vfdb_profile_dir + "/vfdb_level_pie.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
-            sams = head.strip().split("\t")[1:len(head) - 1]
+            sam_num = len(head.strip().split("\t"))/2 -1
+            sams = head.strip().split("\t")[2:(sam_num + 2)]
+            sam_pers = head.strip().split("\t")[(sam_num + 2):len(head.strip().split("\t"))]
             for line in f:
                 line = line.strip().split('\t')
                 level1 = line[0]
@@ -106,12 +114,9 @@ class MgAnnoVfdb(Base):
                     'vfdb_id': anno_vfdb_id,
                     'level1': level1,
                     'level2': level2,
-                    'abu': abu,
-                    'percent': percent
                 }
-                """
-                for sam in sams:
-                    insert_data[sam] = sam
-              """
+                for i in range(0,sam_num):
+                    insert_data[sams[i]] = line[i + 3 ]
+                    insert_data[sam_pers[i]] = line[(i + 2 + sam_num)]
                 collection = self.db['anno_vfdb_pie']
                 anno_vfdb_pie_id = collection.insert_one(insert_data).inserted_id

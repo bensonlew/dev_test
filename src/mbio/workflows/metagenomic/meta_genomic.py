@@ -32,10 +32,12 @@ class MetaGenomicWorkflow(Workflow):
         super(MetaGenomicWorkflow, self).__init__(wsheet_object)
         options = [
             {'name': 'test', 'type': 'bool', 'default': False},  # 是否为测试workflow
-            {'name': 'main_id', 'type': 'string'},  # 原始序列主表_id
-            {'name': 'in_fastq', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fq文件或fq文件夹
+            # {'name': 'main_id', 'type': 'string'},  # 原始序列主表_id
+            {'name': 'in_fastq', 'type': 'infile', 'format': 'sequence.fastq_dir'},  # 输入的fq文件夹
             # {'name': 'fq_type', 'type': 'string', 'default': 'PE'},  # PE OR SE
             {'name': 'speciman_info', 'type': 'infile', 'format': 'sequence.profile_table'},  #样本集信息表
+            {'name': 'raw_info', 'type': 'infile', 'format': 'sequence.profile_table'},  # 原始序列的信息表
+            {'name': 'qc_info', 'type': 'infile', 'format': 'sequence.profile_table'},  # 质控后的信息表
             {'name': 'insertsize', 'type': 'infile', 'format': 'sample.insertsize_table'},  # 插入片段长度表
             {'name': 'qc', 'type': 'bool', 'default': False},  # 是否需要质控
             {'name': 'qc_quality', 'type': 'int', 'default': 20},  # 质控质量值标准
@@ -127,7 +129,6 @@ class MetaGenomicWorkflow(Workflow):
             'card': 'ARO_accession',
         }
         if self.option('test'):
-            self.option('main_id', '111111111111111111111111')
             self.anno_table = {
                 'geneset': '/mnt/ilustre/users/sanger-dev/workspace/20170928/MetaGenomic_metagenome/output/geneset/gene_profile/RPKM.xls',
                 'ardb': '/mnt/ilustre/users/sanger-dev/workspace/20170928/MetaGenomic_metagenome/output/ardb/gene_ardb_anno.xls',
@@ -140,14 +141,18 @@ class MetaGenomicWorkflow(Workflow):
         """
         检查参数设置
         """
-        if not self.option('main_id') and self.option('test') == False:
-            raise OptionError('缺少主表id')
+        # if not self.option('main_id') and self.option('test') == False:
+        #     raise OptionError('缺少主表id')
         if not self.option('in_fastq'):
             raise OptionError('需要输入原始fastq序列')
         # if not self.option('fq_type') in ['PE', 'SE']:
         #    raise OptionError('fq序列应为PE或SE')
         if self.option('qc') and not self.option('speciman_info').is_set:
             raise OptionError('质控需提供样本集信息表')
+        if not self.option('qc') and not self.option('raw_info'):
+            raise OptionError('需进行质控，或者输入原始数据统计表')
+        if not self.option('qc') and not self.option('qc_info'):
+            raise OptionError('需进行质控，或者输入质控后数据统计表')
         if not self.option('insertsize'):
             raise OptionError('需要输入insertsize表')
         if not self.option('qc_quality') > 0 and not self.option('qc_quality') < 42:
@@ -237,16 +242,22 @@ class MetaGenomicWorkflow(Workflow):
         self.set_run(opts, self.rm_host, 'rm_host', self.step.rm_host)
 
     def run_assem(self):
-        opts = {
-            'data_id': self.option('main_id'),
-            'min_contig': self.option('min_contig'),
-        }
-        if self.option('rm_host'):
-            opts['QC_dir'] = self.rm_host.option('result_fq_dir')
-        elif self.option('qc'):
-            opts['QC_dir'] = self.qc.option('sickle_dir')
+        if self.option('qc'):
+            opts = {
+                'qc_stat': self.qc.option('after_qc_stat'),
+                'raw_stat': self.qc.option('before_qc_stat'),
+                'QC_dir': self.qc.option('in_fastq')
+            }
         else:
-            opts['QC_dir'] = self.option('in_fastq')
+            opts = {
+                'qc_stat': self.option('qc_info'),
+                'raw_stat': self.option('raw_info'),
+            }
+            if self.option('rm_host'):
+                opts['QC_dir'] = self.rm_host.option('result_fq_dir')
+            else:
+                opts['QC_dir'] = self.option('in_fastq')
+        opts['min_contig'] = self.option('min_contig')
         if self.option('assemble_type') == 'soapdenovo':
             self.set_run(opts, self.assem_soapdenovo, 'assem', self.step.assem)
         else:
@@ -374,17 +385,43 @@ class MetaGenomicWorkflow(Workflow):
             elif self.default_level2[db] != self.default_level1[db] and event == 'all':
                 self.profile_table2[db] = self.run_new_table(self.anno_table[db], self.anno_table['geneset'],
                                                         self.default_level2[db])
-        self.on_rely(self.new_table, self.run_analysis2)
-        for module in self.new_table:
-            module.run()
+        if len(self.new_table) != 0:
+            '''
+            self.on_rely(self.new_table, self.run_composition)
+            if event == 'all':
+            self.on_rely(self.new_table, self.run_compare)
+            '''
+            self.on_rely(self.new_table, self.run_analysis2)
+            for module in self.new_table:
+                module.run()
+        else:
+            self.run_analysis2()
+            # self.run_composition()
 
     def run_analysis2(self):
         self.profile_table1['geneset'] = self.anno_table['geneset']
         self.profile_table2['geneset'] = self.anno_table['geneset']
         for db in self.profile_table1.keys():
-            self.run_composition(self.profile_table1[db], self.option('group'))
+            self.func_composition(self.profile_table1[db], self.option('group'))
         for db in self.profile_table2.keys():
-            self.run_compare(self.profile_table2[db], self.option('group'))
+            self.func_compare(self.profile_table2[db], self.option('group'))
+        self.on_rely(self.analysis, self.end)
+        for module in self.analysis:
+            module.run()
+
+    def run_composition(self):
+        self.profile_table1['geneset'] = self.anno_table['geneset']
+        for db in self.profile_table1.keys():
+            self.func_composition(self.profile_table1[db], self.option('group'))
+        self.on_rely(self.analysis, self.run_compare)
+        for module in self.analysis:
+            module.run()
+
+    def run_compare(self):
+        self.analysis = []
+        self.profile_table2['geneset'] = self.anno_table['geneset']
+        for db in self.profile_table2.keys():
+            self.func_compare(self.profile_table2[db], self.option('group'))
         self.on_rely(self.analysis, self.end)
         for module in self.analysis:
             module.run()
@@ -401,7 +438,7 @@ class MetaGenomicWorkflow(Workflow):
         new_table_file = self.table.output_dir + '/new_abund_table.xls'
         return new_table_file
 
-    def run_composition(self, abund, group):
+    def func_composition(self, abund, group):
         opts = {
             'analysis': 'bar,heatmap,circos',
             'abundtable': abund,
@@ -418,7 +455,7 @@ class MetaGenomicWorkflow(Workflow):
         self.set_run(opts, self.composition, 'composition', self.step.composition, False)
         self.analysis.append(self.composition)
 
-    def run_compare(self, abund, group):
+    def func_compare(self, abund, group):
         opts = {
             'dis_method': 'bray_curtis',
             'otutable': abund,
@@ -606,15 +643,16 @@ class MetaGenomicWorkflow(Workflow):
         if len(self.anno_tool) != 0:
             self.on_rely(self.anno_tool, self.run_anno)
             self.all_anno.append(self.anno)
+        self.sample_in_group = self.get_sample()
         if len(self.all_anno) == 0:
-            self.gene_set.on('end', self.end)
+            self.gene_set.on('end', self.run_analysis, 'composition')
         else:
             self.sample_in_group = self.get_sample()
             if len(self.sample_in_group) < 2:
                 self.on_rely(self.all_anno, self.end)
             elif len(self.sample_in_group) == 2:
                 self.on_rely(self.all_anno, self.run_analysis, 'composition')
-                # self.on_rely(self.analysis, self.end)
+                self.on_rely(self.analysis, self.end)
             elif len(self.sample_in_group) > 2:
                 self.on_rely(self.all_anno, self.run_analysis, 'all')
                 # self.on_rely(self.analysis, self.end)
