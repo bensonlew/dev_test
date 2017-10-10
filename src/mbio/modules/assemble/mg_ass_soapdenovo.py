@@ -18,8 +18,10 @@ class MgAssSoapdenovoModule(Module):
     def __init__(self, work_id):
         super(MgAssSoapdenovoModule, self).__init__(work_id)
         options = [
-            {"name": "data_id", "type": "string"},  # 主表任务ID
-            {"name": "QC_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 输入文件，质控后的文件夹
+            # {"name": "data_id", "type": "string"},  # 主表任务ID
+            {"name": "raw_stat", "type": "infile", "format": "sequence.profile_table"},  # 输入文件，原始序列统计文件
+            {"name": "QC_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 输入文件，质控或去宿主后的文件夹
+            {"name": "qc_stat", "type": "infile", "format": "sequence.profile_table"},  # 输入文件，质控或去宿主后的统计结果
             #{"name": "reads_stat", "type": "string"},  # read最大读长,质控后的统计文件
             #{"name": "insert_size", "type": "string"},  # 平均插入片段长度
             {"name": "reverse_seq", "type": "string", "default": "0"},   # 配置文件的其他参数
@@ -44,13 +46,18 @@ class MgAssSoapdenovoModule(Module):
         检查参数
         :return:
         """
+        '''
         if not self.option('data_id'):
             raise OptionError("必须输入任务ID")
         elif len(self.option('data_id')) != 24:
             raise OptionError("任务ID长度错误")
-            # self.logger.info("任务ID长度错误，测试文件允许此错误")
+        '''
+        if not self.option('raw_stat'):
+            raise OptionError('必须输入原始序列统计文件')
         if not self.option('QC_dir'):
             raise OptionError('必须输入质控后的fq文件夹')
+        if not self.option('qc_stat'):
+            raise OptionError('必须输入质控后的统计文件')
         #if not self.option('reads_stat'):
         #    raise OptionError('必须输入质控后的统计文件，需要read最大读长')
         #if not self.option('insert_size'):
@@ -68,19 +75,20 @@ class MgAssSoapdenovoModule(Module):
         :return:
         """
         n = 0
-        #db = Config().mongo_client.sanger_biodb
-        db = Config().mongo_client.tsanger_metagenomic
-        # db = Config().mongo_client[Config().MONGODB]
-        collection = db['mg_data_stat']
-        object_id = ObjectId(self.option('data_id'))
-        # object_id = '111111111111111111111111'
+        # db = Config().mongo_client.tsanger_metagenomic
+        # collection = db['mg_data_stat']
+        # collection = db['data_stat']
+        # object_id = ObjectId(self.option('data_id'))
         self.qc_file = self.get_list()
+        '''
         results = collection.find({'data_stat_id': object_id})
         if not results.count():
             raise Exception('没有找到样品集数据')
         if results is None:
             raise Exception('没有找到样品集数据2')
         raw_rd_len, base_num, insert_dic, sample_type = self.get_dic(results)
+        '''
+        raw_rd_len, base_num, insert_dic, sample_type = self.get_dic()
         # self.logger.info(self.option('min_contig'))
         for key in insert_dic.keys():
             assem_mem = self.get_mem(sample_type[key], base_num[key]) # 计算运行内存
@@ -162,9 +170,7 @@ class MgAssSoapdenovoModule(Module):
         :return: dic:file_dic[sample_name][file_type]
         """
         file_dic = dict()
-        logfile = open("log.txt", "w")
         ab_rout = self.option('QC_dir').prop['path'] + '/list.txt'
-        logfile.write(ab_rout)
         with open(ab_rout, 'r') as list_file:
             for line in list_file:
                 info = line.split('\t')
@@ -177,11 +183,8 @@ class MgAssSoapdenovoModule(Module):
                         raise OptionError('质控list表中包含重复的样品及其pse类型，请检查质控list.txt ')
                     else:
                         file_dic[name][type] = info[0]
-                        logfile.write(name + '\t' + type + '\n')
                 else:
                     file_dic[name] = {type: info[0]}
-                    logfile.write(name + '\t' + type + '\n')
-        logfile.close()
         return file_dic
 
     def get_mem(self,type,base_number):
@@ -193,6 +196,7 @@ class MgAssSoapdenovoModule(Module):
         """
         type_coefficient = {
             "human": "0.6",
+            "human gut": "0.6",
             "soil": "1.5",
             "water": "1",
         }
@@ -200,8 +204,7 @@ class MgAssSoapdenovoModule(Module):
         mem = float(base_number)/1000000000 * float(type_coefficient[type]) * mem_base_ratio
         return mem
 
-    #def get_dic(self, stat_file, insert_file):
-    def get_dic(self, sample_data):
+    def get_dic(self):
         """
         根据reads_stat和insert_size 获得每个样本的最大读长和平均插入片段长度的字典
         :return:
@@ -210,6 +213,7 @@ class MgAssSoapdenovoModule(Module):
         base_number = dict()
         raw_read_len = dict()
         samp_type = dict()
+        '''
         for one in sample_data:
             insert_size[one['sample_name']] = one['insert_size']
             raw_read_len[one['sample_name']] = one['raw_read_len']
@@ -221,20 +225,21 @@ class MgAssSoapdenovoModule(Module):
             else:
                 raise OptionError("拼接前样品集type必须为clean或optimised")
         return raw_read_len, base_number, insert_size, samp_type
-
-    '''
-        with open(stat_file)as fr1:
-            line = fr1.readlines()
-            max_rd_len = line[1].strip().split("\t")[-1]
-        insert_dic = {}
-        with open(insert_file)as fr2:
-            for line in fr2:
-                line_split = line.strip().split("\t")
-                sample_name = line_split[0]
-                insert_size = line_split[1]
-                insert_dic[sample_name] = insert_size
-        return max_rd_len, insert_dic
-    '''
+        '''
+        with open(self.option('raw_stat').prop['path']) as fr1:
+            lines = fr1.readlines()
+            for line in lines[1:]:
+                line_list = line.strip().split('\t')
+                sample_name = line_list[0]
+                samp_type[sample_name], insert_size[sample_name], raw_read_len[sample_name] = line_list[1:4]
+        with open(self.option('qc_stat').prop['path']) as fr2:
+            lines = fr2.readlines()
+            for line in lines[1:]:
+                line_list = line.strip().split("\t")
+                sample_name = line_list[0]
+                base = line_list[2]
+                base_number[sample_name] = base
+        return raw_read_len, base_number, insert_size, samp_type
 
     def get_file(self):
         """
