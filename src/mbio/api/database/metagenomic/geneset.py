@@ -25,9 +25,9 @@ class Geneset(Base):
         with open(file_path + '/uniGeneset/geneCatalog_stat.xls', 'rb') as f:
             lines = f.readlines()
             line = lines[1].strip().split('\t')
-            catalog_genes = line[0]
-            catalog_total_length = line[1]
-            catalog_average_length = line[2]
+            catalog_genes = int(line[0])
+            catalog_total_length = int(line[1])
+            catalog_average_length = round(float(line[2]), 2)
         os.system('tar czPf '+ file_path + '/gene_profile/reads_profile.tar.gz '+  file_path + '/gene_profile/reads_number.xls ' + file_path + '/gene_profile/reads_number_relative.xls')
         if type == 1:
             insert_data = {
@@ -127,7 +127,7 @@ class Geneset(Base):
                 data.append(('gene_id', line[0]))
                 i = 1
                 for eachsample in sample:
-                    data.append((eachsample, line[i]))
+                    data.append((eachsample, int(line[i])))
                     i += 1
                 data = SON(data)
                 data_list.append(data)
@@ -160,7 +160,7 @@ class Geneset(Base):
                 data.append(('gene_id', line[0]))
                 i = 1
                 for eachsample in sample:
-                    data.append((eachsample, line[i]))
+                    data.append((eachsample, float(line[i])))
                     i += 1
                 data = SON(data)
                 data_list.append(data)
