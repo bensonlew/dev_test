@@ -10,10 +10,10 @@ from bson.son import SON
 from bson.objectid import ObjectId
 
 
-class AnnoCog(
+class MgAnnoCog(
     Base):  # 导表函数，对应表格链接：http://git.majorbio.com/liu.linmeng/metagenomic/wikis/collection/assemble_gene/assemble
     def __init__(self, bind_object):
-        super(AnnoCog, self).__init__(bind_object)
+        super(MgAnnoCog, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
@@ -56,7 +56,7 @@ class AnnoCog(
                 raise Exception('anno_cog_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(cog_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('cog_profile_dir所指定的路径不存在，请检查！')
-        with open(cog_profile_dir + "/cog.nog.profile.xls", 'rb') as f:
+        with open(cog_profile_dir + "/cog_nog_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -68,10 +68,11 @@ class AnnoCog(
                     'nog': nog,
                     'description': des
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_cog_nog']
                 anno_cog_nog_id = collection.insert_one(insert_data).inserted_id
+            collection.ensure_index('nog', unique=False)
 
     @report_check
     def add_anno_cog_function(self, anno_cog_id, cog_profile_dir):
@@ -82,7 +83,7 @@ class AnnoCog(
                 raise Exception('anno_cog_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(cog_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('cog_profile_dir所指定的路径不存在，请检查！')
-        with open(cog_profile_dir + "/cog.function.profile.xls", 'rb') as f:
+        with open(cog_profile_dir + "/cog_function_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -94,8 +95,8 @@ class AnnoCog(
                     'function': function,
                     'description': des
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_cog_function']
                 anno_cog_function_id = collection.insert_one(insert_data).inserted_id
 
@@ -108,7 +109,7 @@ class AnnoCog(
                 raise Exception('anno_cog_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(cog_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('cog_profile_dir所指定的路径不存在，请检查！')
-        with open(cog_profile_dir + "/cog.category.profile.xls", 'rb') as f:
+        with open(cog_profile_dir + "/cog_category_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -120,7 +121,7 @@ class AnnoCog(
                     'category': category,
                     'description': des
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i+1]
                 collection = self.db['anno_cog_category']
                 anno_cog_category_id = collection.insert_one(insert_data).inserted_id

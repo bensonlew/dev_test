@@ -10,10 +10,10 @@ from bson.son import SON
 from bson.objectid import ObjectId
 
 
-class AnnoNr(
+class MgAnnoNr(
     Base):  # 导表函数，对应表格链接：http://git.majorbio.com/liu.linmeng/metagenomic/wikis/collection/assemble_gene/assemble
     def __init__(self, bind_object):
-        super(AnnoNr, self).__init__(bind_object)
+        super(MgAnnoNr, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
@@ -62,30 +62,31 @@ class AnnoNr(
         f_p = os.path.join(nr_profile_dir,"tax_p.xls")
         f_c = os.path.join(nr_profile_dir,"tax_c.xls")
         f_o = os.path.join(nr_profile_dir,"tax_o.xls")
+        f_f = os.path.join(nr_profile_dir,"tax_f.xls")
         f_g = os.path.join(nr_profile_dir,"tax_g.xls")
         f_s = os.path.join(nr_profile_dir,"tax_s.xls")
-        file_list = [f_d,f_k,f_p,f_c,f_o,f_g,f_s]
-        level_list = ['d','k','p','c','o','g','s']
+        file_list = [f_d,f_k,f_p,f_c,f_o,f_f,f_g,f_s]
+        level_list = ['d','k','p','c','o','f','g','s']
         i = 0
         sam_num = 0
         for each in file_list:
             i += 1
             print i
-            print level_list[i-1]
+            level_id = level_list[i-1]
             if os.path.exists(each):
                 with open(each, 'rb') as f:
                     head = f.next() # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
                     sams = head.strip().split("\t")[1:len(head)]
-                    print sams
+                    # print sams
                     for line in f:
                         line = line.strip().split('\t')
                         tax = line[0].split(";")
                         insert_data = {
-                            'level_id': level_list[i-1],
+                            'level_id': level_id,
                             'nr_id': anno_nr_id,
                         }
-                        for sam in sams:
-                            insert_data[sam] = sam
+                        for j in range(0,len(sams)):
+                            insert_data[sams[j]] = line[j + 1]
                         if len(tax) >= 1 :
                             insert_data['d__'] = tax[0]
                         elif len(tax) >= 2:
