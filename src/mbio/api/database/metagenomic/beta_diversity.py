@@ -109,9 +109,11 @@ class BetaDiversity(Base):
             if 'db_rda_biplot.xls' in filelist:
                 env_vec_path = dir_path.rstrip('/') + '/Dbrda/db_rda_biplot.xls'
                 self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
-            if 'db_rda_importance.xls' in filelist:
-                importance_path = dir_path.rstrip('/') + '/Dbrda/db_rda_importance.xls'
-                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+            importance_path = dir_path.rstrip('/') + '/Dbrda/db_rda_importance.xls'
+            self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+            if 'db_rda_plot_species_data.xls' in filelist:
+                plot_species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_plot_species_data.xls'
+                self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
             self.bind_object.logger.info('beta_diversity:db_RDA分析结果导入数据库完成.')
         elif analysis == 'rda_cca':
             if 'rda' in os.listdir(dir_path.rstrip('/') + '/Rda/')[1]:
