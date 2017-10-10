@@ -26,6 +26,7 @@ class CompositionAnalysisModule(Module):
         self.sort_samples = self.add_tool("meta.otu.sort_samples")
         self.sort_samples2 = self.add_tool("meta.otu.sort_samples")
         self.heatmap = self.add_module("meta.composition.heatmap")
+        self.analysis = []
         if self.option("group_detail") != "":
             group_table = os.path.join(self.work_dir, "group_table.xls")
             self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table)
@@ -45,6 +46,8 @@ class CompositionAnalysisModule(Module):
             raise OptionError("请输入分组信息!")
 
     def run_bar_sort_samples(self):
+        if 'bar' not in self.option('analysis'):
+            return
         if self.option("group").is_set:
             self.group_table_path = self.option("group")
         self.sort_samples.set_options({
@@ -52,20 +55,26 @@ class CompositionAnalysisModule(Module):
             "group_table": self.group_table_path,
             "method": self.option("add_Algorithm")
         })
-        self.sort_samples.on('end', self.set_output)
-        self.sort_samples.run()
+        # self.sort_samples.on('end', self.set_output)
+        self.analysis.append(self.sort_samples)
+        # self.sort_samples.run()
 
     def run_circos_sort_samples(self):
+        if 'circos' not in self.option('analysis'):
+            return
         if self.option("group").is_set:
             self.group_table_path = self.option("group")
         self.sort_samples2.set_options({
             "in_otu_table": self.option("abundtable"),
             "group_table": self.group_table_path,
         })
-        self.sort_samples2.on('end', self.set_output)
-        self.sort_samples2.run()
+        # self.sort_samples2.on('end', self.set_output)
+        self.analysis.append(self.sort_samples2)
+        # self.sort_samples2.run()
 
     def run_heatmap(self):
+        if 'heatmap' in self.option('analysis'):
+            return
         if self.option("group").is_set:
             self.group_table_path = self.option("group")
         self.heatmap.set_options({
@@ -76,8 +85,17 @@ class CompositionAnalysisModule(Module):
             "sample_method": self.option("sample_method"),
             "add_Algorithm": self.option("add_Algorithm")
         })
-        self.heatmap.on('end', self.set_output)
-        self.heatmap.run()
+        # self.heatmap.on('end', self.set_output)
+        self.analysis.append(self.heatmap)
+        # self.heatmap.run()
+
+    def run_analysis(self):
+        self.run_heatmap()
+        self.run_circos_sort_samples()
+        self.run_bar_sort_samples()
+        self.on_rely(self.analysis, self.set_output)
+        for module in self.analysis:
+            module.run()
 
     def set_output(self):
         if 'bar' in self.option('analysis'):
@@ -86,7 +104,8 @@ class CompositionAnalysisModule(Module):
             self.linkdir(self.sort_samples2.output_dir, 'circos')
         if 'heatmap' in self.option('analysis'):
             self.linkdir(self.heatmap.output_dir, 'heatmap')
-        super(CompositionAnalysisModule, self).end()
+        self.end()
+        # super(CompositionAnalysisModule, self).end()
 
     def linkdir(self, dirpath, dirname):
         allfiles = os.listdir(dirpath)
@@ -103,10 +122,13 @@ class CompositionAnalysisModule(Module):
 
     def run(self):
         super(CompositionAnalysisModule, self).run()
+        self.run_analysis()
+        '''
         if 'bar' in self.option('analysis'):
             self.run_bar_sort_samples()
         if 'circos' in self.option('analysis'):
             self.run_circos_sort_samples()
         if 'heatmap' in self.option('analysis'):
             self.run_heatmap()
+        '''
 
