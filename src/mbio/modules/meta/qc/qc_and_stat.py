@@ -139,7 +139,7 @@ class QcAndStatModule(Module):
             for line in r2:
                 line = line.strip("\n").split("\t")
                 if line[0] in size.keys():
-                    w.write(line[0]+"\t"+size[line[0]]+"\t"+"\t"+line[1]+"\t"+line[2]+"\n")
+                    w.write(line[0]+"\t"+size[line[0]]+"\t"+line[1]+"\t"+line[2]+"\n")
                 else:
                     continue
 
