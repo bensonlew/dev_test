@@ -76,6 +76,15 @@ class GroupTableFile(File):
                 for l in line:
                     if re.search("\s", l):
                         raise FileError('分组名里不可以包含空格')
+                    s = ''
+                    for i in range(48,58) + [95] + range(97,123) + range(65,91):
+                        s += chr(i)
+                    check_str = l.rstrip(s)
+                    if check_str != '':
+                        print('错误分组名：' + l)
+                        raise FileError('分组名里不可以有符号、数字、下划线以外的字符' + check_str)
+                    if l[0] in s[0:11]:
+                        print('分组名建议不要以数字或下划线开头：' + l)
                 len_ = len(line)
                 if len_ != length:
                     raise FileError("文件的列数不相等")

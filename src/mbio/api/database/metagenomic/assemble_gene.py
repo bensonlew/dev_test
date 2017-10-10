@@ -83,10 +83,12 @@ class AssembleGene(Base):
                 raise Exception('sequence_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.isdir(length_path):
             raise Exception('length_path所指定的路径不存在，请检查！')
-        step_data = dict()
-        data_list = list()
+        # step_data = dict()
+        # data_list = list()
+        status = 1
         file_list = os.listdir(length_path)
         for files in file_list:
+            step_data = dict()
             spe_step = files.strip().split('.')[0]
             spe = spe_step.strip().split('_step_')[0]
             step = spe_step.strip().split('_step_')[1]
@@ -102,13 +104,15 @@ class AssembleGene(Base):
                 ('step_data', step_data),
             ]
             data = SON(data)
-            data_list.append(data)
-        try:
-            collection = self.db["assem_bar_detail"]
-            collection.insert_many(data_list)
-        except Exception, e:
-            self.bind_object.logger.error('导入%s信息出错：%s' % (length_path, e))
-        else:
+            # data_list.append(data)
+            try:
+                collection = self.db["assemble_stat_bar"]
+                collection.insert_one(data)
+            except Exception, e:
+                status = 0
+                self.bind_object.logger.error('导入%s信息出错：%s' % (os.path.join(length_path, files), e))
+            status *= status
+        if status == 1:
             self.bind_object.logger.info('导入%s信息成功！' % length_path)
 
     @report_check
@@ -125,7 +129,7 @@ class AssembleGene(Base):
             'params': 'null',
             'status': 'end',
         }
-        collection = self.db['gene_predict']
+        collection = self.db['predict_gene']
         sequence_id = collection.insert_one(insert_data).inserted_id
         return sequence_id
 
@@ -148,14 +152,14 @@ class AssembleGene(Base):
                     ('specimen_name', line[0]),
                     ('orfs', int(line[1])),
                     ('total_length', int(line[2])),
-                    ('average_length', int(line[3])),
+                    ('average_length', round(float(line[3]), 2)),
                     ('max', int(line[4])),
                     ('min', int(line[5])),
                 ]
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = self.db['gene_predict_detail']
+            collection = self.db['predict_gene_detail']
             # 将detail表名称写在这里
             collection.insert_many(data_list)
         except Exception, e:
@@ -172,10 +176,13 @@ class AssembleGene(Base):
                 raise Exception('sequence_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.isdir(length_path):
             raise Exception('length_path所指定的路径不存在，请检查！')
-        step_data = dict()
-        data_list = list()
+        # step_data = dict()
+        # data_list = list()
+        status = 1
         file_list = os.listdir(length_path)
         for files in file_list:
+            step_data = dict()
+            # data_list = list()
             spe_step = files.strip().split('.')[0]
             spe = spe_step.strip().split('_step_')[0]
             step = spe_step.strip().split('_step_')[1]
@@ -191,11 +198,22 @@ class AssembleGene(Base):
                 ('step_data', step_data),
             ]
             data = SON(data)
+            try:
+                collection = self.db["predict_gene_bar"]
+                collection.insert_one(data)
+            except Exception, e:
+                status = 0
+                self.bind_object.logger.error('导入%s信息出错：%s' % (os.path.join(length_path, files), e))
+            status *= status
+        if status == 1:
+            self.bind_object.logger.info('导入%s信息成功！' % length_path)
+        '''
             data_list.append(data)
         try:
-            collection = self.db["assem_bar_detail"]
+            collection = self.db["predict_gene_bar"]
             collection.insert_many(data_list)
         except Exception, e:
             self.bind_object.logger.error('导入%s信息出错：%s' % (length_path, e))
         else:
             self.bind_object.logger.info('导入%s信息成功！' % length_path)
+        '''

@@ -98,13 +98,13 @@ class MetaGenomicWorkflow(Workflow):
         self.IMPORT_REPORT_DATA_AFTER_END = False
         self.anno_tool = []  # nr/kegg/cog注释记录
         self.all_anno = []  # 全部的注释记录(用于依赖关系)
-        self.choose_anno = []  # 全部注释记录(字符型，用于物种与功能分析, 含基因集)
+        self.choose_anno = []  # 全部注释记录(字符型，用于物种与功能分析, 不含基因集)
         self.new_table = []  # 构建新丰度表模块
         self.analysis = []  # 分析模块
         self.nr_dir = ''  # 结果文件路径，导表时用
         self.cog_dir = ''
         self.kegg_dir = ''
-        self.anno_table = dict()  # 注释结果表(含所有注释水平，不含丰度)
+        self.anno_table = dict()  # 注释结果表(含所有注释水平，含丰度)
         self.profile_table1 = dict()  # 注释丰度表(用于组成分析，相关性heatmap图)
         self.profile_table2 = dict()  # 注释丰度表(用于样品比较分析、rda、cca、db_rda分析)
         self.default_level1 = {
@@ -232,7 +232,7 @@ class MetaGenomicWorkflow(Workflow):
             'ref_undefined': self.option('ref_undefined'),
         }
         if self.option('qc'):
-            opts['fastq_dir'] = self.qc.option('sickle_dir')
+            opts['fastq_dir'] = self.qc.option('after_remove_dir')
         else:
             opts['fastq_dir'] = self.option('in_fastq')
         self.set_run(opts, self.rm_host, 'rm_host', self.step.rm_host)
@@ -287,6 +287,7 @@ class MetaGenomicWorkflow(Workflow):
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
         self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance')
+        self.choose_anno.append('geneset')
 
     def run_nr(self):
         opts = {

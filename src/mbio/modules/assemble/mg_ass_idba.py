@@ -20,8 +20,10 @@ class MgAssIdbaModule(Module):
     def __init__(self, work_id):
         super(MgAssIdbaModule, self).__init__(work_id)
         options = [
-            {"name": "data_id", "type": "string"},  # 主表任务ID，导出测序量与样品类型
+            # {"name": "data_id", "type": "string"},  # 主表任务ID，导出测序量与样品类型
+            {"name": "raw_stat", "type": "infile", "format": "sequence.profile_table"},  # 输入文件，原始序列统计文件
             {"name": "QC_dir", "type": "infile", "format": "sequence.fastq_dir"},  # 输入文件，质控后的文件夹
+            {"name": "qc_stat", "type": "infile", "format": "sequence.profile_table"},  # 输入文件，质控或去宿主后的统计结果
             {"name": "assemble_tool", "type": "string", "default": "idba"},  # 拼接工具选择{idba|megahit}
             {"name": "method", "type": "string"},  # 拼接方法选择{simple|multiple}
             {"name": "min_contig", "type": "int", "default": 300},  # 输入最短contig长度，默认300
@@ -79,13 +81,18 @@ class MgAssIdbaModule(Module):
         检查参数
         :return:
         """
+        '''
         if not self.option('data_id'):
             raise OptionError("必须输入任务ID")
         elif len(self.option('data_id')) != 24:
             raise OptionError("任务ID长度错误")
-            # self.logger.info("任务ID长度错误，测试文件允许此错误")
+        '''
+        if not self.option('raw_stat'):
+            raise OptionError('必须输入原始序列统计文件')
         if not self.option('QC_dir'):
             raise OptionError('必须输入质控后的fq文件夹')
+        if not self.option('qc_stat'):
+            raise OptionError('必须输入质控后的统计文件')
         if not self.option('method'):
             raise OptionError('必须输入拼接方法')
         if self.option('method') not in ['simple', "multiple"]:
@@ -103,19 +110,19 @@ class MgAssIdbaModule(Module):
         :return:
         """
         n = 0
-        db = Config().mongo_client.tsanger_metagenomic
-        # db = Config().mongo_client[Config().MONGODB]
-        collection = db['mg_data_stat']
-        object_id = ObjectId(self.option('data_id'))
-        # object_id = '111111111111111111111111'
+        # db = Config().mongo_client.tsanger_metagenomic
+        # collection = db['mg_data_stat']
+        # object_id = ObjectId(self.option('data_id'))
         self.qc_file = self.get_list()
+        '''
         results = collection.find({'data_stat_id': object_id})
         if not results.count():
             raise Exception('没有找到样品集数据')
         if results is None:
             raise Exception('没有找到样品集数据2')
         raw_rd_len, base_num, insert_dic, sample_type = self.get_dic(results)
-        # self.logger.info(self.option('min_contig'))
+        '''
+        raw_rd_len, base_num, insert_dic, sample_type = self.get_dic()
         for key in insert_dic.keys():
             assem_mem, split_num = self.get_mem(sample_type[key], base_num[key])  # 计算运行内存及是否需要拆分
             # self.logger.info('type is ' + sample_type[key] + '; base_num is ' + base_num[key] + " assem_mem is " +
@@ -438,6 +445,7 @@ class MgAssIdbaModule(Module):
         """
         type_coefficient = {
             "human": "0.6",
+            "human gut": "0.6",
             "soil": "1.5",
             "water": "1",
         }
@@ -451,7 +459,7 @@ class MgAssIdbaModule(Module):
         return mem, split_n
 
     # def get_dic(self, stat_file, insert_file):
-    def get_dic(self, sample_data):
+    def get_dic(self):
         """
         根据reads_stat和insert_size 获得每个样本的最大读长和平均插入片段长度的字典
         :return:
@@ -460,6 +468,7 @@ class MgAssIdbaModule(Module):
         base_number = dict()
         raw_read_len = dict()
         samp_type = dict()
+        '''
         for one in sample_data:
             insert_size[one['sample_name']] = one['insert_size']
             raw_read_len[one['sample_name']] = one['raw_read_len']
@@ -473,18 +482,20 @@ class MgAssIdbaModule(Module):
         return raw_read_len, base_number, insert_size, samp_type
 
     '''
-        with open(stat_file)as fr1:
-            line = fr1.readlines()
-            max_rd_len = line[1].strip().split("\t")[-1]
-        insert_dic = {}
-        with open(insert_file)as fr2:
-            for line in fr2:
-                line_split = line.strip().split("\t")
-                sample_name = line_split[0]
-                insert_size = line_split[1]
-                insert_dic[sample_name] = insert_size
-        return max_rd_len, insert_dic
-    '''
+        with open(self.option('raw_stat').prop['path']) as fr1:
+            lines = fr1.readlines()
+            for line in lines[1:]:
+                line_list = line.strip().split('\t')
+                sample_name = line_list[0]
+                samp_type[sample_name], insert_size[sample_name], raw_read_len[sample_name] = line_list[1:4]
+        with open(self.option('qc_stat').prop['path']) as fr2:
+            lines = fr2.readlines()
+            for line in lines[1:]:
+                line_list = line.strip().split("\t")
+                sample_name = line_list[0]
+                base = line_list[2]
+                base_number[sample_name] = base
+        return raw_read_len, base_number, insert_size, samp_type
 
     def get_contig_file(self):
         """
