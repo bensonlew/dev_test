@@ -73,7 +73,7 @@ class CompositionAnalysisModule(Module):
         # self.sort_samples2.run()
 
     def run_heatmap(self):
-        if 'heatmap' in self.option('analysis'):
+        if 'heatmap' not in self.option('analysis'):
             return
         if self.option("group").is_set:
             self.group_table_path = self.option("group")

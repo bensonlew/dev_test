@@ -68,7 +68,6 @@ class BwtBuilderTool(Tool):
         self.makefile()
         self.build_run()
         self.set_output()
-        self.end()
 
     def makefile(self):
         if os.path.exists(self.out_dir):

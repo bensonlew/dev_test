@@ -77,12 +77,14 @@ class MgAnnoOverview(Base):
                     line = line.strip().split('\t')
                     if not line[0] == "#Query":
                         gene = line[0]
+                        """
                         nr_taxid = line[head.index("Taxid")]
                         nr_identity = line[head.index("Identity(%)")]
                         nr_align_length = line[head.index("Align_len")]
                         collection = self.db['anno_overview_detail']
                         collection.update({'query': gene}, {'$set': {'nr_taxid': nr_taxid, 'nr_identity': nr_identity,
                                                                      'nr_align_length': nr_align_length}})
+                        """
         if cog != None:
             with open(cog, "rb") as f:
                 head = f.next().strip().split("\t")
@@ -121,12 +123,13 @@ class MgAnnoOverview(Base):
                     if not line[0] == "#Query":
                         gene = line[0]
                         cazy_family = line[head.index("Family")]
-                        cazy_identity = line[head.index("Identity(%)")]
-                        cazy_align_length = line[head.index("Align_len")]
+                        #cazy_identity = line[head.index("Identity(%)")]
+                        #cazy_align_length = line[head.index("Align_len")]
                         collection = self.db['anno_overview_detail']
-                        collection.update({'query': gene}, {'$set': {'cazy_family': cazy_family,
-                                                    'cazy_identity': cazy_identity,
-                                                    'cazy_align_length': cazy_align_length}})
+                        collection.update({'query': gene}, {'$set': {'cazy_family': cazy_family}})
+                        #collection.update({'query': gene}, {'$set': {'cazy_family': cazy_family,
+                                                    #'cazy_identity': cazy_identity,
+                                                    #'cazy_align_length': cazy_align_length}})
         if ardb != None:
             with open(ardb, "rb") as f:
                 head = f.next().strip().split("\t")
