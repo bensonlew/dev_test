@@ -101,6 +101,26 @@ class MultipleWorkflow(Workflow):
         api_multiple.add_species_difference_check_barplot(bar_path, self.option('main_id'))
         self.end()
 
+    def report_option(self):
+        self.logger.info('option otu_file : ' + self.option('otu_file').prop['path'])
+        self.logger.info('option group_file : ' + self.option('group_file').prop['path'])
+        self.logger.info('option group_detail : ' + self.option('group_detail'))
+        self.logger.info('option update_info : ' + self.option('update_info'))
+        self.logger.info('option test : ' + self.option('test'))
+        level = self.option('level')
+        level = str(level)
+        self.logger.info('option level : ' + level)
+        self.logger.info('option correction : ' + self.option('correction'))
+        self.logger.info('option params : ' + self.option('params'))
+        self.logger.info('option group_name : ' + self.option('group_name'))
+        self.logger.info('option methor : ' + self.option('methor'))
+        coverage = self.option('coverage')
+        coverage = str(coverage)
+        self.logger.info('option coverage : ' + coverage)
+        self.logger.info('option category_name : ' + self.option('category_name'))
+        self.logger.info('option main_id : ' + self.option('main_id'))
+
     def run(self):
         self.run_multiple()
+        self.report_option()
         super(MultipleWorkflow, self).run()

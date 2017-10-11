@@ -81,7 +81,7 @@ class MetaGenomicWorkflow(Workflow):
         self.cog = self.add_module('align.meta_diamond')
         self.kegg = self.add_module('align.meta_diamond')
         self.anno = self.add_module('annotation.mg_common_anno_stat')
-        self.cazy = self.add_module('annotation.cazy_align_anno')
+        self.cazy = self.add_module('annotation.cazy_annotation')
         self.ardb = self.add_module('annotation.ardb_annotation')
         self.card = self.add_module('annotation.card_annotation')
         self.vfdb = self.add_module('annotation.vfdb_annotation')
@@ -473,10 +473,10 @@ class MetaGenomicWorkflow(Workflow):
                 self.anno_table['kegg'] = os.path.join(self.kegg_dir, 'gene_kegg_anno.xls')
                 self.move_dir(self.kegg_dir, 'kegg')
         if event['data'] == 'cazy':
-            self.anno_table['cazy'] = os.path.join(obj.output_dir, 'gene_cazy_anno.xls')
+            self.anno_table['cazy'] = os.path.join(obj.output_dir, 'anno_result', 'gene_cazy_anno.xls')
             self.move_dir(obj.output_dir, 'cazy')
         if event['data'] == 'vfdb':
-            self.anno_table['vfdb'] = os.path.join(obj.output_dir, 'gene_vfdb_anno.xls')
+            self.anno_table['vfdb'] = os.path.join(obj.output_dir, 'gene_vfdb_total_anno.xls')
             self.move_dir(obj.output_dir, 'vfdb')
         if event['data'] == 'ardb':
             self.anno_table['ardb'] = os.path.join(obj.output_dir, 'gene_ardb_anno.xls')
