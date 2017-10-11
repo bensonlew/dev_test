@@ -50,7 +50,7 @@ def modify_id_for_txt(infile, outfile):
         cmd = """awk -F \'\\t\'  \'{if ($1~/[0-9]+/) printf  "%s"$0"\\n"; else print $0}\'   %s > %s""" % (
             event_type + "_", tmp, outfile)
         subprocess.call(cmd, shell=True)
-    
+
     else:
         raise Exception('输入的rmats结果文件名字有误：%s' % (infile))
 
@@ -137,10 +137,10 @@ def get_event_stats(files):
                 'ReadsOnTargetAndJunctionCounts_file': None,  # FILE
                 'all_event_id_no': 0, 'novel_event_id_no': 0,
                 'all_event_id_set': set(), 'novel_event_id_set': set(), 'old_event_id_set': set(),  #
-        
+
                 'JunctionCountOnly_event_id_set': set(), 'ReadsOnTargetAndJunctionCounts_event_id_set': set(),
                 'JunctionCountOnly_event_id_set_no': 0, 'ReadsOnTargetAndJunctionCounts_event_id_set_no': 0,
-        
+
                 'JunctionCountOnly_and_ReadsOnTargetAndJunctionCounts_set': set(),
                 'JunctionCountOnly_and_ReadsOnTargetAndJunctionCounts_set_no': 0,
                 'JunctionCountOnly_or_ReadsOnTargetAndJunctionCounts_set': set(),
@@ -188,12 +188,12 @@ def get_event_stats(files):
                                                                                     'ReadsOnTargetAndJunctionCounts_event_id_set']
         d[as_type]['JunctionCountOnly_or_ReadsOnTargetAndJunctionCounts_set_no'] = len(
             d[as_type]['JunctionCountOnly_or_ReadsOnTargetAndJunctionCounts_set'])
-    
+
     d['total_as_events_no'] = sum([d[e]['all_event_id_no'] for e in LEGAL_EVENT_TYPE])
     d['total_as_events_id_set'] = union_set([d[e]['all_event_id_set'] for e in LEGAL_EVENT_TYPE])
     d['total_as_novel_events_no'] = sum([d[e]['novel_event_id_no'] for e in LEGAL_EVENT_TYPE])
     d['total_as_novel_events_id_set'] = union_set([d[e]['novel_event_id_set'] for e in LEGAL_EVENT_TYPE])
-    
+
     d['total_JunctionCountOnly_event_id_set_no'] = sum(
         [d[e]['JunctionCountOnly_event_id_set_no'] for e in LEGAL_EVENT_TYPE])
     d['total_JunctionCountOnly_event_id_set'] = union_set(
@@ -202,7 +202,7 @@ def get_event_stats(files):
         [d[e]['ReadsOnTargetAndJunctionCounts_event_id_set_no'] for e in LEGAL_EVENT_TYPE])
     d['total_ReadsOnTargetAndJunctionCounts_event_id_set'] = union_set(
         [d[e]['ReadsOnTargetAndJunctionCounts_event_id_set'] for e in LEGAL_EVENT_TYPE])
-    
+
     return d
 
 
@@ -232,7 +232,7 @@ def get_event_psi_dic(d):
         finally:
             psi_dic['JunctionCountOnly_file'] = JunctionCountOnly_file
             psi_dic['ReadsOnTargetAndJunctionCounts_file'] = ReadsOnTargetAndJunctionCounts_file
-            
+
             jc_data = pandas.read_table(JunctionCountOnly_file, index_col=0, sep='\t',
                                         dtype={'Pvalue': np.float64, 'FDR': np.float64,
                                                'IncLevelDifference': np.float64})
@@ -322,7 +322,7 @@ def write_psi_stats_file(stat_file, psi_dic):
                             fw.write(
                                 '%s\t%d\n' % ("_".join([info_key, sample, data_src, value_item]),
                                               psi_dic[info_key][sample][data_src][value_item]))
-        
+
         if re.match(r'SAMPLE_\d$', info_key.strip()):
             for data_src in psi_dic[info_key].keys():
                 for value_item in psi_dic[info_key][data_src].keys():
@@ -334,7 +334,7 @@ def write_psi_stats_file(stat_file, psi_dic):
                 fw.write(
                     '%s\t%d\n' % ("_".join([info_key, data_src]),
                                   psi_dic[info_key][data_src]))
-    
+
     fw.close()
 
 
@@ -347,7 +347,7 @@ def add_psi_info(mats_file, new_file):
         ['average_IncLevel1', 'average_IncLevel2', 'IncLevelDifference', 'increase_inclusion_SAMPLE1',
          'increase_exclusion_SAMPLE1',
          'increase_inclusion_SAMPLE2', 'increase_exclusion_SAMPLE2'])))
-    
+
     it = data.iterrows()
     while 1:
         try:
@@ -365,7 +365,7 @@ def add_psi_info(mats_file, new_file):
                 increase_inclusion_SAMPLE2 = 'no'
                 increase_exclusion_SAMPLE1 = 'no'
                 increase_exclusion_SAMPLE2 = 'yes'
-            
+
             if float(record[1].IncLevelDifference) > 0:
                 increase_inclusion_SAMPLE1 = 'no'
                 increase_inclusion_SAMPLE2 = 'yes'
@@ -385,7 +385,7 @@ def add_psi_info(mats_file, new_file):
             fw.write(newline)
         except StopIteration:
             break
-    
+
     fw.close()
 
 
@@ -478,7 +478,7 @@ def write_big_detail_file(out, big_file):
                                                                             'average_IncLevel1': str}, sep='\t',
                                                                      index_col=0)
         ReadsOnTargetAndJunctionCounts_event_set_type = set(ReadsOnTargetAndJunctionCounts_info_type.index.tolist())
-        
+
         for event_id in all_event_set_type:
             novel = 'no'
             old = 'yes'
@@ -486,7 +486,7 @@ def write_big_detail_file(out, big_file):
             diff_JunctionCountOnly = 'no'
             diff_JunctionCountOnly_and_ReadsOnTargetAndJunctionCounts = 'no'
             diff_JunctionCountOnly_or_ReadsOnTargetAndJunctionCounts = 'no'
-            
+
             if event_id in novel_event_set_type:
                 novel = 'yes'
                 old = 'no'
@@ -500,11 +500,11 @@ def write_big_detail_file(out, big_file):
             if (event_id in JunctionCountOnly_event_set_type) or (
                         event_id in ReadsOnTargetAndJunctionCounts_event_set_type):
                 diff_JunctionCountOnly_or_ReadsOnTargetAndJunctionCounts = 'yes'
-            
+
             # 获取事件描述字符串
             for item in all_event_info_type.keys()[4:len(all_event_info_type.keys())]:
                 line_18_items[line_18_items_dic[item]] = str(all_event_info_type.get_value(event_id, item))
-            
+
             event_desc_str = '\t'.join(line_18_items)
             event_str = '\t'.join(
                 [str(e) for e in [event_id, type, novel, old, all_event_info_type.get_value(event_id, 'GeneID'),
@@ -527,7 +527,7 @@ def write_big_detail_file(out, big_file):
                 [event_str, diff_JunctionCountOnly, JunctionCountOnly_str, diff_ReadsOnTargetAndJunctionCounts,
                  ReadsOnTargetAndJunctionCounts_str, diff_JunctionCountOnly_and_ReadsOnTargetAndJunctionCounts,
                  diff_JunctionCountOnly_or_ReadsOnTargetAndJunctionCounts]) + '\n')
-    
+
     fw.close()
 
 
@@ -535,7 +535,7 @@ def format_line(infile, outfile):
     fw = open(outfile, 'w')
     for line in open(infile):
         pass
-    
+
     fw.close()
 
 
@@ -543,10 +543,10 @@ def process_single_rmats_output_dir(root):
     big_detail_file = os.path.join(root, 'all_events_detail_big_table.txt')
     stat_psi = os.path.join(root, 'psi_stats.file.txt')
     events_stats_file = os.path.join(root, 'event_stats.file.txt')
-    
+
     # 检查输出结果文件夹合理性
     alter_ref_dic = check_rmats_out_dir(root)  # alter_ref_dic
-    
+
     # 修饰结果文件 在ID 上加上事件类型
     s1 = time.time()
     for in_file, out_file in alter_ref_dic.items():
@@ -556,7 +556,7 @@ def process_single_rmats_output_dir(root):
         modify_id_for_txt(infile=in_file, outfile=out_file)
     s2 = time.time()
     print('转换ID任务完成，用时：{}'.format(s2 - s1))
-    
+
     print('开始获取事件基本信息统计')
     event_info_dic = get_event_stats(files=alter_ref_dic.values())
     s3 = time.time()

@@ -859,7 +859,8 @@ class RefAnnotation(Base):
                     ('nog_list', ';'.join(nog_list)),
                 ]
                 data = SON(data)
-                data_list.append(data)
+                if len(cog_list) + len(nog_list) != 0:
+                    data_list.append(data)
         try:
             collection = self.db['sg_annotation_cog_detail']
             collection.insert_many(data_list)
