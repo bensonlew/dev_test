@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zouxuan'
-# last_modify:20170921
-from biocluster.api.database.base import Base, report_check
+# last_modify:20170926
 import os
+import json
 import datetime
-import types
-from biocluster.config import Config
-from bson.son import SON
+import re
+from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
+from types import StringTypes
+from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort
 
 class BetaDiversity(Base):
     def __init__(self, bind_object):
@@ -22,7 +24,7 @@ class BetaDiversity(Base):
             return 'PCoA'
         elif analysis_type == 'nmds':
             return 'NMDS'
-        elif analysis_type == 'dbrda':
+        elif analysis_type == 'db-rda':
             return 'db-RDA'
         elif analysis_type == 'rda_cca':
             return 'RDA/CCA'
@@ -30,15 +32,15 @@ class BetaDiversity(Base):
             raise Exception('错误的分析类型')
 
     @report_check
-    def add_beta_diversity(self, dir_path, analysis, env_id, group_id,geneset_id,anno_id,level_id,):
+    def add_beta_diversity(self, dir_path, analysis, env_id, specimen_group,geneset_id,anno_id,level_id):
         self._tables = []  # 记录存入了哪些表格
-        collection = self.db['beta_diversity']
+        _main_collection= self.db['beta_diversity']
         insert_mongo_json = {
             'project_sn': self.bind_object.sheet.project_sn,
             'task_id': self.bind_object.sheet.id,
-            'group_id': group_id,
+            'specimen_group': specimen_group,
             'level_id': level_id,
-            'name': BetaMultiAnalysis.get_main_table_name(analysis) + '_Origin',
+            'name':BetaDiversity.get_main_table_name(analysis) +  '_Origin',
             'table_type': analysis,
             'env_id': env_id,
             'geneset_id':geneset_id,
@@ -48,13 +50,25 @@ class BetaDiversity(Base):
             'desc': '',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
-        main_id = collection.insert_one(insert_mongo_json).inserted_id
+        if analysis == 'rda_cca':  # 在主表中添加必要的rda或者是cca分类信息
+            rda_files = os.listdir(dir_path.rstrip('/') + '/Rda')
+            if 'cca_sites.xls' in rda_files:
+                insert_mongo_json['rda_cca'] = 'cca'
+            elif 'rda_sites.xls' in rda_files:
+                insert_mongo_json['rda_cca'] = 'rda'
+            else:
+                raise Exception('RDA/CCA分析没有生成正确的结果数据')
+        main_id = _main_collection.insert_one(insert_mongo_json).inserted_id
+        result = _main_collection.find_one({'_id': main_id})
         if analysis == 'pca':
             site_path = dir_path.rstrip('/') + '/Pca/pca_sites.xls'
+            os.system('head -n 101 '+ dir_path.rstrip('/') + '/Pca/pca_rotation.xls > ' +  dir_path.rstrip('/') + '/Pca/part_pca_rotation.xls' )
             rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
+            part_rotation_path = dir_path.rstrip('/') + '/Pca/part_pca_rotation.xls'
             importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
+            _main_collection.update_one({'_id': main_id}, {'$set': {'download_file': rotation_path}})
             self.insert_table_detail(site_path, 'specimen', update_id=main_id)
-            self.insert_table_detail(rotation_path, 'species', update_id=main_id, split_fullname=True)
+            self.insert_table_detail(part_rotation_path, 'species', update_id=main_id, split_fullname=False)
             self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
             if result['env_id']:
                 filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
@@ -85,7 +99,7 @@ class BetaDiversity(Base):
             nmds_stress = float(open(dir_path.rstrip('/') + '/Nmds/nmds_stress.xls').readlines()[1])
             _main_collection.update_one({'_id': main_id}, {'$set': {'nmds_stress': nmds_stress}})
             self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
-        elif analysis == 'dbrda':
+        elif analysis == 'db-rda':
             site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
             self.insert_table_detail(site_path, 'specimen', update_id=main_id)
             filelist = os.listdir(dir_path.rstrip('/') + '/Dbrda')
@@ -95,6 +109,11 @@ class BetaDiversity(Base):
             if 'db_rda_biplot.xls' in filelist:
                 env_vec_path = dir_path.rstrip('/') + '/Dbrda/db_rda_biplot.xls'
                 self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+            importance_path = dir_path.rstrip('/') + '/Dbrda/db_rda_importance.xls'
+            self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+            if 'db_rda_plot_species_data.xls' in filelist:
+                plot_species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_plot_species_data.xls'
+                self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
             self.bind_object.logger.info('beta_diversity:db_RDA分析结果导入数据库完成.')
         elif analysis == 'rda_cca':
             if 'rda' in os.listdir(dir_path.rstrip('/') + '/Rda/')[1]:
@@ -118,8 +137,9 @@ class BetaDiversity(Base):
                 self.insert_table_detail(env_fac_path, 'factor', update_id=main_id)
             if (rda_cca + '_biplot.xls') in filelist:
                 env_vec_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_biplot.xls'
-                self.insert_table_detail(env_vec_path, 'vector', update_id=main_id, fileter_biplot=remove)
+                self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
             self.bind_object.logger.info('beta_diversity:RDA/CCA分析结果导入数据库完成.')
+        self.insert_main_tables(self._tables, update_id=main_id)
         return main_id
 
     def insert_table_detail(self, file_path, table_type, update_id,
@@ -153,7 +173,7 @@ class BetaDiversity(Base):
                 else:
                     pass
                 insert_data = {
-                    'multi_analysis_id': update_id,
+                    'beta_diversity': update_id,
                     'type': table_type
                 }
                 if split_fullname:
@@ -192,7 +212,7 @@ class BetaDiversity(Base):
         with open(file_path, 'rb') as f:
             data = f.read()
             insert_data = {
-                'multi_analysis_id': main_id,
+                'beta_diversity_id': main_id,
                 'type': data_type,
                 'json_value': data
             }
@@ -235,7 +255,7 @@ class BetaDiversity(Base):
                     env_detail = dict()
                     for i in range(0, len(content)):
                         env_detail[new_head[i]] = content[i]
-                    env_detail['multi_analysis_id'] = update_id
+                    env_detail['beta_diversity_id'] = update_id
                     env_detail['type'] = tabletype
                     env_detail['env'] = env_name[0]
                     insert_data.append(env_detail)

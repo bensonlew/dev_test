@@ -60,7 +60,7 @@ class MgCogAnnoTool(Tool):
     def run_cog_anno(self):
         table = xml2table(self.option('cog_xml').prop['path'], self.output_dir + '/tmp_cog_table.xls')
         cmd = '{} {} -i {} -o {}'.format(self.python_path, self.python_script, table,
-                                   self.output_dir + "/cog_anno_result.xls")
+                                   self.output_dir + "/gene_cog_anno.xls")
         self.logger.info(cmd)
         try:
             subprocess.check_output(cmd, shell=True)

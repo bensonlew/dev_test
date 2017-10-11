@@ -41,8 +41,11 @@ class BwtBuilderAgent(Agent):
             raise OptionError("必须提供非冗余基因集")
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = '5G'
+        self._cpu = 2
+        if os.path.getsize(self.option("fafile").prop['path'])/100000000 < 5:
+            self._memory = '5G'
+        else:
+            self._memory = str(os.path.getsize(self.option("fafile").prop['path'])/100000000) + 'G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)

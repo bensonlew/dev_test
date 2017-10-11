@@ -52,7 +52,8 @@ class VfdbAnnoStatTool(Tool):
     def __init__(self, config):
         super(VfdbAnnoStatTool, self).__init__(config)
         self._version = "1.0"
-        self.script = '/bioinfo/annotation/scripts/vfdb_anno_abudance.pl'
+        self.perl_path = '/program/perl-5.24.0/bin/perl'
+        self.script = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/vfdb_anno_abudance.pl'
 
     def run(self):
         """
@@ -60,13 +61,35 @@ class VfdbAnnoStatTool(Tool):
         :return:
         """
         super(VfdbAnnoStatTool, self).run()
+        self.run_total_anno()
         self.run_vfdb_stat()
         self.set_output()
         self.end()
 
+    def run_total_anno(self):
+        self.logger.info("start merge core and predict anno table.")
+        core_anno = self.option('vfdb_core_anno').prop['path']
+        predict_anno = self.option('vfdb_predict_anno').prop['path']
+        outfile = self.output_dir + "/gene_vfdb_total_anno.xls"
+        with open(core_anno, "r") as f1, open(predict_anno, "r") as f2, open(outfile, "w") as outf:
+            for line in f1:
+                line = line.strip()
+                line1 = line.split("\t")
+                if line1[0] == "#Query":
+                    head = line
+                    outf.write(head + "\t" + "Database\n")
+                else:
+                    outf.write(line + "\tcore\n")
+            for line in f2:
+                line = line.strip()
+                line1 = line.split("\t")
+                if line1[0] != "#Query":
+                    outf.write(line + "\tpredict\n")
+        self.logger.info("finish merge core and predict anno table.")
+
     def run_vfdb_stat(self):
         self.logger.info("start vfdb_stat")
-        cmd = "{} -c {} -pre {} -p {} -o {}".format(self.script, self.option('vfdb_core_anno').prop['path'],self.option('vfdb_predict_anno').prop['path'],self.option('reads_profile_table').prop['path'], self.output_dir)
+        cmd = "{} {} -c {} -pre {} -p {} -o {}".format(self.perl_path, self.script, self.option('vfdb_core_anno').prop['path'],self.option('vfdb_predict_anno').prop['path'],self.option('reads_profile_table').prop['path'], self.output_dir)
         command = self.add_command('vfdb_profile', cmd).run()
         self.wait(command)
         if command.return_code == 0:
@@ -76,7 +99,7 @@ class VfdbAnnoStatTool(Tool):
             raise Exception("vfdb_stat failed")
 
     def set_output(self):
-        if len(os.listdir(self.output_dir)) == 6:
+        if len(os.listdir(self.output_dir)) == 8:
             self.logger.info("结果文件正确生成")
         else:
             self.logger.info("文件个数不正确，请检查")

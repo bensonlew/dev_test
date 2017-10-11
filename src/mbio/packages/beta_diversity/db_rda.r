@@ -18,11 +18,13 @@ for (i in env_factor) {
 }
 library(vegan)
 capscale.result<- capscale(otu_table~${env_formula},data.frame(env_factor),dist="${distance_algorithm}")
+cot<-summary(capscale.result)
 pdf('${output_dir}/db_rda.pdf')
 plot_values <- plot(capscale.result)
 dev.off()
 write.table(plot_values$sites, '${output_dir}/db_rda_sites.xls', sep = '\t', col.names = NA, quote = FALSE)
-write.table(plot_values$species, '${output_dir}/db_rda_species.xls', sep = '\t', col.names = NA, quote = FALSE)
+#write.table(plot_values$species, '${output_dir}/db_rda_species.xls', sep = '\t', col.names = NA, quote = FALSE)
+write.table(cot$cont$importance, '${output_dir}/db_rda_cont.xls', sep = '\t', col.names = NA, quote = FALSE)##add by zhujuan for Proportion Explained 2017.08.21
 if (centroids){
     write.table(plot_values$centroids, '${output_dir}/db_rda_centroids.xls', sep = '\t', col.names = NA, quote = FALSE)
 }
