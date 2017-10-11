@@ -67,6 +67,31 @@ class MgAnnoOverview(Base):
                             'anno_overview_id':anno_overview_id,
                             'query': gene
                                    }
+                    if nr != None:
+                        insert_data["nr_taxid"] = "--"
+                        insert_data["nr_identity"] = "--"
+                        insert_data["nr_align_length"] = "--"
+                    if cog != None:
+                        insert_data["cog_id"] = "--"
+                        insert_data["cog_identity"] = "--"
+                        insert_data["cog_align_length"] = "--"
+                    if kegg != None:
+                        insert_data["kegg_gene"] = "--"
+                        insert_data["kegg_KO"] = "--"
+                        insert_data["kegg_identity"] = "--"
+                        insert_data["kegg_align_length"] = "--"
+                    if cazy != None:
+                        insert_data["cazy_family"] = "--"
+                        insert_data["cazy_identity"] = "--"
+                        insert_data["cazy_align_length"] = "--"
+                    if card != None:
+                        insert_data["card_aro"] = "--"
+                        insert_data["card_identity"] = "--"
+                        insert_data["card_align_length"] = "--"
+                    if vfdb != None:
+                        insert_data["vfdb_vfs"] = "--"
+                        insert_data["vfdb_identity"] = "--"
+                        insert_data["vfdb_align_length"] = "--"
                     collection = self.db['anno_overview_detail']
                     collection.insert_one(insert_data)
             collection.ensure_index('query', unique=False)
@@ -110,7 +135,7 @@ class MgAnnoOverview(Base):
                         kegg_align_length = line[head.index("Align_len")]
                         collection = self.db['anno_overview_detail']
                         collection.update({'query': gene}, {'$set': {
-                            'kegg_gene': kegg_gene, 'kegg_orthology': kegg_orthology,
+                            'kegg_gene': kegg_gene, 'kegg_KO': kegg_orthology,
                             'kegg_identity': kegg_identity,
                             'kegg_align_length': kegg_align_length}})
         if cazy != None:
