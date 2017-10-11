@@ -2,9 +2,10 @@
 # __author__ = 'shenghe'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
-# import os
+
 import types
 import os
+import pandas as pd
 from biocluster.core.exceptions import OptionError
 from mbio.files.meta.otu.otu_table import OtuTableFile
 from mbio.packages.beta_diversity.dbrda_r import *
@@ -75,15 +76,13 @@ class DbrdaAgent(Agent):
             if self.option('envtable').prop['sample_number'] < 3:
                 raise OptionError('环境因子表的样本数目少于3，不可进行beta多元分析')
             if self.option('dis_matrix').is_set:
+                if not self.option('otutable').is_set:
+                    raise OptionError("必须提供丰度表格")
                 # self.option('dis_matrix').get_info()
                 env_collection = set(self.option('envtable').prop['sample'])
                 collection = set(self.option('dis_matrix').prop['samp_list']) & env_collection
                 if len(collection) < 3:
                     raise OptionError("环境因子表和丰度表的共有样本数必需大于等于3个：{}".format(len(collection)))
-                # if collection == env_collection:  # 检查环境因子的样本是否是丰度表中样本的子集
-                #     pass
-                # else:
-                #     raise OptionError('环境因子中存在距离矩阵中没有的样本')
                 pass
             else:
                 if self.option('method') not in DbrdaAgent.METHOD_DICT:
@@ -95,12 +94,6 @@ class DbrdaAgent(Agent):
                 if self.real_otu.prop['sample_num'] < 3:
                     raise OptionError('丰度表的样本数目少于3，不可进行beta多元分析')
                 samplelist = open(self.real_otu.path).readline().strip().split('\t')[1:]
-                # if len(self.option('envtable').prop['sample']) > len(samplelist):
-                #     raise OptionError('丰度表中的样本数量:%s少于环境因子表中的样本数量:%s' % (len(samplelist),
-                #                       len(self.option('envtable').prop['sample'])))
-                # for sample in self.option('envtable').prop['sample']:
-                #     if sample not in samplelist:
-                #         raise OptionError('环境因子中存在，丰度表中的未知样本%s' % sample)
                 common_samples = set(samplelist) & set(self.option('envtable').prop['sample'])
                 if len(common_samples) < 3:
                     raise OptionError("环境因子表和丰度表的共有样本数必需大于等于3个：{}".format(len(common_samples)))
@@ -125,8 +118,8 @@ class DbrdaAgent(Agent):
         result_dir.add_relpath_rules([
             [".", "", "db_rda分析结果目录"],
             ["./db_rda_sites.xls", "xls", "db_rda样本坐标表"],
-            ["./db_rda_importance.xls", "xls", "db_rda主成分解释度"], ##add by zhujuan 2017.08.21
-            ["./db_rda_species.xls", "xls", "db_rda物种坐标表"],
+            ["./db_rda_importance.xls", "xls", "db_rda主成分解释度"],  # add by zhujuan 2017.08.21
+            ["./db_rda_plot_species_data.xls", "xls", "db_rda物种坐标表"],
             ["./db_rda_centroids.xls", "xls", "db_rda哑变量环境因子坐标表"],
             ["./db_rda_biplot.xls", "xls", "db_rda数量型环境因子坐标表"],
         ])
@@ -151,9 +144,17 @@ class DbrdaTool(Tool):
                 self.otu_table = new_otu_table
                 self.env_table = new_env_table
         else:
-            samples = list(set(self.option('dis_matrix').prop['samp_list']) & set(self.option('envtable').prop['sample']))
+            self.otu_table = self.get_otu_table()
+            new_otu_table = self.work_dir + '/new_otu_table.xls'
+            new_env_table = self.work_dir + '/new_env_table.xls'
+            samples = list(
+                set(self.option('dis_matrix').prop['samp_list']) & set(self.option('envtable').prop['sample']))
             self.env_table = self.sub_env(samples)
             self.dis_matrix = self.get_matrix(samples)
+            if not self.create_otu_and_env_common(self.otu_table, self.env_table, new_otu_table, new_env_table):
+                self.set_error('环境因子表中的样本与丰度表中的样本共有数量少于2个')
+            else:
+                self.otu_table = new_otu_table
 
     def sub_env(self, samples):
         with open(self.env_table) as f, open(self.work_dir + '/sub_env_temp.xls', 'w') as w:
@@ -163,9 +164,7 @@ class DbrdaTool(Tool):
                     w.write(i)
         return self.work_dir + '/sub_env_temp.xls'
 
-
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
-        import pandas as pd
         T1 = pd.read_table(T1, sep='\t', dtype=str)
         T2 = pd.read_table(T2, sep='\t', dtype=str)
         T1_names = list(T1.columns[1:])
@@ -237,13 +236,6 @@ class DbrdaTool(Tool):
         except IOError:
             raise Exception('无法打开丰度相关文件或者文件不存在')
 
-    def run(self):
-        """
-        运行
-        """
-        super(DbrdaTool, self).run()
-        self.run_dbrda()
-
     def linkfile(self, oldfile, newname):
         """
         link文件到output文件夹
@@ -262,17 +254,23 @@ class DbrdaTool(Tool):
         """
         self.logger.info('运行dbrda_r.py程序计算Dbrda')
         if self.option('dis_matrix').is_set:
-            return_mess = db_rda_dist(dis_matrix=self.dis_matrix, env=self.env_table,
-                                      output_dir=self.work_dir)
+            return_mess = db_rda_dist(dis_matrix=self.dis_matrix, env=self.env_table, species_table=self.otu_table, output_dir=self.work_dir)
         else:
             return_mess = db_rda_new(self.otu_table, self.env_table, self.work_dir,
                                      self.option('method'))
         # self.logger.info('运行dbrda_r.py程序计算Dbrda成功')
         if return_mess == 0:
+            otu_species_list = self.get_species_name()
             self.linkfile(self.work_dir + '/db_rda_sites.xls', 'db_rda_sites.xls')
-            self.linkfile(self.work_dir + '/db_rda_cont.xls','db_rda_importance.xls') ##add by zhujuan 20170821
-            if not self.option('dis_matrix').is_set:
+            self.linkfile(self.work_dir + '/db_rda_cont.xls', 'db_rda_importance.xls')  ##add by zhujuan 20170821
+            if self.option('dis_matrix').is_set:
                 self.linkfile(self.work_dir + '/db_rda_species.xls', 'db_rda_species.xls')
+                if len(otu_species_list) == 0:  # add by zhujuan 2017.10.10 for get plot_species.xls
+                    self.linkfile(self.work_dir + '/db_rda_plot_species_data.xls', 'db_rda_plot_species_data.xls')
+                else:
+                    new_file_path = self.get_new_species_xls(otu_species_list)
+                    self.logger.info(otu_species_list)
+                    self.linkfile(new_file_path, 'db_rda_plot_species_data.xls')
             lines = open(self.work_dir + '/env_data.temp').readlines()
             if 'centroids:TRUE' in lines[0]:
                 self.linkfile(self.work_dir + '/db_rda_centroids.xls', 'db_rda_centroids.xls')
@@ -282,3 +280,40 @@ class DbrdaTool(Tool):
             self.end()
         else:
             self.set_error('运行dbrda_r.py程序计算Dbrda出错')
+
+    def get_species_name(self):  # modify by zhujuan 1017.10.09
+        """
+        判断丰度表中的物种数量是否大于30 ，如果大于30，筛选出丰度在前30的物种
+        :return: 丰度为前30的物种或者 空的列表
+        """
+        old_abund_file_path = self.get_otu_table()
+        df = pd.DataFrame(pd.read_table(old_abund_file_path, sep='\t', index_col=0))
+        df['Col_sum'] = df.apply(lambda x: x.sum(), axis=1)
+        new_otu_file = df.sort_values(by=['Col_sum'], ascending=0).head(30)
+        species_list = list(new_otu_file.index)
+        return species_list
+
+    def get_new_species_xls(self, otu_species_list):  # add by zhujuan 1017.10.09
+        """
+        根据物种列表信息，获取新的species表格文件
+        :param otu_species_list: 物种列表信息
+        :return: 新的species文件的路径
+        """
+        if os.path.exists(self.work_dir + "/db_rda_species.xls"):
+            old_species_table = self.work_dir + "/db_rda_species.xls"
+            new_species_table = self.work_dir + "/db_rda_plot_species_data.xls"
+        with open(old_species_table, "rb") as table, open(new_species_table, "a") as w:
+            line = table.readlines()
+            w.write(line[0])
+            for l in line[1:]:
+                content = l.strip().split("\t")
+                if content[0] in otu_species_list:
+                    w.write('\t'.join(content) + "\n")
+        return new_species_table
+
+    def run(self):
+        """
+        运行
+        """
+        super(DbrdaTool, self).run()
+        self.run_dbrda()
