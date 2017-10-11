@@ -5,6 +5,7 @@ import shutil
 from biocluster.core.exceptions import OptionError
 from biocluster.agent import Agent
 from biocluster.tool import Tool
+from biocluster.config import Config
 import re
 
 
@@ -79,6 +80,9 @@ class CufflinksTool(Tool):
         super(CufflinksTool, self).__init__(config)
         self._version = "v1.0.1"
         self.cufflinks_path = '/bioinfo/rna/cufflinks-2.2.1/'
+        self.bioawk_path =  Config().SOFTWARE_DIR + '/bioinfo/seq/bioawk/'
+        self.bedtools_path = Config().SOFTWARE_DIR + '/bioinfo/seq/bedtools-2.25.0/bin/'
+        self.script_path = '/bioinfo/rna/scripts/'
 
     def run(self):
         """
@@ -96,23 +100,25 @@ class CufflinksTool(Tool):
         运行cufflinks软件，进行拼接组装
         """
         cmd = ""
+        #  修改cufflinks参数，避免坐标超出范围时运行不出来 刘彬旭
         if self.option('fr_stranded') == "fr-unstranded":
             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-            cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (
-                 self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],
-                 self.option('fr_stranded')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
+            cmd = self.cufflinks_path + ('cufflinks -p %s -g %s --library-type %s -o  ' % (
+                 self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('fr_stranded')) +
+                 sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
         else:
             if self.option('strand_direct') == "firststrand":
                 sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-                cmd = self.cufflinks_path + ('cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (
-                    self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],
+                cmd = self.cufflinks_path + ('cufflinks -p %s -g %s --library-type %s -o  ' % (
+                    self.option('cpu'), self.option('ref_gtf').prop['path'],
                     self.option('strand_direct')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
             else:
                 if self.option('strand_direct')=='secondstrand':
                     sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-                    cmd = self.cufflinks_path +( 'cufflinks -p %s -g %s -b %s -m 51 --library-type %s -o  ' % (
-                        self.option('cpu'), self.option('ref_gtf').prop['path'], self.option('ref_fa').prop['path'],
+                    cmd = self.cufflinks_path +( 'cufflinks -p %s -g %s --library-type %s -o  ' % (
+                        self.option('cpu'), self.option('ref_gtf').prop['path'],
                         self.option('strand_direct')) + sample_name) + ' %s' % (self.option('sample_bam').prop['path'])
+
         self.logger.info('运行cufflinks软件，进行组装拼接')
         command = self.add_command("cufflinks_cmd", cmd).run()
         self.wait(command)
@@ -121,13 +127,34 @@ class CufflinksTool(Tool):
         else:
             self.set_error("cufflinks运行出错!")
 
+        # 增加过滤超出基因组范围坐标步骤 刘彬旭
+        cmd = self.script_path + "fasta_range.sh %s %s %s" % (
+            self.bioawk_path, self.option('ref_fa').prop['path'], self.work_dir + "/" + sample_name + '.filter.bed')
+        self.logger.info('运行biowat，生成基因组区间')
+        command = self.add_command("ref_fa_to_bed_cmd", cmd).run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("bioawk运行完成")
+        else:
+            self.set_error("bioawk运行出错!")
+
+        cmd = self.script_path + "filter_gtf_by_range.sh %s %s %s %s" % (
+            self.bedtools_path , self.work_dir + "/" + sample_name + '.filter.bed', self.work_dir + "/" + sample_name + '/transcripts.gtf',self.work_dir + "/" + sample_name + '/transcripts.filter.gtf')
+        self.logger.info('运行bedtools，过滤基因组区间')
+        command = self.add_command("bedtools_filter_cmd", cmd).run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("bedtools运行完成")
+        else:
+            self.set_error("bedtools运行出错!")
+
     def run_gtf_to_fa(self):
         """
         运行gtf_to_fasta，转录本gtf文件转fa文件
         """
         sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
         cmd = self.cufflinks_path + "gffread %s -g %s -w %s_out.fa" % (
-            self.work_dir + "/" + sample_name + "/transcripts.gtf", self.option('ref_fa').prop['path'],
+            self.work_dir + "/" + sample_name + "/transcripts.filter.gtf", self.option('ref_fa').prop['path'],
         self.work_dir + "/" + sample_name)
         self.logger.info('运行gtf_to_fasta，形成fasta文件')
         command = self.add_command("gtf_to_fa_cmd", cmd).run()
@@ -145,10 +172,10 @@ class CufflinksTool(Tool):
         self.logger.info("设置结果目录")
         try:
             sample_name = os.path.basename(self.option('sample_bam').prop['path']).split('.bam')[0]
-            os.link(self.work_dir + "/" + sample_name + "/transcripts.gtf", self.output_dir + "/transcripts.gtf")
+            os.link(self.work_dir + "/" + sample_name + "/transcripts.filter.gtf", self.output_dir + "/transcripts.gtf")
             shutil.move(self.output_dir + "/transcripts.gtf", self.output_dir + "/" + sample_name + "_out.gtf")
             os.link(self.work_dir + "/" + sample_name + "_out.fa", self.output_dir + "/" + sample_name + "_out.fa")
-            self.option('sample_gtf').set_path(self.work_dir + "/" + sample_name + "/" + "transcripts.gtf")
+            self.option('sample_gtf').set_path(self.work_dir + "/" + sample_name + "/" + "transcripts.filter.gtf")
             self.logger.info("设置组装拼接分析结果目录成功")
 
         except Exception as e:

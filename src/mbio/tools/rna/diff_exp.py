@@ -229,7 +229,7 @@ class DiffExpTool(Tool):
             resluts = copy.copy(edger_results)
             for afile in resluts:
                 if re.search(r'edgeR.DE_results$', afile):
-                    if i[0] in afile and i[1] in afile:
+                    if (i[0] + '_vs_' + i[1] in afile) or (i[1] + '_vs_' + i[0] in afile):
                         # self.logger.info(afile)
                         stat.diff_stat(express_info=stat.express_info, edgr_result=self.work_dir + '/edger_result/' + afile, control=i[0], other=i[1], output=self.output_dir, group_info=group_info, regulate=True, diff_ci=self.option("diff_ci"),fc=self.option('fc'),diff_fdr_ci=self.option('diff_fdr_ci'),pvalue_padjust=self.option("pvalue_padjust"))  #确保按照fc过滤 ，按照diff_ci或diff_fdr_ci判断是否significant  #modify by khl
                         file_name = '/%s_vs_%s_edgr_stat.xls' % (i[0], i[1])
