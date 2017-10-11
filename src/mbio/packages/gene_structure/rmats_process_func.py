@@ -58,12 +58,42 @@ def modify_id_for_txt(infile, outfile):
 def check_rmats_out_dir(dirpath):
     if PRIMARY_DIRS.difference(set(os.listdir(dirpath))):
         raise Exception('不完整的一级rmats结果目录结构: %s' % (set(os.listdir(dirpath))))
-    if EVENT_FILES.difference(set(os.listdir(os.path.join(dirpath, 'ASEvents')))):
-        raise Exception('不完整的as events 目录结构： %s，  %s' % (
-            os.path.join(dirpath, 'ASEvents'), set(os.listdir(os.path.join(dirpath, 'ASEvents')))))
+
     if MATS_FILES.difference(set(os.listdir(os.path.join(dirpath, 'MATS_output')))):
         raise Exception('不完整的mats 结果目录结构： %s，  %s' % (
             os.path.join(dirpath, 'MATS_output'), set(os.listdir(os.path.join(dirpath, 'MATS_output')))))
+    else:
+        # get event id list for filtering purpose. added by gdq
+        event_types = ['A3SS', 'A5SS', 'MXE', 'RI', 'SE']
+        event_id_dict = dict()
+        for each in event_types:
+            target_file = each + '.MATS.ReadsOnTargetAndJunctionCounts.txt'
+            target_file = os.path.join(dirpath, 'MATS_output', target_file)
+            with open(target_file) as f:
+                f.readline()
+                id_list = [int(x.split('\t')[0]) for x in f if x.strip()]
+            event_id_dict[each] = id_list
+
+    if EVENT_FILES.difference(set(os.listdir(os.path.join(dirpath, 'ASEvents')))):
+        raise Exception('不完整的as events 目录结构： %s，  %s' % (
+            os.path.join(dirpath, 'ASEvents'), set(os.listdir(os.path.join(dirpath, 'ASEvents')))))
+    else:
+        # modify the files in ASEvents
+        for each in event_types:
+            target_file = 'fromGTF.{}.txt'.format(each)
+            target_file2 = 'fromGTF.novelEvents.{}.txt'.format(each)
+            target_file = os.path.join(dirpath, 'ASEvents', target_file)
+            target_file2 = os.path.join(dirpath, 'ASEvents', target_file2)
+            id_list = event_id_dict[each]
+            # modify 'fromGTF.{}.txt'
+            target_file_table = pandas.read_table(target_file, index_col=0, sep='\s', header=0)
+            target_file_table = target_file_table.query("index in @id_list")
+            target_file_table.to_csv(target_file, sep='\t')
+            # modify fromGTF.novelEvents.{}.txt
+            target_file2_table = pandas.read_table(target_file2, index_col=0, sep='\s', header=0)
+            target_file2_table = target_file2_table.query("index in @id_list")
+            target_file2_table.to_csv(target_file2, sep='\t')
+
     to_be_altered_id_files = set([os.path.join(os.path.join(dirpath, 'ASEvents'), name) for name in
                                   os.listdir(os.path.join(dirpath, 'ASEvents')) if
                                   re.match(r'^fromGTF\.(novelEvents\.)?(A3SS|A5SS|MXE|RI|SE)\.txt$', name.strip())] +

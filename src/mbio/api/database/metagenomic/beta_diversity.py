@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zouxuan'
 # last_modify:20170926
-from biocluster.api.database.base import Base, report_check
 import os
+import json
 import datetime
-import types
-from biocluster.config import Config
-from bson.son import SON
+import re
+from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
+from types import StringTypes
+from biocluster.config import Config
+from mainapp.libs.param_pack import group_detail_sort
 
 class BetaDiversity(Base):
     def __init__(self, bind_object):
@@ -48,6 +50,14 @@ class BetaDiversity(Base):
             'desc': '',
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
+        if analysis == 'rda_cca':  # 在主表中添加必要的rda或者是cca分类信息
+            rda_files = os.listdir(dir_path.rstrip('/') + '/Rda')
+            if 'cca_sites.xls' in rda_files:
+                insert_mongo_json['rda_cca'] = 'cca'
+            elif 'rda_sites.xls' in rda_files:
+                insert_mongo_json['rda_cca'] = 'rda'
+            else:
+                raise Exception('RDA/CCA分析没有生成正确的结果数据')
         main_id = _main_collection.insert_one(insert_mongo_json).inserted_id
         result = _main_collection.find_one({'_id': main_id})
         if analysis == 'pca':
@@ -99,9 +109,11 @@ class BetaDiversity(Base):
             if 'db_rda_biplot.xls' in filelist:
                 env_vec_path = dir_path.rstrip('/') + '/Dbrda/db_rda_biplot.xls'
                 self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
-            if 'db_rda_importance.xls' in filelist:
-                importance_path = dir_path.rstrip('/') + '/Dbrda/db_rda_importance.xls'
-                self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+            importance_path = dir_path.rstrip('/') + '/Dbrda/db_rda_importance.xls'
+            self.insert_table_detail(importance_path, 'importance', update_id=main_id)
+            if 'db_rda_plot_species_data.xls' in filelist:
+                plot_species_path = dir_path.rstrip('/') + '/Dbrda/db_rda_plot_species_data.xls'
+                self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
             self.bind_object.logger.info('beta_diversity:db_RDA分析结果导入数据库完成.')
         elif analysis == 'rda_cca':
             if 'rda' in os.listdir(dir_path.rstrip('/') + '/Rda/')[1]:
@@ -125,7 +137,7 @@ class BetaDiversity(Base):
                 self.insert_table_detail(env_fac_path, 'factor', update_id=main_id)
             if (rda_cca + '_biplot.xls') in filelist:
                 env_vec_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_biplot.xls'
-                self.insert_table_detail(env_vec_path, 'vector', update_id=main_id, fileter_biplot=remove)
+                self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
             self.bind_object.logger.info('beta_diversity:RDA/CCA分析结果导入数据库完成.')
         self.insert_main_tables(self._tables, update_id=main_id)
         return main_id

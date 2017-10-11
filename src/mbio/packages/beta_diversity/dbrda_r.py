@@ -34,12 +34,13 @@ def create_r_new(otu_file, env_file, output_dir, distance_algorithm):
     tempr.close()
 
 
-def create_r(dist_matrix, env_file, output_dir):
+def create_r(dist_matrix, env_file, species_table, output_dir):
     """
     生成可以运行的R脚本,输入文件为距离矩阵
 
     :param dist_matrix: 输入矩阵
     :param env_file: 输入环境因子文件
+    :param species_table 输入物种丰度表格  # add 'species_table' by zhujuan for add db_rda_species.xls 20171010
     :param output_dir: 输出文件夹
     """
     output_dir = output_dir.rstrip('\\')
@@ -48,7 +49,9 @@ def create_r(dist_matrix, env_file, output_dir):
         env_formula = ' + '.join(env.readline().strip().split('\t')[1:])
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     f = Template(filename=this_file_dir + '/db_rda_dist.r')
-    content_r = f.render(dis_matrix=dist_matrix, env_file=env_file, output_dir=output_dir,
+    print f
+    print "this_file_dir:", this_file_dir
+    content_r = f.render(dis_matrix=dist_matrix, env_file=env_file, species_table=species_table, output_dir=output_dir,
                          env_formula=env_formula)
     tempr = open(output_dir + '/temp_r_dist.R', 'w')
     tempr.writelines([i.rstrip() + '\n' for i in content_r.split('\r\n')])
@@ -61,7 +64,7 @@ def run_r_script(script, delscript=True):
     :param script:R脚本路径（路径使用斜杠，不要使用反斜杠）
     """
     if platform.system() == 'Windows':
-        os.system('R CMD BATCH --vanilla --slave %s ' % (script))
+        os.system('R CMD BATCH --vanilla --slave %s ' % script)
     elif platform.system() == 'Linux':
         os.system('%s/program/R-3.3.1/bin/Rscript %s' % (Config().SOFTWARE_DIR, script))
     else:
@@ -72,12 +75,12 @@ def run_r_script(script, delscript=True):
             os.remove(os.path.dirname(script) + '/temp_r.Rout')
 
 
-def db_rda_dist(dis_matrix, env, output_dir):
+def db_rda_dist(dis_matrix, env, species_table, output_dir):
     """
-    输入距离矩阵，分组信息，输出文件夹，进行db_rda分析
+    输入距离矩阵，物种丰度文件，分组信息，输出文件夹，进行db_rda分析
     :pararm return: 成功完成返回‘0’
     """
-    create_r(dis_matrix, env, output_dir)
+    create_r(dis_matrix, env, species_table, output_dir)
     script = output_dir + '/temp_r_dist.R'
     run_r_script(script, delscript=False)
     return 0

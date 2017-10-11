@@ -55,7 +55,7 @@ class MgAnnoCazy(Base):
                 raise Exception('anno_cazy_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(cazy_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('cazy_profile_dir所指定的路径不存在，请检查！')
-        with open(cazy_profile_dir + "/cazy.family.profile.xls", 'rb') as f:
+        with open(cazy_profile_dir + "/cazy_family_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -67,11 +67,11 @@ class MgAnnoCazy(Base):
                     'family': family,
                     #'description': description
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i]
                 collection = self.db['anno_cazy_family']
                 anno_cazy_family_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('family', unique=True)
+        collection.ensure_index('family', unique=False)
 
     @report_check
     def add_anno_cazy_class(self, anno_cazy_id, cazy_profile_dir):
@@ -82,7 +82,7 @@ class MgAnnoCazy(Base):
                 raise Exception('anno_cazy_id必须为ObjectId对象或其对应的字符串！')
         if not os.path.exists(cazy_profile_dir):  # 检查要上传的数据表路径是否存在
             raise Exception('cazy_profile_dir所指定的路径不存在，请检查！')
-        with open(cazy_profile_dir + "/cazy.class.profile.xls", 'rb') as f:
+        with open(cazy_profile_dir + "/cazy_class_profile.xls", 'rb') as f:
             head = f.next()  # 从第二行记录信息，因为第一行通常是表头文件，忽略掉
             sams = head.strip().split("\t")[1:len(head) - 1]
             for line in f:
@@ -94,8 +94,8 @@ class MgAnnoCazy(Base):
                     'class': classes,
                     #'description': description
                 }
-                for sam in sams:
-                    insert_data[sam] = sam
+                for i in range(0,len(sams)):
+                    insert_data[sams[i]] = line[i]
                 collection = self.db['anno_cazy_class']
                 anno_cazy_class_id = collection.insert_one(insert_data).inserted_id
-        collection.ensure_index('class', unique=True)
+        collection.ensure_index('class', unique=False)

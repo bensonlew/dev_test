@@ -7,6 +7,7 @@ import types
 import subprocess
 from biocluster.core.exceptions import OptionError
 import re
+import pandas as pd
 
 
 class RdaCcaAgent(Agent):
@@ -191,7 +192,6 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的丰度表，f
                 w.write(line)
 
     def create_otu_and_env_common(self, T1, T2, new_T1, new_T2):
-        import pandas as pd
         T1 = pd.read_table(T1, sep='\t', dtype=str)
         T2 = pd.read_table(T2, sep='\t', dtype=str)
         T1_names = list(T1.columns[1:])
@@ -351,12 +351,18 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的丰度表，f
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')
 
-    def get_species_name(self):  # 20170122 add by zhouxuan
+    def get_species_name(self):  # 20170122 add by zhouxuan , last_modify by zhujuan 1017.10.09
         """
         判断丰度表中的物种数量是否大于30 ，如果大于30，筛选出丰度在前30的物种
         :return: 丰度为前30的物种或者 空的列表
         """
-        otu_path = self.get_otu_table()
+        old_abund_file_path = self.get_otu_table()
+        df = pd.DataFrame(pd.read_table(old_abund_file_path, sep='\t', index_col=0))
+        df['Col_sum'] = df.apply(lambda x: x.sum(), axis=1)
+        new_otu_file = df.sort_values(by=['Col_sum'], ascending=0).head(30)
+        species_list = list(new_otu_file.index)
+        return species_list
+        """
         with open(otu_path, "rb") as r:
             r = r.readlines()
             species_number = len(r) - 1
@@ -383,6 +389,7 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的丰度表，f
                     if species_dict[key] in new_abundance_list:
                         species_list.append(key)
                 return species_list
+        """
 
     def get_new_species_xls(self, otu_species_list):  # 20170122 add by zhouxuan
         """
