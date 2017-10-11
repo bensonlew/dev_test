@@ -144,7 +144,8 @@ class BetaDiversityModule(Module):
 
     def dbrda_run(self):
         if not self.option('dbrda_method'):
-            dbrda_options = {'dis_matrix': self.matrix.option('dis_matrix'), 'envtable': self.option('envtable')}
+            dbrda_options = {'dis_matrix': self.matrix.option('dis_matrix'), 'envtable': self.option('envtable'),
+                             'otutable': self.otu_table}  # modify by zhujuan for add db_rda_species.xls 20171011
         else:
             dbrda_options = {'otutable': self.otu_table, 'envtable': self.option('envtable'),
                              'method': self.option('dbrda_method')}
