@@ -123,8 +123,10 @@ class Pipeline(object):
             json_obj['stage_id'] = 0
         json_obj['type'] = first_stage.find("type").text
         json_obj['name'] = first_stage.find("name").text
+        # json_obj['output'] = "%s/files/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
+        #                                                json_obj['id'], json_obj['stage_id'])
         json_obj['output'] = "%s/files/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
-                                                       json_obj['id'], json_obj['stage_id'])
+                                                       json_obj['id'], 'workflow_results')  # zengjing 20170929 修改页面上流程的结果文件夹名称为workflow_results
         option = first_stage.find("parameters")
         # print json_obj
         json_obj['options'] = {}
