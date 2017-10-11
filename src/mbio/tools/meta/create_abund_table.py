@@ -42,6 +42,9 @@ class CreateAbundTableAgent(Agent):
         self._cpu = 1
         self._memory = '2G'
 
+    def end(self):
+        super(CreateAbundTableAgent, self).end()
+
 
 class CreateAbundTableTool(Tool):
     def __init__(self, config):

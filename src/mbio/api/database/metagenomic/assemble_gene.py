@@ -60,9 +60,9 @@ class AssembleGene(Base):
                     ('min', int(line[6])),
                 ]
                 if line[6] not in ['Idba_Mix', 'Megahit_Mix', 'Newbler_Mix']:
-                    data.append(('method', 'simple'))
+                    data.append(('method', 'danpin'))
                 else:
-                    data.append(('method', 'multiple'))
+                    data.append(('method', 'hunpin'))
                 data = SON(data)
                 data_list.append(data)
         try:

@@ -125,7 +125,7 @@ class MetaGenomicWorkflow(Workflow):
             'kegg': 'level3',
             'cazy': 'Family',
             'vfdb': 'VFs',
-            'ardb': 'GenBankID',  # 'ARG',
+            'ardb': 'ARG',  # 'ARG',
             'card': 'ARO_accession',
         }
         self.composition_dir2anno = {}  # 输出结果和导表时根据此值判断数据库类型
@@ -303,7 +303,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_nr(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             'query_type': "prot",
             'database': 'nr',
@@ -312,7 +313,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_kegg(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             'query_type': "prot",
             'database': 'kegg',
@@ -321,7 +323,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_cog(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
             # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             'query_type': "prot",
             'database': 'eggnog',
@@ -330,7 +333,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_anno(self):
         opts = {
-            'reads_profile_table': self.gene_set.option('reads_abundance'),
+            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/reads_number.xls',
+                # self.gene_set.option('reads_abundance'),
             # self.gene_set.option('rpkm_abundance'),  # '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls'
         }
         if self.option('nr'):
@@ -343,8 +347,10 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_cazy(self):
         opts = {
-            'query': self.gene_set.option('uni_fastaa'),
-            'reads_profile_table': self.gene_set.option('reads_abundance'),
+            'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
+                # self.gene_set.option('uni_fastaa'),
+            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/reads_number.xls',
+                # self.gene_set.option('reads_abundance'),
         }
         self.set_run(opts, self.cazy, 'cazy', self.step.cazy)
 
@@ -352,7 +358,7 @@ class MetaGenomicWorkflow(Workflow):
         opts = {
             'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             # self.gene_set.option('uni_fastaa'),
-            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls',
+            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/reads_number.xls',
             # self.gene_set.option('reads_abundance'),
         }
         self.set_run(opts, self.vfdb, 'vfdb', self.step.vfdb)
@@ -361,7 +367,7 @@ class MetaGenomicWorkflow(Workflow):
         opts = {
             'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             # self.gene_set.option('uni_fastaa'),
-            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls',
+            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/reads_number.xls',
             # self.gene_set.option('reads_abundance'),
         }
         self.set_run(opts, self.ardb, 'ardb', self.step.ardb)
@@ -370,7 +376,7 @@ class MetaGenomicWorkflow(Workflow):
         opts = {
             'query': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/uniGeneset/gene.uniGeneset.faa',
             # self.gene_set.option('uni_fastaa'),
-            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/RPKM.xls',
+            'reads_profile_table': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/UniGene/output/gene_profile/reads_number.xls',
             # self.gene_set.option('reads_abundance'),
         }
         self.set_run(opts, self.card, 'card', self.step.card)
@@ -388,6 +394,7 @@ class MetaGenomicWorkflow(Workflow):
             elif self.default_level2[db] != self.default_level1[db] and event == 'all':
                 self.profile_table2[db] = self.run_new_table(self.anno_table[db], self.anno_table['geneset'],
                                                              self.default_level2[db])
+        """
         for module in self.new_table:
             module.run()
         self.profile_table1['geneset'] = self.anno_table['geneset']
@@ -414,7 +421,6 @@ class MetaGenomicWorkflow(Workflow):
         else:
             self.run_analysis2()
             # self.run_composition()
-        """
 
     def run_analysis2(self):
         self.profile_table1['geneset'] = self.anno_table['geneset']
@@ -467,7 +473,7 @@ class MetaGenomicWorkflow(Workflow):
         }
         self.logger.info('abundtable is :' + abund)
         self.logger.info('group is : ' + group.prop['path'])
-        # ###self.composition = self.add_module('meta.composition.composition_analysis')
+        self.composition = self.add_module('meta.composition.composition_analysis')
         # self.logger.info(opts['analysis'])
         # self.logger.info(opts['abundtable'])
         # self.logger.info(opts['group'])
@@ -487,7 +493,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             opts['analysis'] = 'distance,pca,pcoa,nmds,hcluster'
         # event = db + '_compare'  # 是否需要将所有的分析按数据库拆开
-        # ###self.compare = self.add_module('meta.beta_diversity.beta_diversity')
+        self.compare = self.add_module('meta.beta_diversity.beta_diversity')
         self.set_run(opts, self.compare, 'compare', self.step.compare, False)
         self.analysis.append(self.compare)
 
@@ -690,10 +696,11 @@ class MetaGenomicWorkflow(Workflow):
                 self.on_rely(self.all_anno, self.run_analysis, 'all')
                 # self.on_rely(self.analysis, self.end)
         if self.option('test'):
-            self.run_analysis('all')
-            # self.run_ardb()
-            # self.run_card()
-            # self.run_vfdb()
+            # self.run_analysis('all')
+            self.run_ardb()
+            self.run_card()
+            self.run_vfdb()
+            self.run_cazy()
             # self.run_analysis('all')
             super(MetaGenomicWorkflow, self).run()
             return True
