@@ -388,6 +388,20 @@ class MetaGenomicWorkflow(Workflow):
             elif self.default_level2[db] != self.default_level1[db] and event == 'all':
                 self.profile_table2[db] = self.run_new_table(self.anno_table[db], self.anno_table['geneset'],
                                                              self.default_level2[db])
+        for module in self.new_table:
+            module.run()
+        self.profile_table1['geneset'] = self.anno_table['geneset']
+        self.profile_table2['geneset'] = self.anno_table['geneset']
+        for db in self.profile_table1.keys():
+            self.func_composition(self.profile_table1[db], self.option('group'))
+            self.composition_dir2anno[self.composition.output_dir] = db
+        for db in self.profile_table2.keys():
+            self.func_compare(self.profile_table2[db], self.option('group'))
+            self.compare_dir2anno[self.compare.output_dir] = db
+        self.on_rely(self.analysis, self.end)
+        for module in self.analysis:
+            module.run()
+        """
         if len(self.new_table) != 0:
             '''
             self.on_rely(self.new_table, self.run_composition)
@@ -400,6 +414,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             self.run_analysis2()
             # self.run_composition()
+        """
 
     def run_analysis2(self):
         self.profile_table1['geneset'] = self.anno_table['geneset']
@@ -450,9 +465,9 @@ class MetaGenomicWorkflow(Workflow):
             'group': group,
             'species_number': '50',
         }
-        # self.logger.info('abundtable is :' + abund)
-        # self.logger.info('group is : ' + group.prop['path'])
-        self.composition = self.add_module('meta.composition.composition_analysis')
+        self.logger.info('abundtable is :' + abund)
+        self.logger.info('group is : ' + group.prop['path'])
+        # ###self.composition = self.add_module('meta.composition.composition_analysis')
         # self.logger.info(opts['analysis'])
         # self.logger.info(opts['abundtable'])
         # self.logger.info(opts['group'])
@@ -472,7 +487,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             opts['analysis'] = 'distance,pca,pcoa,nmds,hcluster'
         # event = db + '_compare'  # 是否需要将所有的分析按数据库拆开
-        self.compare = self.add_module('meta.beta_diversity.beta_diversity')
+        # ###self.compare = self.add_module('meta.beta_diversity.beta_diversity')
         self.set_run(opts, self.compare, 'compare', self.step.compare, False)
         self.analysis.append(self.compare)
 
@@ -525,20 +540,20 @@ class MetaGenomicWorkflow(Workflow):
             anno = self.composition_dir2anno[obj.output_dir]
             allfiles = os.listdir(obj.output_dir)
             for dir in allfiles:
-                self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('composition', anno))
+                self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('composition', dir, anno))
         if event['data'] == 'compare':
             anno = self.compare_dir2anno[obj.output_dir]
             allfiles = os.listdir(obj.output_dir)
             for dir in allfiles:
-                if dir in ['pca', 'pcoa', 'Hcluster', 'Nmds', 'Distance']:
-                    self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('compare', anno))
+                if dir in ['Pca', 'Pcoa', 'Hcluster', 'Nmds', 'Distance']:
+                    self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('compare', dir, anno))
                 else:
-                    self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', anno))
+                    self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', dir, anno))
         if event['data'] == 'correlation':  # ouput里面是一个路径？还是一组文件？
             anno = self.correlation_dir2anno[obj.output_dir]
             allfiles = os.listdir(obj.output_dir)
             for dir in allfiles:
-                self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', anno))
+                self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', dir, anno))
 
     def set_output_all(self):
         """
@@ -554,6 +569,7 @@ class MetaGenomicWorkflow(Workflow):
         if not os.path.isdir(olddir):
             raise Exception('需要移动到output目录的文件夹不存在。')
         newdir = os.path.join(self.output_dir, newname)
+        self.logger.info("newdir is : " + newdir)
         if not os.path.exists(newdir):
             os.makedirs(newdir)
         allfiles = os.listdir(olddir)
@@ -669,7 +685,7 @@ class MetaGenomicWorkflow(Workflow):
                 self.on_rely(self.all_anno, self.end)
             elif len(self.sample_in_group) == 2:
                 self.on_rely(self.all_anno, self.run_analysis, 'composition')
-                self.on_rely(self.analysis, self.end)
+                # self.on_rely(self.analysis, self.end)
             elif len(self.sample_in_group) > 2:
                 self.on_rely(self.all_anno, self.run_analysis, 'all')
                 # self.on_rely(self.analysis, self.end)
