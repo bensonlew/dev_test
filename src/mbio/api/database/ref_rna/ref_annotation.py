@@ -492,13 +492,14 @@ class RefAnnotation(Base):
         ]
         data = SON(data)
         data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_nr_pie']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入nr库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
-        else:
-            self.bind_object.logger.info("导入nr库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_nr_pie']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入nr库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
+            else:
+                self.bind_object.logger.info("导入nr库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
 
     @report_check
     def add_annotation_swissprot(self, name=None, params=None, stat_id=None):
@@ -571,13 +572,14 @@ class RefAnnotation(Base):
         ]
         data = SON(data)
         data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_swissprot_pie']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入swissprot库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
-        else:
-            self.bind_object.logger.info("导入swissprot库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_swissprot_pie']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入swissprot库注释作图信息evalue,similar：%s、%s出错!" % (evalue_path, similar_path))
+            else:
+                self.bind_object.logger.info("导入swissprot库注释作图信息evalue,similar：%s、%s成功!" % (evalue_path, similar_path))
 
     @report_check
     def add_annotation_pfam(self, name=None, params=None, stat_id=None):
@@ -633,13 +635,14 @@ class RefAnnotation(Base):
                     ]
                     data = SON(data)
                     data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_pfam_detail']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入pfam注释信息:%s失败！" % pfam_path)
-        else:
-            self.bind_object.logger.info("导入pfam注释信息:%s成功" % pfam_path)
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_pfam_detail']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入pfam注释信息:%s失败！" % pfam_path)
+            else:
+                self.bind_object.logger.info("导入pfam注释信息:%s成功" % pfam_path)
 
     @report_check
     def add_annotation_pfam_bar(self, pfam_id, pfam_path, seq_type, anno_type):
@@ -672,13 +675,14 @@ class RefAnnotation(Base):
             ]
             data = SON(data)
             data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_pfam_bar']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入pfam注释信息:%s失败！" % pfam_path)
-        else:
-            self.bind_object.logger.info("导入pfam注释信息:%s成功！" % pfam_path)
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_pfam_bar']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入pfam注释信息:%s失败！" % pfam_path)
+            else:
+                self.bind_object.logger.info("导入pfam注释信息:%s成功！" % pfam_path)
 
     @report_check
     def add_annotation_cog(self, name=None, params=None):
@@ -736,13 +740,14 @@ class RefAnnotation(Base):
                     data.append(('nog_list', None))
                 data = SON(data)
                 data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_cog_detail']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入cog注释信息：%s出错!" % (cog_path))
-        else:
-            self.bind_object.logger.info("导入cog注释信息：%s成功!" % (cog_path))
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_cog_detail']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入cog注释信息：%s出错!" % (cog_path))
+            else:
+                self.bind_object.logger.info("导入cog注释信息：%s成功!" % (cog_path))
 
     @report_check
     def add_annotation_cog_detail_all(self, cog_id, r_cog_path, n_cog_path, seq_type, anno_type):
@@ -861,13 +866,14 @@ class RefAnnotation(Base):
                 data = SON(data)
                 if len(cog_list) + len(nog_list) != 0:
                     data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_cog_detail']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入cog注释all出错：%s， %s" % (r_cog_path, n_cog_path))
-        else:
-            self.bind_object.logger.info("导入cog注释all成功：%s, %s" % (r_cog_path, n_cog_path))
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_cog_detail']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入cog注释all出错：%s， %s" % (r_cog_path, n_cog_path))
+            else:
+                self.bind_object.logger.info("导入cog注释all成功：%s, %s" % (r_cog_path, n_cog_path))
 
     @report_check
     def add_annotation_cog_table(self, cog_id, table_path, seq_type, anno_type):
@@ -976,13 +982,14 @@ class RefAnnotation(Base):
                     data.append(('goid_4', line[6]))
                 data = SON(data)
                 data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_go_detail']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入go注释信息：%s出错!" % (go_path))
-        else:
-            self.bind_object.logger.info("导入go注释信息：%s成功!" % (go_path))
+            if data_list:
+                try:
+                    collection = self.db['sg_annotation_go_detail']
+                    collection.insert_many(data_list)
+                except Exception, e:
+                    raise Exception("导入go注释信息：%s出错!" % (go_path))
+                else:
+                    self.bind_object.logger.info("导入go注释信息：%s成功!" % (go_path))
 
     @report_check
     def add_annotation_go_graph(self, go_id, seq_type, anno_type, level, go_path):
@@ -1050,13 +1057,14 @@ class RefAnnotation(Base):
                 ]
                 data = SON(data)
                 data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_go_graph']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入go注释画图信息出错：%s" % (go_path))
-        else:
-            self.bind_object.logger.info("导入go注释画图信息成功：%s" % (go_path))
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_go_graph']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入go注释画图信息出错：%s" % (go_path))
+            else:
+                self.bind_object.logger.info("导入go注释画图信息成功：%s" % (go_path))
 
     @report_check
     def add_annotation_go_level(self, go_id, seq_type, anno_type, level, level_path):
@@ -1089,13 +1097,14 @@ class RefAnnotation(Base):
                 ]
                 data = SON(data)
                 data_list.append(data)
-        try:
-            collection = self.db['sg_annotation_go_level']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入go注释第二层级信息：%s出错!" % (level_path))
-        else:
-            self.bind_object.logger.info("导入go注释第二层级信息：%s成功!" % (level_path))
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_go_level']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入go注释第二层级信息：%s出错!" % (level_path))
+            else:
+                self.bind_object.logger.info("导入go注释第二层级信息：%s成功!" % (level_path))
 
     @report_check
     def add_annotation_go_list(self, go_id, seq_type, anno_type, gos_path):
@@ -1123,13 +1132,14 @@ class RefAnnotation(Base):
                 ]
                 data = SON(data)
                 data_list.append(data)
-            try:
-                collection = self.db['sg_annotation_go_list']
-                collection.insert_many(data_list)
-            except Exception, e:
-                raise Exception("导入gos_list注释信息：%s出错:%s" % (gos_path))
-            else:
-                self.bind_object.logger.info("导入gos_list注释信息：%s成功!" % (gos_path))
+            if data_list:
+                try:
+                    collection = self.db['sg_annotation_go_list']
+                    collection.insert_many(data_list)
+                except Exception, e:
+                    raise Exception("导入gos_list注释信息：%s出错:%s" % (gos_path))
+                else:
+                    self.bind_object.logger.info("导入gos_list注释信息：%s成功!" % (gos_path))
 
     def add_annotation_go_all(self, go_id, seq_type, anno_type, level, r_go_path, n_go_path):
         """
@@ -1216,14 +1226,15 @@ class RefAnnotation(Base):
             ]
             data = SON(data)
             data_list1.append(data)
-        try:
-            collection = self.db['sg_annotation_go_graph']
-            collection.insert_many(data_list1)
-        except Exception, e:
-            self.bind_object.logger.error("导入go注释画图all信息出错：%s, %s" % (r_go_path, n_go_path))
-            print "导入go注释画图all出错：%s、%s" % (r_go_path, n_go_path)
-        else:
-            self.bind_object.logger.info("导入go注释画图all信息成功：%s, %s" % (r_go_path, n_go_path))
+        if data_list1:
+            try:
+                collection = self.db['sg_annotation_go_graph']
+                collection.insert_many(data_list1)
+            except Exception, e:
+                self.bind_object.logger.error("导入go注释画图all信息出错：%s, %s" % (r_go_path, n_go_path))
+                print "导入go注释画图all出错：%s、%s" % (r_go_path, n_go_path)
+            else:
+                self.bind_object.logger.info("导入go注释画图all信息成功：%s, %s" % (r_go_path, n_go_path))
         for fun in funlist:
             terms = fun.split("|||")
             data = [
@@ -1248,13 +1259,14 @@ class RefAnnotation(Base):
             data.append(('seq_list', ";".join(seq_list)))
             data = SON(data)
             data_list2.append(data)
-        try:
-            collection = self.db['sg_annotation_go_detail']
-            collection.insert_many(data_list2)
-        except Exception, e:
-            raise Exception("导入go注释all出错：%s、%s" % (r_go_path, n_go_path))
-        else:
-            self.bind_object.logger.info("导入go注释all信息成功：%s, %s" % (r_go_path, n_go_path))
+            if data_list2:
+                try:
+                    collection = self.db['sg_annotation_go_detail']
+                    collection.insert_many(data_list2)
+                except Exception, e:
+                    raise Exception("导入go注释all出错：%s、%s" % (r_go_path, n_go_path))
+                else:
+                    self.bind_object.logger.info("导入go注释all信息成功：%s, %s" % (r_go_path, n_go_path))
 
     @report_check
     def add_annotation_kegg(self, name=None, params=None):
@@ -1351,13 +1363,14 @@ class RefAnnotation(Base):
                     'hyperlink': line[-1]
                 }
                 data_list.append(insert_data)
-        try:
-            collection = self.db['sg_annotation_kegg_level']
-            collection.insert_many(data_list)
-        except Exception, e:
-            raise Exception("导入kegg注释层级信息：%s、%s出错!" % (level_path, png_dir))
-        else:
-            self.bind_object.logger.info("导入kegg注释层级信息：%s、%s 成功!" % (level_path, png_dir))
+        if data_list:
+            try:
+                collection = self.db['sg_annotation_kegg_level']
+                collection.insert_many(data_list)
+            except Exception, e:
+                raise Exception("导入kegg注释层级信息：%s、%s出错!" % (level_path, png_dir))
+            else:
+                self.bind_object.logger.info("导入kegg注释层级信息：%s、%s 成功!" % (level_path, png_dir))
 
     @report_check
     def add_annotation_kegg_table(self, kegg_id, seq_type, anno_type, table_path):
