@@ -10,12 +10,9 @@ from biocluster.config import Config
 class MergeKeggPathway(object):
     def __init__(self):
         self.mongodb = Config().biodb_mongo_client.sanger_biodb
-        self.map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
-        self.r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
-        self.image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
         self.png_coll = self.mongodb.kegg_pathway_png_v1
 
-    def get_pic(self, path, kos_path, png_path):
+    def get_pic(self, map_path, r_path, path, kos_path, png_path):
         """
         画通路图
         """
@@ -28,14 +25,14 @@ class MergeKeggPathway(object):
                 png_id = result['pathway_map_png']
                 k.write(fs.get(kgml_id).read())
                 p.write(fs.get(png_id).read())
-        cmd = "{} {} {} {} {} {} {}".format(self.r_path, self.map_path, path, kos_path, png_path, "pathway.kgml", "pathway.png")
+        cmd = "{} {} {} {} {} {} {}".format(r_path, map_path, path, kos_path, png_path, "pathway.kgml", "pathway.png")
         try:
             subprocess.check_output(cmd, shell=True)
         except subprocess.CalledProcessError:
             print "{}画图出错".format(path)
             os.system("cp {} {}".format("pathway.png", png_path))
 
-    def merge_kegg_pathway(self, r_level_path, n_level_path, all_level_path, all_pathways):
+    def merge_kegg_pathway(self, map_path, r_path, image_magick, r_level_path, n_level_path, all_level_path, all_pathways):
         """
         r_level_path: pathway_table.xls(ref)
         n_level_path: pathway_table.xls(new)
@@ -145,8 +142,8 @@ class MergeKeggPathway(object):
                     w.write(k + "\t" + "#FFFF00" + "\t" + "NA" + "\n")
                 for k in b_kos:
                     w.write(k + "\t" + "#FFFF00,#00CD00" + "\t" + "NA" + "\n")
-            self.get_pic(map_id, kos_path, png_path)
-            cmd = self.image_magick + ' -flatten -quality 100 -density 130 -background white ' + png_path + ' ' + pdf_path
+            self.get_pic(map_path, r_path, map_id, kos_path, png_path)
+            cmd = image_magick + ' -flatten -quality 100 -density 130 -background white ' + png_path + ' ' + pdf_path
             try:
                 subprocess.check_output(cmd, shell=True)
             except subprocess.CalledProcessError:
@@ -154,8 +151,11 @@ class MergeKeggPathway(object):
 
 if __name__ == "__main__":
     test = MergeKeggPathway()
+    map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
+    r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
+    image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
     r_level_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/anno_stat/kegg_stat/gene_pathway_table.xls"
     n_level_path = "/mnt/ilustre/users/sanger-dev/workspace/20170822/NewAnno_arab_test_anno_8/RefAnnotation1/output/anno_stat/kegg_stat/gene_pathway_table.xls"
-    all_level_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/all_anno/all_pathway_table.xls"
-    all_pathways = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna1/all_anno/all_pathways"
-    test.merge_kegg_pathway(r_level_path, n_level_path, all_level_path, all_pathways)
+    all_level_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/annotation/script/all_pathway_table.xls"
+    all_pathways = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/annotation/script/all_pathways"
+    test.merge_kegg_pathway(map_path, r_path, image_magick, r_level_path, n_level_path, all_level_path, all_pathways)
