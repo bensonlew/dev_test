@@ -89,6 +89,9 @@ class MergeAnnotTool(Tool):
         self.merge_scripts = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/merge.py"
         self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot.py"
         self.goSplit = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goSplit.py"
+        self.map_path = self.config.SOFTWARE_DIR + "bioinfo/annotation/scripts/map4.r"
+        self.r_path = "/program/R-3.3.3/bin/Rscript"
+        self.image_magick = "/program/ImageMagick/bin/convert"
 
     def run_merge(self):
         for db in self.database:
@@ -114,7 +117,7 @@ class MergeAnnotTool(Tool):
                 self.logger.info("合并kegg注释文件完成")
                 r_level_path = self.option("pathway_table_dir").split(";")[0]
                 n_level_path = self.option("pathway_table_dir").split(";")[1]
-                MergeKeggPathway().merge_kegg_pathway(r_level_path=r_level_path, n_level_path=n_level_path, all_level_path="pathway_table.xls", all_pathways=self.output_dir + "/all_pathways")
+                MergeKeggPathway().merge_kegg_pathway(map_path=self.map_path, r_path=self.r_path, image_magick=self.image_magick, r_level_path=r_level_path, n_level_path=n_level_path, all_level_path="pathway_table.xls", all_pathways=self.output_dir + "/all_pathways")
         files = ["go2level.xls", "query_gos.list", "cog_table.xls", "kegg_table.xls", "pathway_table.xls"]
         for f in files:
             if os.path.exists(f):
