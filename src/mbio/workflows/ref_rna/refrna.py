@@ -204,7 +204,7 @@ class RefrnaWorkflow(Workflow):
             if self.option("assemble_method") not in ["cufflinks", "stringtie"]:
                 raise OptionError("拼接软件应在cufflinks和stringtie中选择")
         if self.option("kegg_database") == "All":
-            self.option("kegg_database","None")
+            self.option("kegg_database","All")
         elif self.option("kegg_database") == "Animal":
             self.option("kegg_database","Animals")
         elif self.option("kegg_database") == "Plant":
