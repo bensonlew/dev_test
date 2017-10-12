@@ -126,7 +126,7 @@ class MetaGenomicWorkflow(Workflow):
             'cazy': 'Family',
             'vfdb': 'VFs',
             'ardb': 'ARG',  # 'ARG',
-            'card': 'ARO_accession',
+            'card': 'ARO',
         }
         self.composition_dir2anno = {}  # 输出结果和导表时根据此值判断数据库类型
         self.compare_dir2anno = {}
@@ -275,6 +275,8 @@ class MetaGenomicWorkflow(Workflow):
             if self.option('assemble_type') == 'multiple':
                 opts['method'] = 'multiple'
             self.set_run(opts, self.assem_idba, 'assem', self.step.assem)
+            self.logger.info('--------------------------------')
+            self.logger.info(self.assem_idba.option('contig').fastas_full)
 
     def run_gene_predict(self):
         opts = {
@@ -284,6 +286,7 @@ class MetaGenomicWorkflow(Workflow):
             opts['input_fasta'] = self.assem_soapdenovo.option('contig')
         else:
             opts['input_fasta'] = self.assem_idba.option('contig')
+        self.logger.info(opts['input_fasta'].prop['path'])
         self.set_run(opts, self.gene_predict, 'gene_predict', self.step.gene_predict)
 
     def run_gene_set(self):
