@@ -46,7 +46,7 @@ class HmmscanModule(Module):
         self.split_fasta.run()
 
     def run_align(self):
-        self.align_result_path = os.path.join(self.output_dir, "algin_result")
+        self.align_result_path = os.path.join(self.output_dir, "align_result")
         if os.path.exists(self.align_result_path):
             pass
         else:
@@ -79,8 +79,12 @@ class HmmscanModule(Module):
         obj = event['bind_object']
         if event['data'] == 'cazy_align':
             file_path = obj.option('hmmscan_out_dm').prop['path']
+            if os.path.exists(os.path.join(self.align_result_path, os.path.basename(file_path))):
+                os.remove(os.path.join(self.align_result_path, os.path.basename(file_path)))
             os.link(file_path, os.path.join(self.align_result_path, os.path.basename(file_path)))    #####创建硬链
         if event['data'] == 'cazy_out':
+            if os.path.exists(self.output_dir + '/align_result.txt'):
+                os.remove(self.output_dir + '/align_result.txt')
             os.link(obj.option('hmmscan_result').prop['path'], self.output_dir + '/align_result.txt')
             self.option("align_result", self.output_dir + "/align_result.txt")
             self.end()
