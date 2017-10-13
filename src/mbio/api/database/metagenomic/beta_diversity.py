@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zouxuan'
 # last_modify:20170926
-import os
-import json
-import datetime
-import re
 from biocluster.api.database.base import Base, report_check
-from bson.objectid import ObjectId
-from types import StringTypes
+import os
+import datetime
+import types
 from biocluster.config import Config
-from mainapp.libs.param_pack import group_detail_sort
+from bson.son import SON
+from bson.objectid import ObjectId
+
 
 class BetaDiversity(Base):
     def __init__(self, bind_object):
@@ -32,37 +31,61 @@ class BetaDiversity(Base):
             raise Exception('错误的分析类型')
 
     @report_check
-    def add_beta_diversity(self, dir_path, analysis, env_id, specimen_group,geneset_id,anno_id,level_id):
+    def add_beta_diversity(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None, task_id=None,
+                           geneset_id=None, anno_id=None, level_id=None, remove=None, params=None):
         self._tables = []  # 记录存入了哪些表格
-        _main_collection= self.db['beta_diversity']
-        insert_mongo_json = {
-            'project_sn': self.bind_object.sheet.project_sn,
-            'task_id': self.bind_object.sheet.id,
-            'specimen_group': specimen_group,
-            'level_id': level_id,
-            'name':BetaDiversity.get_main_table_name(analysis) +  '_Origin',
-            'table_type': analysis,
-            'env_id': env_id,
-            'geneset_id':geneset_id,
-            'anno_id':anno_id,
-            'params':'',
-            'status': 'end',
-            'desc': '',
-            'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        if analysis == 'rda_cca':  # 在主表中添加必要的rda或者是cca分类信息
-            rda_files = os.listdir(dir_path.rstrip('/') + '/Rda')
-            if 'cca_sites.xls' in rda_files:
-                insert_mongo_json['rda_cca'] = 'cca'
-            elif 'rda_sites.xls' in rda_files:
-                insert_mongo_json['rda_cca'] = 'rda'
+        if task_id is None:
+            task_id = self.bind_object.sheet.id
+        if not isinstance(env_id, ObjectId) and env_id is not None:
+            env_id = ObjectId(env_id)
+        else:
+            if 'env_id' in self.bind_object.sheet.data['options']:
+                env_id = ObjectId(self.bind_object.option('env_id'))  # 仅仅即时计算直接绑定workflow对象
+        if not isinstance(group_id, ObjectId) and group_id is not None:
+            group_id = ObjectId(group_id)
+        else:
+            if 'group_id' in self.bind_object.sheet.data['options']:
+                group_id = self.bind_object.option('group_id')
+                if group_id not in ['all', 'All', 'ALL']:
+                    group_id = ObjectId(group_id)  # 仅仅即时计算直接绑定workflow对象
             else:
-                raise Exception('RDA/CCA分析没有生成正确的结果数据')
-        main_id = _main_collection.insert_one(insert_mongo_json).inserted_id
+                group_id = 'all'
+        _main_collection = self.db['beta_diversity']
+        if main:
+            insert_mongo_json = {
+                'project_sn': self.bind_object.sheet.project_sn,
+                'task_id': task_id,
+                'specimen_group': group_id,
+                'level_id': level_id,
+                'name': BetaDiversity.get_main_table_name(analysis) + '_Origin',
+                'table_type': analysis,
+                'env_id': env_id,
+                'geneset_id': geneset_id,
+                'anno_id': anno_id,
+                'params': params,
+                'status': 'end',
+                'desc': '',
+                'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            if analysis == 'rda_cca':  # 在主表中添加必要的rda或者是cca分类信息
+                rda_files = os.listdir(dir_path.rstrip('/') + '/Rda')
+                if 'cca_sites.xls' in rda_files:
+                    insert_mongo_json['rda_cca'] = 'cca'
+                elif 'rda_sites.xls' in rda_files:
+                    insert_mongo_json['rda_cca'] = 'rda'
+                else:
+                    raise Exception('RDA/CCA分析没有生成正确的结果数据')
+            main_id = _main_collection.insert_one(insert_mongo_json).inserted_id
+        else:
+            if not main_id:
+                raise Exception('不写入主表时，需要提供主表ID')
+            if not isinstance(main_id, ObjectId):
+                main_id = ObjectId(main_id)
         result = _main_collection.find_one({'_id': main_id})
         if analysis == 'pca':
             site_path = dir_path.rstrip('/') + '/Pca/pca_sites.xls'
-            os.system('head -n 101 '+ dir_path.rstrip('/') + '/Pca/pca_rotation.xls > ' +  dir_path.rstrip('/') + '/Pca/part_pca_rotation.xls' )
+            os.system('head -n 101 ' + dir_path.rstrip('/') + '/Pca/pca_rotation.xls > ' + dir_path.rstrip(
+                '/') + '/Pca/part_pca_rotation.xls')
             rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
             part_rotation_path = dir_path.rstrip('/') + '/Pca/part_pca_rotation.xls'
             importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
@@ -95,7 +118,8 @@ class BetaDiversity(Base):
             self.bind_object.logger.info('beta_diversity:PCoA分析结果导入数据库完成.')
         elif analysis == 'nmds':
             site_path = dir_path.rstrip('/') + '/Nmds/nmds_sites.xls'
-            self.insert_table_detail(site_path, 'specimen', update_id=main_id, colls=['NMDS1', 'NMDS2'])  # 这里暂且只有两个轴，故只写两个，后面如果修改进行多维NMDS，结果应该有多列，此种方式应该进行修改
+            self.insert_table_detail(site_path, 'specimen', update_id=main_id,
+                                     colls=['NMDS1', 'NMDS2'])  # 这里暂且只有两个轴，故只写两个，后面如果修改进行多维NMDS，结果应该有多列，此种方式应该进行修改
             nmds_stress = float(open(dir_path.rstrip('/') + '/Nmds/nmds_stress.xls').readlines()[1])
             _main_collection.update_one({'_id': main_id}, {'$set': {'nmds_stress': nmds_stress}})
             self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
@@ -123,7 +147,8 @@ class BetaDiversity(Base):
             site_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_sites.xls'
             importance_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_importance.xls'
             dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
-            plot_species_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 4 lines by zhouxuan 20170123 20170401
+            plot_species_path = dir_path.rstrip(
+                '/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 4 lines by zhouxuan 20170123 20170401
             envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
             if os.path.exists(envfit_path):
                 self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
@@ -137,7 +162,7 @@ class BetaDiversity(Base):
                 self.insert_table_detail(env_fac_path, 'factor', update_id=main_id)
             if (rda_cca + '_biplot.xls') in filelist:
                 env_vec_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_biplot.xls'
-                self.insert_table_detail(env_vec_path, 'vector', update_id=main_id)
+                self.insert_table_detail(env_vec_path, 'vector', update_id=main_id, fileter_biplot=remove)
             self.bind_object.logger.info('beta_diversity:RDA/CCA分析结果导入数据库完成.')
         self.insert_main_tables(self._tables, update_id=main_id)
         return main_id
@@ -227,48 +252,48 @@ class BetaDiversity(Base):
                                    upsert=False)
 
     def insert_envfit_table(self, filepath, tabletype, update_id):
-            """
-			"""
-            insert_data = []
-            with open(filepath,'rb') as r:
-                head = r.next().strip('\r\n')
-                head = re.split(' ', head)
-                new_head_old = head
-                new_head =[]
-                for f in range(0, len(new_head_old)):
-                    pattern = re.compile('"(.*)"')
-                    new_head_ = pattern.findall(new_head_old[f])
-                    new_head.append(new_head_[0])
-                    # m = re.match('/\"(.*)\"/', new_head[f])
-                    # if m:
-                    #     new_head[f] = m.group(0)
-                print(new_head)
-                new_head[-1] = "p_values"
-                new_head[-2] = "r2"
-                self.new_head = new_head
-                for line in r:
-                    line = line.rstrip("\r\n")
-                    line = re.split(' ', line)
-                    content = line[1:]
-                    pattern = re.compile('"(.*)"')
-                    env_name = pattern.findall(line[0])
-                    env_detail = dict()
-                    for i in range(0, len(content)):
-                        env_detail[new_head[i]] = content[i]
-                    env_detail['beta_diversity_id'] = update_id
-                    env_detail['type'] = tabletype
-                    env_detail['env'] = env_name[0]
-                    insert_data.append(env_detail)
-            try:
-                collection = self.db['beta_diversity_detail']
-                collection.insert_many(insert_data)
-            except Exception as e:
-                self.bind_object.logger.error("导入beta_diversity_detail表格信息出错:{}".format(e))
-            else:
-                self.bind_object.logger.info("导入beta_diversity_detail表格成功")
-            self._tables.append(tabletype)
-            # self.insert_main_tables(self._tables, update_id)
-            main_collection = self.db['beta_diversity']
-            main_collection.update_one({'_id': update_id},
-                                       {'$set': {tabletype: ','.join(self.new_head)}},
-                                       upsert=False)
+        """
+        """
+        insert_data = []
+        with open(filepath, 'rb') as r:
+            head = r.next().strip('\r\n')
+            head = re.split(' ', head)
+            new_head_old = head
+            new_head = []
+            for f in range(0, len(new_head_old)):
+                pattern = re.compile('"(.*)"')
+                new_head_ = pattern.findall(new_head_old[f])
+                new_head.append(new_head_[0])
+                # m = re.match('/\"(.*)\"/', new_head[f])
+                # if m:
+                #     new_head[f] = m.group(0)
+            print(new_head)
+            new_head[-1] = "p_values"
+            new_head[-2] = "r2"
+            self.new_head = new_head
+            for line in r:
+                line = line.rstrip("\r\n")
+                line = re.split(' ', line)
+                content = line[1:]
+                pattern = re.compile('"(.*)"')
+                env_name = pattern.findall(line[0])
+                env_detail = dict()
+                for i in range(0, len(content)):
+                    env_detail[new_head[i]] = content[i]
+                env_detail['beta_diversity_id'] = update_id
+                env_detail['type'] = tabletype
+                env_detail['env'] = env_name[0]
+                insert_data.append(env_detail)
+        try:
+            collection = self.db['beta_diversity_detail']
+            collection.insert_many(insert_data)
+        except Exception as e:
+            self.bind_object.logger.error("导入beta_diversity_detail表格信息出错:{}".format(e))
+        else:
+            self.bind_object.logger.info("导入beta_diversity_detail表格成功")
+        self._tables.append(tabletype)
+        # self.insert_main_tables(self._tables, update_id)
+        main_collection = self.db['beta_diversity']
+        main_collection.update_one({'_id': update_id},
+                                   {'$set': {tabletype: ','.join(self.new_head)}},
+                                   upsert=False)

@@ -4,6 +4,7 @@ import os
 import shutil
 import linecache
 import numpy as np
+import pandas as pd
 from collections import defaultdict
 from biocluster.agent import Agent
 from biocluster.tool import Tool
@@ -22,7 +23,8 @@ class SortSamplesAgent(Agent):
             {"name": "group_table", "type": "infile", "format": "meta.otu.group_table"},  # 输入的group表
             {"name": "method", "type": "string", "default": ""},  # 样本的合并方式, ""为不进行合并
             {"name": "out_otu_table", "type": "outfile", "format": "meta.otu.otu_table"},  # 输出的结果OTU表
-            {"name": "level_otu_table", "type": "outfile", "format": "meta.otu.otu_table"}  # 输出的结果OTU表(百分比）
+            {"name": "level_otu_table", "type": "outfile", "format": "meta.otu.otu_table"},  # 输出的结果OTU表(百分比）
+            {"name": "others", "type": "float", "default": ""}  # 组成分析中用于将丰度小于0.01/其它的物种归为others
         ]
         self.add_option(options)
         self.step.add_steps("sort_samples")
@@ -109,15 +111,15 @@ class SortSamplesTool(Tool):
             for line in r:
                 line = line.rstrip().split("\t")
                 num = defaultdict(int)
-                middle_num = defaultdict(int) #
+                # middle_num = defaultdict(int)
                 tmp = list()
-                list1 = [] # add 2 lines by zhouxuan 20161205
+                list1 = []  # add 2 lines by zhouxuan 20161205
                 mid_num = dict()
 
                 w.write(line[0] + "\t")
                 for i in range(1, len(line)):
                     num[sample_group[index_sample[i]]] += int(line[i])
-                for m in group_list: # add 12 lines by zhouxuan 20161205
+                for m in group_list:  # add 12 lines by zhouxuan 20161205
                     for i in range(1, len(line)):
                         if sample_group[index_sample[i]] == m:
                             list1.append(int(line[i]))
@@ -139,7 +141,7 @@ class SortSamplesTool(Tool):
                     for g in group_list:
                         avg = int(round(num[g] / group_sample_num[g]))
                         tmp.append(str(avg))
-                if method == "middle": # add 3 line by zhouxuan 20161205
+                if method == "middle":  # add 3 line by zhouxuan 20161205
                     for g in group_list:
                         tmp.append(str(mid_num[g]))
                 """
@@ -160,24 +162,37 @@ class SortSamplesTool(Tool):
                 w.write("\n")
         return cat_otu_path
 
-    def percent(self, origin_file, percent_file):   # add by wangzhaoyue 2017.03.06
+    def percent(self, origin_file):   # add by wangzhaoyue 2017.03.06
         tmp = np.loadtxt(origin_file, dtype=np.str, delimiter="\t")
         data = tmp[1:, 1:].astype(np.float)
         array_data = data / data.sum(0)
         array = np.c_[tmp[1:, 0], array_data]
         array_all = np.row_stack((tmp[0, :], array))
         s = np.char.encode(array_all, 'utf-8')
+        percent_file = os.path.join(self.output_dir, "taxa.percents.table.xls")
         np.savetxt(percent_file, s, fmt='%s',  delimiter='\t', newline='\n')
+        return percent_file
+
+    def get_others(self, percent_file):  # add by zhujuan 2017.10.12
+        df = pd.DataFrame(pd.read_table(percent_file, sep='\t', index_col=0))
+        new_df = df.ix[list((df > self.option("others")).any(axis=1))]
+        new_df2 = new_df.copy()
+        others = df.ix[list((df < self.option("others")).all(axis=1))]
+        new_df2.loc["others"] = others.apply(lambda x: x.sum(), axis=0)
+        other = os.path.join(self.output_dir, "taxa.percents.table.xls")
+        new_df2.to_csv(other, sep="\t", encoding="utf-8")
 
     def run(self):
         super(SortSamplesTool, self).run()
         final_otu = self.filter_samples()
         if self.option("method") in ["average", "sum", "middle"]:
             final_otu = self.cat_samples(final_otu, self.option("method"))
-        out_otu = os.path.join(self.output_dir, "taxa.table.xls") #modified by hongdongxuan 20170323 otu_otu 改为taxa.table
+        out_otu = os.path.join(self.output_dir, "taxa.table.xls")  # modified by hongdongxuan 20170323 otu_otu 改为taxa.table
         shutil.copy2(final_otu, out_otu)
-        final_level_percents = os.path.join(self.output_dir, "taxa.percents.table.xls")
-        self.percent(out_otu, final_level_percents)
+        self.percent(out_otu)
+        final_level_percents = self.percent(out_otu)
+        if self.option("others") != "":
+            self.get_others(final_level_percents)
         self.option("level_otu_table").set_path(final_level_percents)   # add 3 lines by wangzhaoyue 2017.03.06
         self.option("out_otu_table").set_path(out_otu)
         self.end()
