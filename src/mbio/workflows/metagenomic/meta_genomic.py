@@ -136,7 +136,7 @@ class MetaGenomicWorkflow(Workflow):
                     # '/mnt/ilustre/users/sanger-dev/workspace/20170928/MetaGenomic_metagenome/output/geneset/gene_profile/RPKM.xls',
                 # 'ardb': '/mnt/ilustre/users/sanger-dev/workspace/20171013/MetaGenomic_metagenome_anno_test/output/ardb/gene_ardb_anno.xls',
                 # 'card': '/mnt/ilustre/users/sanger-dev/workspace/20171013/MetaGenomic_metagenome_anno_test/output/card/gene_card_anno.xls',
-                # 'cazy': '/mnt/ilustre/users/sanger-dev/workspace/20171013/MetaGenomic_metagenome_anno_test/output/cazy/anno_result/gene_cazy_anno.xls',
+                'cazy': '/mnt/ilustre/users/sanger-dev/workspace/20171013/MetaGenomic_metagenome_anno_test/output/cazy/anno_result/gene_cazy_anno.xls',
                 # 'vfdb': '/mnt/ilustre/users/sanger-dev/workspace/20171013/MetaGenomic_metagenome_anno_test/output/vfdb/gene_vfdb_total_anno.xls',
             }
             # self.qc_fastq = self.qc.option('in_fastq')  # 暂未加入质控步骤，输入质控序列
@@ -446,14 +446,20 @@ class MetaGenomicWorkflow(Workflow):
             # self.run_composition()
 
     def run_analysis2(self):
-        self.profile_table1['geneset'] = self.anno_table['geneset']
-        self.profile_table2['geneset'] = self.anno_table['geneset']
+        self.profile_table1['gene'] = self.anno_table['geneset']
+        self.profile_table2['gene'] = self.anno_table['geneset']
         for db in self.profile_table1.keys():
             self.func_composition(self.profile_table1[db], self.option('group'))
             self.composition_dir2anno[self.composition.output_dir] = db
         for db in self.profile_table2.keys():
             self.func_compare(self.profile_table2[db], self.option('group'))
             self.compare_dir2anno[self.compare.output_dir] = db
+            if self.option('envtable').is_set:
+                if db == 'gene':
+                    self.func_correlation('/mnt/ilustre/users/sanger-dev/sg-users/guhaidong/WF/RPKM.xls', self.option('envtable'))
+                else:
+                    self.func_correlation(self.profile_table2[db], self.option('envtable'))
+                self.correlation_dir2anno[self.correlation.output_dir] = db
         self.on_rely(self.analysis, self.end)
         for module in self.analysis:
             module.run()
@@ -515,10 +521,20 @@ class MetaGenomicWorkflow(Workflow):
             opts['analysis'] = 'distance,pca,pcoa,nmds,rda_cca,dbrda,hcluster'
         else:
             opts['analysis'] = 'distance,pca,pcoa,nmds,hcluster'
-        # event = db + '_compare'  # 是否需要将所有的分析按数据库拆开
         self.compare = self.add_module('meta.beta_diversity.beta_diversity')
         self.set_run(opts, self.compare, 'compare', self.step.compare, False)
         self.analysis.append(self.compare)
+
+    def func_correlation(self, abund, envtable):
+        opts = {
+            'method': 'spearmanr',
+            'otutable': abund,
+            'envtable': envtable,
+            "top_species": 50,
+        }
+        self.correlation = self.add_tool('statistical.pearsons_correlation')
+        self.set_run(opts, self.correlation, 'correlation', self.step.correlation, False)
+        self.analysis.append(self.correlation)
 
     '''处理输出文件'''
 
@@ -580,9 +596,7 @@ class MetaGenomicWorkflow(Workflow):
                     self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', dir, anno))
         if event['data'] == 'correlation':  # ouput里面是一个路径？还是一组文件？
             anno = self.correlation_dir2anno[obj.output_dir]
-            allfiles = os.listdir(obj.output_dir)
-            for dir in allfiles:
-                self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', dir, anno))
+            self.move_dir(obj.output_dir, os.path.join('correlation', 'cor_heatmap', anno))
 
     def set_output_all(self):
         """
@@ -719,11 +733,11 @@ class MetaGenomicWorkflow(Workflow):
                 self.on_rely(self.all_anno, self.run_analysis, 'all')
                 # self.on_rely(self.analysis, self.end)
         if self.option('test'):
-            # self.run_analysis('all')
+            self.run_analysis('all')
             # self.run_ardb()
             # self.run_card()
             # self.run_vfdb()
-            self.run_cazy()
+            # self.run_cazy()
             # self.run_analysis('all')
             super(MetaGenomicWorkflow, self).run()
             return True
