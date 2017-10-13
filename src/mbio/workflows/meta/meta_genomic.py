@@ -81,7 +81,7 @@ class MetaGenomicWorkflow(Workflow):
         self.cog = self.add_module('align.meta_diamond')
         self.kegg = self.add_module('align.meta_diamond')
         self.anno = self.add_module('annotation.mg_common_anno_stat')
-        self.cazy = self.add_module('annotation.cazy_align_anno')
+        self.cazy = self.add_module('annotation.cazy_annotation')
         self.ardb = self.add_module('annotation.ardb_annotation')
         self.card = self.add_module('annotation.card_annotation')
         self.vfdb = self.add_module('annotation.vfdb_annotation')
@@ -114,19 +114,18 @@ class MetaGenomicWorkflow(Workflow):
             'cog': 'Function',
             'kegg': 'level1',
             'cazy': 'Class',
-            'vfdb': 'Level1',  # 预测 vfs对应VfdbGene？
-            'ardb': 'Type',  # anno表：Antibiotic type、ARG改名
-            'card': 'Class',  # ARO对应什么？
+            'vfdb': 'Level1',
+            'ardb': 'Type',
+            'card': 'Class',
         }
-        # 每个数据库默认做的分析水平, 表格中对应head名称待确认
         self.default_level2 = {
             'nr': 'Genus',
             'cog': 'NOG',
             'kegg': 'level3',
             'cazy': 'Family',
             'vfdb': 'VFs',
-            'ardb': 'ARG',  # 'ARG',
-            'card': 'ARO_accession',
+            'ardb': 'ARG',
+            'card': 'ARO',
         }
         self.composition_dir2anno = {}  # 输出结果和导表时根据此值判断数据库类型
         self.compare_dir2anno = {}
@@ -281,9 +280,11 @@ class MetaGenomicWorkflow(Workflow):
             'min_gene': str(self.option('min_gene')),
         }
         if self.option('assemble_type') == 'soapdenovo':
-            opts['input_fasta'] = self.assem_soapdenovo.option('contig')
+            opts['input_fasta'] = self.assem_soapdenovo.option('contig').prop['path']
         else:
-            opts['input_fasta'] = self.assem_idba.option('contig')
+            opts['input_fasta'] = self.assem_idba.option('contig').prop['path']
+        self.logger.info("metagene input_fasta")
+        self.logger.info(opts['input_fasta'])
         self.set_run(opts, self.gene_predict, 'gene_predict', self.step.gene_predict)
 
     def run_gene_set(self):
@@ -373,6 +374,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_analysis(self, event):
         for db in self.choose_anno:
+            if type(event) is not str:
+                event = event['data']
             self.profile_table1[db] = self.run_new_table(self.anno_table[db], self.anno_table['geneset'],
                                                          self.default_level1[db])
             if self.default_level2[db] == self.default_level1[db] and event == 'all':
@@ -473,10 +476,10 @@ class MetaGenomicWorkflow(Workflow):
                 self.anno_table['kegg'] = os.path.join(self.kegg_dir, 'gene_kegg_anno.xls')
                 self.move_dir(self.kegg_dir, 'kegg')
         if event['data'] == 'cazy':
-            self.anno_table['cazy'] = os.path.join(obj.output_dir, 'gene_cazy_anno.xls')
+            self.anno_table['cazy'] = os.path.join(obj.output_dir, 'anno_result', 'gene_cazy_anno.xls')
             self.move_dir(obj.output_dir, 'cazy')
         if event['data'] == 'vfdb':
-            self.anno_table['vfdb'] = os.path.join(obj.output_dir, 'gene_vfdb_anno.xls')
+            self.anno_table['vfdb'] = os.path.join(obj.output_dir, 'gene_vfdb_total_anno.xls')
             self.move_dir(obj.output_dir, 'vfdb')
         if event['data'] == 'ardb':
             self.anno_table['ardb'] = os.path.join(obj.output_dir, 'gene_ardb_anno.xls')

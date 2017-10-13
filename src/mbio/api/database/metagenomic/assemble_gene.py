@@ -98,7 +98,7 @@ class AssembleGene(Base):
                     line = line.strip().split('\t')
                     step_data[line[0]] = int(line[1])
             data = [
-                ('assem_detail_id', sequence_id),
+                ('assem_id', sequence_id),
                 ('specimen_name', spe),
                 ('step', int(step)),
                 ('step_data', step_data),
@@ -116,7 +116,7 @@ class AssembleGene(Base):
             self.bind_object.logger.info('导入%s信息成功！' % length_path)
 
     @report_check
-    def add_predict_gene(self):
+    def add_predict_gene(self, assem_method):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         created_ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -128,6 +128,7 @@ class AssembleGene(Base):
             'name': 'null',
             'params': 'null',
             'status': 'end',
+            'assem_method': assem_method,
         }
         collection = self.db['predict_gene']
         sequence_id = collection.insert_one(insert_data).inserted_id

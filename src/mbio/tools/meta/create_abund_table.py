@@ -23,7 +23,7 @@ class CreateAbundTableAgent(Agent):
             {"name": "level_type_name", "type": "string", "default": ""},
             # 注释表字段的具体levelname，eg：Level1下Metabolism(对应的KO)
             {"name": "lowest_level", "type": "string", "default": ""},  # 注释表数据库对应的最低分类，eg：KEGG的KO
-            {"name": "out_table", "type": "outfile", "format": "meta.profile"},
+            {"name": "out_table", "type": "outfile", "format": "meta.otu.otu_table"},
         ]
         self.add_option(options)
 
@@ -52,6 +52,7 @@ class CreateAbundTableTool(Tool):
 
     def create_abund_table(self):
         anno_table_path = self.option("anno_table").prop["path"]
+        self.logger.info('use anno file: ' + anno_table_path)
         geneset_table_path = self.option("geneset_table").prop["path"]
         anno_table = pd.read_table(anno_table_path, sep='\t', header=0)
         a = pd.DataFrame(anno_table)
@@ -78,16 +79,16 @@ class CreateAbundTableTool(Tool):
         new_otu_file_path = os.path.join(self.output_dir, "new_abund_table.xls")
         abund_table.to_csv(new_otu_file_path, sep="\t")
 
-    def set_ouput(self):
+    def set_output(self):
         self.logger.info('开始设置输出结果文件')
         try:
             self.option('out_table', os.path.join(self.output_dir, "new_abund_table.xls"))
-            self.logger.info("输出结果文件正常")
+            self.logger.info(self.option('out_table').prop['path'])
         except Exception as e:
             raise Exception("输出结果文件异常——{}".format(e))
 
     def run(self):
         super(CreateAbundTableTool, self).run()
         self.create_abund_table()
-        self.set_ouput()
+        self.set_output()
         self.end()

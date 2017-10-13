@@ -92,7 +92,7 @@ class MetageneStatTool(Tool):
         :return:
         """
         cmd = self.python_path + ' %s -gene_dir %s -output_stat %s -output_fa %s' % (self.gene_stat_path,
-         self.option('contig_dir').prop['path'], self.work_dir + '/sample.metagene.stat', self.work_dir + '/metagene.fa' )
+         self.option('contig_dir').prop['path'], self.work_dir + '/sample.metagene.stat', self.work_dir + '/Total.metagene.fa' )
         command = self.add_command("metagenestat", cmd)
         command.run()
         self.wait(command)
@@ -110,10 +110,10 @@ class MetageneStatTool(Tool):
         self.logger.info("设置结果目录")
         if os.path.exists(self.output_dir + '/sample.metagene.stat'):
             os.remove(self.output_dir + '/sample.metagene.stat')
-        if os.path.exists(self.output_dir + '/metagene.fa'):
-            os.remove(self.output_dir + '/metagene.fa')
+        if os.path.exists(self.output_dir + '/Total.metagene.fa'):
+            os.remove(self.output_dir + '/Total.metagene.fa')
         os.link(self.work_dir + '/sample.metagene.stat', self.output_dir + '/sample.metagene.stat')
-        os.link(self.work_dir + '/metagene.fa', self.output_dir + '/metagene.fa')
+        os.link(self.work_dir + '/Total.metagene.fa', self.output_dir + '/Total.metagene.fa')
         self.option('sample_stat').set_path(self.output_dir + '/sample.metagene.stat')
-        self.option('fasta').set_path(self.output_dir + '/metagene.fa')
+        self.option('fasta').set_path(self.output_dir + '/Total.metagene.fa')
         self.logger.info("设置Metagene分析结果目录成功")

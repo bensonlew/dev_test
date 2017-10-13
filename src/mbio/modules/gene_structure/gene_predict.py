@@ -24,6 +24,7 @@ class GenePredictModule(Module):
         self.add_option(option)
         self._is_mix = False  # 判断是否为混拼结果
         self.metagene_tools = []  # run_metagene并行运行tools列表
+        self.metagene_tool = self.add_tool('gene_structure.metagene')
         self.metagene_stat = self.add_tool('gene_structure.metagene_stat')
         self.len_distribute = self.add_tool('sequence.length_distribute')
         self.step.add_steps("metagene", "metagene_stat", "len_distribute")
@@ -59,14 +60,19 @@ class GenePredictModule(Module):
         opts = {
             'min_gene': self.option('min_gene')
         }
+        self.logger.info('in metagene process <<<<<<')
+        self.logger.info(self.option('input_fasta').fastas_full)
         for f in self.option("input_fasta").fastas_full:
+            self.logger.info('all fasta output : in Loop......')
+            # self.logger.info(self.option("input_fasta").fastas_full)
             opts['cut_more_scaftig'] = f
             opts['sample_name'] = os.path.basename(f).split('.contig')[0]
-            if opts['sample_name'] == "Newbler_Mix":
+            if opts['sample_name'] == "newbler":
                 self._is_mix = True
-            metagene_tool = self.add_tool('gene_structure.metagene')
-            metagene_tool.set_options(opts)
-            self.metagene_tools.append(metagene_tool)
+            self.metagene_tool = self.add_tool('gene_structure.metagene')
+            self.metagene_tool.set_options(opts)
+            self.metagene_tools.append(self.metagene_tool)
+        self.logger.info('out metagene loop>>>>>>')
         self.step.metagene.start()
         self.step.update()
         if len(self.metagene_tools) == 1:
@@ -177,8 +183,8 @@ class GenePredictModule(Module):
             elif i == 2:
                 if self._is_mix:
                     for f in os.listdir(tool.output_dir):
-                        if f.startswith('Newbler_Mix'):
-                            if os.path.exists(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f):
+                        if f.startswith('Total'):
+                            if os.path.exists(self.output_dir + '/len_distribute' + f):
                                 os.remove(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f)
                             os.link(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f)
                 else:
