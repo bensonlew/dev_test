@@ -34,6 +34,8 @@ for(i in 1:nrow(otu_data)){
     tt <- t.test(o1,o2,var.equal = TRUE,alternative = "${test_type}",conf.level = ${ci})
   }else if(test == "welch"){
     tt <- t.test(o1,o2,var.equal = FALSE,alternative = "${test_type}",conf.level = ${ci})
+  }else if(test == "signal"){
+    tt <- wilcox.test(o1,o2,alternative = "${test_type}",exact = F,conf.level = ${ci},paired = T)
   }else{
     tt <- wilcox.test(o1,o2,alternative = "${test_type}",exact = F,conf.level = ${ci})
   }
