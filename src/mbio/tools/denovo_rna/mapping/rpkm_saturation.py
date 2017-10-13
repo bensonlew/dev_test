@@ -54,7 +54,7 @@ class RpkmSaturationAgent(Agent):
         所需资源
         """
         self._cpu = 2
-        self._memory = '30G'
+        self._memory = '50G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
