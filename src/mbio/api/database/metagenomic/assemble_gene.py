@@ -218,3 +218,32 @@ class AssembleGene(Base):
         else:
             self.bind_object.logger.info('导入%s信息成功！' % length_path)
         '''
+    @report_check
+    def add_predict_gene_total(self, stat_path):
+        task_id = self.bind_object.sheet.id
+        project_sn = self.bind_object.sheet.project_sn
+        created_ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if not os.path.exists(stat_path):
+            raise Exception('stat_path所指定的路径不存在，请检查！')
+        data_list = list()
+        with open(stat_path, 'rb') as f:
+            lines = f.readlines()
+            for line in lines[1:]:
+                line = line.strip().split('\t')
+                data = [
+                    ('orfs', int(line[1])),
+                    ('total_length', int(line[2])),
+                    ('average_length', round(float(line[3]),2)),
+                ]
+                data = SON(data)
+                data['project_sn'] = project_sn
+                data['task_id'] = task_id
+                data['desc'] = '基因预测Total统计'
+                data['created_ts'] = created_ts
+                data['name'] = 'null'
+                data['params'] = 'null'
+                data['status'] = 'end'
+                if line[0] in ['Total', 'total']:
+                    break
+        collection = self.db['predict_gene_total']
+        collection.insert_one(data)
