@@ -126,19 +126,19 @@ class MetaGenomicWorkflow(Workflow):
             'cazy': 'Family',
             'vfdb': 'VFs',
             'ardb': 'ARG',  # 'ARG',
-            'card': 'ARO_accession',
+            'card': 'ARO',
         }
         self.composition_dir2anno = {}  # 输出结果和导表时根据此值判断数据库类型
         self.compare_dir2anno = {}
         self.correlation_dir2anno = {}
         if self.option('test'):
             self.anno_table = {
-                'geneset': '/mnt/ilustre/users/sanger-dev/workspace/20170928/MetaGenomic_metagenome/output/geneset/gene_profile/RPKM.xls',
-                'ardb': '/mnt/ilustre/users/sanger-dev/workspace/20171011/MetaGenomic_metagenome_anno_test/output/ardb/gene_ardb_anno.xls',
-                'card': '/mnt/ilustre/users/sanger-dev/workspace/20171011/MetaGenomic_metagenome_anno_test/output/card/gene_card_anno.xls',
-                'cazy': '/mnt/ilustre/users/sanger-dev/workspace/20171011/MetaGenomic_metagenome_anno_test/output/cazy/anno_result/gene_cazy_anno.xls',
-                'vfdb': '/mnt/ilustre/users/sanger-dev/workspace/20171011/MetaGenomic_metagenome_anno_test/output/vfdb/gene_vfdb_total_anno.xls',
-                # 'vfdb': '/mnt/ilustre/users/sanger-dev/workspace/20170928/MetaGenomic_metagenome/output/vfdb/gene_vfdb_predict_anno.xls',
+                'geneset': '/mnt/ilustre/users/sanger-dev/workspace/20170921/MetaGenomic_metagenome/output/geneset/gene_profile/RPKM.xls',
+                    # '/mnt/ilustre/users/sanger-dev/workspace/20170928/MetaGenomic_metagenome/output/geneset/gene_profile/RPKM.xls',
+                # 'ardb': '/mnt/ilustre/users/sanger-dev/workspace/20171012/MetaGenomic_metagenome_anno_test/output/ardb/gene_ardb_anno.xls',
+                # 'card': '/mnt/ilustre/users/sanger-dev/workspace/20171012/MetaGenomic_metagenome_anno_test/output/card/gene_card_anno.xls',
+                # 'cazy': '/mnt/ilustre/users/sanger-dev/workspace/20171012/MetaGenomic_metagenome_anno_test/output/cazy/anno_result/gene_cazy_anno.xls',
+                # 'vfdb': '/mnt/ilustre/users/sanger-dev/workspace/20171012/MetaGenomic_metagenome_anno_test/output/vfdb/gene_vfdb_total_anno.xls',
             }
             # self.qc_fastq = self.qc.option('in_fastq')  # 暂未加入质控步骤，输入质控序列
 
@@ -698,10 +698,10 @@ class MetaGenomicWorkflow(Workflow):
                 self.on_rely(self.all_anno, self.run_analysis, 'all')
                 # self.on_rely(self.analysis, self.end)
         if self.option('test'):
-            self.run_analysis('all')
+            # self.run_analysis('all')
             # self.run_ardb()
             # self.run_card()
-            # self.run_vfdb()
+            self.run_vfdb()
             # self.run_cazy()
             # self.run_analysis('all')
             super(MetaGenomicWorkflow, self).run()

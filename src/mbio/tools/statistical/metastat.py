@@ -488,7 +488,8 @@ class MetastatTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("mann_cmd运行完成，开始运行计算置信区间")
-            student(self.work_dir + '/mann_result.xls', './mann_group', self.option('mann_coverage'))
+            # student(self.work_dir + '/mann_result.xls', './mann_group', self.option('mann_coverage'))
+            bootstrap(self.option('mann_input').prop['path'], './mann_group', self.option('mann_coverage'))
             self.logger.info("生成单物种柱状图的数据")
             group_bar(self.option('mann_input').prop['path'], './mann_group', self.work_dir + '/mann_plot_group_bar.xls', 'mann')
             cmd1 = self.r_path + " run_mann_bar.r"
@@ -608,7 +609,7 @@ class MetastatTool(Tool):
                 try:
                     os.link(self.work_dir + '/mann_result.xls', self.output_dir + '/mann_result.xls')
                     os.link(self.work_dir + '/mann_boxfile.xls', self.output_dir + '/mann_boxfile.xls')
-                    os.link(self.work_dir + '/student_CI.xls', self.output_dir + '/mann_CI.xls')
+                    os.link(self.work_dir + '/bootstrap_CI.xls', self.output_dir + '/mann_CI.xls')
                     self.logger.info("设置mann分析的结果目录成功")
                 except:
                     self.logger.info("设置mann分析结果目录失败")

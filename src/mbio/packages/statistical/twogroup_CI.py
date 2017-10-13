@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'qiuping'
 import math
+import scipy
 from scipy.stats.distributions import t
+from numpy import mean
 
 
-def group_detail(groupfile):
+def group_detail(groupfile, get_member = False):
     with open(groupfile, 'r') as g:
         ginfo = g.readlines()
         group_dict = {}
         group_num = {}
+        group_member = {}
         for line in ginfo[1:]:
             line = line.split()
             group_dict[line[0]] = line[1]
         gnames = group_dict.values()
         for gname in gnames:
             group_num[gname] = gnames.count(gname)
+            group_member[gname] = []
+            for member in group_dict.keys():
+                if group_dict[member] == gname:
+                    group_member[gname].append(member)
+        if get_member:
+            return group_num, group_member
         return group_num
 
 
@@ -102,3 +111,47 @@ def welch(statfile, groupfile, coverage):
             lowerCI = dp - tCritical*sqrtUnpooledVar
             upperCI = dp + tCritical*sqrtUnpooledVar
             w.write('%s\t%s\t%s\t%s\n' % (taxon_list[i], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
+
+def bootstrap(profile, groupfile, coverage):
+    # (mean_dict, sd_dict, taxon_list) = stat_info(statfile, groupfile)
+    group_num_dict, group_member_dict = group_detail(groupfile, get_member = True)
+    group_names = group_num_dict.keys()
+    profile_dict = {}
+    w = open('bootstrap_CI.xls', 'w')
+    w.write('\teffectsize\tlowerCI\tupperCI\n')
+    with open(profile, 'r') as s:
+        shead = s.readline().strip('\n').split('\t')
+        group_index = {}
+        for gname in group_names:
+            profile_dict[gname] = []
+            group_index[gname] = []
+            for name in group_member_dict[gname]:
+                for i in xrange(0, len(shead)):
+                    if name == shead[i]:
+                        group_index[gname].append(i)
+        while True:
+            sline = s.readline()
+            sline_list = sline.strip('\n').split('\t')
+            if not sline:
+                break
+            for gname in group_names:
+                for index_num in group_index[gname]:
+                    profile_dict[gname].append(float(sline_list[index_num]))
+                # w.write('%s\t' % profile_dict[gname][0])
+                # w.write('%s\n' % mean(profile_dict[gname]))
+            distribution = []
+            for _ in xrange(0, 999):
+                samplesGroup = {}
+                for gname in group_names:
+                    sampleSize = group_num_dict[gname]
+                    choices = scipy.random.random_integers(0, sampleSize - 1, sampleSize)
+                    g_scipy = scipy.array(profile_dict[gname], copy = 0)
+                    samplesGroup[gname] = g_scipy[choices]
+                diffOfMeanProp = mean(samplesGroup[group_names[0]]) - mean(samplesGroup[group_names[1]])
+                dp = mean(profile_dict[group_names[0]]) - mean(profile_dict[group_names[1]])
+                distribution.append(diffOfMeanProp)
+            distribution.sort()
+            lowerCI = distribution[max(0, int(math.floor(0.5*(1.0-coverage)*len(distribution))))]
+            upperCI = distribution[min(len(distribution)-1, int(math.ceil((coverage + 0.5*(1.0-coverage))*len(distribution))))]
+            w.write('%s\t%s\t%s\t%s\n' % (sline_list[0], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
+    w.close()
