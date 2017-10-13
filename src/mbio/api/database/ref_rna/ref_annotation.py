@@ -1259,14 +1259,14 @@ class RefAnnotation(Base):
             data.append(('seq_list', ";".join(seq_list)))
             data = SON(data)
             data_list2.append(data)
-            if data_list2:
-                try:
-                    collection = self.db['sg_annotation_go_detail']
-                    collection.insert_many(data_list2)
-                except Exception, e:
-                    raise Exception("导入go注释all出错：%s、%s" % (r_go_path, n_go_path))
-                else:
-                    self.bind_object.logger.info("导入go注释all信息成功：%s, %s" % (r_go_path, n_go_path))
+        if data_list2:
+            try:
+                collection = self.db['sg_annotation_go_detail']
+                collection.insert_many(data_list2)
+            except Exception, e:
+                raise Exception("导入go注释all出错：%s、%s" % (r_go_path, n_go_path))
+            else:
+                self.bind_object.logger.info("导入go注释all信息成功：%s, %s" % (r_go_path, n_go_path))
 
     @report_check
     def add_annotation_kegg(self, name=None, params=None):
