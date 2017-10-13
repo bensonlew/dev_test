@@ -41,6 +41,11 @@ class MetastatAgent(Agent):
             {"name": "mann_group", "type": "infile", "format": "meta.otu.group_table"},  # 秩和检验的输入分组文件
             {"name": "mann_correction", "type": "string", "default": "none"},  # 秩和检验的多重检验校正
             {"name": "mann_type", "type": "string", "default": "two.side"},  # 秩和检验的选择单尾或双尾检验
+            {"name": "signal_input", "type": "infile", "format": "meta.otu.otu_table"},  # 符号秩和检验的输入文件
+            {"name": "signal_ci", "type": "float", "default": 0.05},  # 符号秩和检验的显著性水平
+            {"name": "signal_group", "type": "infile", "format": "meta.otu.group_table"},  # 符号秩和检验的输入分组文件
+            {"name": "signal_correction", "type": "string", "default": "none"},  # 符号秩和检验的多重检验校正
+            {"name": "signal_type", "type": "string", "default": "two.side"},  # 符号秩和检验的选择单尾或双尾检验
             {"name": "student_input", "type": "infile", "format": "meta.otu.otu_table"},  # T检验的输入文件
             {"name": "student_ci", "type": "float", "default": 0.05},  # T检验的显著性水平
             {"name": "student_group", "type": "infile", "format": "meta.otu.group_table"},  # T检验的输入分组文件
@@ -58,6 +63,7 @@ class MetastatAgent(Agent):
             {"name": "student_gname", "type": "string"},  # student检验分组方案选择
             {"name": "welch_gname", "type": "string"},  # welch检验分组方案选择
             {"name": "mann_gname", "type": "string"},  # wilcox秩和检验分组方案选择
+            {"name": "signal_gname", "type": "string"},  # 符号秩和检验分组方案选择
             {"name": "kru_H_gname", "type": "string"},  # kru检验分组方案选择
             {"name": "anova_gname", "type": "string"},  # 单因素方差分析分组方案选择
             {"name": "kru_H_coverage", "type": "float", "default": 0.95},  # 计算置信区间所选择的置信度
@@ -65,6 +71,7 @@ class MetastatAgent(Agent):
             {"name": "student_coverage", "type": "float", "default": 0.95},
             {"name": "welch_coverage", "type": "float", "default": 0.95},
             {"name": "mann_coverage", "type": "float", "default": 0.95},
+            {"name": "signal_coverage", "type": "float", "default": 0.95},
             {"name": "chi_coverage", "type": "float", "default": 0.95},
             {"name": "fisher_coverage", "type": "float", "default": 0.95},
             {"name": "kru_H_methor", "type": "string", "default": 'tukeykramer'},  # post-hoc检验的方法
@@ -121,7 +128,7 @@ class MetastatAgent(Agent):
             self.logger.info(self.option('test'))
             raise OptionError("必须设置输入的检验名称")
         for i in self.option('test').split(','):
-            if i not in ["chi", "fisher", "kru_H", "mann", "anova", "student", "welch", "estimator"]:
+            if i not in ["chi", "fisher", "kru_H", "mann", "signal", "anova", "student", "welch", "estimator"]:
                 raise OptionError("所输入的检验名称不对")
             elif i == "chi":
                 if not self.option("chi_input").is_set:
@@ -235,6 +242,32 @@ class MetastatAgent(Agent):
                 group_sample, header, is_empty = self.option('mann_group').get_file_info()
                 self.check_sample(group_sample, otu_sample)
                 self.check_group(self.option('mann_group').prop['path'])
+            elif i == "signal":
+                if not self.option("signal_input").is_set:
+                    raise OptionError('必须设置wilcox秩和检验输入的otutable文件')
+                if not self.option("signal_group").is_set:
+                    raise OptionError('必须设置wilcox秩和检验输入的分组文件')
+                if self.option("signal_correction") not in ["holm", "hochberg", "hommel", "bonferroni", "BH", "BY", "fdr",
+                                                          "none"]:
+                    raise OptionError('该多重检验校正的方法不被支持')
+                if self.option("signal_ci") <= 0 or self.option("signal_ci") >= 1:
+                    raise OptionError('所输入的显著水平不在范围值内')
+                if self.option("signal_type") not in ["two.side", "greater", "less"]:
+                    raise OptionError('所输入的类型不在范围值内')
+                if not self.option("signal_gname"):
+                    raise OptionError("wilcox秩和检验分组方案选择参数为必须参数，请设置")
+                if len(self.option("signal_gname").split(',')) != 1:
+                    raise OptionError("组间差异的分组方案只能为1个")
+                gnum = self.option('signal_group').group_num(self.option('signal_gname'))
+                if gnum != 2:
+                    raise OptionError("wilcox秩和检验的分组方案的分组类别必须等于2")
+                if self.option("signal_coverage") not in [0.90, 0.95, 0.98, 0.99, 0.999]:
+                    raise OptionError('wilcox秩和检验的置信区间的置信度不在范围值内')
+                otu_sample = self.option('signal_input').get_sample_info()
+                self.logger.info(otu_sample)
+                group_sample, header, is_empty = self.option('signal_group').get_file_info()
+                self.check_sample(group_sample, otu_sample)
+                self.check_group(self.option('signal_group').prop['path'])
             elif i == "student":
                 if not self.option("student_input").is_set:
                     raise OptionError('必须设置student_T检验输入的otutable文件')
@@ -355,6 +388,8 @@ class MetastatTool(Tool):
                 self.run_welch()
             elif test == "mann":
                 self.run_mann()
+            elif test == "signal":
+                self.run_signal()
             elif test == "kru_H":
                 self.run_kru()
             elif test == "anova":
@@ -488,7 +523,8 @@ class MetastatTool(Tool):
         self.wait(command)
         if command.return_code == 0:
             self.logger.info("mann_cmd运行完成，开始运行计算置信区间")
-            student(self.work_dir + '/mann_result.xls', './mann_group', self.option('mann_coverage'))
+            # student(self.work_dir + '/mann_result.xls', './mann_group', self.option('mann_coverage'))
+            bootstrap(self.option('mann_input').prop['path'], './mann_group', self.option('mann_coverage'))
             self.logger.info("生成单物种柱状图的数据")
             group_bar(self.option('mann_input').prop['path'], './mann_group', self.work_dir + '/mann_plot_group_bar.xls', 'mann')
             cmd1 = self.r_path + " run_mann_bar.r"
@@ -498,9 +534,34 @@ class MetastatTool(Tool):
                 self.logger.info("mann_test运行完成")
             else:
                 self.set_error("bar_cmd运行出错!")
-
         else:
             self.set_error("mann_cmd运行出错!")
+
+    def run_signal(self):
+        glist = [self.option('signal_gname')]
+        self.option('signal_group').sub_group('./signal_group', glist)
+        two_group_test(self.option('signal_input').prop['path'], './signal_group',
+                       self.work_dir + '/signal_result.xls', self.work_dir + '/signal_boxfile.xls', "signal",
+                       str(1 - self.option('signal_ci')), self.option('signal_type'),
+                       self.option('signal_correction'))
+        cmd = self.r_path + " run_signal_test.r"
+        self.logger.info("开始运行signal检验")
+        command = self.add_command("signal_cmd", cmd).run()
+        self.wait(command)
+        if command.return_code == 0:
+            self.logger.info("signal_cmd运行完成，开始运行计算置信区间")
+            bootstrap(self.option('signal_input').prop['path'], './signal_group', self.option('signal_coverage'))
+            self.logger.info("生成单物种柱状图的数据")
+            group_bar(self.option('signal_input').prop['path'], './signal_group', self.work_dir + '/signal_plot_group_bar.xls', 'signal')
+            cmd1 = self.r_path + " run_signal_bar.r"
+            bar_cmd = self.add_command("bar_cmd", cmd1).run()
+            self.wait(bar_cmd)
+            if bar_cmd.return_code == 0:
+                self.logger.info("signal_test运行完成")
+            else:
+                self.set_error("bar_cmd运行出错!")
+        else:
+            self.set_error("signal_cmd运行出错!")
 
     def run_kru(self):
         glist = [self.option('kru_H_gname')]
@@ -608,10 +669,18 @@ class MetastatTool(Tool):
                 try:
                     os.link(self.work_dir + '/mann_result.xls', self.output_dir + '/mann_result.xls')
                     os.link(self.work_dir + '/mann_boxfile.xls', self.output_dir + '/mann_boxfile.xls')
-                    os.link(self.work_dir + '/student_CI.xls', self.output_dir + '/mann_CI.xls')
+                    os.link(self.work_dir + '/bootstrap_CI.xls', self.output_dir + '/mann_CI.xls')
                     self.logger.info("设置mann分析的结果目录成功")
                 except:
                     self.logger.info("设置mann分析结果目录失败")
+            elif t == 'signal':
+                try:
+                    os.link(self.work_dir + '/signal_result.xls', self.output_dir + '/signal_result.xls')
+                    os.link(self.work_dir + '/signal_boxfile.xls', self.output_dir + '/signal_boxfile.xls')
+                    os.link(self.work_dir + '/bootstrap_CI.xls', self.output_dir + '/signal_CI.xls')
+                    self.logger.info("设置signal分析的结果目录成功")
+                except:
+                    self.logger.info("设置signal分析结果目录失败")
             elif t == 'anova':
                 try:
                     # os.system('sed -i "1s/\(^.\)/\t\1/" %s' % (self.work_dir + '/anova_result.xls'))
