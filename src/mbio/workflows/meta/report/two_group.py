@@ -58,6 +58,17 @@ class TwoGroupWorkflow(Workflow):
                 "mann_gname": self.option("group_name"),
                 "mann_coverage": self.option("coverage")
             }
+        elif self.option("test") == "signal":
+            options = {
+                "signal_input": self.option("otu_file"),
+                "signal_ci": self.option("ci"),
+                "signal_group": self.option("group_file"),
+                "signal_correction": self.option("correction"),
+                "signal_type": self.option("type"),
+                "test": self.option("test"),
+                "signal_gname": self.option("group_name"),
+                "signal_coverage": self.option("coverage")
+            }
         else:
             options = {
                 "welch_input": self.option("otu_file"),

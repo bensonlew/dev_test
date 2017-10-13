@@ -114,18 +114,17 @@ class MetaGenomicWorkflow(Workflow):
             'cog': 'Function',
             'kegg': 'level1',
             'cazy': 'Class',
-            'vfdb': 'Level1',  # 预测 vfs对应VfdbGene？
-            'ardb': 'Type',  # anno表：Antibiotic type、ARG改名
-            'card': 'Class',  # ARO对应什么？
+            'vfdb': 'Level1',
+            'ardb': 'Type',
+            'card': 'Class',
         }
-        # 每个数据库默认做的分析水平, 表格中对应head名称待确认
         self.default_level2 = {
             'nr': 'Genus',
             'cog': 'NOG',
             'kegg': 'level3',
             'cazy': 'Family',
             'vfdb': 'VFs',
-            'ardb': 'ARG',  # 'ARG',
+            'ardb': 'ARG',
             'card': 'ARO',
         }
         self.composition_dir2anno = {}  # 输出结果和导表时根据此值判断数据库类型
@@ -275,18 +274,17 @@ class MetaGenomicWorkflow(Workflow):
             if self.option('assemble_type') == 'multiple':
                 opts['method'] = 'multiple'
             self.set_run(opts, self.assem_idba, 'assem', self.step.assem)
-            self.logger.info('--------------------------------')
-            self.logger.info(self.assem_idba.option('contig').fastas_full)
 
     def run_gene_predict(self):
         opts = {
             'min_gene': str(self.option('min_gene')),
         }
         if self.option('assemble_type') == 'soapdenovo':
-            opts['input_fasta'] = self.assem_soapdenovo.option('contig')
+            opts['input_fasta'] = self.assem_soapdenovo.option('contig').prop['path']
         else:
-            opts['input_fasta'] = self.assem_idba.option('contig')
-        self.logger.info(opts['input_fasta'].prop['path'])
+            opts['input_fasta'] = self.assem_idba.option('contig').prop['path']
+        self.logger.info("metagene input_fasta")
+        self.logger.info(opts['input_fasta'])
         self.set_run(opts, self.gene_predict, 'gene_predict', self.step.gene_predict)
 
     def run_gene_set(self):
@@ -376,6 +374,8 @@ class MetaGenomicWorkflow(Workflow):
 
     def run_analysis(self, event):
         for db in self.choose_anno:
+            if type(event) is not str:
+                event = event['data']
             self.profile_table1[db] = self.run_new_table(self.anno_table[db], self.anno_table['geneset'],
                                                          self.default_level1[db])
             if self.default_level2[db] == self.default_level1[db] and event == 'all':
