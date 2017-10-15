@@ -90,8 +90,8 @@ class MergeAnnotTool(Tool):
         self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot.py"
         self.goSplit = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goSplit.py"
         self.map_path = self.config.SOFTWARE_DIR + "bioinfo/annotation/scripts/map4.r"
-        self.r_path = "/program/R-3.3.3/bin/Rscript"
-        self.image_magick = "/program/ImageMagick/bin/convert"
+        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
+        self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run_merge(self):
         for db in self.database:
