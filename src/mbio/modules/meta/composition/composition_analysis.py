@@ -21,6 +21,7 @@ class CompositionAnalysisModule(Module):
             {"name": "method", "type": "string", "default": ""},  # 物种层次聚类方式，默认不聚类
             {"name": "sample_method", "type": "string", "default": ""},  # 样本层次聚类方式，默认不聚类
             {"name": "species_number", "type": "string", "default": "50"},  # 物种数目，默认top50
+            {"name": "others", "type": "float", "default": 0.01}  # 组成分析中用于将丰度小于0.01/其它的物种归为others
         ]
         self.add_option(options)
         self.sort_samples = self.add_tool("meta.otu.sort_samples")
@@ -53,7 +54,8 @@ class CompositionAnalysisModule(Module):
         self.sort_samples.set_options({
             "in_otu_table": self.option("abundtable"),
             "group_table": self.group_table_path,
-            "method": self.option("add_Algorithm")
+            "method": self.option("add_Algorithm"),
+            "others": self.option("others")
         })
         # self.sort_samples.on('end', self.set_output)
         self.analysis.append(self.sort_samples)
@@ -67,6 +69,7 @@ class CompositionAnalysisModule(Module):
         self.sort_samples2.set_options({
             "in_otu_table": self.option("abundtable"),
             "group_table": self.group_table_path,
+            "others": self.option("others")
         })
         # self.sort_samples2.on('end', self.set_output)
         self.analysis.append(self.sort_samples2)
