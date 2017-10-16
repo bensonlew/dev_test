@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'shenghe'
+# __author__ = 'zouxuan'
 
 from biocluster.api.database.base import Base, report_check
 import os
@@ -8,9 +8,9 @@ import types
 from biocluster.config import Config
 
 
-class EnvMetagenome(Base):
+class EnvMetagenomic(Base):
     def __init__(self, bind_object=None):
-        super(EnvMetagenome, self).__init__(bind_object)
+        super(EnvMetagenomic, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
