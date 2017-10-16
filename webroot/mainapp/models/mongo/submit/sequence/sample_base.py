@@ -11,10 +11,13 @@ class SampleBase(object):
         self.client = get_mongo_client()
         self.db = self.client["samplebase"]
 
-    def add_sg_seq_sample(self, member_id, type):
+    def add_sg_seq_sample(self, member_id, type, data_type, projict_sn):
         insert_data = {
             "member_id": member_id,
-            "type": type,
+            "is_delete": 0,
+            "data_type": data_type,
+            "projict_sn": projict_sn,
+            "pipeline_type": type,
             "status": "start",
             "batch_sn": 'SampleBase_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
         }
