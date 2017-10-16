@@ -9,6 +9,7 @@ from bson.son import SON
 from bson.objectid import ObjectId
 from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
+from biocluster.api.database.base import Base, report_check
 
 
 class DistanceMetagenomic(Base):

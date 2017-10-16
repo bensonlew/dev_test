@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'xuting'
-# lastmodied = 'zouxuan'  # 重构的导入方式
+# __author__ = 'zouxuan'
+
 
 from bson import ObjectId
 from biocluster.api.database.base import Base, report_check
 from collections import OrderedDict
 from biocluster.config import Config
+
 """
 分组方案格式如下:
 {
@@ -85,7 +86,7 @@ class SpecimenGroup(Base):
         otu_specimen = self.db.otu_specimen
         for index, name in enumerate(samples):
             result = otu_specimen.update_many({'specimen_id': ObjectId(spname_spid[name])},
-                                                 {"$set": {'order_num': index}})
+                                              {"$set": {'order_num': index}})
             if result.matched_count < 1:
                 raise Exception('没有正确将样本分组中的样本顺序更新到mongo数据表中')
         self.bind_object.logger.info('样本顺序信息更新到数据库中完成。')

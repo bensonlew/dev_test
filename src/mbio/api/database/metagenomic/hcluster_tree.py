@@ -17,7 +17,7 @@ class HclusterTree(Base):
         super(HclusterTree, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_metagenomic'
 
-    @report_check
+    #@report_check
     def add_hcluster_tree(self, file_path, main=False, tree_id=None, task_id=None, specimen_group=None, geneset_id=None,
                           anno_id=None,
                           level_id=None,
@@ -61,6 +61,7 @@ class HclusterTree(Base):
                 self.bind_object.logger.info("导入hcluster tree%s信息成功!" % file_path)
         return tree_id
 
+    @report_check
     def update_dist(self, distance_id, tree_id):
         """
         从newick树更新距离矩阵结果的主表的newick_tree_id
