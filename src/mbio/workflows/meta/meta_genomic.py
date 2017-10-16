@@ -47,7 +47,7 @@ class MetaGenomicWorkflow(Workflow):
             {'name': 'ref_undefined', "type": 'infile', 'format': 'sequence.fasta_dir'},
             # 未定义的宿主序列所在文件夹，多个宿主cat到一个文件，并作为tool:align.bwa的输入文件，可不提供
             # {'name': 'assemble_tool', 'type': 'string', 'default': 'idba'},  # 选择拼接工具，soapdenovo OR idba
-            {'name': 'assemble_type', 'type': 'string', 'default': 'simple'},
+            {'name': 'assemble_type', 'type': 'string', 'default': 'megahit'},
             # 选择拼接策略，soapdenovo OR idba OR megahit OR multiple
             {'name': 'min_contig', 'type': 'int', 'default': 300},  # 拼接序列最短长度
             {'name': 'min_gene', 'type': 'int', 'default': 100},  # 预测基因最短长度
@@ -240,7 +240,7 @@ class MetaGenomicWorkflow(Workflow):
             'ref_undefined': self.option('ref_undefined'),
         }
         if self.option('qc'):
-            opts['fastq_dir'] = self.qc.option('after_remove_dir')
+            opts['fastq_dir'] = self.qc.option('after_qc_dir')
         else:
             opts['fastq_dir'] = self.option('in_fastq')
         self.set_run(opts, self.rm_host, 'rm_host', self.step.rm_host)
@@ -250,13 +250,18 @@ class MetaGenomicWorkflow(Workflow):
             opts = {
                 'qc_stat': self.qc.option('after_qc_stat'),
                 'raw_stat': self.qc.option('before_qc_stat'),
-                'QC_dir': self.qc.option('in_fastq')
+                'QC_dir': self.qc.option('after_qc_dir')
             }
+            self.logger.info('have qc ,raw_stat is :')
+            self.logger.info(self.qc.option('before_qc_stat'))
+            self.logger.info(self.qc.option('before_qc_stat').prop.keys())
+            self.logger.info(self.qc.option('before_qc_stat').prop['path'])
         else:
             opts = {
                 'qc_stat': self.option('qc_info'),
                 'raw_stat': self.option('raw_info'),
             }
+            self.logger.info('havenot qc ')
             if self.option('rm_host'):
                 opts['QC_dir'] = self.rm_host.option('result_fq_dir')
             else:
@@ -302,7 +307,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
-        self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance')
+        self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance').prop['path']
 
     def run_nr(self):
         opts = {
@@ -417,6 +422,13 @@ class MetaGenomicWorkflow(Workflow):
         for db in self.profile_table2.keys():
             self.func_compare(self.profile_table2[db], self.option('group'))
             self.compare_dir2anno[self.compare.output_dir] = db
+            if self.option('envtable').is_set:
+                if db == 'gene':
+                    #self.func_correlation('/mnt/ilustre/users/sanger-dev/sg-users/guhaidong/WF/RPKM.xls', self.option('envtable'))
+                    pass
+                else:
+                    self.func_correlation(self.profile_table2[db], self.option('envtable'))
+                    self.correlation_dir2anno[self.correlation.output_dir] = db
         self.on_rely(self.analysis, self.end)
         for module in self.analysis:
             module.run()
@@ -460,6 +472,17 @@ class MetaGenomicWorkflow(Workflow):
         self.compare = self.add_module('meta.beta_diversity.beta_diversity')
         self.set_run(opts, self.compare, 'compare', self.step.compare, False)
         self.analysis.append(self.compare)
+
+    def func_correlation(self, abund, envtable):
+        opts = {
+            'method': 'spearmanr',
+            'otutable': abund,
+            'envtable': envtable,
+            "top_species": 50,
+        }
+        self.correlation = self.add_tool('statistical.pearsons_correlation')
+        self.set_run(opts, self.correlation, 'correlation', self.step.correlation, False)
+        self.analysis.append(self.correlation)
 
     '''处理输出文件'''
 

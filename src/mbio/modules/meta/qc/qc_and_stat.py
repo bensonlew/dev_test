@@ -16,6 +16,7 @@ class QcAndStatModule(Module):
             {"name": "insert_size", "type": "infile", "format": "sequence.profile_table"},  # 关于各个样本的insert_size的文件
             {"name": "stat_dir", "type": "infile", "format": "sequence.baif_dir"},  # 输入的碱基质量统计结果文件夹
             {"name": "sickle_dir", "type": "outfile", "format": "sequence.fastq_dir"},  # 设置结果文件后面要用
+            {"name": "after_qc_dir", "type": "outfile", "format": "sequence.fastq_dir"}, # 质控结果
             {"name": "before_qc_stat", "type": "outfile", "format": "sequence.profile_table"},  # 原始序列统计信息文件
             {"name": "after_qc_stat", "type": "outfile", "format": "sequence.profile_table"}  # 质控后的高质量序列信息
         ]
@@ -104,7 +105,7 @@ class QcAndStatModule(Module):
         if event['data'] == 'qc':
             self.linkdir(obj.option("sickle_dir").prop["path"], "sickle_dir")
         if event['data'] == 'remove_reads':
-            self.linkdir(obj.option('reasult_dir').prop['path'], 'after_remove_dir')
+            self.linkdir(obj.option('reasult_dir').prop['path'], 'after_qc_dir')
         elif event['data'] == 'qc_stat':
             self.linkdir(obj.output_dir, 'qc_stat')
             self.end()
@@ -122,6 +123,7 @@ class QcAndStatModule(Module):
         file_path = self.get_new_reads_stat()
         try:
             self.option("before_qc_stat", file_path)
+            self.option('after_qc_dir', self.output_dir + '/after_qc_dir')
         except Exception as e:
             raise Exception("设置输出文件出错——{}".format(e))
         super(QcAndStatModule, self).end()
@@ -142,6 +144,7 @@ class QcAndStatModule(Module):
                     w.write(line[0]+"\t"+size[line[0]]+"\t"+line[1]+"\t"+line[2]+"\n")
                 else:
                     continue
+        return new_file_path
 
     def linkdir(self, dirpath, dirname):  # 暂时无用
         """

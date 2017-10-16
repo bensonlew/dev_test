@@ -72,6 +72,7 @@ class IdbaAgent(Agent):
             self._memory = '%sG' % (self.option('mem'))
         if self.option('split_num') > 1:
             self._memory = '250G'
+        self.logger.info('idba use memory : ' + self._memory)
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
