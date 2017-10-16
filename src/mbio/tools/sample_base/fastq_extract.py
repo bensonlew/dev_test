@@ -39,8 +39,8 @@ class FastqExtractAgent(Agent):
             raise OptionError("参数in_fastq不能为空")
 
     def set_resource(self):
-        self._cpu = 4
-        self._memory = "10G"
+        self._cpu = 2
+        self._memory = "5G"
 
 
 class Sample(object):
@@ -48,7 +48,7 @@ class Sample(object):
         self.name = name
         self.total_base_num = 0
         self.seqs_len = defaultdict(int)
-        self._new_fastq_file = open(fastq_dir + '/' + self.name + '.fastq', 'w')
+        self._new_fastq_file = open(fastq_dir + '/' + self.name + '.fq', 'w')
         self.length_dir = length_dir
 
     def add_new_fastq(self, seq1, seq2, seq3, seq4):

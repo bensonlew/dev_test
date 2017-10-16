@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shijin'
-from ..meta.update_status import UpdateStatus as US
+from .tupdate_status import UpdateStatus
 
 
-class UpdateStatus(US):
+class UpdateStatus(UpdateStatus):
 
     def __init__(self, data):
         super(UpdateStatus, self).__init__(data)
+        self._client = "client01"
+        self._key = "1ZYw71APsQ"
+        self._url = "http://api.sanger.com/task/add_file"
         self.mongodb = self._mongo_client["samplebase"]
 
     # 格式变更，解析错误

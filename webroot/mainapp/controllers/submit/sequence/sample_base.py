@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
+# __editor__ = 'wangzhaoyue'
 
 import web
 import json
@@ -26,13 +27,17 @@ class SampleBaseAction(object):
     def POST(self):
         """
         接口参数:
-        file_path: 序列文件的路径
-        type: 流程类型，值为rna或meta
-        format: 序列的格式，值为fasta或者fastq
+        file_path: 序列文件的路径或重组信息
+        pipeline_tpye: 流程类型，值为rna或meta
+        format: 序列的格式，值为fastq或fastq_dir
+        data_type: 序列类型，clean_data或raw_data
+        info_file:样本信息文件，每个流程对应的文件内容不同
+        recombined: 是否是重组，0是，1不是
         """
         data = web.input()
         print data
-        params = ["file_info", "format", "client", "type", "member_id"]
+        params = ["file_info", "format", "client", "pipeline_tpye", "member_id", "data_type", "projict_sn", "info_file",
+                  "recombined"]
         for name in params:
             if not hasattr(data, name):
                 info = {"success": False, "info": "参数{}不存在".format(name)}
@@ -40,8 +45,7 @@ class SampleBaseAction(object):
         if data.client not in ["client01", "client03"]:
             info = {"success": False, "info": "未知的client：{}".format(data.client)}
             return json.dumps(info)
-        print data.format
-        if data.format not in ["sequence.fasta", "sequence.fastq", "sequence.fasta_dir", "sequence.fastq_dir"]:
+        if data.format not in ["sequence.fastq", "sequence.fastq_dir"]:
             info = {"success": False, "info": "参数format的值不正确"}
             return json.dumps(info)
         if data.client == "client01":
@@ -51,21 +55,11 @@ class SampleBaseAction(object):
             pre_path = "tsanger:"
             type_name = "tsanger"
         file_info = json.loads(data.file_info)
-        suff_path = re.split(":", file_info["path"])[1]
-        config = Config().get_netdata_config(type_name)
-        rel_path = os.path.join(config[type_name + "_path"], suff_path)
-
-        if data.format in ["sequence.fasta", "sequence.fastq"] and not os.path.isfile(rel_path):
-            info = {"success": False, "info": "文件{}不存在".format(file_info["path"])}
-            return json.dumps(info)
-        elif data.format in ["sequence.fasta_dir", "sequence.fastq_dir"] and not os.path.isdir(rel_path):
-            info = {"success": False, "info": "文件夹{}不存在".format(file_info["path"])}
-            return json.dumps(info)
-        table_id = SB().add_sg_seq_sample(data.member_id, data.type)
+        table_id = SB().add_sg_seq_sample(data.member_id, data.pipeline_tpye, data.data_type, data.projict_sn)
         json_obj = dict()
-        if data.type == "rna":  # 对type进行判断
+        if data.pipeline_tpye == "rna":    # pipeline_tpye
             json_obj["name"] = "sequence.rna_sample"
-        elif data.type == "meta":
+        elif data.pipeline_tpye == "meta":
             json_obj["name"] = "sequence.meta_sample"
         json_obj["id"] = self.get_new_id(table_id)
         json_obj['type'] = "workflow"
@@ -74,28 +68,37 @@ class SampleBaseAction(object):
         json_obj["USE_DB"] = True
         json_obj['client'] = data.client
         json_obj["options"] = dict()
-        # 给json文件的options字段指定输入的序列，这个option的字段可能是in_fastq或者是in_fasta
-        if file_info["file_list"] in [None, "none", "None", "null", 'Null', '[]', '', []]:
-            if data.format in ["sequence.fasta_dir", "sequence.fasta"]:
-                json_obj["options"]["in_fasta"] = "{}||{}/{}".format(data.format, pre_path, suff_path)
-            elif data.format in ["sequence.fastq_dir", "sequence.fastq"]:
-                json_obj["options"]["in_fastq"] = "{}||{}/{}".format(data.format, pre_path, suff_path)
+
+        if data.recombined == 'False':  # 判断是否是重组,如果不是重组则是新建样本集，输入是序列，如果是重组，则输入是样本信息，需从数据库下载相关信息
+
+            suff_path = re.split(":", file_info["path"])[1]
+            mess_info = json.loads(data.info_file)
+            info_path = re.split(":", mess_info["path"])[1]
+            config = Config().get_netdata_config(type_name)
+            rel_path = os.path.join(config[type_name + "_path"], suff_path)
+            if data.format in ["sequence.fastq"] and not os.path.isfile(rel_path):
+                info = {"success": False, "info": "文件{}不存在".format(file_info["path"])}
+                return json.dumps(info)
+            elif data.format in ["sequence.fastq_dir"] and not os.path.isdir(rel_path):
+                info = {"success": False, "info": "文件夹{}不存在".format(file_info["path"])}
+                return json.dumps(info)
+            json_obj["options"]["in_fastq"] = "{}||{}/{}".format(data.format, pre_path, suff_path)
+            json_obj["options"]["file_path"] = "{}/{}".format(pre_path, suff_path)
+            json_obj["options"]["info_file"] = "nipt.xlsx||{}/{}".format(pre_path, info_path)  # 将样本信息文件传给workflow
         else:
-            if data.format in ["sequence.fasta_dir", "sequence.fasta"]:
-                json_obj["options"]["in_fasta"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, file_info["file_list"])
-            elif data.format in ["sequence.fastq_dir", "sequence.fastq"]:
-                json_obj["options"]["in_fastq"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, json.dumps(file_info["file_list"]))
+            file_list = file_info["file_list"]  # {batch_specimen_id:alias_name}
+            json_obj["options"]["file_list"] = file_list
+            to_file = ["sample_base.export_sample_list(file_list)"]
+            json_obj["to_file"] = to_file
 
         json_obj["options"]["table_id"] = str(table_id)  # 样本集操作中，需传入sg_test_batch主表id，以命名在本地生成的文件夹
+        json_obj["options"]["sanger_type"] = str(type_name)  # # 判断sanger or tsanger
         update_info = json.dumps({str(table_id): "sg_test_batch"})
         json_obj["options"]["update_info"] = update_info
-        """
-        update_status需要重写
-        """
         if data.client == "client01":
-            update_api = "meta.update_status"
+            update_api = "sample_base.update_status"
         elif data.client == "client03":
-            update_api = "meta.tupdate_status"
+            update_api = "sample_base.tupdate_status"
         json_obj["UPDATE_STATUS_API"] = update_api
         workflow_client = Basic(data=json_obj, instant= False)
         try:
