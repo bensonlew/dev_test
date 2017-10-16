@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
-# lastmodied = 'shenghe'  # 重构的导入方式
+# lastmodied = 'zouxuan'  # 重构的导入方式
 
 from bson import ObjectId
 from biocluster.api.database.base import Base, report_check

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'yuguo'
+# __author__ = 'zouxuan'
 from biocluster.api.database.base import Base, report_check
 import re
 import json
