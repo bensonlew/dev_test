@@ -25,7 +25,8 @@ class BetaDiversityWorkflow(Workflow):
             {"name": "anno_table", "type": "infile", "format": "meta.profile"},  # 各数据库的注释表格
             {"name": "geneset_id", "type": "string"},
             {"name": "geneset_table", "type": "infile", "format": "meta.otu.otu_table"},
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},
+            {"name": "profile_table", "type": "infile", "format": "meta.otu.otu_table"},
+            {"name": "method","type": "string", "default": "rpkm"},
             {"name": "distance_method", "type": "string", "default": "bray_curtis"},
             {"name": "level_id", "type": "string"},
             {"name": "second_level", "type": "string"},
@@ -37,7 +38,9 @@ class BetaDiversityWorkflow(Workflow):
             {"name": "env_labs", "type": "string", "default": ""},
             {"name": "group_detail", "type": "string"},
             {"name": "group_id", "type": "string", "default": ""},
-            {"name": "env_id", "type": "string", "default": ""}
+            {"name": "env_id", "type": "string", "default": ""},
+            {"name": "gene_list", "type": "infile", "format": "meta.profile"},
+            {"name": "lowest_level", "type": "string", "default": ""},  # 注释表数据库对应的最低分类，eg：KEGG的ko
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -45,7 +48,7 @@ class BetaDiversityWorkflow(Workflow):
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
 
     def run(self):
-        if self.option("otu_table").is_set:
+        if self.option("profile_table").is_set:
             self.run_beta()
         else:
             self.run_abundance()
@@ -56,15 +59,17 @@ class BetaDiversityWorkflow(Workflow):
             'anno_table': self.option('anno_table'),
             'geneset_table': self.option('geneset_table'),
             'level_type': self.option('level_id'),
-            'level_type_name': self.option('second_level')
+            'level_type_name': self.option('second_level'),
+            'gene_list': self.option('gene_list'),
+            'lowest_level': self.option('lowest_level')
         }
         self.abundance.set_options(options)
         self.abundance.on('end', self.run_beta)
         self.abundance.run()
 
     def run_beta(self):
-        if self.option("otu_table").is_set:
-            otutable = self.option("otu_table")
+        if self.option("profile_table").is_set:
+            otutable = self.option("profile_table")
         else:
             otutable = self.abundance.option('out_table')
         options = {
