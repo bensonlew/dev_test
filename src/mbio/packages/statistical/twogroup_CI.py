@@ -126,9 +126,19 @@ def bootstrap(profile, groupfile, coverage):
             profile_dict[gname] = []
             group_index[gname] = []
             for name in group_member_dict[gname]:
+                # w.write("name is " + name + '\n')
                 for i in xrange(0, len(shead)):
-                    if name == shead[i]:
-                        group_index[gname].append(i)
+                    # w.write('shead is ' + shead[i].split('-')[-1] + '\n')
+                #for i in xrange(0, len(shead) + 1):
+                    if name == shead[i].split('-')[-1]:
+                        #group_index[gname].append(i)
+                        group_index[gname].append(i + 1)
+                        message = group_index[gname][-1]
+                        w.write(message)
+                        w.write("\n")
+                        # w.write('group' + gname + ':' + shead[i])
+                    #else:
+                        # w.write(name + "is not name\n")
         while True:
             sline = s.readline()
             sline_list = sline.strip('\n').split('\t')
@@ -137,6 +147,11 @@ def bootstrap(profile, groupfile, coverage):
             for gname in group_names:
                 for index_num in group_index[gname]:
                     profile_dict[gname].append(float(sline_list[index_num]))
+                w.write('profile:  ' )
+                w.write(len(profile_dict[gname]))
+                #w.write(profile_dict[gname][0])
+                #w.write(profile_dict[gname][-1])
+                w.close()
                 # w.write('%s\t' % profile_dict[gname][0])
                 # w.write('%s\n' % mean(profile_dict[gname]))
             distribution = []

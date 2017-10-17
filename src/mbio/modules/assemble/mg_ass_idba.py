@@ -172,6 +172,8 @@ class MgAssIdbaModule(Module):
         :return:
         """
         n = 0
+        self.qc_file = self.get_list()
+        '''
         db = Config().mongo_client.tsanger_metagenomic
         collection = db['mg_data_stat']
         object_id = ObjectId(self.option('data_id'))
@@ -182,6 +184,8 @@ class MgAssIdbaModule(Module):
         if results is None:
             raise Exception('没有找到样品集数据2')
         raw_rd_len, base_num, insert_dic, sample_type = self.get_dic(results)
+        '''
+        raw_rd_len, base_num, insert_dic, sample_type = self.get_dic()
         for key in insert_dic.keys():
             assem_mem, split_num = self.get_mem(sample_type[key], base_num[key])  # 计算运行内存及是否需要拆分
             self.sample.append(key)
@@ -446,6 +450,7 @@ class MgAssIdbaModule(Module):
         type_coefficient = {
             "human": "0.6",
             "human gut": "0.6",
+            "gut": "0.6",
             "soil": "1.5",
             "water": "1",
         }

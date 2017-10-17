@@ -33,7 +33,9 @@ class MgCommonAnnoStatModule(Module):
         self.kegg_anno = 0
         self.ncbi_number = 0
         self.nrstat_number = 0
+        self.ncbi_align = 0
         self.eggnog = 0
+        self.cog_align = 0
         self.nr_level = self.add_tool('annotation.mg_nr_tax_level')
         self.cog_stat = self.add_tool('annotation.mg_cog_stat')
         self.kegg_stat = self.add_tool('annotation.mg_kegg_stat')
@@ -115,7 +117,8 @@ class MgCommonAnnoStatModule(Module):
         self.remkdir(self.output_dir + '/nr_tax_level')
         self.nr_level.set_options({
             'nr_taxon_profile_dir': self.work_dir + '/tmp_nrstat_result',
-            'nr_taxon_anno_dir': self.work_dir+ "/tmp_ncbi_result"
+            'nr_taxon_anno_dir': self.work_dir+ "/tmp_ncbi_result",
+            'nr_align_dir': self.work_dir + '/tmp_ncbi_align'
         })
         self.nr_level.on('end', self.set_output, 'nr_level')
         # self.nr_level.on('end', self.end)  # 单独测试nr的时候使用
@@ -142,6 +145,7 @@ class MgCommonAnnoStatModule(Module):
         self.remkdir(self.output_dir + '/cog_result_dir')
         self.cog_stat.set_options({
             'cog_table_dir': self.work_dir + '/tmp_eggnog',
+            'align_table_dir': self.work_dir + '/tmp_cog_align',
             'reads_profile_table': self.option('reads_profile_table'),
         })
         self.cog_stat.on('end', self.set_output, 'cog_stat')
@@ -150,9 +154,9 @@ class MgCommonAnnoStatModule(Module):
 
     def run_kegg_anno(self):
         self.remkdir(self.work_dir + '/tmp_kegg_anno')
-        self.remkdir(self.work_dir + '/tmp_kegg_enzyme')
-        self.remkdir(self.work_dir + '/tmp_kegg_module')
-        self.remkdir(self.work_dir + '/tmp_kegg_pathway')
+        # self.remkdir(self.work_dir + '/tmp_kegg_enzyme')
+        # self.remkdir(self.work_dir + '/tmp_kegg_module')
+        # self.remkdir(self.work_dir + '/tmp_kegg_pathway')
         xml_file = os.listdir(self.option('kegg_xml_dir').prop['path'])
         for i in xml_file:
             file_path = os.path.join(self.option('kegg_xml_dir').prop['path'], i)
@@ -196,7 +200,12 @@ class MgCommonAnnoStatModule(Module):
             self.ncbi_number += 1
             nr_old = obj.output_dir + '/query_taxons_detail.xls'
             nr_linkfile = self.work_dir + '/tmp_ncbi_result/' + str(self.ncbi_number) + '_taxon.xls'
-            self.relink(nr_old,nr_linkfile)
+            self.relink(nr_old, nr_linkfile)
+            self.remkdir(self.work_dir + '/tmp_ncbi_align')
+            self.ncbi_align += 1
+            align_old = obj.work_dir + "/temp_blastable.xls"
+            align_link = self.work_dir + '/tmp_ncbi_align/' + str(self.ncbi_align) + '_nr_align.xls'
+            self.relink(align_old, align_link)
         elif event['data'] == 'nr_stat':
             self.remkdir(self.work_dir + '/tmp_nrstat_result')
             self.nrstat_number += 1
@@ -209,10 +218,15 @@ class MgCommonAnnoStatModule(Module):
             self.linkdir(obj.output_dir, "nr_tax_level")
         elif event['data'] == 'eggnog':
             self.remkdir(self.work_dir + '/tmp_eggnog')
+            self.remkdir(self.work_dir + '/tmp_cog_align')
             self.eggnog += 1
             cog_old = obj.output_dir + '/gene_cog_anno.xls'
             linkfile = self.work_dir + '/tmp_eggnog/' + 'eggnog_{}.xls'.format(str(self.eggnog))
-            self.relink(cog_old,linkfile)
+            self.relink(cog_old, linkfile)
+            self.cog_align += 1
+            cog_align_old = obj.output_dir + '/tmp_cog_table.xls'
+            cog_align_linkfile = self.work_dir + '/tmp_cog_align/' + 'eggnog_align_{}.xls'.format(str(self.cog_align))
+            self.relink(cog_align_old, cog_align_linkfile)
         elif event['data'] == 'cog_stat':
             self.linkdir(obj.output_dir, "cog_result_dir")
         elif event['data'] == 'kegg_stat':
