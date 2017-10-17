@@ -22,9 +22,9 @@ class TableFile(File):
 
     def get_info(self):
         if 'path' in self.prop.keys():
-            file_name = os.path.basename(self.prop['path'])
+            # file_name = os.path.basename(self.prop['path'])
             # if file_name.split(".")[-1] != 'txt':
-            #     raise FileError("文件类型不对,应该为TXT格式,其后缀应该为.txt")
+            #     raise FileError("文件类型不对,应该为TXT格式,其后缀应该为.txt")  # changed by wzy,20170926  注释掉
             f = open(self.prop['path'], 'r')
             code_dic = chardet.detect(f.read())
             if code_dic['encoding'] != 'ascii' and code_dic['encoding'] != 'UTF-16LE':

@@ -48,6 +48,15 @@ class PcoaModule(Module):
             self.otu_table = self.t_table(self.option('otu_table').prop['path'])
         else:
             self.otu_table = self.option('otu_table').prop['path']
+        if self.option("group_table").is_set:
+            if self.option('T') == 'row':
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otu_table').prop['row_sample']:
+                        raise OptionError('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
+            else:
+                for i in self.option('group_table').prop['sample_name']:
+                    if i not in self.option('otu_table').prop['col_sample']:
+                        raise OptionError('分组文件中的样本{}不存在于表格中，查看是否是数据取值选择错误'.format(i))
 
     def t_table(self, table_file):
         new_table = self.work_dir + '/new_otu_table.xls'

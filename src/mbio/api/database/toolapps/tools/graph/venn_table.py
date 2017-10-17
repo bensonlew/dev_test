@@ -3,6 +3,7 @@
 import json
 from biocluster.api.database.base import Base, report_check
 import re
+import os
 import datetime
 from bson import SON
 from biocluster.config import Config

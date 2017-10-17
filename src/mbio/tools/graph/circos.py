@@ -17,7 +17,7 @@ class CircosAgent(Agent):
         options = [
             {"name": "data_table", "type": "infile", "format": "toolapps.table"},
             {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},
-            {"name": "combined_value", "type": "float"}  #合并小于此数值的区域的值
+            {"name": "combined_value", "type": "string"}  #合并小于此数值的区域的值
         ]
         self.add_option(options)
         self.step.add_steps("circos")
@@ -25,10 +25,15 @@ class CircosAgent(Agent):
     def check_options(self):
         if not self.option("data_table").is_set:
             raise OptionError("缺少输入的数据表格")
+        if self.option("group_table").is_set:
+            sample_names = self.option('group_table').prop['sample_name']
+            for i in sample_names:
+                if i not in self.option('data_table').prop['col_sample']:
+                    raise OptionError('分组文件中的样本{}不存在于表格中，查看是否是数据表行列颠倒'.format(i))
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = "10G"
+        self._cpu = 3
+        self._memory = "5G"
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -118,6 +123,8 @@ class CircosTool(Tool):
 
     def combined_value_stat(self, fp, combined_value, out):
         """对小于此数值的区域进行合并"""
+        if combined_value.endswith("%"):
+            combined_value = float(combined_value.split("%")[0]) / 100
         data = pd.read_table(fp, header=0)
         col_sum = data.sum(axis=1)
         col_value = col_sum.values
@@ -137,7 +144,7 @@ class CircosTool(Tool):
                 flag = False
                 for i in range(1, len(line)):
                     percent = float(line[i]) / float(row_value[i-1])
-                    if percent > combined_value:
+                    if percent > float(combined_value):
                         flag = True
                 if flag:
                     self.logger.info(line)
