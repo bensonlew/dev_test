@@ -306,7 +306,8 @@ class RefrnaSplicingRmats(Base):
 
             data["pvalue_jc"] = float(data["pvalue_jc"]) if data["pvalue_jc"] != "null" else data["pvalue_jc"]
             data["pvalue_all"] = float(data["pvalue_all"]) if data["pvalue_all"] != "null" else data["pvalue_all"]
-
+            data["fdr_jc"] = float(data["fdr_jc"]) if data["fdr_jc"] != "null" else data["fdr_jc"]
+            data["fdr_all"] = float(data["fdr_all"]) if data["fdr_all"] != "null" else data["fdr_all"]
             data['splicing_id'] = splicing_id
             data['no_diff'] = 'no' if data['diff_jc_or_all'] == 'yes' else 'yes'
             data_lst.append(data)
