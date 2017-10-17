@@ -549,13 +549,15 @@ class MetastatTool(Tool):
         command = self.add_command("signal_cmd", cmd).run()
         self.wait(command)
         if command.return_code == 0:
-            self.logger.info("signal_cmd运行完成，开始运行计算置信区间")
-            bootstrap(self.option('signal_input').prop['path'], './signal_group', self.option('signal_coverage'))
+            #self.logger.info("signal_cmd运行完成，开始运行计算置信区间")
+            #bootstrap(self.option('signal_input').prop['path'], './signal_group', self.option('signal_coverage'))
             self.logger.info("生成单物种柱状图的数据")
             group_bar(self.option('signal_input').prop['path'], './signal_group', self.work_dir + '/signal_plot_group_bar.xls', 'signal')
             cmd1 = self.r_path + " run_signal_bar.r"
             bar_cmd = self.add_command("bar_cmd", cmd1).run()
             self.wait(bar_cmd)
+            self.logger.info("开始运行计算置信区间")
+            bootstrap(self.work_dir + '/signal_plot_group_bar.xls', './signal_group', self.option('signal_coverage'))
             if bar_cmd.return_code == 0:
                 self.logger.info("signal_test运行完成")
             else:
