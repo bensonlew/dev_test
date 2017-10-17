@@ -17,7 +17,7 @@ class HclusterTree(Base):
         super(HclusterTree, self).__init__(bind_object)
         self._db_name = Config().MONGODB + '_metagenomic'
 
-    #@report_check
+    @report_check
     def add_hcluster_tree(self, file_path, main=False, tree_id=None, task_id=None, specimen_group=None, geneset_id=None,
                           anno_id=None,
                           level_id=None,

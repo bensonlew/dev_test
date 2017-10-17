@@ -43,7 +43,7 @@ class ArdbAnnoAgent(Agent):
         result_dir = self.add_upload_dir(self.output_dir)
         result_dir.add_relpath_rules([
             [".", "", "结果输出目录"],
-            ['gene_ardb_anno.xls', 'xls', '序列详细物种分类文件']
+            ['gene_ardb_anno.xls', 'xls', '序列详细注释文件']
             ])
         super(ArdbAnnoAgent, self).end()
 
@@ -75,15 +75,15 @@ class ArdbAnnoTool(Tool):
         self.result_name = os.path.join(self.output_dir, "ardb_align_table.xls")
         if os.path.exists(self.result_name):
             os.remove(self.result_name)
-        n = 0
         for i in xml_file:
-            n += 1
             self.ardb_number += 1
             file_path = os.path.join(self.option('ardb_xml_dir').prop['path'], i)
             table = xml2table(file_path, self.work_dir + "/tmp_ardb_anno/" + "ardb_" + str(self.ardb_number) + "_table.xls")
+            if self.ardb_number > 1:
+                            os.system("sed -i " +  '1d ' + table)
             cmd = '{} {} {}'.format(self.sh_path, table, self.result_name)
             self.logger.info("start cat {}".format(i))
-            command_name = "cat" + str(n)
+            command_name = "cat" + str(self.ardb_number)
             command = self.add_command(command_name, cmd).run()
             self.wait(command)
             if command.return_code == 0:

@@ -29,7 +29,7 @@ if($in1=~/\.gz$/){
 my $in1name=(split /\//,$in1)[-1];
 $in1name=~s/\.gz$//;
 open O1,">$out/$in1name.length.txt" or die "can't write $out/$in1name.length.txt: $!\n";
-print O1 "gene_ID\tgene_name\tgene_length\n";
+print O1 "GeneID\tgene_length\n";
 
 $/=">";
 <I1>;
@@ -44,7 +44,7 @@ while(<I1>){
     $lengths{$name}=$len;
     $ids{$name}=$i;
     push @genename,$name;
-    print O1 "$i\t$name\t$len\n";
+    print O1 "$name\t$len\n";
 }
 close I1;
 close O1;

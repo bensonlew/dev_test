@@ -16,7 +16,7 @@ class Geneset(Base):
         self._db_name = Config().MONGODB + '_metagenomic'
 
     @report_check
-    def add_geneset(self, file_path, type):
+    def add_geneset(self, file_path, type=1, params=None):
         if not type in [1, 2]:  # 1对应origin表，包含6个丰度文件路径，无gene_list文件，2对应筛选后的基因表格，则无丰度文件路径
             raise OptionError("type必须为1,或2")
         task_id = self.bind_object.sheet.id
@@ -34,7 +34,8 @@ class Geneset(Base):
             raise Exception('reads_number.xls文件不存在，请检查！')
         if not os.path.exists(file_path + '/gene_profile/reads_number_relative.xls'):
             raise Exception('reads_number_relative.xls文件不存在，请检查！')
-        os.system('tar czPf '+ file_path + '/gene_profile/reads_profile.tar.gz '+  file_path + '/gene_profile/reads_number.xls ' + file_path + '/gene_profile/reads_number_relative.xls')
+        os.system(
+            'tar czPf ' + file_path + '/gene_profile/reads_profile.tar.gz ' + file_path + '/gene_profile/reads_number.xls ' + file_path + '/gene_profile/reads_number_relative.xls')
         with open(file_path + '/gene_profile/reads_number.xls', 'rb') as file:
             line = file.readline().strip().split('\t')
             specimen = ",".join(line[1:-1])
@@ -45,7 +46,7 @@ class Geneset(Base):
                 'desc': '',
                 'created_ts': created_ts,
                 'name': 'null',
-                'params': 'null',
+                'params': params,
                 'status': 'end',
                 'catalog_genes': catalog_genes,
                 'catalog_total_length': catalog_total_length,
@@ -58,7 +59,8 @@ class Geneset(Base):
                 'tpm': file_path + '/gene_profile/TPM.xls',
                 'reads_genelen_ratio': file_path + '/gene_profile/reads_length_ratio.xls',
                 'reads_genelen_ratio_relative': file_path + '/gene_profile/reads_number_relative.xls',
-                'download_file': file_path + '/gene_profile/reads_profile.tar.gz'
+                'download_file': file_path + '/gene_profile/reads_profile.tar.gz',
+                'gene_list_length': file_path + '/gene_profile/gene.uniGeneset.fa.length.txt'
             }
         else:
             insert_data = {
@@ -67,7 +69,7 @@ class Geneset(Base):
                 'desc': '',
                 'created_ts': created_ts,
                 'name': 'null',
-                'params': 'null',
+                'params': params,
                 'status': 'end',
                 'catalog_genes': catalog_genes,
                 'catalog_total_length': catalog_total_length,
@@ -75,7 +77,7 @@ class Geneset(Base):
                 'type': type,
                 'specimen': specimen,
                 'download_file': file_path + '/gene_profile/reads_profile.tar.gz',
-                'gene_list': file_path + '/gene_profile/gene_list'
+                'gene_list_length': file_path + '/gene_profile/gene.uniGeneset.fa.length.txt'
             }
         collection = self.db['geneset']
         # 将主表名称写在这里
