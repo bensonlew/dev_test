@@ -817,9 +817,10 @@ class RefAnnotation(Base):
                     if fun1 in funlist['COG']:
                         try:
                             cog_ids = item[4].split(";")
-                            for cog in cog_ids:
-                                if cog not in funlist['COG'][fun1]:
-                                    funlist['COG'][fun1].append(cog)
+                            if cog_ids:
+                                for cog in cog_ids:
+                                    if cog not in funlist['COG'][fun1]:
+                                        funlist['COG'][fun1].append(cog)
                         except:
                             pass
                     else:
@@ -830,9 +831,10 @@ class RefAnnotation(Base):
                     if fun1 in funlist['NOG']:
                         try:
                             nog_ids = item[5].split(";")
-                            for nog in nog_ids:
-                                if nog not in funlist['NOG'][fun1]:
-                                    funlist['NOG'][fun1].append(nog)
+                            if nog_ids:
+                                for nog in nog_ids:
+                                    if nog not in funlist['NOG'][fun1]:
+                                        funlist['NOG'][fun1].append(nog)
                         except:
                             pass
                     else:

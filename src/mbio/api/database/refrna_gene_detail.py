@@ -658,7 +658,10 @@ class RefrnaGeneDetail(Base):
             else:
                 ncbi = None
             if not is_new:
-                ensembl = "{}/Gene/Summary?g={}".format(species.rstrip('/Info/Index'), gene_id)
+                if 'ensembl' in species:
+                    ensembl = "{}/Gene/Summary?g={}".format(species[:-11], gene_id)
+                else:
+                    ensembl = None
             else:
                 ensembl = None
             data = [
