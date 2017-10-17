@@ -40,7 +40,7 @@ class BoxPlot(Base):
         box_group_name = []
         if self.bind_object._task.option("group_table").is_set:
             if self.bind_object._task.option("sed_group") == '':
-                group_num = 2
+                group_num = 1
             else:
                 group_num = 1
         else:
@@ -108,7 +108,7 @@ class BoxPlot(Base):
                             print group_data
                             insert_group_data.append(group_data)
             self.db['box_group'].insert_many(insert_group_data)
-        self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples, 'group_name': box_group_name, 'select_group': select_group}})
+        self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples, 'group_names': box_group_name, 'select_group': select_group}})
         return box_plot_id
 
     def table_in(self):
@@ -141,7 +141,7 @@ class BoxPlot(Base):
                 data['table_id'] = table_id
                 insert_data.append(data)
             self.db['table_detail'].insert_many(insert_data)
-            self.db['table'].update_one({'_id': table_id}, {'$set': {'status': 'end', 'attrs': columns}})
+            self.db['table'].update_one({'_id': table_id}, {'$set': {'status': 'end', 'attrs': attr}})
 
         return table_id
 
