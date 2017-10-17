@@ -1379,13 +1379,20 @@ class RefrnaWorkflow(Workflow):
         params['group_id'] = str(self.group_id)
         params['control_id'] = str(self.control_id)
         params['group_detail'] = dict()
-        compare_column_specimen = dict()
+        group2samples = dict()
         for i in range(len(self.group_category)):
             key = self.group_category[i]
             value = self.group_detail[i].keys()
             value2 = self.group_detail[i].values()
             params['group_detail'][key] = value
-            compare_column_specimen[key] = value2
+            group2samples[key] = value2
+
+        compare_column_specimen = dict()
+        compare_column = sorted(compare_column)
+        for cmp in compare_column:
+            gp1, gp2 = cmp.split('|')
+            compare_column_specimen[cmp] = sorted(group2samples[gp1])+sorted(group2samples[gp2])
+
         self.logger.info(params['group_detail'])  # 打印group_detail
         params['express_id'] = str(self.express_id)
         params['fc'] = 2
@@ -1453,13 +1460,21 @@ class RefrnaWorkflow(Workflow):
         params['control_id'] = str(self.control_id)
         params['group_detail'] = dict()
         params["type"] = "gene"
-        compare_column_specimen = dict()
+
+        group2samples = dict()
         for i in range(len(self.group_category)):
             key = self.group_category[i]
             value = self.group_detail[i].keys()
             value2 = self.group_detail[i].values()
             params['group_detail'][key] = value
-            compare_column_specimen[key] = value2
+            group2samples[key] = value2
+
+        compare_column_specimen = dict()
+        compare_column = sorted(compare_column)
+        for cmp in compare_column:
+            gp1, gp2 = cmp.split('|')
+            compare_column_specimen[cmp] = sorted(group2samples[gp1])+sorted(group2samples[gp2])
+
         params['express_id'] = str(self.express_id)
         params['fc'] = 2
         params['pvalue_padjust'] = 'padjust'  # 默认为padjust
