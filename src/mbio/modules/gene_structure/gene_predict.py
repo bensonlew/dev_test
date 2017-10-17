@@ -60,11 +60,7 @@ class GenePredictModule(Module):
         opts = {
             'min_gene': self.option('min_gene')
         }
-        self.logger.info('in metagene process <<<<<<')
-        self.logger.info(self.option('input_fasta').fastas_full)
         for f in self.option("input_fasta").fastas_full:
-            self.logger.info('all fasta output : in Loop......')
-            # self.logger.info(self.option("input_fasta").fastas_full)
             opts['cut_more_scaftig'] = f
             opts['sample_name'] = os.path.basename(f).split('.contig')[0]
             if opts['sample_name'] == "newbler":
@@ -72,7 +68,6 @@ class GenePredictModule(Module):
             self.metagene_tool = self.add_tool('gene_structure.metagene')
             self.metagene_tool.set_options(opts)
             self.metagene_tools.append(self.metagene_tool)
-        self.logger.info('out metagene loop>>>>>>')
         self.step.metagene.start()
         self.step.update()
         if len(self.metagene_tools) == 1:
@@ -184,9 +179,12 @@ class GenePredictModule(Module):
                 if self._is_mix:
                     for f in os.listdir(tool.output_dir):
                         if f.startswith('Total'):
-                            if os.path.exists(self.output_dir + '/len_distribute' + f):
-                                os.remove(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f)
-                            os.link(tool.output_dir + '/' + f, self.output_dir + '/len_distribute' + f)
+                            if os.path.exists(self.output_dir + '/len_distribute'):
+                                if os.path.exists(self.output_dir + '/len_distribute/' + f):
+                                    os.remove(tool.output_dir + '/' + f, self.output_dir + '/len_distribute/' + f)
+                            else:
+                                os.mkdir(self.output_dir + '/len_distribute')
+                            os.link(tool.output_dir + '/' + f, self.output_dir + '/len_distribute/' + f)
                 else:
                     self.linkdir(tool.output_dir, self.output_dir + '/len_distribute')
         self.option('out').set_path(self.metagene_stat.option('fasta').prop['path'])

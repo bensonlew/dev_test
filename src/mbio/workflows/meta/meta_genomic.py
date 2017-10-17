@@ -47,7 +47,7 @@ class MetaGenomicWorkflow(Workflow):
             {'name': 'ref_undefined', "type": 'infile', 'format': 'sequence.fasta_dir'},
             # 未定义的宿主序列所在文件夹，多个宿主cat到一个文件，并作为tool:align.bwa的输入文件，可不提供
             # {'name': 'assemble_tool', 'type': 'string', 'default': 'idba'},  # 选择拼接工具，soapdenovo OR idba
-            {'name': 'assemble_type', 'type': 'string', 'default': 'simple'},
+            {'name': 'assemble_type', 'type': 'string', 'default': 'megahit'},
             # 选择拼接策略，soapdenovo OR idba OR megahit OR multiple
             {'name': 'min_contig', 'type': 'int', 'default': 300},  # 拼接序列最短长度
             {'name': 'min_gene', 'type': 'int', 'default': 100},  # 预测基因最短长度
@@ -240,7 +240,7 @@ class MetaGenomicWorkflow(Workflow):
             'ref_undefined': self.option('ref_undefined'),
         }
         if self.option('qc'):
-            opts['fastq_dir'] = self.qc.option('after_remove_dir')
+            opts['fastq_dir'] = self.qc.option('after_qc_dir')
         else:
             opts['fastq_dir'] = self.option('in_fastq')
         self.set_run(opts, self.rm_host, 'rm_host', self.step.rm_host)
@@ -250,13 +250,18 @@ class MetaGenomicWorkflow(Workflow):
             opts = {
                 'qc_stat': self.qc.option('after_qc_stat'),
                 'raw_stat': self.qc.option('before_qc_stat'),
-                'QC_dir': self.qc.option('in_fastq')
+                'QC_dir': self.qc.option('after_qc_dir')
             }
+            self.logger.info('have qc ,raw_stat is :')
+            self.logger.info(self.qc.option('before_qc_stat'))
+            self.logger.info(self.qc.option('before_qc_stat').prop.keys())
+            self.logger.info(self.qc.option('before_qc_stat').prop['path'])
         else:
             opts = {
                 'qc_stat': self.option('qc_info'),
                 'raw_stat': self.option('raw_info'),
             }
+            self.logger.info('havenot qc ')
             if self.option('rm_host'):
                 opts['QC_dir'] = self.rm_host.option('result_fq_dir')
             else:
@@ -302,7 +307,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
-        self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance')
+        self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance').prop['path']
 
     def run_nr(self):
         opts = {
@@ -342,35 +347,53 @@ class MetaGenomicWorkflow(Workflow):
             opts['kegg_xml_dir'] = self.kegg.option('outxml_dir')
         if self.option('cog'):
             opts['cog_xml_dir'] = self.cog.option('outxml_dir')
-        self.set_run(opts, self.anno, 'anno', self.step.anno)
+        self.set_run(opts, self.anno, 'anno', self.step.anno, False)
+        if self.option('nr'):
+            self.nr_dir = os.path.join(self.anno.output_dir, 'nr_tax_level')
+            self.anno_table['nr'] = os.path.join(self.nr_dir, 'gene_nr_anno.xls')
+        if self.option('cog'):
+            self.cog_dir = os.path.join(self.anno.output_dir, 'cog_result_dir')
+            self.anno_table['cog'] = os.path.join(self.cog_dir, 'gene_cog_anno.xls')
+        if self.option('kegg'):
+            self.kegg_dir = os.path.join(self.anno.output_dir, 'kegg_result_dir')
+            self.anno_table['kegg'] = os.path.join(self.kegg_dir, 'gene_kegg_anno.xls')
+        self.anno.run()
 
     def run_cazy(self):
         opts = {
             'query': self.gene_set.option('uni_fastaa'),
             'reads_profile_table': self.gene_set.option('reads_abundance'),
         }
-        self.set_run(opts, self.cazy, 'cazy', self.step.cazy)
+        self.set_run(opts, self.cazy, 'cazy', self.step.cazy, False)
+        self.anno_table['cazy'] = os.path.join(self.cazy.output_dir, 'anno_result', 'gene_cazy_anno.xls')
+        self.cazy.run()
 
     def run_vfdb(self):
         opts = {
             'query': self.gene_set.option('uni_fastaa'),
             'reads_profile_table': self.gene_set.option('reads_abundance'),
         }
-        self.set_run(opts, self.vfdb, 'vfdb', self.step.vfdb)
+        self.set_run(opts, self.vfdb, 'vfdb', self.step.vfdb, False)
+        self.anno_table['vfdb'] = os.path.join(self.vfdb.output_dir, 'gene_vfdb_total_anno.xls')
+        self.vfdb.run()
 
     def run_ardb(self):
         opts = {
             'query': self.gene_set.option('uni_fastaa'),
             'reads_profile_table': self.gene_set.option('reads_abundance'),
         }
-        self.set_run(opts, self.ardb, 'ardb', self.step.ardb)
+        self.set_run(opts, self.ardb, 'ardb', self.step.ardb, False)
+        self.anno_table['ardb'] = os.path.join(self.ardb.output_dir, 'gene_ardb_anno.xls')
+        self.ardb.run()
 
     def run_card(self):
         opts = {
             'query': self.gene_set.option('uni_fastaa'),
             'reads_profile_table': self.gene_set.option('reads_abundance'),
         }
-        self.set_run(opts, self.card, 'card', self.step.card)
+        self.set_run(opts, self.card, 'card', self.step.card, False)
+        self.anno_table['card'] = os.path.join(self.card.output_dir, 'gene_card_anno.xls')
+        self.card.run()
 
     def run_analysis(self, event):
         for db in self.choose_anno:
@@ -391,14 +414,21 @@ class MetaGenomicWorkflow(Workflow):
             self.run_analysis2()
 
     def run_analysis2(self):
-        self.profile_table1['geneset'] = self.anno_table['geneset']
-        self.profile_table2['geneset'] = self.anno_table['geneset']
+        self.profile_table1['gene'] = self.anno_table['geneset']
+        self.profile_table2['gene'] = self.anno_table['geneset']
         for db in self.profile_table1.keys():
             self.func_composition(self.profile_table1[db], self.option('group'))
             self.composition_dir2anno[self.composition.output_dir] = db
         for db in self.profile_table2.keys():
             self.func_compare(self.profile_table2[db], self.option('group'))
             self.compare_dir2anno[self.compare.output_dir] = db
+            if self.option('envtable').is_set:
+                if db == 'gene':
+                    #self.func_correlation('/mnt/ilustre/users/sanger-dev/sg-users/guhaidong/WF/RPKM.xls', self.option('envtable'))
+                    pass
+                else:
+                    self.func_correlation(self.profile_table2[db], self.option('envtable'))
+                    self.correlation_dir2anno[self.correlation.output_dir] = db
         self.on_rely(self.analysis, self.end)
         for module in self.analysis:
             module.run()
@@ -443,6 +473,17 @@ class MetaGenomicWorkflow(Workflow):
         self.set_run(opts, self.compare, 'compare', self.step.compare, False)
         self.analysis.append(self.compare)
 
+    def func_correlation(self, abund, envtable):
+        opts = {
+            'method': 'spearmanr',
+            'otutable': abund,
+            'envtable': envtable,
+            "top_species": 50,
+        }
+        self.correlation = self.add_tool('statistical.pearsons_correlation')
+        self.set_run(opts, self.correlation, 'correlation', self.step.correlation, False)
+        self.analysis.append(self.correlation)
+
     '''处理输出文件'''
 
     def set_output(self, event):
@@ -464,28 +505,28 @@ class MetaGenomicWorkflow(Workflow):
             self.move_dir(obj.output_dir, 'geneset')
         if event['data'] == 'anno':
             if self.option('nr'):
-                self.nr_dir = os.path.join(obj.output_dir, 'nr_tax_level')
-                self.anno_table['nr'] = os.path.join(self.nr_dir, 'gene_nr_anno.xls')
+                # self.nr_dir = os.path.join(obj.output_dir, 'nr_tax_level')
+                # self.anno_table['nr'] = os.path.join(self.nr_dir, 'gene_nr_anno.xls')
                 self.move_dir(self.nr_dir, 'nr')
             if self.option('cog'):
-                self.cog_dir = os.path.join(obj.output_dir, 'cog_result_dir')
-                self.anno_table['cog'] = os.path.join(self.cog_dir, 'gene_cog_anno.xls')
+                # self.cog_dir = os.path.join(obj.output_dir, 'cog_result_dir')
+                # self.anno_table['cog'] = os.path.join(self.cog_dir, 'gene_cog_anno.xls')
                 self.move_dir(self.cog_dir, 'cog')
             if self.option('kegg'):
-                self.kegg_dir = os.path.join(obj.output_dir, 'kegg_result_dir')
-                self.anno_table['kegg'] = os.path.join(self.kegg_dir, 'gene_kegg_anno.xls')
+                # self.kegg_dir = os.path.join(obj.output_dir, 'kegg_result_dir')
+                # self.anno_table['kegg'] = os.path.join(self.kegg_dir, 'gene_kegg_anno.xls')
                 self.move_dir(self.kegg_dir, 'kegg')
         if event['data'] == 'cazy':
-            self.anno_table['cazy'] = os.path.join(obj.output_dir, 'anno_result', 'gene_cazy_anno.xls')
+            # self.anno_table['cazy'] = os.path.join(obj.output_dir, 'anno_result', 'gene_cazy_anno.xls')
             self.move_dir(obj.output_dir, 'cazy')
         if event['data'] == 'vfdb':
-            self.anno_table['vfdb'] = os.path.join(obj.output_dir, 'gene_vfdb_total_anno.xls')
+            # self.anno_table['vfdb'] = os.path.join(obj.output_dir, 'gene_vfdb_total_anno.xls')
             self.move_dir(obj.output_dir, 'vfdb')
         if event['data'] == 'ardb':
-            self.anno_table['ardb'] = os.path.join(obj.output_dir, 'gene_ardb_anno.xls')
+            # self.anno_table['ardb'] = os.path.join(obj.output_dir, 'gene_ardb_anno.xls')
             self.move_dir(obj.output_dir, 'ardb')
         if event['data'] == 'card':
-            self.anno_table['card'] = os.path.join(obj.output_dir, 'gene_card_anno.xls')
+            # self.anno_table['card'] = os.path.join(obj.output_dir, 'gene_card_anno.xls')
             self.move_dir(obj.output_dir, 'card')
         if event['data'] == 'composition':
             anno = self.composition_dir2anno[obj.output_dir]
@@ -502,9 +543,7 @@ class MetaGenomicWorkflow(Workflow):
                     self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', dir, anno))
         if event['data'] == 'correlation':  # ouput里面是一个路径？还是一组文件？
             anno = self.correlation_dir2anno[obj.output_dir]
-            allfiles = os.listdir(obj.output_dir)
-            for dir in allfiles:
-                self.move_dir(os.path.join(obj.output_dir, dir), os.path.join('correlation', dir, anno))
+            self.move_dir(obj.output_dir, os.path.join('correlation', 'cor_heatmap', anno))
 
     def set_output_all(self):
         """

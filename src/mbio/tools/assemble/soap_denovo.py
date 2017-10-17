@@ -77,6 +77,7 @@ class SoapDenovoAgent(Agent):
         else:
             mem_str = str(self.option('mem'))
         self._memory = mem_str + "G"
+        self.logger.info('soapdenovo use memory : ' + self._memory)
         # self._memory = "100G"
 
     def end(self):
