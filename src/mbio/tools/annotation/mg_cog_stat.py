@@ -20,15 +20,16 @@ class MgCogStatAgent(Agent):
         options = [
             {"name": "cog_table_dir", "type": "infile", "format": "annotation.mg_anno_dir"},
             # 比对到eggNOG库的注释结果文件
+            {"name": "align_table_dir", "type": "infile", "format": "annotation.mg_anno_dir"},
             {"name": "reads_profile_table", "type": "infile", "format": "sequence.profile_table"}
         ]
         self.add_option(options)
 
     def check_options(self):
         if not self.option("cog_table_dir").is_set:
-            raise OptionError("必须设置输入文件")
+            raise OptionError("必须设置输入cog注释文件")
         if not self.option('reads_profile_table').is_set:
-            raise OptionError
+            raise OptionError("必须设置输入丰度文件")
         return True
 
     def set_resource(self):
@@ -58,10 +59,34 @@ class MgCogStatTool(Tool):
         :return:
         """
         super(MgCogStatTool, self).run()
+        if self.option("align_table_dir").is_set:
+            self.merge_align_table()
         self.merge_table()
         self.run_cog_stat()
         self.set_output()
         self.end()
+
+    def merge_align_table(self):
+        cog_align = 0
+        profile_file = os.listdir(self.option('align_table_dir').prop['path'])
+        self.align_table = os.path.join(self.output_dir, "cog_align_table.xls")
+        if os.path.exists(self.align_table):
+            os.remove(self.align_table)
+        for i in profile_file:
+            cog_align += 1
+            file_path = os.path.join(self.option('align_table_dir').prop['path'], i)
+            if cog_align > 1:
+                os.system("sed -i " +  '1d ' + file_path)
+            cmd = '{} {} {}'.format(self.sh_path, file_path, self.align_table)
+            self.logger.info("start cat {}".format(i))
+            command_name = "cat align" + str(cog_align)
+            command = self.add_command(command_name, cmd).run()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("cat {} done".format(i))
+            else:
+                self.set_error("cat {} error".format(i))
+                raise Exception("cat {} error".format(i))
 
     def merge_table(self):
         cog_number = 0
@@ -72,9 +97,11 @@ class MgCogStatTool(Tool):
         for i in profile_file:
             cog_number += 1
             file_path = os.path.join(self.option('cog_table_dir').prop['path'], i)
+            if cog_number > 1:
+                os.system("sed -i " +  '1d ' + file_path)
             cmd = '{} {} {}'.format(self.sh_path, file_path, self.result_name)
             self.logger.info("start cat {}".format(i))
-            command_name = "cat" + str(cog_number)
+            command_name = "cat anno" + str(cog_number)
             command = self.add_command(command_name, cmd).run()
             self.wait(command)
             if command.return_code == 0:
