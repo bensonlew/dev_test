@@ -31,7 +31,7 @@ class CardAnnoAgent(Agent):
 
     def set_resource(self):
         self._cpu = 2
-        self._memory = '5G'
+        self._memory = '2G'
 
     def end(self):
         self.option('card_anno_result',os.path.join(self.output_dir,"gene_card_anno.xls"))
@@ -70,15 +70,15 @@ class CardAnnoTool(Tool):
         self.result_name = os.path.join(self.output_dir, "card_align_table.xls")
         if os.path.exists(self.result_name):
             os.remove(self.result_name)
-        n = 0
         for i in xml_file:
-            n += 1
             self.card_number += 1
             file_path = os.path.join(self.option('card_xml_dir').prop['path'], i)
             table = xml2table(file_path, self.work_dir + "/tmp_card_anno/" + "card_" + str(self.card_number) + "_table.xls")
+            if self.card_number > 1:
+                os.system("sed -i " +  '1d ' + table)
             cmd = '{} {} {}'.format(self.sh_path, table, self.result_name)
             self.logger.info("start cat {}".format(i))
-            command_name = "cat" + str(n)
+            command_name = "cat" + str(self.card_number)
             command = self.add_command(command_name, cmd).run()
             self.wait(command)
             if command.return_code == 0:
