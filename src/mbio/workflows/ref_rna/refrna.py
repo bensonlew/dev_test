@@ -1388,6 +1388,7 @@ class RefrnaWorkflow(Workflow):
             group2samples[key] = value2
 
         compare_column_specimen = dict()
+        compare_column = sorted(compare_column)
         for cmp in compare_column:
             gp1, gp2 = cmp.split('|')
             compare_column_specimen[cmp] = sorted(group2samples[gp1])+sorted(group2samples[gp2])
