@@ -17,10 +17,15 @@ def time_count(func):  # 统计导表时间
     @functools.wraps(func)
     def wrapper(*args, **kw):
         start = time.time()
+        func_name = func.__name__
+        start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))
+        print('Run %s at %s' %(func_name, start_time))
         func(*args, **kw)
         end = time.time()
-        print("{}函数执行完毕，该阶段导表已进行{}s".format(func.__name__, end - start))
-        return wrapper
+        end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))
+        print('End %s at %s' %(func_name, end_time))
+        print("{}函数执行完毕，该阶段导表已进行{}s".format(func_name, end - start))
+    return wrapper
 
 
 class MetaGenomicWorkflow(Workflow):
@@ -67,7 +72,7 @@ class MetaGenomicWorkflow(Workflow):
         self.add_option(options)
         self.set_options(self._sheet.options())
         '''获取数据库信息'''
-        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json"
+        self.json_path = self.config.SOFTWARE_DIR + "/database/Genome_DB_finish/annot_species.json"  # 尚未指定具体的数据库
         self.json_dict = self.get_json()
         '''初始化module/tool'''
         self.sequence = self.add_module('sequence.meta_genomic')
@@ -131,8 +136,9 @@ class MetaGenomicWorkflow(Workflow):
         self.composition_dir2anno = {}  # 输出结果和导表时根据此值判断数据库类型
         self.compare_dir2anno = {}
         self.correlation_dir2anno = {}
-        self.sample_in_group = []
-        self.geneset_id = ""
+        self.sample_in_group = []  # 根据group文件获取样本名
+        self.geneset_id = ""  # geneset主表_id
+        self.spname_spid = {}  # 样本对应原始数据表_id
         if self.option('test'):
             '''
             self.anno_table = {
@@ -305,7 +311,7 @@ class MetaGenomicWorkflow(Workflow):
         else:
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
-        self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance').prop['path']
+        self.anno_table['geneset'] = os.path.join(self.gene_set.output_dir, 'gene_profile/RPKM.xls')  # self.gene_set.option('rpkm_abundance').prop['path']
 
     def run_nr(self):
         opts = {
@@ -545,7 +551,7 @@ class MetaGenomicWorkflow(Workflow):
 
     def set_output_all(self):
         """
-        将所有结果一起导出至output
+        将所有结果一起导出至output，暂不需要
         """
         pass
 
@@ -591,15 +597,39 @@ class MetaGenomicWorkflow(Workflow):
             self.logger.info("导出失败：请检查{}".format(old_file))
 
     def end(self):
-        self.run_api()
-        self.set_upload_results()
+        self.run_api(test = self.option('test'))
+        # self.send_files()
         super(MetaGenomicWorkflow, self).end()
 
-    def set_upload_results(self):  # 原modify_output
+    def send_files(self):  # 原modify_output
         """
         结果放置到/upload_results
         """
-        pass
+        dir_o = self.output_dir
+        dir_up = os.path.join(self.work_dir, 'upload_results')
+        if os.path.exists(dir_up):
+            shutil.rmtree(dir_up)
+        os.mkdir(dir_up)
+        # QC
+        # remove
+        # assem
+        # predict
+        # geneset
+        # anno
+        # composition
+        # compare
+        # correlation
+        repaths = [
+            [".", "", "流程分析结果目录"],
+            ["QC", "", "测序数据统计与质控结果文件"]
+        ]
+        regexps = [
+            [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
+            ["", "", ""],
+        ]
+        sdir = self.add_upload_dir(dir_up)
+        sdir.add_relpath_rules(repaths)
+        sdir.add_regexp_rules(regexps)
 
     '''导表'''
 
@@ -607,6 +637,12 @@ class MetaGenomicWorkflow(Workflow):
         # greenlets_list_first = []  # 一阶段导表
         # greenlets_list_sec = []  # 二阶段导表
         # greenlets_list_third = []  # 三阶段导表
+        if test:
+            self.qc.output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20171017/MetaGenomic_metagenome_anno_all_test/output/qc'
+            self.sequence.output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20171017/MetaGenomic_metagenome_anno_all_test/MetaGenomic/output'
+            self.export_qc()
+            self.logger.info("导表测试完成")
+            return
         self.export_qc()
         self.export_assem()
         self.export_predict()
@@ -618,19 +654,7 @@ class MetaGenomicWorkflow(Workflow):
         self.export_vfdb()
         self.export_ardb()
         self.export_card()
-
-    def export_test(self):
-        self.export_qc()
-        self.export_assem()
-        self.export_predict()
-        self.export_geneset()
-        self.export_nr()
-        self.export_kegg()
-        self.export_cog()
-        self.export_cazy()
-        self.export_vfdb()
-        self.export_ardb()
-        self.export_card()
+        self.logger.info("导表完成")
 
     @time_count
     def export_qc(self):
@@ -645,16 +669,25 @@ class MetaGenomicWorkflow(Workflow):
             data_stat_id = self.api_dic["data_stat"].add_data_stat('raw', self.option('raw_info').prop['path'],
                                                                    self.base_info, "null")
             self.api_dic["data_stat"].add_data_stat("clean", self.option('qc_info').prop['path'], "null", data_stat_id)
+        self.spname_spid = self.api_dic["data_stat"].get_spname_spid()
         if self.option('rm_host'):
             self.api_dic["data_stat"].add_data_stat("optimised", self.rm_host.output_dir + "/stat.list.txt", "null",
                                                     data_stat_id)
+        if self.option('group').is_set:
+            self.api_dic["group"] = self.api.api("metagenomic.specimen_group")
+            self.api_dic["group"].add_ini_group_table(self.option('group').prop['path'], self.spname_spid)
+        if self.option('envtable').is_set:
+            self.api_dic["envtable"] = self.api.api("metagenomic.env_metagenome")
+            self.api_dic["envtable"].add_env_table(self.option('envtable').prop['path'], self.spname_spid)
 
+    @time_count
     def export_assem(self):
         self.api_dic["assem_gene"] = self.api.api("metagenomic.assemble_gene")
         assem_id = self.api_dic["assem_gene"].add_assemble_stat(self.option('assemble_type'))
         self.api_dic["assem_gene"].add_assemble_stat_detail(assem_id, self.output_dir + "/assemble/assembly.stat")
         self.api_dic["assem_gene"].add_assemble_stat_bar(assem_id, self.output_dir + "/assemble/len_distribute")
 
+    @time_count
     def export_predict(self):
         if "assem_gene" not in self.api_dic.keys():
             self.api_dic["assem_gene"] = self.api.api("metagenomic.assemble_gene")
@@ -663,6 +696,7 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["assem_gene"].add_predict_gene_bar(gene_id, self.output_dir + "/predict/len_distribute")
         self.api_dic["assem_gene"].add_predict_gene_total(self.output_dir + "/predict/sample.metagene.stat")
 
+    @time_count
     def export_geneset(self):
         self.api_dic["geneset"] = self.api.api("metagenomic.geneset")
         self.geneset_id = self.api_geneset.add_geneset(self.output_dir + "/geneset", 1)
@@ -672,11 +706,13 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["geneset"].add_geneset_readsr(self.geneset_id,
                                                    self.output_dir + "/geneset/gene_profile/top100_reads_number_relative.xls")
 
+    @time_count
     def export_nr(self):
         self.api_dic["nr"] = self.api.api("metagenomic.mg_anno_nr")
         return_id = self.api_dic["nr"].add_anno_nr(self.geneset_id, "All", self.output_dir + "/nr/gene_nr_anno.xls")
         self.api_dic["nr"].add_anno_nr_detail(return_id, self.output_dir + "/nr")
 
+    @time_count
     def export_cog(self):
         self.api_dic["cog"] = self.api.api("metagenomic.mg_anno_cog")
         return_id = self.api_dic["cog"].add_anno_cog(self.geneset_id, "All", self.output_dir + "/cog/gene_cog_anno.xls")
@@ -684,6 +720,7 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["cog"].add_anno_cog_function(return_id, self.output_dir + "/cog")
         self.api_dic["cog"].add_anno_cog_function(return_id, self.output_dir + "/cog")
 
+    @time_count
     def export_kegg(self):
         self.api_dic["kegg"] = self.api.api("metagenomic.mg_anno_kegg")
         return_id = self.api_dic["kegg"].add_anno_kegg(self.geneset_id, "All",
@@ -694,6 +731,7 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["kegg"].add_anno_kegg_enzyme(return_id, self.output_dir + "/kegg")
         self.api_dic["kegg"].add_anno_kegg_pathway(return_id, self.output_dir + "/kegg")
 
+    @time_count
     def export_cazy(self):
         self.api_dic["cazy"] = self.api.api("metagenomic.mg_anno_cazy")
         return_id = self.api_dic["cazy"].add_anno_cazy(self.geneset_id, "All",
@@ -701,6 +739,7 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["cazy"].add_anno_cazy_family(return_id, self.output_dir + "/cazy")
         self.api_dic["cazy"].add_anno_cazy_class(return_id, self.output_dir + "/cazy")
 
+    @time_count
     def export_vfdb(self):
         self.api_dic["vfdb"] = self.api.api("metagenomic.mg_anno_vfdb")
         return_id = self.api_dic["vfdb"].add_anno_vfdb(self.geneset_id, "All",
@@ -708,6 +747,7 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["vfdb"].add_anno_vfdb_vfs(return_id, self.output_dir + "/vfdb", "all")
         self.api_dic["vfdb"].add_anno_vfdb_pie(return_id, self.output_dir + "/vfdb")
 
+    @time_count
     def export_ardb(self):
         self.api_dic["ardb"] = self.api.api("metagenomic.mg_anno_ardb")
         return_id = self.api_dic["ardb"].add_anno_ardb(self.geneset_id, "All",
@@ -716,6 +756,7 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["ardb"].add_anno_ardb_type(return_id, self.output_dir + "/ardb")
         self.api_dic["ardb"].add_anno_ardb_class(return_id, self.output_dir + "/ardb")
 
+    @time_count
     def export_card(self):
         self.api_dic["card"] = self.api.api("metagenomic.mg_anno_card")
         return_id = self.api_dic["card"].add_anno_card(self.geneset_id, "All",
@@ -723,11 +764,12 @@ class MetaGenomicWorkflow(Workflow):
         self.api_dic["card"].add_anno_card_aro(return_id, self.output_dir + "/card")
         self.api_dic["card"].add_anno_card_class(return_id, self.output_dir + "/card")
 
+    @time_count
     def export_overview(self):
-        '''
+        """
         注釋表信息總覽
         :return:
-        '''
+        """
         self.api_dic["overview"] = self.api.api("metagenomic.mg_anno_overview")
         return_id = self.api_dic["overview"].add_anno_overview(self.geneset_id)
         select_table = {}
@@ -741,12 +783,15 @@ class MetaGenomicWorkflow(Workflow):
                                                           cazy=select_table["cazy"], vfdb=select_table["vfdb"],
                                                           ardb=select_table["ardb"], card=select_table["card"])
 
+    @time_count
     def export_composition(self):
         pass
 
+    @time_count
     def export_compare(self):
         pass
 
+    @time_count
     def export_correlation(self):
         pass
 
@@ -755,7 +800,7 @@ class MetaGenomicWorkflow(Workflow):
         运行 meta_genomic workflow
         :return:
         """
-        task_info = self.api.api('task_info.ref')
+        task_info = self.api.api('task_info.ref')  # 暂用有参转录组的
         task_info.add_task_info()
         self.sequence.on('end', self.run_qc)
         if self.option('rm_host'):
@@ -820,7 +865,8 @@ class MetaGenomicWorkflow(Workflow):
             super(MetaGenomicWorkflow, self).run()
             return True
             '''
-            pass
+            self.end()
+            return True
         if self.option('qc'):
             self.run_sequence()
         elif self.option('rm_host'):
