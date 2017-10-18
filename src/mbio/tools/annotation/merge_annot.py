@@ -92,6 +92,7 @@ class MergeAnnotTool(Tool):
         self.map_path = self.config.SOFTWARE_DIR + "bioinfo/annotation/scripts/map4.r"
         self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
+        self.merge_kegg_pathway = self.config.PACKAGE_DIR + "/rna/merge_kegg_pathway.py"
 
     def run_merge(self):
         for db in self.database:
@@ -117,7 +118,17 @@ class MergeAnnotTool(Tool):
                 self.logger.info("合并kegg注释文件完成")
                 r_level_path = self.option("pathway_table_dir").split(";")[0]
                 n_level_path = self.option("pathway_table_dir").split(";")[1]
-                MergeKeggPathway().merge_kegg_pathway(map_path=self.map_path, r_path=self.r_path, image_magick=self.image_magick, r_level_path=r_level_path, n_level_path=n_level_path, all_level_path="pathway_table.xls", all_pathways=self.output_dir + "/all_pathways")
+                cmd = "{} {} {} {} {} {} {} {} {}".format(self.python, self.merge_kegg_pathway, self.map_path, self.r_path, self.image_magick, r_level_path, n_level_path, "pathway_table.xls", self.output_dir + "/all_pathways")
+                self.logger.info("开始画图")
+                self.logger.info(cmd)
+                cmd1_obj = self.add_command("merge_png", cmd).run()
+                self.wait(cmd1_obj)
+                if cmd1_obj.return_code == 0:
+                    self.logger.info("画图完成")
+                else:
+                    self.set_error("画图出错")
+                    raise Exception("画图出错")
+                # MergeKeggPathway().merge_kegg_pathway(map_path=self.map_path, r_path=self.r_path, image_magick=self.image_magick, r_level_path=r_level_path, n_level_path=n_level_path, all_level_path="pathway_table.xls", all_pathways=self.output_dir + "/all_pathways")
         files = ["go2level.xls", "query_gos.list", "cog_table.xls", "kegg_table.xls", "pathway_table.xls"]
         for f in files:
             if os.path.exists(f):
