@@ -117,43 +117,61 @@ def bootstrap(profile, groupfile, coverage):
     group_num_dict, group_member_dict = group_detail(groupfile, get_member = True)
     group_names = group_num_dict.keys()
     profile_dict = {}
-    w = open('bootstrap_CI.xls', 'w')
-    w.write('\teffectsize\tlowerCI\tupperCI\n')
+    # w = open('bootstrap_CI.xls', 'w')
+    # w.write('\teffectsize\tlowerCI\tupperCI\n')
     with open(profile, 'r') as s:
         shead = s.readline().strip('\n').split('\t')
         group_index = {}
+        sum = [0]
+        # profile_dict['samples'] = {}
         for gname in group_names:
-            profile_dict[gname] = []
+            # profile_dict[gname] = []
+            # profile_dict['samples'][gname] = []
             group_index[gname] = []
             for name in group_member_dict[gname]:
-                # w.write("name is " + name + '\n')
                 for i in xrange(0, len(shead)):
-                    # w.write('shead is ' + shead[i].split('-')[-1] + '\n')
                 #for i in xrange(0, len(shead) + 1):
                     if name == shead[i].split('-')[-1]:
                         #group_index[gname].append(i)
                         group_index[gname].append(i + 1)
-                        message = group_index[gname][-1]
-                        w.write(message)
-                        w.write("\n")
-                        # w.write('group' + gname + ':' + shead[i])
-                    #else:
-                        # w.write(name + "is not name\n")
+                        sum.append(0)
         while True:
             sline = s.readline()
             sline_list = sline.strip('\n').split('\t')
+            profile_dict[sline_list[0]] = {}
+            for index in xrange(1,len(sline_list)):
+                sum[index] += float(sline_list[index])
             if not sline:
                 break
             for gname in group_names:
+                profile_dict[sline_list[0]][gname] = []
                 for index_num in group_index[gname]:
-                    profile_dict[gname].append(float(sline_list[index_num]))
-                w.write('profile:  ' )
-                w.write(len(profile_dict[gname]))
-                #w.write(profile_dict[gname][0])
-                #w.write(profile_dict[gname][-1])
-                w.close()
-                # w.write('%s\t' % profile_dict[gname][0])
-                # w.write('%s\n' % mean(profile_dict[gname]))
+                    # profile_dict[gname].append(float(sline_list[index_num]))
+                    profile_dict[sline_list[0]][gname].append(float(sline_list[index_num]))
+
+    w = open('bootstrap_CI.xls', 'w')
+    w.write('\teffectsize\tlowerCI\tupperCI\n')
+    for annotation in profile_dict.keys():
+        for gname in group_names:
+            for i, index in enumerate(group_index[gname]):
+                profile_dict[annotation][gname][i] /= sum[index]
+        distribution = []
+        for _ in xrange(0, 999):
+            samplesGroup = {}
+            for gname in group_names:
+                sampleSize = group_num_dict[gname]
+                choices = scipy.random.random_integers(0, sampleSize - 1, sampleSize)
+                g_scipy = scipy.array(profile_dict[annotation][gname], copy = 0)
+                samplesGroup[gname] = g_scipy[choices]
+            diffOfMeanProp = mean(samplesGroup[group_names[0]]) - mean(samplesGroup[group_names[1]])
+            dp = mean(profile_dict[annotation][group_names[0]]) - mean(profile_dict[annotation][group_names[1]])
+            distribution.append(diffOfMeanProp)
+        distribution.sort()
+        lowerCI = distribution[max(0, int(math.floor(0.5*(1.0-coverage)*len(distribution))))]
+        upperCI = distribution[min(len(distribution)-1, int(math.ceil((coverage + 0.5*(1.0-coverage))*len(distribution))))]
+        w.write('%s\t%s\t%s\t%s\n' % (sline_list[0], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
+
+        '''
             distribution = []
             for _ in xrange(0, 999):
                 samplesGroup = {}
@@ -169,4 +187,5 @@ def bootstrap(profile, groupfile, coverage):
             lowerCI = distribution[max(0, int(math.floor(0.5*(1.0-coverage)*len(distribution))))]
             upperCI = distribution[min(len(distribution)-1, int(math.ceil((coverage + 0.5*(1.0-coverage))*len(distribution))))]
             w.write('%s\t%s\t%s\t%s\n' % (sline_list[0], '%0.4g' % (dp), '%0.4g' % (lowerCI), '%0.4g' % (upperCI)))
+        '''
     w.close()
