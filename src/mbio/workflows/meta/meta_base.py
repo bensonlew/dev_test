@@ -584,7 +584,9 @@ class MetaBaseWorkflow(Workflow):
             ["OtuTaxon_summary/tax_summary_a", "meta.otu.tax_summary_dir", "各分类学水平样本序列数统计表"],
             ["OtuTaxon_summary/tax_summary_r", "meta.otu.tax_summary_dir", "各分类学水平样本序列数相对丰度百分比统计表"],  # add by zhouxuan 20161129
             ["Alpha_diversity", "", "Alpha diversity文件目录"],
+            ["Alpha_diversity/Estimators", "", "多样性指数分析文件目录"],  # add by guhaidong 20171018
             ["Alpha_diversity/Estimators/estimators.xls", "xls", "Alpha多样性指数表"],
+            ["Alpha_diversity/Rarefaction", "", "稀释曲线分析文件目录"],  # add by guhaidong 20171018
             ["Beta_diversity", "", "Beta diversity文件目录"],
             ["Beta_diversity/Anosim", "", "ANOSIM&Adonis分析结果目录"],
             ["Beta_diversity/Anosim/anosim_results.txt", "txt", "anosim分析结果"],
@@ -630,6 +632,7 @@ class MetaBaseWorkflow(Workflow):
         regexps = [
             [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"QC_stat/reads_len_info/step_\d+\.reads_len_info\.txt", "", "序列长度分布统计文件"],
+            [r"Alpha_diversity/Estimators/otu\..*\.summary", "", "单个样本多样性指数表"],  # add by guhaidong 20171018
             [r'Beta_diversity/Distance/%s.*\.xls$' % self.option('dis_method'), 'meta.beta_diversity.distance_matrix', '样本距离矩阵文件'],
             [r'Beta_diversity/Rda/.+_importance\.xls$', 'xls', '主成分变化解释度表'],
             [r'Beta_diversity/Rda/.+_sites\.xls$', 'xls', '样本坐标表'],
