@@ -4,6 +4,7 @@ import os
 import re
 import gridfs
 import subprocess
+import sys
 from biocluster.config import Config
 
 
@@ -108,7 +109,7 @@ class MergeKeggPathway(object):
                 n_ko = []
             seq_list = list(set(seq_list))
             for r_c in r_ko:
-                r = r_c.split("%09tomato")[0]
+                r = r_c.split("%09yellow")[0]
                 if r_c not in n_ko:
                     r_id = r + '%09' + 'yellow'
                     link.append(r_id)
@@ -118,7 +119,7 @@ class MergeKeggPathway(object):
                     link.append(b_id)
                     b_kos.append(r)
             for n_c in n_ko:
-                n = n_c.split("%09tomato")[0]
+                n = n_c.split("%09green")[0]
                 if n_c not in r_ko:
                     n_id = n + '%09' + 'green'
                     link.append(n_id)
@@ -129,6 +130,8 @@ class MergeKeggPathway(object):
                     b_kos.append(n)
             link = list(set(link))
             b_kos = list(set(b_kos))
+            n_kos = list(set(n_kos))
+            r_kos = list(set(r_kos))
             link = 'http://www.genome.jp/kegg-bin/show_pathway?' + map_id + '/' + '/'.join(link)
             pathway_table.write(map_id + "\t" + first_category + "\t" + second_category + "\t" + pathway_definition + "\t" + str(len(seq_list)) + "\t" + ";".join(seq_list) + "\t" + map_id + ".png" + "\t" + link + "\n")
             png_path = all_pathways + '/' + map_id + ".png"
@@ -150,12 +153,13 @@ class MergeKeggPathway(object):
                 print '图片格式pdf转png出错'
 
 if __name__ == "__main__":
-    test = MergeKeggPathway()
-    map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
-    r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
-    image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
-    r_level_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/anno_stat/kegg_stat/gene_pathway_table.xls"
-    n_level_path = "/mnt/ilustre/users/sanger-dev/workspace/20170822/NewAnno_arab_test_anno_8/RefAnnotation1/output/anno_stat/kegg_stat/gene_pathway_table.xls"
-    all_level_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/annotation/script/all_pathway_table.xls"
-    all_pathways = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/annotation/script/all_pathways"
-    test.merge_kegg_pathway(map_path, r_path, image_magick, r_level_path, n_level_path, all_level_path, all_pathways)
+    MergeKeggPathway().merge_kegg_pathway(map_path=sys.argv[1], r_path=sys.argv[2], image_magick=sys.argv[3], r_level_path=sys.argv[4], n_level_path=sys.argv[5], all_level_path=sys.argv[6], all_pathways=sys.argv[7])
+    # test = MergeKeggPathway()
+    # map_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/ref_anno/script/map4.r"
+    # r_path = "/mnt/ilustre/users/sanger-dev/app/program/R-3.3.3/bin/Rscript"
+    # image_magick = "/mnt/ilustre/users/sanger-dev/app/program/ImageMagick/bin/convert"
+    # r_level_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/plants/Arabidopsis_thaliana/Ensemble_release_36/Annotation/anno_stat/kegg_stat/gene_pathway_table.xls"
+    # n_level_path = "/mnt/ilustre/users/sanger-dev/workspace/20170822/NewAnno_arab_test_anno_8/RefAnnotation1/output/anno_stat/kegg_stat/gene_pathway_table.xls"
+    # all_level_path = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/annotation/script/all_pathway_table.xls"
+    # all_pathways = "/mnt/ilustre/users/sanger-dev/sg-users/zengjing/ref_rna/annotation/script/all_pathways"
+    # test.merge_kegg_pathway(map_path, r_path, image_magick, r_level_path, n_level_path, all_level_path, all_pathways)
