@@ -59,7 +59,7 @@ class MgKeggAnnoTool(Tool):
         self.end()
 
     def run_kegg_anno(self):
-        table = xml2table(self.option('kegg_xml').prop['path'], self.work_dir + '/tmp_kegg_table.xls')
+        table = xml2table(self.option('kegg_xml').prop['path'], self.output_dir + '/tmp_kegg_table.xls')
         cmd = '{} {} {} {}'.format(self.python_path, self.python_script, table, self.output_dir)
         self.logger.info(cmd)
         try:

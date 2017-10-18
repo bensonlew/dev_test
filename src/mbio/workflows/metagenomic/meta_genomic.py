@@ -25,7 +25,7 @@ def time_count(func):  # 统计导表时间
         end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))
         print('End %s at %s' %(func_name, end_time))
         print("{}函数执行完毕，该阶段导表已进行{}s".format(func_name, end - start))
-        return wrapper
+    return wrapper
 
 
 class MetaGenomicWorkflow(Workflow):
@@ -307,11 +307,11 @@ class MetaGenomicWorkflow(Workflow):
         if self.option('rm_host'):
             opts['QC_dir'] = self.rm_host.option('result_fq_dir')
         elif self.option('qc'):
-            opts['QC_dir'] = self.qc.option('sickle_dir')
+            opts['QC_dir'] = self.qc.option('after_qc_dir')
         else:
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
-        self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance').prop['path']
+        self.anno_table['geneset'] = os.path.join(self.gene_set.output_dir, 'gene_profile/RPKM.xls')  # self.gene_set.option('rpkm_abundance').prop['path']
 
     def run_nr(self):
         opts = {
@@ -598,7 +598,7 @@ class MetaGenomicWorkflow(Workflow):
 
     def end(self):
         self.run_api(test = self.option('test'))
-        self.send_files()
+        # self.send_files()
         super(MetaGenomicWorkflow, self).end()
 
     def send_files(self):  # 原modify_output
@@ -638,6 +638,8 @@ class MetaGenomicWorkflow(Workflow):
         # greenlets_list_sec = []  # 二阶段导表
         # greenlets_list_third = []  # 三阶段导表
         if test:
+            self.qc.output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20171017/MetaGenomic_metagenome_anno_all_test/output/qc'
+            self.sequence.output_dir = '/mnt/ilustre/users/sanger-dev/workspace/20171017/MetaGenomic_metagenome_anno_all_test/MetaGenomic/output'
             self.export_qc()
             self.logger.info("导表测试完成")
             return
@@ -764,10 +766,10 @@ class MetaGenomicWorkflow(Workflow):
 
     @time_count
     def export_overview(self):
-        '''
+        """
         注釋表信息總覽
         :return:
-        '''
+        """
         self.api_dic["overview"] = self.api.api("metagenomic.mg_anno_overview")
         return_id = self.api_dic["overview"].add_anno_overview(self.geneset_id)
         select_table = {}
@@ -863,7 +865,8 @@ class MetaGenomicWorkflow(Workflow):
             super(MetaGenomicWorkflow, self).run()
             return True
             '''
-            pass
+            self.end()
+            return True
         if self.option('qc'):
             self.run_sequence()
         elif self.option('rm_host'):

@@ -5,6 +5,7 @@ from biocluster.api.database.base import Base, report_check
 import os
 import datetime
 import types
+import re
 from biocluster.config import Config
 from bson.son import SON
 from bson.objectid import ObjectId
@@ -23,7 +24,7 @@ class BetaDiversity(Base):
             return 'PCoA'
         elif analysis_type == 'nmds':
             return 'NMDS'
-        elif analysis_type == 'db-rda':
+        elif analysis_type == 'dbrda':
             return 'db-RDA'
         elif analysis_type == 'rda_cca':
             return 'RDA/CCA'
@@ -32,7 +33,7 @@ class BetaDiversity(Base):
 
     @report_check
     def add_beta_diversity(self, dir_path, analysis, main_id=None, main=False, env_id=None, group_id=None, task_id=None,
-                           geneset_id=None, anno_id=None, level_id=None, remove=None, params=None):
+                           geneset_id=None, anno_id=None, level_id=None, remove=None, params=None, anno_type=None):
         self._tables = []  # 记录存入了哪些表格
         if task_id is None:
             task_id = self.bind_object.sheet.id
@@ -65,7 +66,8 @@ class BetaDiversity(Base):
                 'params': params,
                 'status': 'end',
                 'desc': '',
-                'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'anno_type': anno_type
             }
             if analysis == 'rda_cca':  # 在主表中添加必要的rda或者是cca分类信息
                 rda_files = os.listdir(dir_path.rstrip('/') + '/Rda')
@@ -123,7 +125,7 @@ class BetaDiversity(Base):
             nmds_stress = float(open(dir_path.rstrip('/') + '/Nmds/nmds_stress.xls').readlines()[1])
             _main_collection.update_one({'_id': main_id}, {'$set': {'nmds_stress': nmds_stress}})
             self.bind_object.logger.info('beta_diversity:NMDS分析结果导入数据库完成.')
-        elif analysis == 'db-rda':
+        elif analysis == 'dbrda':
             site_path = dir_path.rstrip('/') + '/Dbrda/db_rda_sites.xls'
             self.insert_table_detail(site_path, 'specimen', update_id=main_id)
             filelist = os.listdir(dir_path.rstrip('/') + '/Dbrda')
@@ -149,9 +151,9 @@ class BetaDiversity(Base):
             dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
             plot_species_path = dir_path.rstrip(
                 '/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 4 lines by zhouxuan 20170123 20170401
-            envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
-            if os.path.exists(envfit_path):
-                self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
+            #envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
+            #if os.path.exists(envfit_path):
+                #self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
             self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
             self.insert_table_detail(site_path, 'specimen', update_id=main_id)
             self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
@@ -198,7 +200,7 @@ class BetaDiversity(Base):
                 else:
                     pass
                 insert_data = {
-                    'beta_diversity': update_id,
+                    'beta_diversity_id': update_id,
                     'type': table_type
                 }
                 if split_fullname:
@@ -206,7 +208,7 @@ class BetaDiversity(Base):
                     insert_data['name'] = values[0].split(';')[-1].strip()
                 else:
                     insert_data['name'] = values[0]
-                values_dict = dict(zip(columns, values[1:]))
+                values_dict = dict(zip(columns, map(lambda x:round(float(x),4),values[1:])))
                 data_temp.append(dict(insert_data, **values_dict))
             if data_temp:
                 collection.insert_many(data_temp)
@@ -228,20 +230,6 @@ class BetaDiversity(Base):
                                                upsert=False)
                 else:
                     raise Exception('错误的表格类型：%s不能在主表中插入相应表头' % table_type)
-
-    def insert_text_detail(self, file_path, data_type, main_id,
-                           coll_name='beta_diversity_json_detail', db=None):
-        if not db:
-            db = self.db
-        collection = db[coll_name]
-        with open(file_path, 'rb') as f:
-            data = f.read()
-            insert_data = {
-                'beta_diversity_id': main_id,
-                'type': data_type,
-                'json_value': data
-            }
-            collection.insert_one(insert_data)
 
     def insert_main_tables(self, tables, update_id, main='beta_diversity'):
         """
@@ -271,6 +259,7 @@ class BetaDiversity(Base):
             new_head[-1] = "p_values"
             new_head[-2] = "r2"
             self.new_head = new_head
+            self.bind_object.logger.info(self.new_head)
             for line in r:
                 line = line.rstrip("\r\n")
                 line = re.split(' ', line)

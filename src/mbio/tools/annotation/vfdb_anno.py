@@ -71,12 +71,11 @@ class VfdbAnnoTool(Tool):
     def merge_table(self):
         self.vfdb_number = 0
         xml_file = os.listdir(self.option('vfdb_xml_dir').prop['path'])
-        self.result_name = os.path.join(self.output_dir, "vfdb_core_align_table.xls")
+        vfdb_align_table = "vfdb_" + self.option("database") + "_align_table.xls"
+        self.result_name = os.path.join(self.output_dir, vfdb_align_table)
         if os.path.exists(self.result_name):
             os.remove(self.result_name)
-        n = 0
         for i in xml_file:
-            n += 1
             self.vfdb_number += 1
             file_path = os.path.join(self.option('vfdb_xml_dir').prop['path'], i)
             self.logger.info("转换表格")
@@ -86,9 +85,11 @@ class VfdbAnnoTool(Tool):
                 self.logger.info(file_path)
             elif self.option("database") == "predict":
                 table = xml2table(file_path, self.work_dir + "/tmp_vfdb_anno/" + "vfdb_" + str(self.vfdb_number) + "_predict_table.xls")
+            if self.vfdb_number > 1:
+                os.system("sed -i " +  '1d ' + table)
             cmd = '{} {} {}'.format(self.sh_path, table, self.result_name)
             self.logger.info("start cat {}".format(i))
-            command_name = "cat" + str(n)
+            command_name = "cat" + str(self.vfdb_number)
             command = self.add_command(command_name, cmd).run()
             self.wait(command)
             if command.return_code == 0:
