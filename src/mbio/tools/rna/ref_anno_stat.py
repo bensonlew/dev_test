@@ -190,6 +190,8 @@ class RefAnnoStatTool(Tool):
         self.go_split = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/goSplit.py'
         # self.kegg_path = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/kegg_annotation.py'
         self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation_v2.py"
+        self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
+        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
         # self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/annotation/scripts/string2cog_v9.py'
         self.cog_xml = self.config.SOFTWARE_DIR + '/bioinfo/rna/scripts/String2Cog.pl'
         self.perl = '/program/perl-5.24.0/bin/perl'
@@ -307,12 +309,12 @@ class RefAnnoStatTool(Tool):
             taxonomy = None
         if self.option("kegg_xml").is_set:
             # cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
-            cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.r_path, self.map_path, self.gene_kegg_xml, None, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
         else:
             self.option("kos_list_upload").get_gene_anno(outdir=self.work_dir + "/gene_kegg.list")
             kegg_ids = self.work_dir + "/gene_kegg.list"
             # cmd = "{} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomyfile, taxonomy, self.image_magick)
-            cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
+            cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python_path, self.kegg_path, self.r_path, self.map_path, None, kegg_ids, kegg_table, pidpath, gene_pathway, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
         self.logger.info("开始运行kegg注释脚本")
         command = self.add_command("kegg_anno", cmd).run()
         self.wait()
