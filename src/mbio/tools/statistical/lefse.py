@@ -7,6 +7,7 @@ import os
 import subprocess
 import re
 import pandas as pd
+import pandas as pd
 
 
 class LefseAgent(Agent):
@@ -22,6 +23,7 @@ class LefseAgent(Agent):
             {"name": "lefse_input", "type": "infile", "format": "meta.otu.otu_table"},  # 输入文件，biom格式的otu表
             {"name": "lefse_group", "type": "infile", "format": "meta.otu.group_table"},  # 输入分组文件
             {"name": "lda_filter", "type": "float", "default": 2.0},
+            {"name":"lefse_type","type":"string","default":"meta_taxon"},###meta_taxon,metagenome_taxon,其他
             {"name": "strict", "type": "int", "default": 0},
             {"name": "lefse_gname", "type": "string"},
             {"name": "start_level", "type": "int", "default": 3},
@@ -120,7 +122,39 @@ class LefseTool(Tool):
         self.end_level = 7
         self.start_level = 3
 
+    def run_new_otufile(self):
+        """
+         对于非taxon的丰度表，我们需要进行特殊处理，给他添加人为分类。
+         author：gaohao
+         last_modify: 2017.10.18
+        :return:
+        """
+        self.add_state("otufile_start", data="开始生成新otu格式文件")
+        otufile_cmd = self.python_path + "%slefse_for_biom.py -i %s -o otufile_input.xls " % (self.script_path,self.option('lefse_input').prop["path"])
+        self.logger.info("开始运行otufile_cmd")
+        otufile_command = self.add_command("otufile_cmd", otufile_cmd).run()
+        self.wait(otufile_command)
+        if otufile_command.return_code == 0:
+            self.logger.info("otufile_cmd运行完成")
+        else:
+            self.set_error("otufile_cmd运行出错!")
+        self.add_state("otufile_finish", data="生成新的otu格式文件")
+
     def run_biom(self):
+        self.add_state("biom_start", data="开始生成biom格式文件")
+        self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR+"/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
+        biom_cmd = self.biom_path + "biom convert -i otufile_input.xls -o otu_taxa_table.biom --table-type \"OTU table\" --process" \
+                                    "-obs-metadata taxonomy  --to-hdf5"
+        self.logger.info("开始运行biom_cmd")
+        biom_command = self.add_command("biom_cmd", biom_cmd).run()
+        self.wait(biom_command)
+        if biom_command.return_code == 0:
+            self.logger.info("biom_cmd运行完成")
+        else:
+            self.set_error("biom_cmd运行出错!")
+        self.add_state("biom_finish", data="生成biom格式文件")
+
+    def run_meta_biom(self):
         self.add_state("biom_start", data="开始生成biom格式文件")
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR+"/gcc/5.1.0/lib64:$LD_LIBRARY_PATH")
         biom_cmd = self.biom_path + "biom convert -i %s -o otu_taxa_table.biom --table-type \"OTU table\" --process" \
@@ -291,15 +325,44 @@ class LefseTool(Tool):
         # os.link(self.work_dir + '/lefse_LDA.png', self.output_dir + '/lefse_LDA.png')
         os.link(self.work_dir + '/lefse_lda_head.xls', self.output_dir + '/lefse_LDA.xls')
 
+    def set_lefse_function_output(self):
+        """
+        将结果文件链接至output
+        """
+        os.system('cp %s %s' % (self.work_dir + '/lefse_LDA.xls', self.work_dir + '/lefse_lda_head.xls'))
+        os.system('grep "Other" %s -v |sed "s/p__//g" > %s ' %(self.work_dir + '/lefse_lda_head.xls', self.work_dir + '/lefse_lda_head2.xls'))
+        os.system('sed -i "1i\\taxon\tmean\tgroup\tlda\tpvalue" %s' % (self.work_dir + '/lefse_lda_head2.xls'))
+        for root, dirs, files in os.walk(self.output_dir):
+            for names in files:
+                os.remove(os.path.join(root, names))
+        os.link(self.work_dir + '/lefse_lda_head2.xls', self.output_dir + '/lefse_LDA.xls')
+
     def run(self):
         super(LefseTool, self).run()
-        self.run_biom()
-        self.run_script()
-        # self.run_sum_tax()
-        self.format_input()
-        self.run_format()
-        self.run_lefse()
-        # self.plot_res()
-        # self.plot_cladogram()
-        self.set_lefse_output()
-        self.end()
+        if(self.option('lefse_type') == 'meta_taxon'):
+            self.run_meta_biom()
+            self.run_script()
+            self.format_input()
+            self.run_format()
+            self.run_lefse()
+            self.set_lefse_output()
+            self.end()
+        elif (self.option('lefse_type') == 'metagenome_taxon'):
+            self.run_meta_biom()
+            self.run_script()
+            self.format_input()
+            self.run_format()
+            self.run_lefse()
+            self.set_lefse_output()
+            self.end()
+        else:
+            self.run_new_otufile()
+            self.run_biom()
+            self.run_script()
+            self.format_input()
+            self.run_format()
+            self.run_lefse()
+            self.set_lefse_function_output()
+            self.end()
+
+
