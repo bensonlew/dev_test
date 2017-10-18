@@ -38,6 +38,13 @@ class BoxPlot(Base):
         self.bind_object.logger.info("开始箱线图导表")
         box_file = self.output_dir + '/boxplot.xls'
         box_group_name = []
+        if self.bind_object._task.option("group_table").is_set:
+            if self.bind_object._task.option("sed_group") == '':
+                group_num = 1
+            else:
+                group_num = 1
+        else:
+            group_num = 0
         with open(box_file) as f:
             box_plot_id = self.db['box_plot'].insert_one(SON(
                 project_sn=self.bind_object.sheet.project_sn,
@@ -45,6 +52,7 @@ class BoxPlot(Base):
                 name='box_plot',
                 desc='箱线图的数据',
                 status='faild',
+                group_num=group_num,   # 增加group_num,帮助前端区分分组类型（无/有/二级）
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )).inserted_id
             lines = f.readlines()
@@ -62,6 +70,7 @@ class BoxPlot(Base):
                 data = SON(sample_name=line_split[0], box_id=box_plot_id, box_data=data_list)
                 insert_data.append(data)
             self.db['box_plot_detail'].insert_many(insert_data)
+        select_group = ''
         if self.bind_object._task.option("group_table").is_set:
             insert_group_data = []
             if self.bind_object._task.option("sed_group") == '':
@@ -81,6 +90,7 @@ class BoxPlot(Base):
                             group_data = SON(box_id=box_plot_id, group=group_name, group_data=group_dict)
                             insert_group_data.append(group_data)
             else:
+                select_group = self.bind_object._task.option("sed_group")
                 select_group_file = [self.output_dir + '/first_group.xls', self.output_dir + '/sed_group.xls']
                 for group_file in select_group_file:
                     group_dict = defaultdict(list)
@@ -98,7 +108,7 @@ class BoxPlot(Base):
                             print group_data
                             insert_group_data.append(group_data)
             self.db['box_group'].insert_many(insert_group_data)
-        self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples, 'group_name':box_group_name}})
+        self.db['box_plot'].update_one({'_id': box_plot_id}, {'$set': {'status': 'end', 'attrs': samples, 'group_names': box_group_name, 'select_group': select_group}})
         return box_plot_id
 
     def table_in(self):
@@ -131,7 +141,7 @@ class BoxPlot(Base):
                 data['table_id'] = table_id
                 insert_data.append(data)
             self.db['table_detail'].insert_many(insert_data)
-            self.db['table'].update_one({'_id': table_id}, {'$set': {'status': 'end', 'attrs': columns}})
+            self.db['table'].update_one({'_id': table_id}, {'$set': {'status': 'end', 'attrs': attr}})
 
         return table_id
 
