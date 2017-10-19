@@ -89,7 +89,7 @@ class MergeAnnotTool(Tool):
         self.merge_scripts = self.config.SOFTWARE_DIR + "/bioinfo/rna/scripts/merge.py"
         self.goAnnot = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goAnnot.py"
         self.goSplit = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/goSplit.py"
-        self.map_path = self.config.SOFTWARE_DIR + "bioinfo/annotation/scripts/map4.r"
+        self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
         self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
         self.merge_kegg_pathway = self.config.PACKAGE_DIR + "/rna/merge_kegg_pathway.py"
