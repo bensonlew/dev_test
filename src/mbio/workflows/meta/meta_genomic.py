@@ -303,11 +303,11 @@ class MetaGenomicWorkflow(Workflow):
         if self.option('rm_host'):
             opts['QC_dir'] = self.rm_host.option('result_fq_dir')
         elif self.option('qc'):
-            opts['QC_dir'] = self.qc.option('sickle_dir')
+            opts['QC_dir'] = self.qc.option('after_qc_dir')
         else:
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
-        self.anno_table['geneset'] = self.gene_set.option('rpkm_abundance').prop['path']
+        self.anno_table['geneset'] = os.path.join(self.gene_set.output_dir, 'gene_profile/RPKM.xls')  # self.gene_set.option('rpkm_abundance').prop['path']
 
     def run_nr(self):
         opts = {

@@ -109,7 +109,11 @@ class CazyAnnoTool(Tool):
         if os.path.exists(new_annofile):
             os.remove(new_annofile)
         os.link(old_annofile, new_annofile)
-        if len(os.listdir(self.output_dir)) == 3:
+        align_file = "/gene_dbCAN.hmmscan.out.dm.ds"
+        if os.path.exists(self.output_dir + align_file):
+            os.remove(self.output_dir + align_file)
+        os.link(self.work_dir + align_file, self.output_dir + align_file)
+        if len(os.listdir(self.output_dir)) == 4:
             self.logger.info("结果文件正确生成")
         else:
             self.logger.info("文件个数不正确，请检查")
