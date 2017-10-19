@@ -11,7 +11,6 @@ from bson.son import SON
 from bson.objectid import ObjectId
 
 
-
 class HclusterTree(Base):
     def __init__(self, bind_object):
         super(HclusterTree, self).__init__(bind_object)
@@ -19,9 +18,7 @@ class HclusterTree(Base):
 
     @report_check
     def add_hcluster_tree(self, file_path, main=False, tree_id=None, task_id=None, specimen_group=None, geneset_id=None,
-                          anno_id=None,
-                          level_id=None,
-                          params=None, update_dist_id=None):
+                          anno_id=None, anno_type=None, level_id=None, params=None, update_dist_id=None):
         if main:
             if task_id is None:
                 task_id = self.bind_object.sheet.id
@@ -38,11 +35,12 @@ class HclusterTree(Base):
                 'geneset_id': geneset_id,
                 'anno_id': anno_id,
                 'specimen_group': specimen_group,
-                'level_id': level_id
+                'level_id': level_id,
+                'anno_type': anno_type
             }
             collection = self.db['hcluster_tree']
             # 将主表名称写在这里
-            hcluster_tree_id = collection.insert_one(insert_data).inserted_id
+            tree_id = collection.insert_one(insert_data).inserted_id
         else:
             if tree_id is None:
                 raise Exception("main为False时需提供tree_id!")
@@ -54,7 +52,7 @@ class HclusterTree(Base):
             line = f.readline()
             try:
                 collection = self.db["hcluster_tree"]
-                collection.update_one({"_id": tree_id}, {"$set": {"specimen_tree": line}})
+                collection.update_one({"_id": ObjectId(tree_id)}, {"$set": {"specimen_tree": line}})
             except Exception, e:
                 self.bind_object.logger.error("导入hcluster tree%s信息出错:%s" % (file_path, e))
             else:
