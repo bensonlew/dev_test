@@ -33,7 +33,6 @@ class MgCommonAnnoStatModule(Module):
         self.kegg_anno = 0
         self.ncbi_number = 0
         self.nrstat_number = 0
-        self.ncbi_align = 0
         self.eggnog = 0
         self.cog_align = 0
         self.nr_level = self.add_tool('annotation.mg_nr_tax_level')
@@ -72,9 +71,9 @@ class MgCommonAnnoStatModule(Module):
             self.sum_tool.append(self.kegg_stat)
             self.sum_tool.append(self.kegg_level)
         if len(self.sum_tool) == 1:
-            self.sum_tool[0].on('end', self.end)
+            self.sum_tool[0].on('end', self.set_output)
         else:
-            self.on_rely(self.sum_tool, self.end)
+            self.on_rely(self.sum_tool, self.set_output)
 
     def run_nr_ncbi(self):
         xml_file = os.listdir(self.option('nr_xml_dir').prop['path'])
@@ -85,7 +84,7 @@ class MgCommonAnnoStatModule(Module):
                 "blastout": file_path,
                 "blastdb": "nr",
             })
-            ncbi.on('end', self.set_output, "nr_ncbi")
+            # ncbi.on('end', self.set_output, "nr_ncbi")
             self.ncbi_tools.append(ncbi)
         if len(self.ncbi_tools) == 1:
             self.ncbi_tools[0].on('end', self.run_nr_stat)
@@ -96,6 +95,17 @@ class MgCommonAnnoStatModule(Module):
 
     def run_nr_stat(self):
         file_dir = os.path.join(self.work_dir, 'tmp_ncbi_result')
+        align_dir = os.path.join(self.work_dir, 'tmp_ncbi_align')
+        self.remkdir(file_dir)
+        self.remkdir(align_dir)
+        for tool in self.ncbi_tools:
+            self.ncbi_number += 1
+            eachtaxon = os.path.join(tool.output_dir + "/query_taxons_detail.xls")
+            nr_linkfile = file_dir + '/taxon_{}.xls'.format(str(self.ncbi_number))
+            align_old = tool.work_dir + "/temp_blastable.xls"
+            align_link = align_dir + '/nr_align_{}.xls'.format(str(self.ncbi_number))
+            self.relink(eachtaxon, nr_linkfile)
+            self.relink(align_old, align_link)
         file_name = os.listdir(file_dir)
         for i in file_name:
             file_path = os.path.join(file_dir, i)
@@ -104,7 +114,7 @@ class MgCommonAnnoStatModule(Module):
                 "taxon_out": file_path,
                 "reads_profile_table": self.option('reads_profile_table'),
             })
-            nr_stat.on('end', self.set_output, "nr_stat")
+            # nr_stat.on('end', self.set_output, "nr_stat")
             self.nr_stat_tools.append(nr_stat)
         if len(self.nr_stat_tools) == 1:
             self.nr_stat_tools[0].on('end', self.run_nr_tax_level)
@@ -114,14 +124,19 @@ class MgCommonAnnoStatModule(Module):
             tool.run()
 
     def run_nr_tax_level(self):
-        self.remkdir(self.output_dir + '/nr_tax_level')
+        file_dir = os.path.join(self.work_dir, 'tmp_nrstat_result')
+        self.remkdir(file_dir)
+        for tool in self.nr_stat_tools:
+            self.nrstat_number += 1
+            nr_stat_old = os.path.join(tool.output_dir + "/tax_profile.xls")
+            nr_linkfile = file_dir + '/tax_profile_{}.xls'.format(str(self.nrstat_number))
+            self.relink(nr_stat_old, nr_linkfile)
         self.nr_level.set_options({
             'nr_taxon_profile_dir': self.work_dir + '/tmp_nrstat_result',
-            'nr_taxon_anno_dir': self.work_dir+ "/tmp_ncbi_result",
+            'nr_taxon_anno_dir': self.work_dir + "/tmp_ncbi_result",
             'nr_align_dir': self.work_dir + '/tmp_ncbi_align'
         })
-        self.nr_level.on('end', self.set_output, 'nr_level')
-        # self.nr_level.on('end', self.end)  # 单独测试nr的时候使用
+        #self.nr_level.on('end', self.set_output, 'nr_level')
         self.nr_level.run()
 
     def run_eggnog(self):
@@ -132,7 +147,7 @@ class MgCommonAnnoStatModule(Module):
             eggnog.set_options({
                 "cog_xml": file_path
             })
-            eggnog.on('end', self.set_output, "eggnog")
+            #eggnog.on('end', self.set_output, "eggnog")
             self.eggnog_tools.append(eggnog)
         if len(self.eggnog_tools) == 1:
             self.eggnog_tools[0].on('end', self.run_cog_stat)
@@ -142,21 +157,30 @@ class MgCommonAnnoStatModule(Module):
             tool.run()
 
     def run_cog_stat(self):
-        self.remkdir(self.output_dir + '/cog_result_dir')
+        # self.remkdir(self.output_dir + '/cog_result_dir')
+        file_dir = os.path.join(self.work_dir, 'tmp_eggnog')
+        align_dir = os.path.join(self.work_dir, 'tmp_cog_align')
+        self.remkdir(file_dir)
+        self.remkdir(align_dir)
+        for tool in self.eggnog_tools:
+            self.eggnog += 1
+            cog_old = os.path.join(tool.output_dir + "/gene_cog_anno.xls")
+            cog_linkfile = file_dir + '/eggnog_{}.xls'.format(str(self.eggnog))
+            align_old = tool.output_dir + "/tmp_cog_table.xls"
+            align_link = align_dir + '/eggnog_align_{}.xls'.format(str(self.eggnog))
+            self.relink(cog_old, cog_linkfile)
+            self.relink(align_old, align_link)
         self.cog_stat.set_options({
             'cog_table_dir': self.work_dir + '/tmp_eggnog',
             'align_table_dir': self.work_dir + '/tmp_cog_align',
             'reads_profile_table': self.option('reads_profile_table'),
         })
-        self.cog_stat.on('end', self.set_output, 'cog_stat')
+        # self.cog_stat.on('end', self.set_output, 'cog_stat')
         # self.cog_stat.on('end', self.end)
         self.cog_stat.run()
 
     def run_kegg_anno(self):
         self.remkdir(self.work_dir + '/tmp_kegg_anno')
-        # self.remkdir(self.work_dir + '/tmp_kegg_enzyme')
-        # self.remkdir(self.work_dir + '/tmp_kegg_module')
-        # self.remkdir(self.work_dir + '/tmp_kegg_pathway')
         xml_file = os.listdir(self.option('kegg_xml_dir').prop['path'])
         for i in xml_file:
             file_path = os.path.join(self.option('kegg_xml_dir').prop['path'], i)
@@ -164,7 +188,7 @@ class MgCommonAnnoStatModule(Module):
             kegg_anno.set_options({
                 "kegg_xml": file_path
             })
-            kegg_anno.on('end', self.set_output, "kegg_anno")
+            # kegg_anno.on('end', self.set_output, "kegg_anno")
             self.kegg_anno_tools.append(kegg_anno)
         if len(self.kegg_anno_tools) == 1:
             self.kegg_anno_tools[0].on('end', self.run_kegg_stat)
@@ -174,88 +198,62 @@ class MgCommonAnnoStatModule(Module):
             tool.run()
 
     def run_kegg_stat(self):
-        self.remkdir(self.output_dir + '/kegg_result_dir')
+        # self.remkdir(self.output_dir + '/kegg_result_dir')
+        file_dir = os.path.join(self.work_dir, 'tmp_kegg_anno')
+        align_dir = os.path.join(self.work_dir, 'tmp_kegg_align')
+        self.remkdir(file_dir)
+        self.remkdir(align_dir)
+        for tool in self.kegg_anno_tools:
+            self.kegg_anno += 1
+            kegg_old = os.path.join(tool.output_dir + "/gene_kegg_anno.xls")
+            kegg_linkfile = file_dir + '/kegg_anno_result_{}.xls'.format(str(self.kegg_anno))
+            align_old = tool.output_dir + "/tmp_kegg_table.xls"
+            align_link = align_dir + '/kegg_align_{}.xls'.format(str(self.kegg_anno))
+            self.relink(kegg_old, kegg_linkfile)
+            self.relink(align_old, align_link)
+            self.relink(tool.output_dir + "/kegg_enzyme_list.xls",
+                        file_dir + '/kegg_module_list_{}.xls'.format(str(self.kegg_anno)))
+            self.relink(tool.output_dir + "/kegg_module_list.xls",
+                        file_dir + '/kegg_enzyme_list_{}.xls'.format(str(self.kegg_anno)))
+            self.relink(tool.output_dir + "/kegg_pathway_list.xls",
+                        file_dir + '/kegg_pathway_list_{}.xls'.format(str(self.kegg_anno)))
         self.kegg_stat.set_options({
             "kegg_result_dir": self.work_dir + '/tmp_kegg_anno/',
+            "align_table_dir": self.work_dir + '/tmp_kegg_align/',
             "reads_profile": self.option('reads_profile_table'),
         })
-        self.kegg_stat.on('end', self.set_output, 'kegg_stat')
+        #self.kegg_stat.on('end', self.set_output, 'kegg_stat')
         # self.kegg_stat.on('end', self.end)
         self.kegg_st_le_tools.append(self.kegg_stat)
         self.kegg_level.set_options({
             "kegg_result_dir": self.work_dir + '/tmp_kegg_anno/',
             "reads_profile": self.option('reads_profile_table'),
         })
-        self.kegg_level.on('end', self.set_output, 'kegg_level')
+        # self.kegg_level.on('end', self.set_output, 'kegg_level')
         self.kegg_st_le_tools.append(self.kegg_level)
         if len(self.kegg_st_le_tools) < 2:
             self.logger.info("kegg stat or level error!")
         for tool in self.kegg_st_le_tools:
             tool.run()
 
-    def set_output(self, event):
-        obj = event['bind_object']
-        if event['data'] == 'nr_ncbi':
-            self.remkdir(self.work_dir + '/tmp_ncbi_result')
-            self.ncbi_number += 1
-            nr_old = obj.output_dir + '/query_taxons_detail.xls'
-            nr_linkfile = self.work_dir + '/tmp_ncbi_result/' + str(self.ncbi_number) + '_taxon.xls'
-            self.relink(nr_old, nr_linkfile)
-            self.remkdir(self.work_dir + '/tmp_ncbi_align')
-            self.ncbi_align += 1
-            align_old = obj.work_dir + "/temp_blastable.xls"
-            align_link = self.work_dir + '/tmp_ncbi_align/' + str(self.ncbi_align) + '_nr_align.xls'
-            self.relink(align_old, align_link)
-        elif event['data'] == 'nr_stat':
-            self.remkdir(self.work_dir + '/tmp_nrstat_result')
-            self.nrstat_number += 1
-            self.relink(obj.output_dir + '/tax_profile.xls',
-            self.work_dir + '/tmp_nrstat_result/' + str(self.nrstat_number) + '_tax_profile.xls')
-        elif event['data'] == 'nr_level':
-            # nr_anno = os.path.join(self.nr_level.output_dir,"tmp_gene_nr_anno.xls")
-            # new_nr_anno = os.path.join(self.output_dir, "nr_tax_level/gene_nr_anno.xls")
-            #self.relink(nr_anno, new_nr_anno)
-            self.linkdir(obj.output_dir, "nr_tax_level")
-        elif event['data'] == 'eggnog':
-            self.remkdir(self.work_dir + '/tmp_eggnog')
-            self.remkdir(self.work_dir + '/tmp_cog_align')
-            self.eggnog += 1
-            cog_old = obj.output_dir + '/gene_cog_anno.xls'
-            linkfile = self.work_dir + '/tmp_eggnog/' + 'eggnog_{}.xls'.format(str(self.eggnog))
-            self.relink(cog_old, linkfile)
-            self.cog_align += 1
-            cog_align_old = obj.output_dir + '/tmp_cog_table.xls'
-            cog_align_linkfile = self.work_dir + '/tmp_cog_align/' + 'eggnog_align_{}.xls'.format(str(self.cog_align))
-            self.relink(cog_align_old, cog_align_linkfile)
-        elif event['data'] == 'cog_stat':
-            self.linkdir(obj.output_dir, "cog_result_dir")
-        elif event['data'] == 'kegg_stat':
-            self.linkdir(obj.output_dir, "kegg_result_dir")
-        elif event['data'] == 'kegg_level':
-            self.linkdir(obj.output_dir, "kegg_result_dir")
-        elif event['data'] == 'kegg_anno':
-            self.kegg_anno += 1
-            self.remkdir(self.work_dir + '/tmp_kegg_anno/')
-            self.relink(obj.output_dir + '/gene_kegg_anno.xls',
-                    self.work_dir + '/tmp_kegg_anno/' + 'kegg_anno_result{}.xls'.format(str(self.kegg_anno)))
-            self.relink(obj.output_dir + '/kegg_enzyme_list.xls',
-                    self.work_dir + '/tmp_kegg_anno/' + 'kegg_enzyme_list{}.xls'.format(str(self.kegg_anno)))
-            self.relink(obj.output_dir + '/kegg_module_list.xls',
-                    self.work_dir + '/tmp_kegg_anno/' + 'kegg_module_list{}.xls'.format(str(self.kegg_anno)))
-            self.relink(obj.output_dir + '/kegg_pathway_list.xls',
-                    self.work_dir + '/tmp_kegg_anno/' + 'kegg_pathway_list{}.xls'.format(str(self.kegg_anno)))
-        else:
-            pass
+    def set_output(self):
+        if self.option("nr_xml_dir").is_set:
+            self.linkdir(self.nr_level.output_dir, "nr_tax_level")
+        if self.option("cog_xml_dir").is_set:
+            self.linkdir(self.cog_stat.output_dir, "cog_result_dir")
+        if self.option("kegg_xml_dir").is_set:
+            self.linkdir(self.kegg_stat.output_dir, "kegg_result_dir")
+            self.linkdir(self.kegg_level.output_dir, "kegg_result_dir")
+        self.end()
 
-
-    def relink(self,oldfile,newfile):
+    def relink(self, oldfile, newfile):
         if os.path.exists(newfile):
             os.remove(newfile)
-            os.link(oldfile,newfile)
+            os.link(oldfile, newfile)
         else:
-            os.link(oldfile,newfile)
+            os.link(oldfile, newfile)
 
-    def remkdir(self,dir_name):
+    def remkdir(self, dir_name):
         if os.path.exists(dir_name):
             pass
         else:
