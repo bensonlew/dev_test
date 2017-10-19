@@ -20,6 +20,7 @@ class BetaDiversityWorkflow(Workflow):
         super(BetaDiversityWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "analysis_type", "type": "string", "default": 'pca'},
+            {"name": "anno_type", "type": "string", "default": 'nr'},
             {"name": "anno_id", "type": "string"},
             {"name": "main_id", "type": "string"},
             {"name": "anno_table", "type": "infile", "format": "meta.profile"},  # 各数据库的注释表格
