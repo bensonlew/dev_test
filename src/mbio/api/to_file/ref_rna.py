@@ -107,6 +107,7 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
     geneset_collection = db["sg_geneset"]
     task_id = geneset_collection.find_one({"_id": ObjectId(data)})["task_id"]
     my_result = db["sg_annotation_go"].find_one({"task_id": task_id})
+    geneset_type= bind_obj.sheet.option('geneset_type')
     go_id = my_result["_id"]
     if not my_result:
         raise Exception("意外错误，annotation_go_id:{}在sg_annotation_go中未找到！".format(go_id))
@@ -119,7 +120,9 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
         for result in results:
             gene_id = result["gene_id"]
             go_list = result["gos_list"]
-            w.write(gene_id + "\t" + go_list + "\n")
+            go_anno_type = result["anno_type"]
+            if go_anno_type == geneset_type:
+                w.write(gene_id + "\t" + go_list + "\n")
     return go_list_path
 
 
