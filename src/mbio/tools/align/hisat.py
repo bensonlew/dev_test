@@ -75,7 +75,7 @@ class HisatAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = '20G'
+        self._memory = '30G'
 
 
 class HisatTool(Tool):
