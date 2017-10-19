@@ -19,12 +19,13 @@ def time_count(func):  # 统计导表时间
         start = time.time()
         func_name = func.__name__
         start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))
-        print('Run %s at %s' %(func_name, start_time))
+        print('Run %s at %s' % (func_name, start_time))
         func(*args, **kw)
         end = time.time()
         end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))
-        print('End %s at %s' %(func_name, end_time))
+        print('End %s at %s' % (func_name, end_time))
         print("{}函数执行完毕，该阶段导表已进行{}s".format(func_name, end - start))
+
     return wrapper
 
 
@@ -311,7 +312,8 @@ class MetaGenomicWorkflow(Workflow):
         else:
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
-        self.anno_table['geneset'] = os.path.join(self.gene_set.output_dir, 'gene_profile/RPKM.xls')  # self.gene_set.option('rpkm_abundance').prop['path']
+        self.anno_table['geneset'] = os.path.join(self.gene_set.output_dir,
+                                                  'gene_profile/RPKM.xls')  # self.gene_set.option('rpkm_abundance').prop['path']
 
     def run_nr(self):
         opts = {
@@ -549,6 +551,70 @@ class MetaGenomicWorkflow(Workflow):
             anno = self.correlation_dir2anno[obj.output_dir]
             self.move_dir(obj.output_dir, os.path.join('correlation', 'cor_heatmap', anno))
 
+    def rm_tmp_file(self):
+        """
+        去除中间过程文件
+        :return:
+        """
+        self.rm_dir(os.path.join(self.work_dir, 'MetaGenomic'), ['output'])
+        self.rm_dir(os.path.join(self.work_dir, 'QcAndStat'), ['output'])
+        self.rm_dir(os.path.join(self.work_dir, 'BwaRemoveHost'), ['output', 'sam_dir'])
+        self.rm_dir(os.path.join(self.work_dir, 'MgAssIdba', ['output']))  # 检查混拼
+        self.rm_dir(os.path.join(self.work_dir, 'MgAssSoapdenovo', ['output']))  # 需检查
+        self.rm_dir(os.path.join(self.work_dir, 'GenePredict', ['output']))  # 中间文件需确定
+        # self.rm_dir(os.path.join(self.work_dir, ''))
+
+    def rm_dir(self, dir, expect_list):
+        if not os.path.exists(dir):
+            self.logger.info('there is no dir named:' + dir)
+            return
+        elif os.path.isdir(dir):
+            dir_list = os.listdir(dir)
+            for file in dir_list:
+                self.logger.info(dir + 'contains file:' + 'file')
+                if file in expect_list:
+                    self.logger.info('file: ' + file + 'in expect_list, list is :')
+                    self.logger.info(expect_list)
+                    continue
+                else:
+                    '''
+                    for expect_file in expect_list:
+                        if expect_file in file:
+                            self.logger.info('file ' + file + 'is in expect_file' + expect_file)
+                            rm_ = 0
+                            break
+                        else:
+                            rm_ = 1
+                    '''
+                    rm_ = 1
+                    if rm_ == 1:
+                        next_dir = os.path.join(dir, file)
+                        self.logger.info('now go into next dir' + next_dir)
+                        self.rm_dir(next_dir, expect_list)
+            check_dir = os.listdir(dir)
+            if len(check_dir) == 0:
+                self.logger.info('dir is empty , remove it :' + dir)
+                shutil.rmtree(dir)
+        elif os.path.isfile(dir):
+            if dir in expect_list:
+                self.logger.info("file is in expect_list, file is : " + dir + " expect_list is ")
+                self.logger.ino(expect_list)
+                return
+            else:
+                file = os.path.basename(dir)
+                for expect_file in expect_list:
+                    if expect_file in file:
+                        self.logger.info('file' + file + 'is in expect_file' + expect_file)
+                        rm_ = 0
+                        break
+                    else:
+                        rm_ = 1
+                if rm_ == 1:
+                    filesize = os.path.getsize(dir) / 1024 / 1024
+                    self.logger.info('now remove file: ' + dir + 'its size is : ')
+                    self.logger.info(filesize)
+                    if filesize > 50: os.remove(dir)
+
     def set_output_all(self):
         """
         将所有结果一起导出至output，暂不需要
@@ -597,8 +663,9 @@ class MetaGenomicWorkflow(Workflow):
             self.logger.info("导出失败：请检查{}".format(old_file))
 
     def end(self):
-        self.run_api(test = self.option('test'))
+        self.run_api(test=self.option('test'))
         # self.send_files()
+        # self.rm_tmp_file()
         super(MetaGenomicWorkflow, self).end()
 
     def send_files(self):  # 原modify_output
