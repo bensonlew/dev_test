@@ -40,6 +40,7 @@ class PpinetworkAction(RefRnaController):
             "species": data.species,
             "combine_score": data.combine_score,
             "gene_type": data.gene_type
+            "task_id": data.task_id
         }
         geneset_info = self.ref_rna.get_main_info(data.geneset_id, 'sg_geneset')
         if not geneset_info:

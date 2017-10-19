@@ -72,6 +72,8 @@ class KeggAnnotationTool(Tool):
         self.taxonomy_path = self.config.SOFTWARE_DIR + "/database/KEGG/species/{}.ko.txt".format(self.option("taxonomy"))
         # self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation.py"
         self.kegg_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/kegg_annotation_v2.py"
+        self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
+        self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
 
     def run(self):
@@ -95,7 +97,7 @@ class KeggAnnotationTool(Tool):
         pathway_table = self.output_dir + '/pathway_table.xls'
         layerfile = self.output_dir + '/kegg_layer.xls'
         # taxonomyfile = self.output_dir + '/kegg_taxonomy.xls'
-        cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, blast_xml, None, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
+        cmd = "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {}".format(self.python, self.kegg_path, self.r_path, self.map_path, blast_xml, None, kegg_table, pidpath, pathwaydir, pathway_table, layerfile, taxonomy, self.option("link_bgcolor"), self.option("png_bgcolor"), self.image_magick)
         command = self.add_command("kegg_anno", cmd).run()
         self.wait()
         if command.return_code == 0:
