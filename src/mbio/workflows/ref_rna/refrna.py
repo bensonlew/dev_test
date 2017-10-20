@@ -727,6 +727,10 @@ class RefrnaWorkflow(Workflow):
         os.mkdir(self.work_dir + "/upload_results")
         origin_dir = self.output_dir
         target_dir = self.work_dir + "/upload_results"
+        #seq_db
+        os.mkdir(target_dir + "/Sequence_database")
+        seq_db = origin_dir + "/../refrna_seqs.db"
+        os.link(seq_db, target_dir + "/Sequence_database/refrna_seqs.db")
         # QC
         fq_stat_before = origin_dir + "/QC_stat/before_qc/fastq_stat.xls"
         fq_stat_after = origin_dir + "/QC_stat/after_qc/fastq_stat.xls"
@@ -735,7 +739,11 @@ class RefrnaWorkflow(Workflow):
         os.link(fq_stat_after, target_dir + "/QC/cleandata_statistics.xls")
         # Align
         os.makedirs(target_dir + "/Align/AlignStat")
+        os.makedirs(target_dir + "/Align/AlignBam")
         os.makedirs(target_dir + "/Align/QualityAssessment")
+        for file in os.listdir(origin_dir + "/../RnaseqMapping/output/bam"):
+            file_path = os.path.join(origin_dir + "/../RnaseqMapping/output/bam", file)
+            os.link(file_path, target_dir + "/Align/AlignBam/" + file)
         for file in os.listdir(origin_dir + "/mapping/stat"):  # link bam_stat文件，后期可优化
             file_path = os.path.join(origin_dir + "/mapping/stat", file)
             os.link(file_path, target_dir + "/Align/AlignStat/" + file.strip(".stat") + "_align_stat.txt")
@@ -945,10 +953,12 @@ class RefrnaWorkflow(Workflow):
             os.link(as_path, target_dir + "/AS/" + "ASRmats_" + file_dir + "_G_ref_anno.xls")
         repaths = [
             [".", "", "流程分析结果目录"],
+            ["Sequence_database", "", "序列文件数据库"],
             ["QC", "", "测序数据统计与质控结果文件"],
             ["QC/rawdata_statistics.xls", "", "原始数据统计表"],
             ["QC/cleandata_statistics.xls", "", "质控数据统计表"],
             ["Align", "", "质控数据比对结果文件"],
+            ["Align/AlignBam", "", "比对结果bam文件"],
             ["Align/AlignStat", "", "比对结果统计文件"],
             ["Align/QualityAssessment", "", "比对结果整体评估文件"],
             ["Assemble", "", "基于ref组装与新转录本/基因注释文件"],
