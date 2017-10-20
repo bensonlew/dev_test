@@ -76,10 +76,17 @@ class MetaGenomicModule(Module):
             with open(list_path, "r") as f , open(list, "wb") as w:
                 for line in f:
                     line = line.split('\t')
-                    fq_name = line[0].split('.fq.')[0]
+                    if "fq" in line[0]:
+                        fq_name = line[0].split('.fq.')[0]
+                        fq_name += ".fq"
+                    elif "fastq" in line[0]:
+                        fq_name = line[0].split('.fastq.')[0]
+                        fq_name += ".fastq"
+                    else:
+                        self.set_error("原文件名出错，不含有fq或fastq字符：" + line[0])
                     sample = line[1]
                     direction = line[2]
-                    w.write(fq_name + '.fq\t' + sample +'\t' + direction )
+                    w.write(fq_name + '\t' + sample +'\t' + direction )
         else:
             raise Exception('list.txt缺失')
         if os.path.exists(self.base_info.output_dir + "/base_info"):

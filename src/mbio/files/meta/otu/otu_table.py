@@ -271,7 +271,7 @@ class OtuTableFile(File):
                 for i in colnum_list:
                     otu_dict[line[0]].append(line[i])
                 for num in otu_dict[line[0]]:
-                    sum_ += int(num)
+                    sum_ += float(num)  # int(num)  modified by guhaidong for metagenome pipline at 2017.10.19
                 if sum_ == 0:
                     del otu_dict[line[0]]
         if self.prop["metadata"] == "taxonomy":

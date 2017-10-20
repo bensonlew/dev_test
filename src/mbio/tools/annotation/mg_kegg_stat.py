@@ -20,6 +20,7 @@ class MgKeggStatAgent(Agent):
             {"name": "kegg_result_dir", "type": "infile", "format": "annotation.mg_anno_dir"},
             {"name": "reads_profile", "type": "infile", "format": "sequence.profile_table"},
             {"name": "kegg_profile_dir", "type": "outfile", "format": "annotation.mg_anno_dir"},
+            {"name": "align_table_dir", "type": "infile", "format": "annotation.mg_anno_dir"}
         ]
         self.add_option(options)
 
@@ -32,7 +33,7 @@ class MgKeggStatAgent(Agent):
 
     def set_resource(self):
         self._cpu = 2
-        self._memory = '5G'
+        self._memory = '3G'
 
     def end(self):
         result_dir = self.add_upload_dir(self.output_dir)
@@ -61,13 +62,38 @@ class MgKeggStatTool(Tool):
         :return:
         """
         super(MgKeggStatTool, self).run()
+        if self.option("align_table_dir").is_set:
+            self.merge_align_table()
         self.merge_table()
         self.run_kegg_stat()
         self.set_output()
         self.end()
 
+    def merge_align_table(self):
+        kegg_align = 0
+        profile_file = os.listdir(self.option('align_table_dir').prop['path'])
+        self.align_table = os.path.join(self.output_dir, "kegg_align_table.xls")
+        if os.path.exists(self.align_table):
+            os.remove(self.align_table)
+        for i in profile_file:
+            kegg_align += 1
+            file_path = os.path.join(self.option('align_table_dir').prop['path'], i)
+            if kegg_align > 1:
+                os.system("sed -i " +  '1d ' + file_path)
+            cmd = '{} {} {}'.format(self.sh_path, file_path, self.align_table)
+            self.logger.info("start cat {}".format(i))
+            command_name = "cat" + str(kegg_align)
+            command = self.add_command(command_name, cmd).run()
+            self.wait(command)
+            if command.return_code == 0:
+                self.logger.info("cat {} done".format(i))
+            else:
+                self.set_error("cat {} error".format(i))
+                raise Exception("cat {} error".format(i))
+
     def merge_table(self):
         kegg_number = 0
+        kegg_anno_number = 0
         profile_file = os.listdir(self.option('kegg_result_dir').prop['path'])
         self.anno_result = os.path.join(self.work_dir, "tmp_kegg_anno.xls")
         self.enzyme_list = os.path.join(self.work_dir, "kegg_enzyme_list.xls")
@@ -82,15 +108,19 @@ class MgKeggStatTool(Tool):
         if os.path.exists(self.pathway_list):
             os.remove(self.pathway_list)
         for i in profile_file:
-            kegg_number += 1
             suffix = ["anno_result","enzyme_list","module_list","pathway_list"]
             merge_result = [self.anno_result ,self.enzyme_list,self.module_list,self.pathway_list]
             for j in range(0,4):
                 if suffix[j] in i:
+                    kegg_number += 1
                     file_path = os.path.join(self.option('kegg_result_dir').prop['path'], i)
+                    if suffix[j] == "anno_result":
+                        kegg_anno_number += 1
+                        if kegg_number > 1:
+                            os.system("sed -i " +  '1d ' + file_path)
                     cmd = '{} {} {}'.format(self.sh_path, file_path, merge_result[j])
                     self.logger.info("start cat {}".format(i))
-                    command_name = "cat" + str(kegg_number)
+                    command_name = "cat " + suffix[j] + str(kegg_number)
                     command = self.add_command(command_name, cmd).run()
                     self.wait(command)
                     if command.return_code == 0:
@@ -118,7 +148,7 @@ class MgKeggStatTool(Tool):
 
     def set_output(self):
         self.logger.info("set_output")
-        if len(os.listdir(self.output_dir)) == 6:
+        if len(os.listdir(self.output_dir)) == 8:
             try:
                 self.option("kegg_profile_dir", self.output_dir)
             except Exception as e:
