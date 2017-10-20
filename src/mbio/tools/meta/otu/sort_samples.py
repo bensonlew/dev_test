@@ -118,11 +118,11 @@ class SortSamplesTool(Tool):
 
                 w.write(line[0] + "\t")
                 for i in range(1, len(line)):
-                    num[sample_group[index_sample[i]]] += int(line[i])
+                    num[sample_group[index_sample[i]]] += float(line[i])
                 for m in group_list:  # add 12 lines by zhouxuan 20161205
                     for i in range(1, len(line)):
                         if sample_group[index_sample[i]] == m:
-                            list1.append(int(line[i]))
+                            list1.append(float(line[i]))
                             if len(list1) == group_sample_num[m]:
                                 list1.sort()
                                 yu = int(group_sample_num[m]) % 2
@@ -178,7 +178,8 @@ class SortSamplesTool(Tool):
         new_df = df.ix[list((df > self.option("others")).any(axis=1))]
         new_df2 = new_df.copy()
         others = df.ix[list((df < self.option("others")).all(axis=1))]
-        new_df2.loc["others"] = others.apply(lambda x: x.sum(), axis=0)
+        if len(others) > 0 :
+            new_df2.loc["others"] = others.apply(lambda x: x.sum(), axis=0)
         other = os.path.join(self.output_dir, "taxa.percents.table.xls")
         new_df2.to_csv(other, sep="\t", encoding="utf-8")
 
