@@ -1405,9 +1405,9 @@ class RefrnaWorkflow(Workflow):
 
         self.logger.info(params['group_detail'])  # 打印group_detail
         params['express_id'] = str(self.express_id)
-        params['fc'] = 2
+        params['fc'] = '2'
         params['pvalue_padjust'] = 'padjust'  # 默认为padjust
-        params['pvalue'] = self.option("diff_fdr_ci")
+        params['pvalue'] = str(self.option("diff_fdr_ci"))
         params['diff_method'] = self.option("diff_method")
         params["type"] = 'transcript'
         class_code = self.exp.mergersem.work_dir + "/class_code"
@@ -1486,9 +1486,9 @@ class RefrnaWorkflow(Workflow):
             compare_column_specimen[cmp] = sorted(group2samples[gp1])+sorted(group2samples[gp2])
 
         params['express_id'] = str(self.express_id)
-        params['fc'] = 2
+        params['fc'] = '2'
         params['pvalue_padjust'] = 'padjust'  # 默认为padjust
-        params['pvalue'] = self.option("diff_fdr_ci")
+        params['pvalue'] = str(self.option("diff_fdr_ci"))
         params['diff_method'] = self.option("diff_method")
         class_code = self.exp.mergersem.work_dir + "/class_code"
         diff_express_id = self.api_exp.add_express_diff(params=params, samples=sample,
