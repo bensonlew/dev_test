@@ -63,6 +63,7 @@ class SampleBase(Base):
                         results["mj_number"] = row_data[mj_number_index]
                         results["client_name"] = row_data[client_name_index]
                         results["sample_path"] = dir_path + '/' + sample + '.fq'
+                        results["pipeline_type"] = "meta"
                     with open(info_txt, "r") as fr1:
                         for line in fr1:
                             tmp = line.strip().split("\t")
@@ -154,6 +155,7 @@ class SampleBase(Base):
         results["batch_id"] = ObjectId(table_id)
         results["specimen_id"] = ObjectId(sample_id)
         results["alias_name"] = sample
+        results["dec"] = ''
         results_list.append(results)
         try:
             collection.insert_many(results_list)

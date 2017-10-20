@@ -37,7 +37,7 @@ class MetaSampleWorkflow(Workflow):
         """
         检查参数设置
         """
-        if self.option("in_fastq").is_set:
+        if self.option("in_fastq"):
             if self.option("info_file").is_set:
                 pass
             else:
@@ -77,7 +77,7 @@ class MetaSampleWorkflow(Workflow):
         if self.option("in_fastq").is_set:
             # 获得输入文件的路径
             if self.option("in_fastq").format == 'sequence.fastq':
-                file_path = "\\".join(self.option("file_path").strip().split("\\")[:-2])
+                file_path = self.option("file_path")
             else:
                 file_path = self.option("file_path")
             for sample in sample_list:
@@ -133,7 +133,7 @@ class MetaSampleWorkflow(Workflow):
 
     def run(self):
         self.logger.info("开始运行！")
-        if self.option("in_fastq").is_set:
+        if self.option("in_fastq"):
             self.fastq_extract.on("end", self.end)
             self.run_fastq_extract()
         else:

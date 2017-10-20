@@ -21,16 +21,15 @@ def export_sample_list(file_list, option_name, dir_path, bind_obj=None):
         "#ID\tSample\talias_name\tstrategy\tplatform\tprimer\tcontract_number\tcontract_sequence_number\tmj_number\tclient_name\tsequence_num\tbase_num\tmin_length\tmean_length\tmax_length\tfile_name\n")
     for key in file_list:
         batch_specimen_result = collection.find_one({"_id": ObjectId(key)})
+        print batch_specimen_result
         specimen_id = batch_specimen_result["specimen_id"]
+        Sample_name = batch_specimen_result["alias_name"]
         info = my_collection.find_one({"_id": ObjectId(specimen_id)})
         if not info:
             raise Exception("意外错误，样本id:{}在sg_test_specimen中未找到！")
-        if type(info['file_name']) == list:  # 如果该序列是重组所得，则该file_name存放的是原样本id的list，否则则是文件路径
-            file_name = ";".join(info['file_name'])
-        else:
-            file_name = info['file_name'].strip().split("/")[-1]
-            print file_name
-        new_line = str(specimen_id) + '\t' + str(info['specimen_name']) + '\t' + str(file_list[key]) + '\t' + \
+         # 如果该序列是重组所得，则该file_name存放文件路径的list,不是重组，则len(list)==1
+        file_name = ";".join(info['file_path'])
+        new_line = str(specimen_id) + '\t' + str(Sample_name) + '\t' + str(file_list[key]) + '\t' + \
                    str(info['strategy']) + '\t' + str(info['platform']) + '\t' + str(info['primer']) + '\t' + \
                    str(info['contract_number']) + '\t' + str(info['contract_sequence_number']) + '\t' + \
                    str(info['mj_number']) + '\t' +  str(info['client_name']) + '\t' + str(info['sequence_num']) + '\t' + \
