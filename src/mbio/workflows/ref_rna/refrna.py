@@ -729,7 +729,7 @@ class RefrnaWorkflow(Workflow):
         target_dir = self.work_dir + "/upload_results"
         #seq_db
         os.mkdir(target_dir + "/Sequence_database")
-        seq_db = origin_dir + "../refrna_seqs.db"
+        seq_db = origin_dir + "/../refrna_seqs.db"
         os.link(seq_db, target_dir + "/Sequence_database/refrna_seqs.db")
         # QC
         fq_stat_before = origin_dir + "/QC_stat/before_qc/fastq_stat.xls"
@@ -741,8 +741,8 @@ class RefrnaWorkflow(Workflow):
         os.makedirs(target_dir + "/Align/AlignStat")
         os.makedirs(target_dir + "/Align/AlignBam")
         os.makedirs(target_dir + "/Align/QualityAssessment")
-        for file in os.listdir(origin_dir + "../RnaseqMapping/output/bam"):
-            file_path = os.path.join(origin_dir + "../RnaseqMapping/output/bam", file)
+        for file in os.listdir(origin_dir + "/../RnaseqMapping/output/bam"):
+            file_path = os.path.join(origin_dir + "/../RnaseqMapping/output/bam", file)
             os.link(file_path, target_dir + "/Align/AlignBam/" + file)
         for file in os.listdir(origin_dir + "/mapping/stat"):  # link bam_stat文件，后期可优化
             file_path = os.path.join(origin_dir + "/mapping/stat", file)
