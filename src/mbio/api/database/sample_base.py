@@ -29,7 +29,7 @@ class SampleBase(Base):
         """
         collection = self.db["sg_test_specimen"]
         results = {}
-        if self.bind_object.option("in_fastq").is_set:
+        if self.bind_object.option("in_fastq"):
             self.bind_object.logger.info("已经开始导表了！！！！！")
             try:
                 bk = xlrd.open_workbook(info_file)
@@ -75,7 +75,7 @@ class SampleBase(Base):
                             results["mean_length"] = tmp[5]
                             results["min_length"] = tmp[6]
                             results["max_length"] = tmp[7]
-                            results["file_path"] = file_path + tmp[0].strip().split("\\")[-1]
+                            results["file_path"] = [file_path + tmp[0].strip().split("\\")[-1]]
             sample_id = collection.insert_one(results).inserted_id
         else:
             self.bind_object.logger.info("居然没有导表！！！！！")

@@ -18,9 +18,9 @@ class FastqRecombinedAgent(Agent):
     def __init__(self, parent):
         super(FastqRecombinedAgent, self).__init__(parent)
         options = [
-            {"name": "file_list", "type": "infile", "format": "sequence.sample_base_table"},  # 从数据库dump下来的样本信息，仅重组样本集时用
-            {"name": "output_list", "type": "outfile", "format": "sequence.sample_base_table"},  # 样本统计信息
-            {"name": "info_file", "type": "outfile", "format": "sequence.sample_base_table"},  # 样本基本信息
+            {"name": "file_list", "type": "infile", "format": "nipt.xlsx"},  # 从数据库dump下来的样本信息，仅重组样本集时用
+            {"name": "output_list", "type": "outfile", "format": "nipt.xlsx"},  # 样本统计信息
+            {"name": "info_file", "type": "outfile", "format": "nipt.xlsx"},  # 样本基本信息
         ]
         self.add_option(options)
         self.step.add_steps("fastq_recombined")

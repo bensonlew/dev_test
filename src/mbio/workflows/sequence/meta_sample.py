@@ -38,11 +38,11 @@ class MetaSampleWorkflow(Workflow):
         检查参数设置
         """
         if self.option("in_fastq"):
-            if self.option("info_file").is_set:
+            if self.option("info_file"):
                 pass
             else:
                 raise OptionError("新建样本集时必须上传样本信息表！")
-        elif self.option("file_list").is_set:
+        elif self.option("file_list"):
             pass
         else:
             raise OptionError("新建时必须上传fastq文件或文件夹，重组时必须有需要重组的样本信息！")
@@ -74,7 +74,7 @@ class MetaSampleWorkflow(Workflow):
         dir_path = root_path + "/" + self.option("table_id")
         table_id = self.option("table_id")
         sample_list = self.get_sample()
-        if self.option("in_fastq").is_set:
+        if self.option("in_fastq"):
             # 获得输入文件的路径
             if self.option("in_fastq").format == 'sequence.fastq':
                 file_path = self.option("file_path")
@@ -100,7 +100,7 @@ class MetaSampleWorkflow(Workflow):
 
     def get_sample(self):
         sample_list = []
-        if self.option("in_fastq").is_set:
+        if self.option("in_fastq"):
             dir_path = self.fastq_extract.option("output_fq").prop["path"]
         else:
             dir_path = self.fastq_recombined.output_dir

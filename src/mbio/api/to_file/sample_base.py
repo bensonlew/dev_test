@@ -18,7 +18,7 @@ def export_sample_list(file_list, option_name, dir_path, bind_obj=None):
     my_collection = db['sg_test_specimen']
     f = open(file_path, "wb")
     f.write(
-        "#ID\tSample\talias_name\tstrategy\tplatform\tprimer\tcontract_number\tcontract_sequence_number\tmj_number\tclient_name\tsequence_num\tbase_num\tmin_length\tmean_length\tmax_length\tfile_name\n")
+        "#ID\tSample\talias_name\tstrategy\tplatform\tprimer\tcontract_number\tcontract_sequence_number\tmj_number\tclient_name\tsequence_num\tbase_num\tmean_length\tmin_length\tmax_length\tfile_name\n")
     for key in file_list:
         batch_specimen_result = collection.find_one({"_id": ObjectId(key)})
         print batch_specimen_result
@@ -33,7 +33,7 @@ def export_sample_list(file_list, option_name, dir_path, bind_obj=None):
                    str(info['strategy']) + '\t' + str(info['platform']) + '\t' + str(info['primer']) + '\t' + \
                    str(info['contract_number']) + '\t' + str(info['contract_sequence_number']) + '\t' + \
                    str(info['mj_number']) + '\t' +  str(info['client_name']) + '\t' + str(info['sequence_num']) + '\t' + \
-                   str(info['base_num']) + '\t' + str(info['min_length']) + '\t' + str(info['mean_length']) + '\t' + str(info['max_length']) +\
+                   str(info['base_num']) + '\t' + str(info['mean_length']) + '\t' + str(info['min_length']) + '\t' + str(info['max_length']) +\
                    '\t' + str(file_name) + '\n'
         f.write(new_line)
     f.close()
