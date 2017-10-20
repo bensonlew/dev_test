@@ -16,10 +16,10 @@ class SampleBase(object):
             "member_id": member_id,
             "is_delete": 0,
             "data_type": data_type,
-            "projict_sn": projict_sn,
+            "project_sn": projict_sn,
             "pipeline_type": type,
             "status": "start",
-            "batch_sn": 'SampleBase_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")[:-3]
+            "batch_sn": member_id.split("_")[1] + "_" + datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")[:-3]
         }
         collection = self.db["sg_test_batch"]
         inserted_id = collection.insert_one(insert_data).inserted_id
