@@ -27,7 +27,7 @@ class BetaDiversityWorkflow(Workflow):
             {"name": "geneset_id", "type": "string"},
             {"name": "geneset_table", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "profile_table", "type": "infile", "format": "meta.otu.otu_table"},
-            {"name": "method","type": "string", "default": "rpkm"},
+            {"name": "method", "type": "string", "default": "rpkm"},
             {"name": "distance_method", "type": "string", "default": "bray_curtis"},
             {"name": "level_id", "type": "string"},
             {"name": "second_level", "type": "string"},
@@ -49,6 +49,8 @@ class BetaDiversityWorkflow(Workflow):
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
 
     def run(self):
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_DATA_AFTER_END = False
         if self.option("profile_table").is_set:
             self.run_beta()
         else:
