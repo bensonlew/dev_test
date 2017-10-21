@@ -304,6 +304,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
             self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls', group)
             self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls', group)
             self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls', group)
+            self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_rotation_all.xls', group)
             os.link(group_table, os.path.join(group_r_path, os.path.basename(group_table)))  # 分组文件link到结果目录下
             os.rename(self.work_dir + '/pca', self.work_dir + '/pca_' + group)
         else:
@@ -311,15 +312,16 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
             self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls')
             self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls')
             self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls')
+            self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_rotation_all.xls')
         if self.option('envtable').is_set:
-            if allfiles[3]:
-                self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_envfit_factor_scores.xls')
-                self.linkfile(self.work_dir + '/pca/' + allfiles[4], 'pca_envfit_factor.xls')
-            if allfiles[5]:
-                self._magnify_vector(self.work_dir + '/pca/' + allfiles[5], self.work_dir + '/pca/' + allfiles[2],
+            if allfiles[4]:
+                self.linkfile(self.work_dir + '/pca/' + allfiles[4], 'pca_envfit_factor_scores.xls')
+                self.linkfile(self.work_dir + '/pca/' + allfiles[5], 'pca_envfit_factor.xls')
+            if allfiles[6]:
+                self._magnify_vector(self.work_dir + '/pca/' + allfiles[6], self.work_dir + '/pca/' + allfiles[2],
                                      self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls')
                 self.linkfile(self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls', 'pca_envfit_vector_scores.xls')
-                self.linkfile(self.work_dir + '/pca/' + allfiles[6], 'pca_envfit_vector.xls')
+                self.linkfile(self.work_dir + '/pca/' + allfiles[7], 'pca_envfit_vector.xls')
         # self.end()
 
     def linkfile(self, oldfile, newname, group=None):
@@ -372,7 +374,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
         """
         获取并检查文件夹下的文件是否存在
 
-        :return pca_importance_file, pca_rotation_file,
+        :return pca_importance_file, pca_rotation_file,pca_rotation_all_file,
                 pca_sites_file, pca_factor_score_file, pca_factor_file,
                 pca_vector_score_file, pca_vector_file: 返回各个文件，以及是否存在环境因子，
                 存在则返回环境因子结果
@@ -380,6 +382,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
         filelist = os.listdir(self.work_dir + '/pca')
         pca_importance_file = None
         pca_rotation_file = None
+        pca_rotation_all_file =None
         pca_sites_file = None
         pca_factor_score_file = None
         pca_factor_file = None
@@ -392,6 +395,8 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
                 pca_sites_file = name
             elif 'pca_rotation.xls' in name:
                 pca_rotation_file = name
+            elif 'pca_rotation_all.xls' in name:
+                pca_rotation_all_file = name
             elif 'pca_envfit_factor_scores.xls' in name:
                 pca_factor_score_file = name
             elif 'pca_envfit_factor.xls' in name:
@@ -417,10 +422,10 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
                     elif not pca_factor_score_file:
                         self.set_error('未知原因，环境因子相关结果全部丢失或者未生成')
                 return [pca_importance_file, pca_rotation_file,
-                        pca_sites_file, pca_factor_score_file, pca_factor_file,
+                        pca_sites_file, pca_rotation_all_file,pca_factor_score_file, pca_factor_file,
                         pca_vector_score_file, pca_vector_file]
 
             else:
-                return [pca_importance_file, pca_rotation_file, pca_sites_file]
+                return [pca_importance_file, pca_rotation_file,  pca_sites_file,pca_rotation_all_file]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')
