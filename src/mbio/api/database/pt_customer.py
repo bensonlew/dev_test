@@ -69,9 +69,8 @@ class PtCustomer(Base):
                     collection = self.database["sg_pt_customer"]
                     result = collection.find_one({"name": family_name})
                     if result:  # 报告组需要更新数据，所以重新导入的时候，覆盖之前的数据
-                        # continue
+                        ## continue
                         collection.remove({"name": family_name})
-                    # else:  # modify by zhouxuan  20170905
                     if row_data[father_type_index] == '亲子父本全血':
                         father_type = '全血'
                     else:
