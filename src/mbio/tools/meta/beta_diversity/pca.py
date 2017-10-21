@@ -134,7 +134,9 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         # self.cmd_path = os.path.join(
         #     self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
-        self.cmd_path = 'bioinfo/statistical/scripts/ordination.pl'
+        #self.cmd_path = 'bioinfo/statistical/scripts/ordination.pl'
+        self.perl_path = "program/perl-5.24.0/bin/perl"
+        self.cmd_path = self.config.PACKAGE_DIR + '/statistical/ordination.pl'
         self.script_path = "bioinfo/meta/scripts/beta_diver.sh"
         self.R_path = os.path.join(self.config.SOFTWARE_DIR, 'program/R-3.3.1/bin/R')
 
@@ -271,8 +273,8 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
             real_otu_path = target_path
         else:
             real_otu_path = self.formattable(self.otu_table)  # 获取转置文件
-        cmd = self.cmd_path
-        cmd += ' -type pca -community %s -outdir %s' % (
+        cmd = self.perl_path
+        cmd += ' %s -type pca -community %s -outdir %s' % (self.cmd_path,
             real_otu_path, self.work_dir)
         if self.option('envtable').is_set:
             cmd += ' -pca_env T -environment %s' % self.env_table
