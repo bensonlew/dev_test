@@ -88,8 +88,6 @@ class BetaDiversity(Base):
             raise Exception('找不到主表id对应的表')
         if analysis == 'pca':
             site_path = dir_path.rstrip('/') + '/Pca/pca_sites.xls'
-            os.system('head -n 101 ' + dir_path.rstrip('/') + '/Pca/pca_rotation.xls > ' + dir_path.rstrip(
-                '/') + '/Pca/part_pca_rotation.xls')
             rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
             all_rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation_all.xls'
             importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
