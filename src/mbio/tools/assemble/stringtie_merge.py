@@ -145,11 +145,11 @@ class StringtieMergeTool(Tool):
                     else:
                         tran_id = content_m.captures(10)[0]
                         gene_id = content_m.captures(7)[0]
-                    if known_tran2gene[tran_id]:
+                    if known_tran2gene.has_key(tran_id):
                         if known_tran2gene[tran_id] == gene_id:
                             merge_file.write(line + "\n")
                         else:
-                            self.logger.info('merge gene_id异常')
+                            self.logger.info('merge gene_id异常: {}为已知转录本，不属于基因{}'.format(tran_id,gene_id))
                     else:
                         merge_file.write(line + "\n")
                 else:
