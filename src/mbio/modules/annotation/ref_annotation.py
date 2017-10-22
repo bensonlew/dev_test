@@ -37,6 +37,7 @@ class RefAnnotationModule(Module):
             {"name": "png_bgcolor", "type": "string", "default": "#00CD00"},  # 通路图静态图颜色，#00CD00(绿色)，#FFFF00（黄色）
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
+            {"name": "kegg_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
         ]
         self.add_option(options)
@@ -155,6 +156,7 @@ class RefAnnotationModule(Module):
         opts = {'gene_file': self.option('gene_file'), 'database': ','.join(self.anno_database)}
         if 'kegg' in self.anno_database:
             opts['kegg_xml'] = self.option('blast_kegg_xml')
+            opts['kegg_anno_table'] = self.kegg_annot.option('kegg_table').prop['path']
             opts['kos_list_upload'] = self.option('kos_list_upload')
         if 'go' in self.anno_database:
             if self.option("gos_list_upload").is_set:

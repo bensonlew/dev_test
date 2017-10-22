@@ -1781,9 +1781,11 @@ class RefAnnotation(Base):
                     data.append(('nog_description', None))
                 try:
                     data.append(('ko_id', line[6]))
-                    data.append(('ko_name', line[7]))
                 except:
                     data.append(('ko_id', None))
+                try:
+                    data.append(('ko_name', line[7]))
+                except:
                     data.append(('ko_name', None))
                 try:
                     data.append(('pathways', line[8]))

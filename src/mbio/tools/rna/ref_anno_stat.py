@@ -54,6 +54,7 @@ class RefAnnoStatAgent(Agent):
             {"name": "gene_go_level_2", "type": "outfile", "format": "annotation.go.level2"},
             {"name": "gene_go_list", "type": "outfile", "format": "annotation.go.go_list"},
             {"name": "gene_kegg_anno_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
+            {"name": "kegg_anno_table", "type": "outfile", "format": "annotation.kegg.kegg_table"},
             {"name": "gene_pfam_domain", "type": "outfile", "format": "annotation.kegg.kegg_list"},
         ]
         self.add_option(options)
@@ -409,16 +410,19 @@ class RefAnnoStatTool(Tool):
                     self.gene_anno_list['nr'] = nr_gene_venn
                 if db == 'kegg':
                     self.movedir2output(self.kegg_stat_path, 'kegg_stat')
-                    if self.option("kegg_xml").is_set:
-                        self.option('gene_kegg_table', self.output_dir + '/blast/gene_kegg.xls')
-                        self.option('kegg_xml').get_info()
-                        kegg_venn = self.option('kegg_xml').prop['hit_query_list']
-                        kegg_gene_venn = self.option('gene_kegg_table').prop['query_list']
+                    self.option('gene_kegg_anno_table', self.output_dir + '/kegg_stat/gene_kegg_table.xls')
+                    self.option('kegg_anno_table', self.output_dir + '/kegg_table.xls')
+                    if self.option('gene_kegg_anno_table').is_set:
+                    #if self.option("kegg_xml").is_set:
+                        #self.option('gene_kegg_table', self.output_dir + '/blast/gene_kegg.xls')
+                        #self.option('kegg_xml').get_info()
+                        kegg_venn = self.option('kegg_anno_table').get_query()
+                        kegg_gene_venn = self.option('gene_kegg_anno_table').get_query()
                     else:
                         self.option("kos_list_upload").get_transcript_anno(outdir=self.work_dir + "/kegg.list")
                         kegg_venn = self.list_num(self.work_dir + "/kegg.list")
                         kegg_gene_venn = self.list_num(self.work_dir + "/gene_kegg.list")
-                    self.option('gene_kegg_anno_table', self.output_dir + '/kegg_stat/gene_kegg_table.xls')
+                    #self.option('gene_kegg_anno_table', self.output_dir + '/kegg_stat/gene_kegg_table.xls')
                     self.get_venn(venn_list=kegg_venn, output=self.output_dir + '/venn/kegg_venn.txt')
                     self.get_venn(venn_list=kegg_gene_venn, output=self.output_dir + '/venn/gene_kegg_venn.txt')
                     self.anno_list['kegg'] = kegg_venn
