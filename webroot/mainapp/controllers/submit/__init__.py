@@ -5,4 +5,4 @@
 PACKAGE_URL = "s"
 
 # 自动加载机制的子模块
-AUTO_LOAD_SUB_PACKAGES = ['meta', 'denovo_rna', 'ref_rna']
+AUTO_LOAD_SUB_PACKAGES = ['meta', 'denovo_rna', 'ref_rna', 'metagenomic']
