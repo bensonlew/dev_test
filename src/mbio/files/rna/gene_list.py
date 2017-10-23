@@ -65,7 +65,8 @@ class GeneListFile(File):
         f.close()
         new_file_name = outpath + "/" + os.path.basename(self.prop["path"]) + ".DE.list"
         with open(self.prop['path'], "r") as f, open(new_file_name, "w") as w:
-            header = f.readline().strip()
+            #基因集不过滤表头
+            #header = f.readline().strip()
             for line in f:
                 line = line.strip('\n').split('\t')
                 if line[0] in ko_list:

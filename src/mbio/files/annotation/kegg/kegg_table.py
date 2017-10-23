@@ -33,6 +33,18 @@ class KeggTableFile(File):
                 if i not in self.gene_list:
                     a.write('{}\tNone\n'.format(i))
 
+    def get_query(self):
+        '''
+        返回基因列表 刘彬旭
+        '''
+        with open(self.prop['path'], 'rb') as r:
+            querys = []
+            r.readline()
+            for line in r:
+                line = line.strip('\n').split('\t')
+                querys.append(line[0])
+        return querys
+
     def get_pathway_koid(self):
         '''
         返回两个字典：

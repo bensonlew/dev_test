@@ -6,6 +6,7 @@ from biocluster.core.exceptions import OptionError
 import os
 import shutil
 import re
+import regex
 
 
 class StringtieMergeAgent(Agent):
@@ -88,6 +89,7 @@ class StringtieMergeTool(Tool):
         """
         super(StringtieMergeTool, self).run()
         self.run_stringtie_merge()
+        self.run_filter_gtf()
         self.run_gtf_to_fa()
         self.set_output()
         self.end()
@@ -96,7 +98,7 @@ class StringtieMergeTool(Tool):
         """
         运行stringtie软件，进行拼接合并
         """
-        cmd = self.stringtie_merge_path + 'stringtie --merge {} -p {} -G {} -s {} -o {}merged.gtf ' .format(
+        cmd = self.stringtie_merge_path + 'stringtie --merge {} -p {} -G {} -s {} -o {}merged_raw.gtf ' .format(
             self.option('assembly_GTF_list.txt').prop['path'], self.option('cpu'), self.option('ref_gtf').prop['path'],
             self.option('ref_fa').prop['path'], self.work_dir+"/")
         self.logger.info('运行stringtie软件，进行拼接合并')
@@ -106,6 +108,52 @@ class StringtieMergeTool(Tool):
             self.logger.info("stringtie_merge运行完成")
         else:
             self.set_error("stringtie_merge运行出错!")
+    def run_filter_gtf(self):
+        """
+        过滤stringtie merge出的异常转录本，新基因存在已知转录本
+        """
+        known_tran2gene = {}
+        known_gtf = self.option('ref_gtf').prop['path']
+        merge_raw_gtf = self.work_dir + "/merged_raw.gtf"
+        merge_gtf = self.work_dir + "/merged.gtf"
+
+        with open(known_gtf, "r") as file:
+            for line in file:
+                line = line.strip()
+                content_m = regex.match(
+                    r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                    line)
+                if content_m:
+                    if 'transcript_id' in content_m.captures(6):
+                        tran_id = content_m.captures(7)[0]
+                        gene_id = content_m.captures(10)[0]
+                    else:
+                        tran_id = content_m.captures(10)[0]
+                        gene_id = content_m.captures(7)[0]
+                    known_tran2gene[tran_id] = gene_id
+
+        with open(merge_raw_gtf, "r") as merge_raw_file, open(merge_gtf, "w") as merge_file:
+            for line in merge_raw_file:
+                line = line.strip()
+                content_m = regex.match(
+                    r'^([^#]\S*?)\t+((\S+)\t+){7}(.*;)*((transcript_id|gene_id)\s+?\"(\S+?)\");.*((transcript_id|gene_id)\s+?\"(\S+?)\");(.*;)*$',
+                    line)
+                if content_m:
+                    if 'transcript_id' in content_m.captures(6):
+                        tran_id = content_m.captures(7)[0]
+                        gene_id = content_m.captures(10)[0]
+                    else:
+                        tran_id = content_m.captures(10)[0]
+                        gene_id = content_m.captures(7)[0]
+                    if known_tran2gene.has_key(tran_id):
+                        if known_tran2gene[tran_id] == gene_id:
+                            merge_file.write(line + "\n")
+                        else:
+                            self.logger.info('merge gene_id异常: {}为已知转录本，不属于基因{}'.format(tran_id,gene_id))
+                    else:
+                        merge_file.write(line + "\n")
+                else:
+                    merge_file.write(line + "\n")
 
     def run_gtf_to_fa(self):
         """
