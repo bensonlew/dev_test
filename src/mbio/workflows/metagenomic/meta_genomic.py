@@ -119,7 +119,7 @@ class MetaGenomicWorkflow(Workflow):
         self.default_level1 = {
             'nr': 'Genus',
             'cog': 'Function',
-            'kegg': 'level1',
+            'kegg': 'Level1',
             'cazy': 'Class',
             'vfdb': 'Level1',
             'ardb': 'Type',
@@ -128,7 +128,7 @@ class MetaGenomicWorkflow(Workflow):
         self.default_level2 = {
             'nr': 'Genus',
             'cog': 'NOG',
-            'kegg': 'level3',
+            'kegg': 'Level3',
             'cazy': 'Family',
             'vfdb': 'VFs',
             'ardb': 'ARG',
@@ -241,7 +241,7 @@ class MetaGenomicWorkflow(Workflow):
             'stat_dir': self.sequence.output_dir + '/base_info',
             'insert_size': self.option('speciman_info'),
         }
-        self.set_run(opts, self.qc, 'qc', self.step.sequence)
+        self.set_run(opts, self.qc, 'qc', self.step.qc_)
 
     def run_rm_host(self):
         opts = {
@@ -378,6 +378,7 @@ class MetaGenomicWorkflow(Workflow):
         opts = {
             'query': self.gene_set.option('uni_fastaa'),
             'reads_profile_table': self.gene_set.option('reads_abundance'),
+            'lines': '400000',
         }
         self.set_run(opts, self.vfdb, 'vfdb', self.step.vfdb, False)
         self.anno_table['vfdb'] = os.path.join(self.vfdb.output_dir, 'gene_vfdb_total_anno.xls')
@@ -387,6 +388,7 @@ class MetaGenomicWorkflow(Workflow):
         opts = {
             'query': self.gene_set.option('uni_fastaa'),
             'reads_profile_table': self.gene_set.option('reads_abundance'),
+            'lines': '400000',
         }
         self.set_run(opts, self.ardb, 'ardb', self.step.ardb, False)
         self.anno_table['ardb'] = os.path.join(self.ardb.output_dir, 'gene_ardb_anno.xls')
@@ -396,6 +398,7 @@ class MetaGenomicWorkflow(Workflow):
         opts = {
             'query': self.gene_set.option('uni_fastaa'),
             'reads_profile_table': self.gene_set.option('reads_abundance'),
+            'lines': '400000',
         }
         self.set_run(opts, self.card, 'card', self.step.card, False)
         self.anno_table['card'] = os.path.join(self.card.output_dir, 'gene_card_anno.xls')
@@ -522,10 +525,11 @@ class MetaGenomicWorkflow(Workflow):
         将各个模块的结果输出至output
         """
         obj = event['bind_object']
-        if event['data'] == 'sequece':
+        if event['data'] == 'sequence':
             self.move_dir(obj.output_dir, 'rawdata')
         if event['data'] == 'qc':
-            self.move_dir(obj.output_dir, 'qc')
+            self.move_dir(os.path.join(obj.output_dir, 'after_qc_dir'), 'qc/after_qc_dir')
+            self.move_dir(os.path.join(obj.output_dir, 'qc_stat'), 'qc/qc_stat')
         if event['data'] == 'rm_host':
             self.move_dir(obj.output_dir, 'rm_host')
         if event['data'] == 'assem':
@@ -549,7 +553,7 @@ class MetaGenomicWorkflow(Workflow):
                 self.move_dir(self.kegg_dir, 'kegg')
         if event['data'] == 'cazy':
             # self.anno_table['cazy'] = os.path.join(obj.output_dir, 'anno_result', 'gene_cazy_anno.xls')
-            self.move_dir(obj.output_dir, 'cazy')
+            self.move_dir(os.path.join(obj.output_dir, 'anno_result'), 'cazy')
         if event['data'] == 'vfdb':
             # self.anno_table['vfdb'] = os.path.join(obj.output_dir, 'gene_vfdb_total_anno.xls')
             self.move_dir(obj.output_dir, 'vfdb')
@@ -702,23 +706,110 @@ class MetaGenomicWorkflow(Workflow):
         if os.path.exists(dir_up):
             shutil.rmtree(dir_up)
         os.mkdir(dir_up)
-        # QC
-        # remove
-        # assem
-        # predict
-        # geneset
-        # anno
-        # composition
-        # compare
-        # correlation
         repaths = [
             [".", "", "流程分析结果目录"],
-            ["QC", "", "测序数据统计与质控结果文件"]
+            ["qc", "", "测序数据统计与质控结果文件"],  # 朱娟
+            ["rm_host", "", "去宿主结果文件"],  # 朱娟
+
+            ["assemble", "", "拼接结果目录"],
+            ["assemble/assembly.stat", "", "拼接质量统计表"],
+            ["predict", "", "基因预测结果目录"],
+            ["predict/sample.metagene.stat", "", "基因预测结果统计表"],
+            ["geneset", "", "非冗余基因集结果目录"],
+            ["geneset/uniGeneset", "", "非冗余基因集序列统计目录"],
+            ["geneset/uniGeneset/geneCatalog_stat.xls", "", "非冗余基因集序列统计结果"],
+            ["geneset/uniGeneset/gene.uniGeneset.fa", "", "非冗余基因集核酸序列"],
+            ["geneset/uniGeneset/gene.uniGeneset.faa", "", "非冗余基因集蛋白序列"],
+
+            ["nr", "", "NR功能注释结果目录"],
+            ["kegg", "", "KEGG功能注释结果目录"],
+            ["cog", "", "COG功能注释结果目录"],
+            ["cazy", "", "CAZy碳水化合物活性酶注释结果目录"],
+            ["ardb", "", "ARDB抗性基因功能注释结果目录"],
+            ["card", "", "CARD抗性基因功能注释结果目录"],
+            ["vfdb", "", "VFDB毒力因子注释结果目录"],
+            ["nr/gene_nr_anno.xls", "", "每条基因的物种注释表"],
+            ["nr/nr_align_table.xls", "", "物种序列比对结果"],
+            ["nr/tax_d.xls", "", "域注释丰度表"],
+            ["nr/tax_k.xls", "", "界注释丰度表"],
+            ["nr/tax_p.xls", "", "门注释丰度表"],
+            ["nr/tax_c.xls", "", "纲注释丰度表"],
+            ["nr/tax_o.xls", "", "目注释丰度表"],
+            ["nr/tax_f.xls", "", "科注释丰度表"],
+            ["nr/tax_g.xls", "", "属注释丰度表"],
+            ["nr/tax_s.xls", "", "种注释丰度表"],
+            ["kegg/gene_kegg_anno.xls", "", "每条基因的KEGG功能注释表"],
+            ["kegg/kegg_align_table.xls", "", "KEGG序列比对结果"],
+            ["kegg/kegg_pathway_eachmap.xls", "", "Pathway在各个样品中的丰度表"],
+            ["kegg/kegg_enzyme_profile.xls", "", "各样品酶丰度表"],
+            ["kegg/kegg_gene_profile.xls", "", "各样品基因丰度表"],
+            ["kegg/kegg_KO_profile.xls", "", "各样品KO丰度表"],
+            ["kegg/kegg_level1_profile.xls", "", "各样品pathway level1丰度表"],
+            ["kegg/kegg_level2_profile.xls", "", "各样品pathway level2丰度表"],
+            ["kegg/kegg_level3_profile.xls", "", "各样品pathway level3丰度表"],
+            ["kegg/kegg_module_profile.xls", "", "各样品Module丰度表"],
+            ["kegg/kegg_pathway_profile.xls", "", "各样品Pathway丰度表"],
+            ["cog/cog_align_table.xls", "", "COG序列比对结果"],
+            ["cog/cog_nog_profile.xls", "", "各样品nog丰度表"],
+            ["cog/cog_category_profile.xls", "", "各样品category丰度表"],
+            ["cog/cog_function_profile.xls", "", "各样品function丰度表"],
+            ["cog/gene_cog_anno.xls", "", "每条基因的COG功能注释表"],
+            ["cazy"],
+            ["vfdb/gene_vfdb_core_anno.xls", "", "每条基因的VFDB核心库功能注释表"],
+            ["vfdb/gene_vfdb_predict_anno.xls", "", "每条基因的VFDB预测库功能注释表"],
+            ["vfdb/gene_vfdb_total_anno.xls", "", "每条基因的VFDB功能注释表"],
+            ["vfdb/"]
+
+            ["composition", "", "物种与功能组成分析结果目录"],
+            ["composition/bar", "", "柱形图结果目录"],
+            ["composition/heatmap", "", "Heatmap图结果目录"],
+            ["composition/circos", "", "Circos样本与物种或功能关系图结果目录"],
+            ["compare", "", "物种与功能比较分析结果目录"],
+            ["compare/Hcluster", "", "样本层次聚类分析结果目录"],
+            ["compare/Distance", "", "距离矩阵计算结果目录"],
+            ["compare/Pca", "", "PCA分析结果目录"],
+            ["compare/Pcoa", "", "PCoA分析结果目录"],
+            ["compare/NMDS", "", "NMDS分析结果目录"],
+            ["correlation", "", "环境因子关联分析结果目录"],
+            ["correlation/Rda", "", "RDA_CCA分析结果目录"],
+            ["correlation/Dbrda", "", "db_RDA分析结果目录"],
+            ["correlation/cor_heatmap", "", "相关性Heatmap分析结果目录"],
+
         ]
         regexps = [
-            [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
-            ["", "", ""],
+            # [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
+
+            [r"assemble/[^/]+\.contig\.fa", "", "拼接contig结果"],
+            [r"predict/.+\.metagene\.stat", "", "基因预测结果"],
+
+            [r"composition/.+/.+/taxa\.percents\.table\.xls", "", "相对丰度结果表"],
+            [r"composition/.+/.+/taxa\.table\.xls", "", "丰度结果表"],
+            [r"compare/Hcluster/.+/hcluster\.tre", "graph.newick_tree", "层次聚类树结果表"],
+            [r"compare/Distance/.+/bray_curtis.+\.xls$", "meta.beta_diversity.distance_matrix", "样本距离矩阵文件"],
+            [r"compare/Nmds/.+/nmds_sites\.xls$", "xls", "样本各维度坐标"],
+            [r"compare/Nmds/.+/nmds_stress\.xls$", "xls", "样本特征拟合度值"],
+            [r"compare/Pca/.+/pca_importance\.xls$", "xls", "主成分解释度表"],
+            [r"compare/Pca/.+/pca_sites\.xls$", "xls", "样本各成分轴坐标"],
+            [r"compare/Pca/.+/pca_rotation\.xls$", "xls", "主成分贡献度表"],
+            [r"compare/Pca/.+/pca_rotation_all\.xls$", "xls", "所有主成分贡献度表"],
+            [r"compare/Pca/.+/pca_envfit_vector\.xls$", "xls", "数量型环境因子坐标表"],
+            [r"compare/Pca/.+/pca_envfit_vector_scores\.xls$", "xls", "数量型环境因子表"],
+            [r"compare/Pca/.+/pca_envfit_factor\.xls$", "xls", "哑变量环境因子坐标表"],
+            [r"compare/Pca/.+/pca_envfit_factor_scores\.xls$", "xls", "哑变量环境因子表"],
+            [r"compare/Pcoa/.+/pcoa_sites\.xls", "xls", "样本坐标表"],
+            [r"compare/Pcoa/.+/pcoa_eigenvalues\.xls", "xls", "矩阵特征值"],
+            [r"compare/Pcoa/.+/pcoa_eigenvaluespre\.xls", "xls", "特征解释度百分比"],
+            [r"correlation/Rda/.+/dca\.xls", "xls", "DCA分析结果"],
+            [r"correlation/.+da/.+/.*rda_biplot\.xls", "xls", "数量型环境因子坐标表"],
+            [r"correlation/Rda/.+/rda_envfit\.xls", "xls", "p值与r值表"],
+            [r"correlation/.+da/.+/.*rda_importance\.xls", "xls", "主成分解释度表"],
+            [r"correlation/.+da/.+/.*rda_plot_species_data\.xls", "xls", "绘图物种_功能坐标表"],
+            [r"correlation/.+da/.+/.*rda_sites\.xls", "xls", "样本坐标表"],
+            [r"correlation/.+da/.+/.*rda_species\.xls", "xls", "物种_功能坐标表"],
+            [r"correlation/cor_heatmap/.+/pearsons_correlation\.xls", "xls", "Pearson相关系数表"],
+            [r"correlation/cor_heatmap/.+/pearsons_pvalue\.xls", "xls", "Pearson相关系数对应p值表"],
         ]
+
         sdir = self.add_upload_dir(dir_up)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
@@ -934,10 +1025,15 @@ class MetaGenomicWorkflow(Workflow):
         if len(self.anno_tool) != 0:
             self.on_rely(self.anno_tool, self.run_anno)
             self.all_anno.append(self.anno)
+        self.sample_in_group = self.get_sample()
         if len(self.all_anno) == 0:
-            self.gene_set.on('end', self.run_analysis, 'composition')
+            if len(self.sample_in_group) < 2:
+                self.gene_set.on('end', self.end)
+            elif len(self.sample_in_group) == 2:
+                self.gene_set.on('end', self.run_analysis, 'composition')
+            elif len(self.sample_in_group) > 2:
+                self.gene_set.on('end', self.run_analysis, 'all')
         else:
-            self.sample_in_group = self.get_sample()
             if len(self.sample_in_group) < 2:
                 self.on_rely(self.all_anno, self.end)
             elif len(self.sample_in_group) == 2:
@@ -957,8 +1053,7 @@ class MetaGenomicWorkflow(Workflow):
             super(MetaGenomicWorkflow, self).run()
             return True
             '''
-            self.end()
-            return True
+            pass
         if self.option('qc'):
             self.run_sequence()
         elif self.option('rm_host'):
