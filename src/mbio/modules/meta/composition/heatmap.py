@@ -27,11 +27,6 @@ class HeatmapModule(Module):
             {"name": "add_Algorithm", "type": "string", "default": ""},  # 分组样本求和算法，默认不求和
         ]
         self.add_option(options)
-        self.sort_samples = self.add_tool("meta.otu.sort_samples")
-        self.matrix = self.add_tool("meta.beta_diversity.distance_calc")
-        self.species_matrix = self.add_tool("meta.beta_diversity.distance_calc")
-        self.species_hcluster = self.add_tool('meta.beta_diversity.hcluster')
-        self.hcluster = self.add_tool('meta.beta_diversity.hcluster')
         if self.option("group_detail") != "":
             group_table_path = os.path.join(self.work_dir, "group_table.xls")
             self.group_table_path = Meta().group_detail_to_table(self.option("group_detail"), group_table_path)
@@ -93,6 +88,7 @@ class HeatmapModule(Module):
         new_otu_file.to_csv(new_otu_file_path, sep="\t")
 
     def run_sort_samples(self):
+        self.sort_samples = self.add_tool("meta.otu.sort_samples")
         if self.option("group").is_set:
             self.group_table_path = self.option("group")
         self.sort_samples.set_options({
@@ -114,12 +110,14 @@ class HeatmapModule(Module):
         :return:
         """
         self.logger.info("正在进行样本距离计算")
+        self.matrix = self.add_tool("meta.beta_diversity.distance_calc")
         self.matrix.set_options({'method': "bray_curtis",
                                 'otutable': self.sort_samples.option("out_otu_table")})
         self.matrix.on('end', self.run_hcluster)
         self.matrix.run()
 
     def run_hcluster(self):
+        self.hcluster = self.add_tool('meta.beta_diversity.hcluster')
         self.hcluster.set_options({
             'dis_matrix': self.matrix.option('dis_matrix'),
             'linkage': self.option("sample_method"),
@@ -134,6 +132,7 @@ class HeatmapModule(Module):
         self.logger.info("正在进行物种/功能/基因距离计算")
         trans_otu = os.path.join(self.work_dir, "otu.trans")
         self.sort_samples.option("out_otu_table").transposition(trans_otu)
+        self.species_matrix = self.add_tool("meta.beta_diversity.distance_calc")
         self.species_matrix.set_options({
             "method": "bray_curtis",
             "otutable": trans_otu
@@ -142,6 +141,7 @@ class HeatmapModule(Module):
         self.species_matrix.run()
 
     def run_species_cluster(self):
+        self.species_hcluster = self.add_tool('meta.beta_diversity.hcluster')
         self.species_hcluster.set_options({
             'dis_matrix': self.species_matrix.option('dis_matrix'),
             'linkage': self.option("method")
@@ -158,8 +158,8 @@ class HeatmapModule(Module):
         shutil.copy(self.sort_samples.output_dir + "/taxa.table.xls", self.output_dir + "/taxa.table.xls")
         shutil.copy(self.sort_samples.output_dir + "/taxa.percents.table.xls",
                     self.output_dir + "/taxa.percents.table.xls")
-        if os.path.exists(self.hcluster.output_dir+"/hcluster.tre"):
+        if self.option("sample_method") != "":
             shutil.copy(self.hcluster.output_dir + "/hcluster.tre", self.output_dir + "/specimen_hcluster.tre")
-        if os.path.exists(self.species_hcluster.output_dir+"/hcluster.tre"):
+        if self.option("method") != "":
             shutil.copy(self.species_hcluster.output_dir+"/hcluster.tre", self.output_dir + "/species_hcluster.tre")
         super(HeatmapModule, self).end()
