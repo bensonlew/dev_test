@@ -73,10 +73,13 @@ class VfdbAnnotationModule(Module):
         for tool in self.vfdb_align_core_tools:
             files = os.listdir(tool.output_dir)
             for file in files:
+                self.logger.info(file)
                 if "_unalign.fasta" in file:
                     infile = os.path.join(tool.output_dir, file)
+                    self.logger.info(infile)
+                    self.logger.info("add " + file + " to align")
                 else:
-                    self.logger.info("unalign.fasta is not find!")
+                    self.logger.info("the file is not unalign file!")
             predict_tool = self.add_tool('align.meta_diamond')
             predict_tool.set_options({
                 "query": infile,
@@ -85,7 +88,7 @@ class VfdbAnnotationModule(Module):
                 "sensitive": 0,
                 "target_num": 1,
             })
-        self.vfdb_align_predict_tools.append(predict_tool)
+            self.vfdb_align_predict_tools.append(predict_tool)
         if len(self.vfdb_align_predict_tools) > 1:
             self.on_rely(self.vfdb_align_predict_tools, self.vfdb_anno)
         else:
@@ -125,7 +128,8 @@ class VfdbAnnotationModule(Module):
             for f in os.listdir(i.output_dir):
                 if os.path.splitext(f)[1] == '.xml_new':
                     file_path = os.path.join(i.output_dir, f)
-                    new_path = os.path.join(xml_dir, os.path.basename(file_path))
+                    #new_path = os.path.join(xml_dir, os.path.basename(file_path))
+                    new_path = os.path.join(xml_dir, f)
                     if os.path.exists(new_path):
                         os.remove(new_path)
                     os.link(file_path, new_path)  #####创建硬链

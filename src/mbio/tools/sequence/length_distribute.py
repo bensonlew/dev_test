@@ -124,8 +124,10 @@ class LengthDistributeTool(Tool):
             for step in step_list:
                 output1 = self.work_dir + '/' + sample_name + '_step_' + str(step) + '.txt'
                 output2 = self.output_dir + '/' + sample_name + '_step_' + str(step) + '.final.txt'
+                if os.path.exists(output2):
+                    os.remove(output2)
                 step_count(file_full, output1, 20, int(step), output2)
-        self.logger.info("组装部分步长统计结束")
+        self.logger.info("序列步长统计结束")
 
     def set_output(self):
         """
