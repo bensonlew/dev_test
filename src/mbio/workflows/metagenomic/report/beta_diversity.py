@@ -20,18 +20,19 @@ class BetaDiversityWorkflow(Workflow):
         super(BetaDiversityWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "analysis_type", "type": "string", "default": 'pca'},
+            {"name": "anno_type", "type": "string", "default": 'nr'},
             {"name": "anno_id", "type": "string"},
             {"name": "main_id", "type": "string"},
             {"name": "anno_table", "type": "infile", "format": "meta.profile"},  # 各数据库的注释表格
             {"name": "geneset_id", "type": "string"},
             {"name": "geneset_table", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "profile_table", "type": "infile", "format": "meta.otu.otu_table"},
-            {"name": "method","type": "string", "default": "rpkm"},
+            {"name": "method", "type": "string", "default": "rpkm"},
             {"name": "distance_method", "type": "string", "default": "bray_curtis"},
             {"name": "level_id", "type": "string"},
             {"name": "second_level", "type": "string"},
             {"name": "submit_location", "type": "string"},
-            {"name": "update_info", "type": "string"},
+            {"name": "task_type", "type": "string"},
             {"name": "params", "type": "string"},
             {"name": "env_file", "type": "infile", "format": "meta.otu.group_table"},
             {"name": "group_file", "type": "infile", "format": "meta.otu.group_table"},
@@ -40,7 +41,7 @@ class BetaDiversityWorkflow(Workflow):
             {"name": "group_id", "type": "string", "default": ""},
             {"name": "env_id", "type": "string", "default": ""},
             {"name": "gene_list", "type": "infile", "format": "meta.profile"},
-            {"name": "lowest_level", "type": "string", "default": ""}  # 注释表数据库对应的最低分类，eg：KEGG的ko
+            {"name": "lowest_level", "type": "string", "default": ""},  # 注释表数据库对应的最低分类，eg：KEGG的ko
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -48,6 +49,8 @@ class BetaDiversityWorkflow(Workflow):
         self.beta = self.add_module("meta.beta_diversity.beta_diversity")
 
     def run(self):
+        self.IMPORT_REPORT_DATA = True
+        self.IMPORT_REPORT_DATA_AFTER_END = False
         if self.option("profile_table").is_set:
             self.run_beta()
         else:

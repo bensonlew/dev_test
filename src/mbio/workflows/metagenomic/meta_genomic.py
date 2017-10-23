@@ -19,12 +19,13 @@ def time_count(func):  # 统计导表时间
         start = time.time()
         func_name = func.__name__
         start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start))
-        print('Run %s at %s' %(func_name, start_time))
+        print('Run %s at %s' % (func_name, start_time))
         func(*args, **kw)
         end = time.time()
         end_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(end))
-        print('End %s at %s' %(func_name, end_time))
+        print('End %s at %s' % (func_name, end_time))
         print("{}函数执行完毕，该阶段导表已进行{}s".format(func_name, end - start))
+
     return wrapper
 
 
@@ -311,7 +312,8 @@ class MetaGenomicWorkflow(Workflow):
         else:
             opts['QC_dir'] = self.option('in_fastq')
         self.set_run(opts, self.gene_set, 'gene_set', self.step.gene_set)
-        self.anno_table['geneset'] = os.path.join(self.gene_set.output_dir, 'gene_profile/RPKM.xls')  # self.gene_set.option('rpkm_abundance').prop['path']
+        self.anno_table['geneset'] = os.path.join(self.gene_set.output_dir,
+                                                  'gene_profile/RPKM.xls')  # self.gene_set.option('rpkm_abundance').prop['path']
 
     def run_nr(self):
         opts = {
@@ -410,16 +412,28 @@ class MetaGenomicWorkflow(Workflow):
             elif self.default_level2[db] != self.default_level1[db] and event == 'all':
                 self.profile_table2[db] = self.run_new_table(self.anno_table[db], self.anno_table['geneset'],
                                                              self.default_level2[db])
+        self.profile_table1['gene'] = self.run_new_table(self.output_dir + '/geneset/gene_profile/gene.uniGeneset.fa.length.txt', self.anno_table['geneset'], "")
+        if event == 'all':
+            self.profile_table2['gene'] = self.profile_table1['gene']
+        if len(self.new_table) != 1:
+            self.on_rely(self.new_table, self.run_analysis2)
+            for module in self.new_table:
+                module.run()
+        else:
+            self.table.on('end', self.run_analysis2)
+            self.table.run()
+        '''
         if len(self.new_table) != 0:
             self.on_rely(self.new_table, self.run_analysis2)
             for module in self.new_table:
                 module.run()
         else:
             self.run_analysis2()
+        '''
 
     def run_analysis2(self):
-        self.profile_table1['gene'] = self.anno_table['geneset']
-        self.profile_table2['gene'] = self.anno_table['geneset']
+        # self.profile_table1['gene'] = self.anno_table['geneset']
+        # self.profile_table2['gene'] = self.anno_table['geneset']
         for db in self.profile_table1.keys():
             self.func_composition(self.profile_table1[db], self.option('group'))
             self.composition_dir2anno[self.composition.output_dir] = db
@@ -427,22 +441,35 @@ class MetaGenomicWorkflow(Workflow):
             self.func_compare(self.profile_table2[db], self.option('group'))
             self.compare_dir2anno[self.compare.output_dir] = db
             if self.option('envtable').is_set:
+                '''
                 if db == 'gene':
                     # self.func_correlation('/mnt/ilustre/users/sanger-dev/sg-users/guhaidong/WF/RPKM.xls', self.option('envtable'))
                     pass
                 else:
-                    self.func_correlation(self.profile_table2[db], self.option('envtable'))
-                    self.correlation_dir2anno[self.correlation.output_dir] = db
+                '''
+                self.func_correlation(self.profile_table2[db], self.option('envtable'))
+                self.correlation_dir2anno[self.correlation.output_dir] = db
         self.on_rely(self.analysis, self.end)
-        for module in self.analysis:
-            module.run()
+        if len(self.analysis) != 1:
+            self.on_rely(self.analysis, self.end)
+            for module in self.analysis:
+                module.run()
+            else:
+                self.composition.on('end', self.end)
+                self.composition.run()
 
     def run_new_table(self, anno, gene, level):
-        opts = {
-            'anno_table': anno,
-            'geneset_table': gene,
-            'level_type': level,
-        }
+        if level != "":
+            opts = {
+                'anno_table': anno,
+                'geneset_table': gene,
+                'level_type': level,
+            }
+        else:
+            opts = {
+                'gene_list': anno,
+                'geneset_table': gene,
+            }
         self.table = self.add_tool('meta.create_abund_table')
         self.set_run(opts, self.table, 'table', self.step.table, False)
         self.new_table.append(self.table)
@@ -549,6 +576,70 @@ class MetaGenomicWorkflow(Workflow):
             anno = self.correlation_dir2anno[obj.output_dir]
             self.move_dir(obj.output_dir, os.path.join('correlation', 'cor_heatmap', anno))
 
+    def rm_tmp_file(self):
+        """
+        去除中间过程文件
+        :return:
+        """
+        self.rm_dir(os.path.join(self.work_dir, 'MetaGenomic'), ['output'])
+        self.rm_dir(os.path.join(self.work_dir, 'QcAndStat'), ['output'])
+        self.rm_dir(os.path.join(self.work_dir, 'BwaRemoveHost'), ['output', 'sam_dir'])
+        self.rm_dir(os.path.join(self.work_dir, 'MgAssIdba'), ['output'])  # 检查混拼
+        self.rm_dir(os.path.join(self.work_dir, 'MgAssSoapdenovo'), ['output'])  # 需检查
+        self.rm_dir(os.path.join(self.work_dir, 'GenePredict'), ['output']) # 中间文件需确定
+        # self.rm_dir(os.path.join(self.work_dir, ''))
+
+    def rm_dir(self, dir, expect_list):
+        if not os.path.exists(dir):
+            self.logger.info('there is no dir named:' + dir)
+            return
+        elif os.path.isdir(dir):
+            dir_list = os.listdir(dir)
+            for file in dir_list:
+                self.logger.info(dir + 'contains file:' + 'file')
+                if file in expect_list:
+                    self.logger.info('file: ' + file + 'in expect_list, list is :')
+                    self.logger.info(expect_list)
+                    continue
+                else:
+                    '''
+                    for expect_file in expect_list:
+                        if expect_file in file:
+                            self.logger.info('file ' + file + 'is in expect_file' + expect_file)
+                            rm_ = 0
+                            break
+                        else:
+                            rm_ = 1
+                    '''
+                    rm_ = 1
+                    if rm_ == 1:
+                        next_dir = os.path.join(dir, file)
+                        self.logger.info('now go into next dir' + next_dir)
+                        self.rm_dir(next_dir, expect_list)
+            check_dir = os.listdir(dir)
+            if len(check_dir) == 0:
+                self.logger.info('dir is empty , remove it :' + dir)
+                shutil.rmtree(dir)
+        elif os.path.isfile(dir):
+            if dir in expect_list:
+                self.logger.info("file is in expect_list, file is : " + dir + " expect_list is ")
+                self.logger.ino(expect_list)
+                return
+            else:
+                file = os.path.basename(dir)
+                for expect_file in expect_list:
+                    if expect_file in file:
+                        self.logger.info('file' + file + 'is in expect_file' + expect_file)
+                        rm_ = 0
+                        break
+                    else:
+                        rm_ = 1
+                if rm_ == 1:
+                    filesize = os.path.getsize(dir) / 1024 / 1024
+                    self.logger.info('now remove file: ' + dir + 'its size is : ')
+                    self.logger.info(filesize)
+                    if filesize > 50: os.remove(dir)
+
     def set_output_all(self):
         """
         将所有结果一起导出至output，暂不需要
@@ -597,8 +688,9 @@ class MetaGenomicWorkflow(Workflow):
             self.logger.info("导出失败：请检查{}".format(old_file))
 
     def end(self):
-        self.run_api(test = self.option('test'))
+        self.run_api(test=self.option('test'))
         # self.send_files()
+        # self.rm_tmp_file()
         super(MetaGenomicWorkflow, self).end()
 
     def send_files(self):  # 原modify_output
