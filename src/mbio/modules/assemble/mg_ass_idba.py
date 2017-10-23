@@ -135,7 +135,7 @@ class MgAssIdbaModule(Module):
                 "fastq2": self.option('QC_dir').prop['path'] + '/' + self.qc_file[key]['r'],
                 "sample_name": key,
                 "split_num": split_num,
-                "mem": 50,  # assem_mem，测试提供
+                "mem": 100,  # assem_mem，测试提供
             })
             if self.option('method') == 'simple':
                 opts['min_contig'] = self.option('min_contig')

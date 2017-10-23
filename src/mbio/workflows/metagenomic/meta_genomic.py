@@ -708,9 +708,9 @@ class MetaGenomicWorkflow(Workflow):
         os.mkdir(dir_up)
         repaths = [
             [".", "", "流程分析结果目录"],
-            ["qc", "", "测序数据统计与质控结果文件"],  # 朱娟
-            ["rm_host", "", "去宿主结果文件"],  # 朱娟
-
+            ["rawData", "", "原始序列目录"],
+            # ["qc", "", "质控结果目录"],
+            # ["rm_host", "", "去宿主结果文件"],
             ["assemble", "", "拼接结果目录"],
             ["assemble/assembly.stat", "", "拼接质量统计表"],
             ["predict", "", "基因预测结果目录"],
@@ -720,14 +720,7 @@ class MetaGenomicWorkflow(Workflow):
             ["geneset/uniGeneset/geneCatalog_stat.xls", "", "非冗余基因集序列统计结果"],
             ["geneset/uniGeneset/gene.uniGeneset.fa", "", "非冗余基因集核酸序列"],
             ["geneset/uniGeneset/gene.uniGeneset.faa", "", "非冗余基因集蛋白序列"],
-
             ["nr", "", "NR功能注释结果目录"],
-            ["kegg", "", "KEGG功能注释结果目录"],
-            ["cog", "", "COG功能注释结果目录"],
-            ["cazy", "", "CAZy碳水化合物活性酶注释结果目录"],
-            ["ardb", "", "ARDB抗性基因功能注释结果目录"],
-            ["card", "", "CARD抗性基因功能注释结果目录"],
-            ["vfdb", "", "VFDB毒力因子注释结果目录"],
             ["nr/gene_nr_anno.xls", "", "每条基因的物种注释表"],
             ["nr/nr_align_table.xls", "", "物种序列比对结果"],
             ["nr/tax_d.xls", "", "域注释丰度表"],
@@ -738,6 +731,7 @@ class MetaGenomicWorkflow(Workflow):
             ["nr/tax_f.xls", "", "科注释丰度表"],
             ["nr/tax_g.xls", "", "属注释丰度表"],
             ["nr/tax_s.xls", "", "种注释丰度表"],
+            ["kegg", "", "KEGG功能注释结果目录"],
             ["kegg/gene_kegg_anno.xls", "", "每条基因的KEGG功能注释表"],
             ["kegg/kegg_align_table.xls", "", "KEGG序列比对结果"],
             ["kegg/kegg_pathway_eachmap.xls", "", "Pathway在各个样品中的丰度表"],
@@ -749,17 +743,40 @@ class MetaGenomicWorkflow(Workflow):
             ["kegg/kegg_level3_profile.xls", "", "各样品pathway level3丰度表"],
             ["kegg/kegg_module_profile.xls", "", "各样品Module丰度表"],
             ["kegg/kegg_pathway_profile.xls", "", "各样品Pathway丰度表"],
+            ["cog", "", "COG功能注释结果目录"],
             ["cog/cog_align_table.xls", "", "COG序列比对结果"],
             ["cog/cog_nog_profile.xls", "", "各样品nog丰度表"],
             ["cog/cog_category_profile.xls", "", "各样品category丰度表"],
             ["cog/cog_function_profile.xls", "", "各样品function丰度表"],
             ["cog/gene_cog_anno.xls", "", "每条基因的COG功能注释表"],
-            ["cazy"],
-            ["vfdb/gene_vfdb_core_anno.xls", "", "每条基因的VFDB核心库功能注释表"],
-            ["vfdb/gene_vfdb_predict_anno.xls", "", "每条基因的VFDB预测库功能注释表"],
+            ["cazy", "", "CAZy碳水化合物活性酶注释结果目录"],
+            ["cazy/cazy_class_profile.xls", "", "各样品class丰度表"],
+            ["cazy/gene_cazy_anno.xls", "", "每条基因的CAZY功能注释表"],
+            ["cazy/cazy_family_profile.xls", "", "各样品family丰度表"],
+            ["cazy/gene_dbCAN.hmmscan.out.dm.ds", "", "CAZY序列比对结果"],
+            ["vfdb", "", "VFDB毒力因子注释结果目录"],
             ["vfdb/gene_vfdb_total_anno.xls", "", "每条基因的VFDB功能注释表"],
-            ["vfdb/"]
-
+            ["vfdb/vfdb_all_Gi_profile.xls", "", "各样品基因丰度表"],
+            ["vfdb/vfdb_all_VF_profile.xls", "", "各样品毒力因子丰度表"],
+            ["vfdb/vfdb_core_align_table.xls", "", "VFDB核心库序列比对结果"],
+            ["vfdb/vfdb_core_Gi_profile.xls", "", "各样品核心库基因丰度表"],
+            ["vfdb/vfdb_core_VF_profile.xls", "", "各样品核心库毒力因子丰度表"],
+            ["vfdb/vfdb_predict_align_table.xls", "", "VFDB预测库序列比对结果"],
+            ["vfdb/vfdb_predict_Gi_profile.xls", "", "各样品预测库基因丰度表"],
+            ["vfdb/vfdb_predict_VF_profile.xls", "", "各样品预测库毒力因子丰度表"],
+            ["vfdb/vfdb_level_pie.xls", "", "VFDB两级分类的丰度统计表"],
+            ["ardb", "", "ARDB抗性基因功能注释结果目录"],
+            ["ardb/ardb_align_table.xls", "", "ARDB序列比对结果"],
+            ["ardb/ardb_class_profile.xls", "", "各样品class丰度表"],
+            ["ardb/gene_ardb_anno.xls", "", "每条基因的ARDB功能注释表"],
+            ["ardb/ardb_ARG_profile.xls", "", "各样品ARG丰度表"],
+            ["ardb/ardb_type_profile.xls", "", "各样品type丰度表"],
+            ["card", "", "CARD抗性基因功能注释结果目录"],
+            ["card/card_align_table.xls", "", "CARD序列比对结果"],
+            ["card/card_class_profile.xls", "", "各样品class丰度表"],
+            ["card/card_ARO_gene_number.xls", "", "每个ARO比对基因信息表"],
+            ["card/gene_card_anno.xls", "", "每条基因的CARD功能注释表"],
+            ["card/card_ARO_profile.xls", "", "各样品ARO丰度表"],
             ["composition", "", "物种与功能组成分析结果目录"],
             ["composition/bar", "", "柱形图结果目录"],
             ["composition/heatmap", "", "Heatmap图结果目录"],
@@ -774,14 +791,12 @@ class MetaGenomicWorkflow(Workflow):
             ["correlation/Rda", "", "RDA_CCA分析结果目录"],
             ["correlation/Dbrda", "", "db_RDA分析结果目录"],
             ["correlation/cor_heatmap", "", "相关性Heatmap分析结果目录"],
-
         ]
         regexps = [
             # [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
-
+            [r"rawdata/base_info/.+\.fastq\.fastxstat\.txt", "", "原始序列碱基质量统计文件"],
             [r"assemble/[^/]+\.contig\.fa", "", "拼接contig结果"],
             [r"predict/.+\.metagene\.stat", "", "基因预测结果"],
-
             [r"composition/.+/.+/taxa\.percents\.table\.xls", "", "相对丰度结果表"],
             [r"composition/.+/.+/taxa\.table\.xls", "", "丰度结果表"],
             [r"compare/Hcluster/.+/hcluster\.tre", "graph.newick_tree", "层次聚类树结果表"],
@@ -809,7 +824,6 @@ class MetaGenomicWorkflow(Workflow):
             [r"correlation/cor_heatmap/.+/pearsons_correlation\.xls", "xls", "Pearson相关系数表"],
             [r"correlation/cor_heatmap/.+/pearsons_pvalue\.xls", "xls", "Pearson相关系数对应p值表"],
         ]
-
         sdir = self.add_upload_dir(dir_up)
         sdir.add_relpath_rules(repaths)
         sdir.add_regexp_rules(regexps)
