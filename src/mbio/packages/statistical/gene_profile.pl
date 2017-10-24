@@ -141,6 +141,7 @@ foreach my $gen(@genename){
     print O4 $gen;
     print O5 $gen;
     print O6 $gen;
+    print O7 $gen;
     foreach my $sam(@samps){
 	print O2 "\t",$reads{$gen}{$sam}*2;
 	print O3 "\t",$reads{$gen}{$sam}/$reads_sum{$sam};
