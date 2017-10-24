@@ -706,18 +706,44 @@ class MetaGenomicWorkflow(Workflow):
         if os.path.exists(dir_up):
             shutil.rmtree(dir_up)
         os.mkdir(dir_up)
+        if os.path.exists(os.path.join(dir_o, "rawData")):
+            self.move_file(os.path.join(dir_o, "rawData/base_info"), os.path.join(dir_up, "rawData/base_info"))
+            self.move_file(os.path.join(dir_o, "qc/qc_stat/reads.rawData.stat"), os.path.join(dir_up, "rawData/data/reads.rawData.stat.xls"))
+            self.move_file(os.path.join(dir_o, "qc/qc_stat/reads.cleanData.stat"), os.path.join(dir_up, "qc/qc_stat/reads.cleanData.stat.xls"))
+        if os.path.exists(os.path.join(dir_o, "qc")):
+            self.move_file(os.path.join(dir_o, "assemble/assembly.stat"), os.path.join(dir_up, "assemble/assembly.stat.xls"))
+            files = os.listdir(os.path.join(dir_o, "qc"))
+            for file in files:
+                if file.endswith("contig.fa"):
+                    self.move_file(os.path.join(dir_o, "qc", file), os.path.join(dir_up, "qc", file))
+        if os.path.exists(os.path.join(dir_o, "predict")):
+            self.move_file(os.path.join(dir_o, "predict/sample.metagene.stat"), os.path.join(dir_up, "predict/genePredict_stat.xls"))
+            files = os.listdir(os.path.join(dir_o, "predict")):
+            for file in files:
+                new_file = file.replace("metagene.fa", "genePredict.fa")
+                if file.endswith("metagene.fa"):
+                    self.move_file(os.path.join(dir_o, "predict", file), os.path.join(dir_up, "predict", new_file))
+        if os.path.exists(os.path.join(dir_o, "geneset")):
+            self.move_file(os.path.join(dir_o, "geneset/uniGeneset"), os.path.join(dir_up, "geneset/uniGeneset"))
+        for file in ["nr", "kegg", "cog", "cazy", "vfdb", "ardb", "card", "composition", "compare", "correlation"]:
+            if os.path.exists(os.path.join(dir_o, file)):
+                self.movefile(os.path.join(dir_o, file), os.path.join(dir_up, file))
         repaths = [
             [".", "", "流程分析结果目录"],
             ["rawData", "", "原始序列目录"],
-            # ["qc", "", "质控结果目录"],
+            ["rawData/base_info", "", "原始序列质量统计目录"],
+            ["rawData/data", "", "原始序列文件路径"],
+            ["rawData/data/reads.rawData.stat.xls", "", "各样品原始数据统计表"],
+            ["qc", "", "质控结果目录"],
+            ["qc/qc_stat/reads.cleanData.stat.xls", "", "各样品过滤后数据统计表"],
             # ["rm_host", "", "去宿主结果文件"],
             ["assemble", "", "拼接结果目录"],
-            ["assemble/assembly.stat", "", "拼接质量统计表"],
+            ["assemble/assembly.stat.xls", "", "各步骤组装结果统计表"],
             ["predict", "", "基因预测结果目录"],
-            ["predict/sample.metagene.stat", "", "基因预测结果统计表"],
+            ["predict/genePredict_stat.xls", "", "基因预测结果统计表"],
             ["geneset", "", "非冗余基因集结果目录"],
             ["geneset/uniGeneset", "", "非冗余基因集序列统计目录"],
-            ["geneset/uniGeneset/geneCatalog_stat.xls", "", "非冗余基因集序列统计结果"],
+            ["geneset/uniGeneset/geneCatalog_stat.xls", "", "去冗余前后基因数目和长度统计表"],
             ["geneset/uniGeneset/gene.uniGeneset.fa", "", "非冗余基因集核酸序列"],
             ["geneset/uniGeneset/gene.uniGeneset.faa", "", "非冗余基因集蛋白序列"],
             ["nr", "", "NR功能注释结果目录"],
@@ -793,10 +819,9 @@ class MetaGenomicWorkflow(Workflow):
             ["correlation/cor_heatmap", "", "相关性Heatmap分析结果目录"],
         ]
         regexps = [
-            # [r"QC_stat/base_info/.*\.fastq\.fastxstat\.txt", "", "单个样本碱基质量统计文件"],
             [r"rawdata/base_info/.+\.fastq\.fastxstat\.txt", "", "原始序列碱基质量统计文件"],
             [r"assemble/[^/]+\.contig\.fa", "", "拼接contig结果"],
-            [r"predict/.+\.metagene\.stat", "", "基因预测结果"],
+            [r"predict/.+\.genePredict.fa", "", "长度大于等于100bp的基因的核酸序列"],
             [r"composition/.+/.+/taxa\.percents\.table\.xls", "", "相对丰度结果表"],
             [r"composition/.+/.+/taxa\.table\.xls", "", "丰度结果表"],
             [r"compare/Hcluster/.+/hcluster\.tre", "graph.newick_tree", "层次聚类树结果表"],
@@ -997,7 +1022,7 @@ class MetaGenomicWorkflow(Workflow):
         运行 meta_genomic workflow
         :return:
         """
-        task_info = self.api.api('task_info.ref')  # 暂用有参转录组的
+        task_info = self.api.api('task_info.mg_task_info')  # 暂用有参转录组的
         task_info.add_task_info()
         self.sequence.on('end', self.run_qc)
         if self.option('rm_host'):

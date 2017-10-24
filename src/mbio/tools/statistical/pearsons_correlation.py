@@ -26,8 +26,8 @@ class PearsonsCorrelationAgent(Agent):
             {"name": "method", "type": "string", "default": "pearsonr"},
             {"name": "env_cluster", "type": "string", "default": "average"},
             {"name": "species_cluster", "type": "string", "default": "average"},
-            {"name": "cor_table", "type": "outfile", "format": "meta.otu.group_table"},
-            {"name": "pvalue_table", "type": "outfile", "format": "meta.otu.group_table"},
+            {"name": "cor_table", "type": "outfile", "format": "meta.otu.otu_table"},
+            {"name": "pvalue_table", "type": "outfile", "format": "meta.otu.otu_table"},
             {"name": "top_species", "type": "int", "default": 0},
         ]
         self.add_option(options)
