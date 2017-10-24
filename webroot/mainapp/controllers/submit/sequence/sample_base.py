@@ -83,12 +83,17 @@ class SampleBaseAction(object):
                 info = {"success": False, "info": "文件夹{}不存在".format(file_info["path"])}
                 return json.dumps(info)
             file_list = json.dumps(file_info["file_list"])
-            json_obj["options"]["in_fastq"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, file_list)
+            if data.format == 'sequence.fastq':
+                json_obj["options"]["in_fastq"] = "{}||{}/{}".format(data.format, pre_path, suff_path)
+            else:
+                json_obj["options"]["in_fastq"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, file_list)
             json_obj["options"]["file_path"] = "{}/{}".format(pre_path, suff_path)
             json_obj["options"]["info_file"] = "sequence.sample_base_table||{}/{}".format(pre_path, info_path)  # 将样本信息文件传给workflow
         else:
-            file_list = file_info["file_list"][0]  # {batch_specimen_id:alias_name}
-            json_obj["options"]["file_list"] = file_list
+            file_list = file_info["file_list"]  # {batch_specimen_id:alias_name}
+            print type(file_info["file_list"])
+            json_obj["options"]["file_list"] = file_list[0]
+            print file_list[0]
             to_file = ["sample_base.export_sample_list(file_list)"]
             json_obj["to_file"] = to_file
 
