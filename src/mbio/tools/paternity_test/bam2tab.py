@@ -187,7 +187,7 @@ class Bam2tabTool(Tool):
                         self.set_error('样本{}重名，请检查！'.format(tab_name))
                         raise Exception('可能样本重名，请检查！')
             self.api.sg_paternity_test.sample_size(self.option('sample_id'), self.option('batch_id'), tab_none)
-            self.api.tab_file.remove_sample(self.option('sample_id'))  # 用于删除sg_pt_ref_main中不合格样本信息
+            # self.api.tab_file.remove_sample(self.option('sample_id'))  # 用于删除sg_pt_ref_main中不合格样本信息
 
     def run(self):
         super(Bam2tabTool, self).run()
