@@ -54,6 +54,8 @@ class SampleBaseAction(object):
             pre_path = "tsanger:"
             type_name = "tsanger"
         file_info = json.loads(data.file_info)
+        print "aa"
+        print file_info
         table_id = SB().add_sg_seq_sample(data.member_id, data.pipeline_tpye, data.data_type, data.project_sn)
         json_obj = dict()
         if data.pipeline_tpye == "rna":    # pipeline_tpye
@@ -69,7 +71,6 @@ class SampleBaseAction(object):
         json_obj["options"] = dict()
 
         if data.format != 'recombined':  # 判断是否是重组,如果不是重组则是新建样本集，输入是序列，如果是重组，则输入是样本信息，需从数据库下载相关信息
-
             suff_path = re.split(":", file_info["path"])[1]
             mess_info = json.loads(data.info_file)
             info_path = re.split(":", mess_info["path"])[1]
@@ -81,11 +82,12 @@ class SampleBaseAction(object):
             elif data.format in ["sequence.fastq_dir"] and not os.path.isdir(rel_path):
                 info = {"success": False, "info": "文件夹{}不存在".format(file_info["path"])}
                 return json.dumps(info)
-            json_obj["options"]["in_fastq"] = "{}||{}/{}".format(data.format, pre_path, suff_path)
+            file_list = json.dumps(file_info["file_list"])
+            json_obj["options"]["in_fastq"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, file_list)
             json_obj["options"]["file_path"] = "{}/{}".format(pre_path, suff_path)
-            json_obj["options"]["info_file"] = "nipt.xlsx||{}/{}".format(pre_path, info_path)  # 将样本信息文件传给workflow
+            json_obj["options"]["info_file"] = "sequence.sample_base_table||{}/{}".format(pre_path, info_path)  # 将样本信息文件传给workflow
         else:
-            file_list = file_info["file_list"]  # {batch_specimen_id:alias_name}
+            file_list = file_info["file_list"][0]  # {batch_specimen_id:alias_name}
             json_obj["options"]["file_list"] = file_list
             to_file = ["sample_base.export_sample_list(file_list)"]
             json_obj["to_file"] = to_file

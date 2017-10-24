@@ -21,7 +21,7 @@ class MetaSampleWorkflow(Workflow):
         super(MetaSampleWorkflow, self).__init__(wsheet_object)
         options = [
             {"name": "in_fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"}, # 输入的序列文件或文件夹，仅新建样本集时用
-            {"name": "info_file", "type": "infile", "format": "nipt.xlsx"},  # 样本信息文件，记录样本的合同号，引物等信息，仅新建样本集时用
+            {"name": "info_file", "type": "infile", "format": "sequence.sample_base_table"},  # 样本信息文件，记录样本的合同号，引物等信息，仅新建样本集时用
             {"name": "file_list", "type": "infile", "format": "nipt.xlsx"},  # 从数据库dump下来的样本信息，仅重组样本集时用
             {"name": "sanger_type", "type": "string"},  # 判断sanger or tsanger
             {"name": "update_info", "type": "string"},
@@ -48,8 +48,8 @@ class MetaSampleWorkflow(Workflow):
             raise OptionError("新建时必须上传fastq文件或文件夹，重组时必须有需要重组的样本信息！")
 
     def end(self):
-        self.import2mongo()
-        self.copy_data()
+        # self.import2mongo()
+        # self.copy_data()
         super(MetaSampleWorkflow, self).end()
 
     def run_fastq_extract(self):
@@ -81,11 +81,12 @@ class MetaSampleWorkflow(Workflow):
             else:
                 file_path = self.option("file_path")
             for sample in sample_list:
+                self.logger.info(self.option("info_file").prop["new_table"])
                 sample_id = api_sample.add_sg_test_specimen_meta(sample,
                                                                  self.fastq_extract.option("output_list").prop["path"],
-                                                                 self.option("info_file").prop["path"], dir_path, file_path)
+                                                                 self.option("info_file").prop["new_table"], dir_path, file_path)
                 api_sample.add_sg_test_batch_specimen(table_id, sample_id, sample)
-            api_sample.update_sg_test_batch_meta(table_id, self.option("info_file").prop["path"])  # 更新主表中的一些附属信息
+            api_sample.update_sg_test_batch_meta(table_id, self.option("info_file").prop["new_table"])  # 更新主表中的一些附属信息
         else:
             for sample in sample_list:
                 sample_id = api_sample.add_sg_test_specimen_meta(sample,
@@ -113,7 +114,7 @@ class MetaSampleWorkflow(Workflow):
 
     def copy_data(self):
         """
-        将结果数据备份到磁盘中去
+        将结果序列文件备份到磁盘中去
         :return:
         """
         sanger_path = Config().get_netdata_config(self.option('sanger_type'))
@@ -126,10 +127,16 @@ class MetaSampleWorkflow(Workflow):
             raise Exception('该样本集磁盘中已经存在，请核实')
         else:
             os.mkdir(root_path + '/' + self.option("table_id"))
-            all_files = os.listdir(self.fastq_extract.option("output_fq").prop["path"])
-            for fq_file in all_files:
-                os.link(self.fastq_extract.option("output_fq").prop["path"] + "/" + fq_file,
-                        root_path + '/' + self.option("table_id") + "/" + fq_file)
+            if self.option("in_fastq"):
+                all_files = os.listdir(self.fastq_extract.option("output_fq").prop["path"])
+                for fq_file in all_files:
+                    os.link(self.fastq_extract.option("output_fq").prop["path"] + "/" + fq_file,
+                            root_path + '/' + self.option("table_id") + "/" + fq_file)
+            else:
+                all_files = os.listdir(self.fastq_recombined.output_dir)
+                for fq_file in all_files:
+                    os.link(self.fastq_recombined.output_dir + "/" + fq_file,
+                            root_path + '/' + self.option("table_id") + "/" + fq_file)
 
     def run(self):
         self.logger.info("开始运行！")
