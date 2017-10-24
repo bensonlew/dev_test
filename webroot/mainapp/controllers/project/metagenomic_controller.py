@@ -5,16 +5,21 @@ from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.metagenomic import Metagenomic
 from meta_controller import MetaController
+import os
 
 
 class MetagenomicController(MetaController):
     def __init__(self, instant=False):
         super(MetagenomicController, self).__init__(instant)
         self.metagenomic = Metagenomic()
+       # self.db_path = os.path.join(self.config.SOFTWARE_DIR, "database/metagenome")
+        self.db_path = "/mnt/ilustre/users/sanger-dev/app/database/metagenome"
+        self.level_file = os.path.join(self.db_path, "level_to_file.xls")
+        self.level_name_file = os.path.join(self.db_path, "database_id_to_file.xls")
         
     def _update_status_api(self):
         """
-        根据client决定接口api为ref_rna.update_status/ref_rna.tupdate_status
+        根据client决定接口api为metagenomic.update_status/metagenomic.tupdate_status
         """
         data = web.input()
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
@@ -59,7 +64,7 @@ class MetagenomicController(MetaController):
             'project_sn': project_sn,
             'IMPORT_REPORT_DATA': True,
             'UPDATE_STATUS_API': self._update_status_api(),
-            'db_type': '_ref_rna',  # 特殊用途，仅用于basic中判断是哪个数据库
+            'db_type': '_metagenomic',  # 特殊用途，仅用于basic中判断是哪个数据库
             'options': options  # 需要配置
         }
         if self.instant:
@@ -74,7 +79,7 @@ class MetagenomicController(MetaController):
 
     def _create_output_dir(self, task_id, main_table_name):
         data = web.input()
-        task_info = self.meta.get_task_info(task_id)
+        task_info = self.metagenomic.get_task_info(task_id)
         client = data.client if hasattr(data, "client") else web.ctx.env.get('HTTP_CLIENT')
         if client == 'client01':
             target_dir = 'sanger'
