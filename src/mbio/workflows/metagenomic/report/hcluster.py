@@ -11,6 +11,7 @@ import os
 import json
 import shutil
 
+
 class HclusterWorkflow(Workflow):
     """
     报告中调用距离矩阵计算样本层级聚类数使用
@@ -22,18 +23,25 @@ class HclusterWorkflow(Workflow):
         options = [
             {"name": "anno_id", "type": "string"},
             {"name": "anno_table", "type": "infile", "format": "meta.profile"},  # 各数据库的注释表格
+            {"name": "gene_list", "type": "infile", "format": "meta.profile"},
             {"name": "geneset_id", "type": "string"},
+            {"name": "update_info", "type": "string"},
+            {"name": "method", "type": "string"},
             {"name": "geneset_table", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table"},
             {"name": "distance_method", "type": "string", "default": "bray_curtis"},
             {"name": "hcluster_method", "type": "string", "default": "average"},
             {"name": "level_id", "type": "string"},
+            {"name": "group_detail", "type": "string", "default": ""},
             {"name": "second_level", "type": "string"},
             {"name": "submit_location", "type": "string"},
             {"name": "task_type", "type": "string"},
             {"name": "params", "type": "string"},
             {"name": "main_id", "type": "string"},
             {"name": "group_detail", "type": "string"},
+            {"name": "anno_type", "type": "string"},
+            {"name": "group_id", "type": "string", "default": ""},
+            {"name": "lowest_level", "type": "string", "default": ""}  # 注释表数据库对应的最低分类，eg：KEGG的ko
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -42,8 +50,8 @@ class HclusterWorkflow(Workflow):
         self.abundance = self.add_tool("meta.create_abund_table")
 
     def run(self):
-        self.IMPORT_REPORT_DATA = True
-        self.IMPORT_REPORT_DATA_AFTER_END = False
+       # self.IMPORT_REPORT_DATA = True
+       # self.IMPORT_REPORT_DATA_AFTER_END = False
         self.abundance.on('end', self.run_dist)
         self.dist.on('end', self.run_hcluster)
         self.hcluster.on('end', self.set_db)
@@ -78,7 +86,9 @@ class HclusterWorkflow(Workflow):
             'anno_table': self.option('anno_table'),
             'geneset_table': self.option('geneset_table'),
             'level_type': self.option('level_id'),
-            'level_type_name': self.option('second_level')
+            'level_type_name': self.option('second_level'),
+            'gene_list': self.option('gene_list'),
+            'lowest_level': self.option('lowest_level')
         }
         self.abundance.set_options(options)
         self.abundance.run()
@@ -91,7 +101,7 @@ class HclusterWorkflow(Workflow):
         if not os.path.isfile(matrix_path):
             raise Exception("找不到报告文件:{}".format(matrix_path))
         self.api_dist = self.api.api('metagenomic.distance_metagenomic')
-        dist_id = self.api_dist.add_dist_table(matrix_path,main=True, level_id=self.option('level_id'),
+        dist_id = self.api_dist.add_dist_table(matrix_path, main=True, level_id=self.option('level_id'),
                                                anno_id=self.option('anno_id'), name=None,
                                                params=params_json, geneset_id=self.option('geneset_id'))
         newick_fath = self.hcluster.output_dir + "/hcluster.tre"
