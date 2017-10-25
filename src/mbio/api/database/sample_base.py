@@ -24,7 +24,7 @@ class SampleBase(Base):
         :param info_txt: 样本统计信息
         :param info_file: 样本基本信息
         :param dir_path: 样本集磁盘路径
-        :param file_path: 输入文件路径
+        :param file_path: list,序列和磁盘的对应关系
         :return:
         """
         collection = self.db["sg_test_specimen"]
@@ -42,8 +42,6 @@ class SampleBase(Base):
             lines2 = fr2.readlines()
             for line in lines2[1:]:
                 tmp = line.strip().split("\t")
-                self.bind_object.logger.info(tmp[0])
-                self.bind_object.logger.info(sample)
                 if tmp[0] == sample:
                     results["pipeline_type"] = "meta"
                     results["platform"] = tmp[1]
@@ -61,7 +59,22 @@ class SampleBase(Base):
                     results["min_length"] = info_dic[tmp[0]][6]
                     results["max_length"] = info_dic[tmp[0]][7]
                     if self.bind_object.option("in_fastq"):
-                        file_path_list = info_dic[tmp[0]][0].split(",")
+                        file_path_list = []
+                        file_alias_list = []
+                        file_list = info_dic[tmp[0]][0].strip().split(",")  # 样本来源于哪些文件
+                        for j in file_list:
+                            files = j.strip().split("/")[-1]
+                            for i in range(len(file_path)):
+                                self.bind_object.logger.info(file_path)
+                                file_name = file_path[i]["file_path"]
+                                if self.bind_object.option("in_fastq").format == 'sequence.fastq':  # 序列时文件中的名称为文件磁盘原名
+                                    if files == file_name.strip().split("/")[-1]:
+                                        file_path_list.append(file_name)
+                                        file_alias_list.append(file_path[i]["file_alias"])
+                                else:  # 输入为文件夹时，文件中的名称已是别名
+                                    if files == file_path[i]["file_alias"]:
+                                        file_path_list.append(file_name)
+                                        file_alias_list.append(file_path[i]["file_alias"])
                     else:
                         file_path_list = tmp[-2].split(",")
                     results["file_path"] = file_path_list
@@ -69,7 +82,7 @@ class SampleBase(Base):
                 else:
                     pass
         self.bind_object.logger.info("表格导入成功")
-        return sample_id
+        return sample_id, file_alias_list
 
     @report_check
     def add_sg_test_specimen_rna(self, sample, stat_path, file_sample):
@@ -102,7 +115,7 @@ class SampleBase(Base):
         return sample_id
 
     @report_check
-    def add_sg_test_batch_specimen(self, table_id, sample_id, sample):
+    def add_sg_test_batch_specimen(self, table_id, sample_id, sample, file_alias_list):
         collection = self.db["sg_test_batch_specimen"]
         results_list = []
         results = {}
@@ -110,6 +123,7 @@ class SampleBase(Base):
         results["specimen_id"] = ObjectId(sample_id)
         results["alias_name"] = sample
         results["dec"] = ''
+        results["file_alias_name"] = file_alias_list
         results_list.append(results)
         try:
             collection.insert_many(results_list)
