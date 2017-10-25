@@ -28,7 +28,7 @@ class SampleBaseAction(object):
         """
         接口参数:
         file_path: 序列文件的路径或重组信息
-        pipeline_tpye: 流程类型，值为rna或meta
+        pipeline_type: 流程类型，值为rna或meta
         format: 序列的格式，值为fastq或fastq_dir
         data_type: 序列类型，clean_data或raw_data
         info_file:样本信息文件，每个流程对应的文件内容不同
@@ -36,7 +36,7 @@ class SampleBaseAction(object):
         """
         data = web.input()
         print data
-        params = ["file_info", "format", "client", "pipeline_tpye", "member_id", "data_type", "project_sn", "info_file"]
+        params = ["file_info", "format", "client", "pipeline_type", "member_id", "data_type", "project_sn", "info_file"]
         for name in params:
             if not hasattr(data, name):
                 info = {"success": False, "info": "参数{}不存在".format(name)}
@@ -54,14 +54,9 @@ class SampleBaseAction(object):
             pre_path = "tsanger:"
             type_name = "tsanger"
         file_info = json.loads(data.file_info)
-        print "aa"
-        print file_info
-        table_id = SB().add_sg_seq_sample(data.member_id, data.pipeline_tpye, data.data_type, data.project_sn)
+        table_id = SB().add_sg_seq_sample(data.member_id, data.pipeline_type, data.data_type, data.project_sn)
         json_obj = dict()
-        if data.pipeline_tpye == "rna":    # pipeline_tpye
-            json_obj["name"] = "sequence.rna_sample"
-        elif data.pipeline_tpye == "meta":
-            json_obj["name"] = "sequence.meta_sample"
+        json_obj["name"] = "sequence.sample_base"
         json_obj["id"] = self.get_new_id(table_id)
         json_obj['type'] = "workflow"
         json_obj["IMPORT_REPORT_DATA"] = True
@@ -87,20 +82,19 @@ class SampleBaseAction(object):
                 json_obj["options"]["in_fastq"] = "{}||{}/{}".format(data.format, pre_path, suff_path)
             else:
                 json_obj["options"]["in_fastq"] = "{}||{}/{};;{}".format(data.format, pre_path, suff_path, file_list)
-            json_obj["options"]["file_path"] = "{}/{}".format(pre_path, suff_path)
+            json_obj["options"]["file_path"] = json.dumps(file_info["file_list"])  # 存放list,序列磁盘文件及别名的关系
             json_obj["options"]["info_file"] = "sequence.sample_base_table||{}/{}".format(pre_path, info_path)  # 将样本信息文件传给workflow
         else:
             file_list = file_info["file_list"]  # {batch_specimen_id:alias_name}
-            print type(file_info["file_list"])
             json_obj["options"]["file_list"] = file_list[0]
             print file_list[0]
             to_file = ["sample_base.export_sample_list(file_list)"]
             json_obj["to_file"] = to_file
-
         json_obj["options"]["table_id"] = str(table_id)  # 样本集操作中，需传入sg_test_batch主表id，以命名在本地生成的文件夹
         json_obj["options"]["sanger_type"] = str(type_name)  # # 判断sanger or tsanger
         update_info = json.dumps({str(table_id): "sg_test_batch"})
         json_obj["options"]["update_info"] = update_info
+        json_obj["options"]["pipeline_type"] = data.pipeline_type  # 流程类型
         print json_obj["options"]
         if data.client == "client01":
             update_api = "sample_base.update_status"
