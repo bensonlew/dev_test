@@ -10,9 +10,10 @@ from mbio.packages.graph.venn_table import venn_graph
 
 class VennTableAgent(Agent):
     """
+    多样性流程以及小工具共用的venn图
     version 1.0
-    author: xuting
-    last_modify: 2015.11.11
+    author: wangzhaoyue
+    last_modify: 2017.8.21
     需要R软件
     """
     def __init__(self, parent):
@@ -46,7 +47,7 @@ class VennTableAgent(Agent):
         if self.option("level") not in ['otu', 'domain', 'kindom', 'phylum', 'class',
                                         'order', 'family', 'genus', 'species']:
             raise OptionError("请选择正确的分类水平")
-        if not self.option("group_table").is_set:
+        if not self.option("group_table"):
             raise OptionError("参数group_table不能为空")
         if self.option("group_table").format == 'toolapps.group_table':
             for i in self.option('group_table').prop['sample_name']:
@@ -58,7 +59,7 @@ class VennTableAgent(Agent):
         设置所需资源
         """
         self._cpu = 10
-        self._memory = ''
+        self._memory = '10G'
 
     def end(self):  # add by wzy 20170608
         result_dir = self.add_upload_dir(self.output_dir)

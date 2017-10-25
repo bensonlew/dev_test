@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhouxuan'  
+# __author__ = 'zhouxuan'
 
 from biocluster.module import Module
 import os
@@ -18,8 +18,9 @@ class NmdsModule(Module):
         self.step.add_steps('distance_calc', 'nmds')
         options = [
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
-            {"name": "T", "type": "string", "default": "column"}
+            {"name": "otu_table", "type": "infile", "format": "toolapps.table, meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "T", "type": "string", "default": "column"},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # modify by zengjing 20170911
         ]
         self.add_option(options)
         self.matrix = self.add_tool('meta.beta_diversity.distance_calc')

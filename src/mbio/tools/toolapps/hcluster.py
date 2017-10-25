@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhangpeng'  
+# __author__ = 'zhangpeng'
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import os
@@ -13,7 +13,7 @@ class HclusterAgent(Agent):
     脚本plot-hcluster_tree_app.pl
     version v2.0
     author: zhangpeng
-    last_modified:2017.5.8 zhouxuan
+    last_modified:2017.8.28 zhouxuan
     """
 
     def __init__(self, parent):
@@ -22,7 +22,8 @@ class HclusterAgent(Agent):
             {"name": "otu_table", "type": "infile", "format": "toolapps.table"},  # modify by zhouxuan 20170623
             {"name": "linkage", "type": "string", "default": "average"},
             {"name": "method", "type": "string", "default": "euclidean"},
-            {"name": "trans", "type": "string", "default": "column"}
+            {"name": "trans", "type": "string", "default": "column"},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table"}
         ]
         self.add_option(options)
         self.step.add_steps('hcluster')
@@ -69,12 +70,22 @@ class HclusterAgent(Agent):
         self._memory = '3G'
 
     def end(self):
-        result_dir = self.add_upload_dir(self.output_dir)
-        result_dir.add_relpath_rules([
-            [".", "", "层次聚类结果目录"],
-            ["./hcluster.tre", "tre", "层次聚类树"]
-        ])
-        # print self.get_upload_files()
+        if self.option('group_table').is_set:
+            result_dir = self.add_upload_dir(self.output_dir)
+            result_dir.add_relpath_rules([
+                [".", "", "PCA分析结果输出目录"],
+            ])
+            result_dir.add_regexp_rules([
+                [".+/hcluster.tre", "tre", "层次聚类树"],
+                [".+/data_table", 'txt', "数据表"]
+            ])
+        else:
+            result_dir = self.add_upload_dir(self.output_dir)
+            result_dir.add_relpath_rules([
+                [".", "", "层次聚类结果目录"],
+                ["./hcluster.tre", "tre", "层次聚类树"],
+                ["./data_table", 'txt', "数据表"]
+            ])
         super(HclusterAgent, self).end()
 
 
@@ -110,53 +121,69 @@ class HclusterTool(Tool):
         else:
             self.run_hcluster(self.option('otu_table').prop['new_table'])
 
-    def run_hcluster(self):
+    def run_hcluster(self, data_table=None, group=None):
         """
         运行plot-hcluster_tree.pl
         """
-        # os.system('dos2unix -c Mac {}'.format(self.option('otu_table').prop['new_table']))  # 转换输入文件 zhouxuan 20170609
-        real_dis_matrix = self.work_dir + '/distance_matrix.temp'
-        self.newname_dict = self.change_sample_name(quotes=False, new_path=self.work_dir + '/distance_matrix.temp')  # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
-        cmd = self.cmd_path
-        if self.option('trans') == 'column':  # 修改行列取值的实际方式，为了和小工具pca保持一致
-            cmd += ' -i %s -o %s -m %s -l %s -trans row -m_1 %s ' %\
-                   (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option('linkage'))
+        if group:
+            tmp_name = group + '_distance_matrix.temp'
         else:
+            tmp_name = 'distance_matrix.temp'
+        real_dis_matrix = os.path.join(self.work_dir, tmp_name)
+        self.newname_dict = self.change_sample_name(data_table=data_table, quotes=False, new_path=real_dis_matrix)
+        # 修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
+        cmd = self.cmd_path
+        if self.option('group_table').is_set:
             cmd += ' -i %s -o %s -m %s -l %s -trans col -m_1 %s ' % \
-                   (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option('linkage'))
+                   (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'),
+                    self.option('linkage'))
+        else:
+            if self.option('trans') == 'column':  # 修改行列取值的实际方式，为了和小工具pca保持一致
+                cmd += ' -i %s -o %s -m %s -l %s -trans row -m_1 %s ' %\
+                       (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option('linkage'))
+            else:
+                cmd += ' -i %s -o %s -m %s -l %s -trans col -m_1 %s ' % \
+                       (real_dis_matrix, self.work_dir, self.option('linkage'), self.option('method'), self.option('linkage'))
         self.logger.info('运行plot-hcluster_tree.pl程序计算Hcluster')
         self.logger.info(cmd)
-        try:
+        try:  # 生成脚本
             subprocess.check_output(cmd, shell=True)
             self.logger.info('生成 hc.cmd.r 文件成功')
         except subprocess.CalledProcessError:
             self.logger.info('生成 hc.cmd.r 文件失败')
             self.set_error('无法生成 hc.cmd.r 文件')
         self.logger.info(self.config.SOFTWARE_DIR + '/program/R-3.3.1/bin/R --restore --no-save < %s/hc.cmd.r' % self.work_dir)
-        try:
+        try:  # 运行脚本
             subprocess.check_output(self.config.SOFTWARE_DIR +
                                     '/program/R-3.3.1/bin/R --restore --no-save < %s/hc.cmd.r' % self.work_dir, shell=True)
             self.logger.info('生成树文件成功')
         except subprocess.CalledProcessError:
             self.logger.info('生成树文件失败')
             raise Exception("数据量太大无法生成树文件")
-        filename = self.work_dir + '/hcluster_tree_' + \
-            os.path.basename(real_dis_matrix) + '_' + self.option('linkage') + '.tre'
-        linkfile = self.output_dir + '/hcluster.tre'
-        self.re_recover_name(self.newname_dict, filename, filename + '.temp')
-        if os.path.exists(linkfile):
-            os.remove(linkfile)
+        filename = self.work_dir + '/hcluster_tree_' + os.path.basename(real_dis_matrix) + '_' + self.option('linkage') + '.tre'  # 结果文件
+        if group:
+            os.rename(self.work_dir + '/hc.cmd.r', self.work_dir + '/' + group + '_hc.cmd.r')
+            os.mkdir(self.output_dir + '/' + group)
+            linkfile = self.output_dir + '/' + group +'/hcluster.tre'  # link到结果文件夹的最终文件
+        else:
+            linkfile = self.output_dir + '/hcluster.tre'  # link到结果文件夹的最终文件
+        self.re_recover_name(self.newname_dict, filename, filename + '.temp')  # 换回名称
+        # if os.path.exists(linkfile):
+        #     os.remove(linkfile)
         os.link(filename + '.temp', linkfile)
-        os.link(self.option('otu_table').prop['new_table'], os.path.join(self.output_dir, "data_table"))
+        if group:
+            os.link(data_table, os.path.join(self.output_dir + '/' + group, "data_table"))
+        else:
+            os.link(data_table, os.path.join(self.output_dir, "data_table"))
         self.end()
 
-    def change_sample_name(self, quotes=False, new_path=None):
+    def change_sample_name(self, data_table, quotes=False, new_path=None):
         """
         修改矩阵的样本名称为不含特殊符号的名称，返回一个旧名称对新名称的字典
         """
         if not new_path:
             new_path = self.work_dir + '/distance_matrix.temp'
-        old_matrix = open(self.option('otu_table').prop['new_table'], 'rb')
+        old_matrix = open(data_table, 'rb')
         name_dict = {}
         new_matrix = open(new_path, 'wb')
         frist_line = old_matrix.readline().rstrip().split('\t')[1:]
@@ -167,10 +194,6 @@ class HclusterTool(Tool):
         new_matrix.write('\t' + '\t'.join(name_dict.itervalues()) + '\n')
         for line in old_matrix:
             line_split = line.split('\t')
-            #if quotes:
-            #    line_split[0] = name_dict['\"' + line_split[0] + '\"']
-            #else:
-            #    line_split[0] = name_dict[line_split[0]]
             new_matrix.write('\t'.join(line_split))
         old_matrix.close()
         new_matrix.close()
@@ -222,3 +245,12 @@ class HclusterTool(Tool):
                 w.write(tree)
         except IOError, e:
                 raise Exception('聚类树文件无法找到或者无法打开：%s' % e)
+
+    def t_table(self, table_file, new_table):  # 表格转置
+        """
+		转换颠倒表格内容
+		"""
+        with open(table_file) as f, open(new_table, 'w') as w:
+            table_list = [i.rstrip().split('\t') for i in f.readlines()]
+            table_list = map(lambda *a: '\t'.join(a) + '\n', *table_list)
+            w.writelines(table_list)
