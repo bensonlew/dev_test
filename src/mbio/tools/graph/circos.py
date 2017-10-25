@@ -4,7 +4,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 import pandas as pd
-import re  
+import re
 import os
 
 

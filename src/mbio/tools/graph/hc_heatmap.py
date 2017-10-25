@@ -3,9 +3,10 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-import os  
+import os
 import re
 import collections
+
 
 class HcHeatmapAgent(Agent):
     """
@@ -13,7 +14,9 @@ class HcHeatmapAgent(Agent):
     auther: xuan.zhou
     last_modified: 201706022 数据表格式修改
     使用脚本实现聚类树
+    last_modified: 20170907 增加分组方案文件 zengjing
     """
+
     def __init__(self, parent):
         super(HcHeatmapAgent, self).__init__(parent)
         options = [
@@ -22,8 +25,9 @@ class HcHeatmapAgent(Agent):
             {"name": "col_method", "type": "string", "default": "no"},  # 列聚类方式,为no时不聚类
             {"name": "col_number", "type": "string", "default": "10"},  # 列数
             {"name": "row_number", "type": "string", "default": "10"},  # 行数
-            # {"name": "data_T", "type": "bool", "default": False}
-            {"name": "data_T", "type": "string", "default": "false"}
+            {"name": "data_T", "type": "string", "default": "false"},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # modify by zengjing 20170907
+            {"name": "group_method", "type": "string", "default": "none"}  # 组内合并参数none,sum,average,middle
         ]
         self.add_option(options)
         self.step.add_steps('hc_heatmap')
@@ -215,38 +219,17 @@ class HcHeatmapTool(Tool):
         """
         plot-hcluster_tree_app.pl,输出画图所需的树文件
         """
-        # os.system('dos2unix -c Mac {}'.format(self.option('data_table').prop['path']))  # 转换输入文件
-        # os.system('dos2unix {}'.format(self.option('data_table').prop['path']))  # 转换输入文件
-        if self.option("col_number") == "" and self.option("row_number") == "":
-            # self.new_data = self.option('data_table').prop['path']
-            self.new_data = self.new_table
-        else:
-            self.new_data = os.path.join(self.work_dir, "new_data.xls")
-            # self.get_new_data(old_path=self.option('data_table').prop['path'], new_path=self.new_data,
-            self.get_new_data(old_path=self.new_table, new_path=self.new_data,
-                              col_number=self.option("col_number"), row_number=self.option("row_number"),
-                              t=self.option('data_T'))
         if self.option('row_method') == 'no' and self.option('col_method') == 'no':
             self.set_output()
         else:  # -m ~ col
             if self.option('row_method') != 'no' and self.option('col_method') == 'no':
-                cmd = '{} -i {} -m_1 {} -trans row -o {}'.format(self.app_path,
-                                                                 self.new_data,
-                                                                self.option('row_method'),
-                                                                self.output_dir)
+                cmd = '{} -i {} -m_1 {} -trans row -o {}'.format(self.app_path, table_path, self.option('row_method'), self.output_dir)
             elif self.option('row_method') == 'no' and self.option('col_method') != 'no':
-                cmd = '{} -i {} -m {} -trans col -o {}'.format(self.app_path,
-                                                               self.new_data,
-                                                               self.option('col_method'),
-                                                               self.output_dir)
+                cmd = '{} -i {} -m {} -trans col -o {}'.format(self.app_path, table_path, self.option('col_method'), self.output_dir)
             else:
-                cmd = '{} -i {} -m {} -m_1 {} -trans both -o {}'.format(self.app_path,
-                                                                        self.new_data,
-                                                                        self.option('col_method'),
-                                                                        self.option('row_method'),
-                                                                        self.output_dir)
+                cmd = '{} -i {} -m {} -m_1 {} -trans both -o {}'.format(self.app_path, table_path, self.option('col_method'), self.option('row_method'), self.output_dir)
             self.logger.info("开始运行plot-hcluster_tree_app.pl")
-            command = self.add_command("hc_heatmap", cmd)
+            command = self.add_command("hc_heatmap_{}".format(group.lower()), cmd)
             command.run()
             self.wait(command)
             if command.return_code == 0:
@@ -256,7 +239,7 @@ class HcHeatmapTool(Tool):
                 raise Exception("运行plot-hcluster_tree_app.pl运行出错，请检查输入的参数是否正确")
             r_cmd = '{} {}/hc.cmd.r'.format(self.R_path, self.work_dir)
             self.logger.info("运行hc.cmd.r")
-            r_command = self.add_command("hc_r", r_cmd)
+            r_command = self.add_command("hc_r_{}".format(group.lower()), r_cmd)
             r_command.run()
             self.wait(r_command)
             if r_command.return_code == 0:
@@ -264,43 +247,56 @@ class HcHeatmapTool(Tool):
             else:
                 self.set_error("运行hc.cmd.r运行出错!")
                 raise Exception("运行hc.cmd.r运行出错，请检查输入的参数是否正确")
-            self.set_output()
 
     def set_output(self):
-        os.link(self.new_data, os.path.join(self.output_dir, "result_data"))
         file_name = os.listdir(self.output_dir)
         if self.option('row_method') != 'no' and self.option('col_method') == 'no':
             for name in file_name:
-                if re.search('(\.tre)$', name):
-                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "row_tre"))  # col_tre
+                m = re.match(r"hcluster_tree_(.+)_table.xls(.*).tre$", name)
+                if m:
+                    group = m.group(1)
+                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_row_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
-                # if re.search('(\.ttre)$', name):
-                #   os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))  # row_tre
-                #   os.remove(os.path.join(self.output_dir, name))
             self.logger.info("存在行聚类树")
         elif self.option('row_method') == 'no' and self.option('col_method') != 'no':
             for name in file_name:
-                if re.search('(\.tre)$', name):
-                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
+                m = re.match(r"hcluster_tree_(.+)_table.xls(.*).tre$", name)
+                if m:
+                    group = m.group(1)
+                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_col_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
             self.logger.info("存在列聚类树")
         else:
             for name in file_name:
-                if re.search('(\.tre)$', name):
-                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "col_tre"))
+                m = re.match(r"hcluster_tree_(.+)_table.xls(.*)\.tre$", name)
+                if m:
+                    group = m.group(1)
+                    new = os.path.join(self.output_dir, "{}_col_tre".format(group))
+                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_col_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
-                if re.search('(\.ttre)$', name):
-                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "row_tre"))
+                n = re.match(r"hcluster_tree_(.+)_table.xls(.*)\.ttre$", name)
+                if n:
+                    group = n.group(1)
+                    os.link(os.path.join(self.output_dir, name), os.path.join(self.output_dir, "{}_row_tre".format(group)))
                     os.remove(os.path.join(self.output_dir, name))
         file_name_2 = os.listdir(self.output_dir)
         for name in file_name_2:
             if re.search('(\.pdf)$', name):
                 os.remove(os.path.join(self.output_dir, name))
+        table_files = os.listdir(self.work_dir)
+        for f in table_files:
+            t = re.search(r"(.+)_table.xls$", f)
+            if t:
+                g = t.group(1)
+                out = os.path.join(self.output_dir, "{}_result_data".format(g))
+                if not os.path.exists(out):
+                    os.link(os.path.join(self.work_dir, f), out)
 
     def run(self):
         """
         运行
         """
         super(HcHeatmapTool, self).run()
-        self.create_tree()
+        self.get_group_data_table()
+        self.set_output()
         self.end()

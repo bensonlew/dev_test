@@ -6,7 +6,7 @@ from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
 from biocluster.core.exceptions import FileError
-import re  
+import re
 from collections import defaultdict
 
 
