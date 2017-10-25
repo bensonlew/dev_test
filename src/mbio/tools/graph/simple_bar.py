@@ -23,7 +23,7 @@ class SimpleBarAgent(Agent):
             {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # 输入的group表格
             {"name": "method", "type": "string", "default": "row"},  # 样本名的方向，默认样本在行row,column
             {"name": "combined_value", "type": "string", "default": "0.01"},  # 合并小于此值的属性
-            {"name": "calculation", "type": "string", "default": "none"}  # 组内合并参数，none,sum,average,middle
+            {"name": "calculation", "type": "string", "default": "none"}  # 组内合并参数，none,sum,average,middl
         ]
         self.add_option(options)
         self.step.add_steps('simple_bar')
