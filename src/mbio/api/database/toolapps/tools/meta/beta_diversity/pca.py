@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'shenghe'
+# __author__ = 'shenghe'  
 import json
 from biocluster.api.database.base import Base, report_check
 import re
@@ -161,4 +161,3 @@ class Pca(Base):
         检查文件格式是否正确
         """
         pass
-

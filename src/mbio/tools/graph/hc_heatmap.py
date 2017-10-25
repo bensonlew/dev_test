@@ -3,7 +3,7 @@
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 from biocluster.core.exceptions import OptionError
-import os
+import os  
 import re
 import collections
 
