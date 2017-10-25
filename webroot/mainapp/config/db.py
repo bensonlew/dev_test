@@ -62,17 +62,43 @@ class Config(object):
             self._record_db = web.database(dbn=dbtype, host=host, db=dbname, user=user, passwd=passwd, port=int(port))
         return self._record_db
 
-    def get_mongo_client(self):
-        if not self._mongo_client:
-            uri = self.rcf.get("MONGO", "uri")
-            self._mongo_client = MongoClient(uri, connect=False, maxPoolSize=1000)
-        return self._mongo_client
+    def get_mongo_client(self, mtype=None, ref=False):
+        if ref:
+            if not self._biodb_mongo_client:
+                if mtype:
+                    if self.rcf.has_option("MONGO", "%s_ref_uri" % mtype):
+                        uri = self.rcf.get("MONGO", "%s_ref_uri" % mtype)
+                    elif self.rcf.has_option("MONGO", "%s_uri" % mtype):
+                        uri = self.rcf.get("MONGO", "%s_uri" % mtype)
+                    else:
+                        uri = self.rcf.get("MONGO", "bio_uri")
+                else:
+                    uri = self.rcf.get("MONGO", "bio_uri")
+                self._biodb_mongo_client = MongoClient(uri, connect=False, maxPoolSize=1000)
+            return self._biodb_mongo_client
+        else:
+            if not self._mongo_client:
+                if mtype:
+                    if self.rcf.has_option("MONGO", "%s_uri" % mtype):
+                        uri = self.rcf.get("MONGO", "%s_uri" % mtype)
+                    else:
+                        uri = self.rcf.get("MONGO", "uri")
+                else:
+                    uri = self.rcf.get("MONGO", "uri")
+                self._mongo_client = MongoClient(uri, connect=False, maxPoolSize=1000)
+            return self._mongo_client
 
-    def get_biodb_mongo_client(self):
-        if not self._biodb_mongo_client:
-            uri = self.rcf.get("MONGO", "bio_uri")
-            self._biodb_mongo_client = MongoClient(uri, connect=False, maxPoolSize=1000)
-        return self._biodb_mongo_client
+    def get_mongo_dbname(self, mtype=None, ref=False):
+        if not mtype:
+            return self.MONGODB
+        else:
+            key = "%s_db_name" % mtype
+            if ref:
+                key = "%s_ref_db_name" % mtype
+            return self.rcf.get("MONGO", key)
+
+    def get_biodb_mongo_client(self, mtype=None):
+        return self.get_mongo_client(mtype, True)
 
     def get_work_dir(self):
         return self.rcf.get("Basic", "work_dir")
@@ -93,5 +119,5 @@ def get_api_type(client):
         return None
 
 
-def get_mongo_client():
-    return Config().get_mongo_client()
+def get_mongo_client(mtype=None,ref=False):
+    return Config().get_mongo_client(mtype,ref)
