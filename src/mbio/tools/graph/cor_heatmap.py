@@ -11,10 +11,10 @@ import re
 
 class CorHeatmapAgent(Agent):
     """
-    CorHeatmapAgent:用于生成环境因子和otu/taxon之间的correlation
+    CorHeatmapAgent:用于生成之间的correlation
     version: 0.1
     author: wangbixuan
-    last_modified: 20160930 by qindanhua
+    last_modified: 20171025 by gaohao
     """
     def __init__(self, parent):
         super(CorHeatmapAgent, self).__init__(parent)
