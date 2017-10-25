@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhouxuan'
+# __author__ = 'zhouxuan'  
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 from biocluster.config import Config

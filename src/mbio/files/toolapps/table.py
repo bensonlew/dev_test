@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhouxuan'
+# __author__ = 'zhouxuan'  
 from biocluster.iofile import File
 from biocluster.core.exceptions import FileError
 from biocluster.config import Config
@@ -140,3 +140,5 @@ if __name__ == "__main__":
     a = TableFile()
     a.set_path("/mnt/ilustre/users/sanger-dev/sg-users/zhouxuan/otu_table_Tab_zx_1498725491.txt")
     a.check()
+    out = '/mnt/ilustre/users/sanger-dev/workspace/20170913/Single_test_bar_log_group1/SimpleBar/group1/input_1'
+    a.get_table_of_main_table('/mnt/ilustre/users/sanger-dev/sg-users/wangzhaoyue/toolapps/single_table_input/matrix_column.txt', out, group_file)

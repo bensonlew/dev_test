@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhangpeng'
-import json
+# __author__ = 'zhangpeng'  
 from biocluster.api.database.base import Base, report_check
 import re
 import datetime
