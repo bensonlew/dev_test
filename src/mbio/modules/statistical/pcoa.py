@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhouxuan'  
+# __author__ = 'zhouxuan'
 
 from biocluster.module import Module
 import os
@@ -18,8 +18,9 @@ class PcoaModule(Module):
         self.step.add_steps('distance_calc', 'pcoa')
         options = [
             {"name": "dis_method", "type": "string", "default": "bray_curtis"},
-            {"name": "otu_table", "type": "infile", "format": "meta.otu.otu_table, meta.otu.tax_summary_dir"},
+            {"name": "otu_table", "type": "infile", "format": "toolapps.table, meta.otu.otu_table, meta.otu.tax_summary_dir"},
             {"name": "T", "type": "string", "default": "column"},
+            {"name": "group_table", "type": "infile", "format": "toolapps.group_table"},  # modify by zengjing 20170907
             {"name": "dis_matrix", "type": "outfile", "format": "meta.beta_diversity.distance_matrix"},
         ]
         self.add_option(options)
