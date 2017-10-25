@@ -172,9 +172,6 @@ class MetaController(object):
         if otu_id:
             new_id = "{}_{}_{}".format(task_id, otu_id[-4:], random.randint(1, 10000))
         else:
-            # id_ = '%f' % time.time()
-            # ids = str(id_).strip().split(".")
-            # new_id = "{}_{}_{}".format(task_id, ids[0][5:], ids[1])  #改成时间来命名workflow id
             new_id = "{}_{}_{}".format(task_id, random.randint(1000, 10000), random.randint(1, 10000))
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(new_id)

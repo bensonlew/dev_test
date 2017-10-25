@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shijin'
+# __editor__ = 'wangzhaoyue' 20171025
 
 """
 将fq文件进行拆分，并移入本地参考序列文件夹
@@ -7,26 +8,25 @@
 
 from biocluster.workflow import Workflow
 from biocluster.core.exceptions import OptionError
-from mbio.files.sequence.fastq_dir import FastqDirFile
 import os
 import re
 from biocluster.config import Config
 import json
-import shutil
 
 
-class MetaSampleWorkflow(Workflow):
+class SampleBaseWorkflow(Workflow):
     def __init__(self, wsheet_object):
         self._sheet = wsheet_object
-        super(MetaSampleWorkflow, self).__init__(wsheet_object)
+        super(SampleBaseWorkflow, self).__init__(wsheet_object)
         options = [
-            {"name": "in_fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"}, # 输入的序列文件或文件夹，仅新建样本集时用
+            {"name": "in_fastq", "type": "infile", "format": "sequence.fastq,sequence.fastq_dir"},  # 输入的序列文件或文件夹，仅新建样本集时用
             {"name": "info_file", "type": "infile", "format": "sequence.sample_base_table"},  # 样本信息文件，记录样本的合同号，引物等信息，仅新建样本集时用
             {"name": "file_list", "type": "infile", "format": "nipt.xlsx"},  # 从数据库dump下来的样本信息，仅重组样本集时用
             {"name": "sanger_type", "type": "string"},  # 判断sanger or tsanger
             {"name": "update_info", "type": "string"},
-            {"name": "file_path", "type": "string"},   # 输入文件的磁盘路径
-            {"name": "table_id", "type": "string"}  # 主表id
+            {"name": "file_path", "type": "string"},   # 输入文件的磁盘路径，磁盘路径也文件别名的list
+            {"name": "table_id", "type": "string"},  # 主表id
+            {"name": "pipeline_type", "type": "string"}  # 流程
         ]
         self.add_option(options)
         self.set_options(self._sheet.options())
@@ -49,9 +49,9 @@ class MetaSampleWorkflow(Workflow):
 
     def end(self):
         self.set_output()
-        # self.import2mongo()
-        # self.copy_data()
-        super(MetaSampleWorkflow, self).end()
+        self.import2mongo()
+        self.copy_data()
+        super(SampleBaseWorkflow, self).end()
 
     def run_fastq_extract(self):
         opts = {
@@ -76,15 +76,13 @@ class MetaSampleWorkflow(Workflow):
         table_id = self.option("table_id")
         sample_list = self.get_sample()
         if self.option("in_fastq"):
-            # 获得输入文件的路径
-            if self.option("in_fastq").format == 'sequence.fastq':
-                file_path = self.option("file_path")
+            file_path = json.loads(self.option("file_path"))
             for sample in sample_list:
                 self.logger.info(self.option("info_file").prop["new_table"])
-                sample_id = api_sample.add_sg_test_specimen_meta(sample,
+                sample_id, file_alias_list = api_sample.add_sg_test_specimen_meta(sample,
                                                                  self.fastq_extract.option("output_list").prop["path"],
                                                                  self.option("info_file").prop["new_table"], dir_path, file_path)
-                api_sample.add_sg_test_batch_specimen(table_id, sample_id, sample)
+                api_sample.add_sg_test_batch_specimen(table_id, sample_id, sample, file_alias_list)
             api_sample.update_sg_test_batch_meta(table_id, self.option("info_file").prop["new_table"])  # 更新主表中的一些附属信息
         else:
             for sample in sample_list:
@@ -122,7 +120,7 @@ class MetaSampleWorkflow(Workflow):
             fastq_path = self.fastq_extract.output_dir + '/fastq/'
             allfiles = os.listdir(fastq_path)
             oldfiles = [os.path.join(fastq_path, i) for i in allfiles]
-            newfiles = [os.path.join(self.output_dir, i) for i in allfiles]
+            newfiles = [os.path.join(new_fastq_path, i) for i in allfiles]
             for newfile in newfiles:
                 if os.path.exists(newfile):
                     if os.path.isfile(newfile):
@@ -163,14 +161,15 @@ class MetaSampleWorkflow(Workflow):
             os.mkdir(root_path + '/' + self.option("table_id"))
             all_files = os.listdir(self.output_dir + '/fastq/')
             for fq_file in all_files:
-                os.link(self.output_dir + '/fastq/', root_path + '/' + self.option("table_id") + "/" + fq_file)
+                os.link(self.output_dir + '/fastq/' + fq_file, root_path + '/' + self.option("table_id") + "/" + fq_file)
 
     def run(self):
         self.logger.info("开始运行！")
-        if self.option("in_fastq"):
-            self.fastq_extract.on("end", self.end)
-            self.run_fastq_extract()
-        else:
-            self.fastq_recombined.on("end", self.end)
-            self.run_fastq_recombined()
-        super(MetaSampleWorkflow, self).run()
+        if self.option("pipeline_type") == 'meta':
+            if self.option("in_fastq"):
+                self.fastq_extract.on("end", self.end)
+                self.run_fastq_extract()
+            else:
+                self.fastq_recombined.on("end", self.end)
+                self.run_fastq_recombined()
+        super(SampleBaseWorkflow, self).run()
