@@ -6,6 +6,7 @@ import os
 import types
 import subprocess
 from biocluster.core.exceptions import OptionError
+from mbio.packages.taxon.mask_taxon import mask_taxon  # add by guhaidong 20171025
 import re
 import pandas as pd
 
@@ -208,11 +209,31 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的丰度表，f
         T2.to_csv(new_T2, sep="\t", index=False)
         return True
 
+    def dashrepl(self, matchobj):
+        """
+        add func by guhaidong 20171025
+        """
+        return self.name_to_name[matchobj.groups()[0]]
+
+    def add_taxon(self, old_result, taxon_result):
+        """
+        add func by guhaidong 20171025
+        description: 将旧注释的名称，根据词典替换成新注释名称
+        """
+        with open(old_result, "r") as f, open(taxon_result, "w") as w:
+            # w.write(old_result)
+            for i in f.readlines():
+                #line = i.strip()
+                new_line = re.sub(r"(name\d+)", self.dashrepl, i)
+                w.write(new_line)
+
     def run_ordination(self):
         """
         运行ordination.pl
         """
         old_otu_table = self.get_otu_table()
+        self.name_to_name = mask_taxon(old_otu_table, self.work_dir + "/tmp_mask_otu.xls")  # add by guhaidong 20171025
+        old_otu_table = self.work_dir + '/tmp_mask_otu.xls'  # add by guhaidong 20171025
         old_env_table = self.get_new_env()
         otu_species_list = self.get_species_name()
         self.otu_table = self.work_dir + '/new_otu.xls'
@@ -336,6 +357,9 @@ class RdaCcaTool(Tool):  # rda/cca需要第一行开头没有'#'的丰度表，f
             elif '_sites.xls' in name:
                 rda_site = name
             elif '_species.xls' in name:
+                # rda_spe = name  # modified by guhaidong 20171025
+                self.add_taxon(os.path.join(self.work_dir, 'rda', name), self.work_dir + '/rda/rda_species_new.xls')
+                os.rename(self.work_dir + '/rda/rda_species_new.xls', os.path.join(self.work_dir, 'rda', name))
                 rda_spe = name
             elif 'dca.xls' in name:
                 rda_dca = name

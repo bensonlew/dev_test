@@ -20,8 +20,6 @@ class DistanceMetagenomic(Base):
     @report_check
     def add_dist_table(self, file_path, main=False, level_id=None, dist_id=None, anno_id=None, task_id=None, name=None,
                        params=None, spname_spid=None, geneset_id=None):
-        if task_id is None:
-            task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         created_ts = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         data_list = []
@@ -30,6 +28,9 @@ class DistanceMetagenomic(Base):
             params['group_detail'] = group_detail_sort(group_detail)
         # insert main
         if main:
+            collection = self.db["geneset"]
+            result = collection.find_one({"_id": ObjectId(geneset_id)})
+            task_id = result['task_id']
             insert_data = {
                 'project_sn': project_sn,
                 'task_id': task_id,
