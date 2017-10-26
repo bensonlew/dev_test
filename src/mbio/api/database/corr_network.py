@@ -8,13 +8,14 @@ from bson.son import SON
 import gridfs
 import datetime
 import os
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class CorrNetwork(Base):
     def __init__(self, bind_object):
         super(CorrNetwork, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     # @report_check
     def add_network_attributes(self, file_path, table_id = None, group_id = None, from_otu_table = None, level_id = None, major = False):

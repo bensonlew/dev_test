@@ -6,7 +6,7 @@ import datetime
 import re
 from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
-from biocluster.config import Config
+# from biocluster.config import Config
 # import re
 # import datetime
 # from bson.son import SON
@@ -16,7 +16,8 @@ from biocluster.config import Config
 class Anosim(Base):
     def __init__(self, bind_object):
         super(Anosim, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_beta_anosim_result(self, dir_path, main_id=None, main=False, group_id=None,

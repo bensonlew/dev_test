@@ -7,14 +7,15 @@ import datetime
 import json
 from bson.son import SON
 from types import StringTypes
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 
 
 class Estimator(Base):
     def __init__(self, bind_object):
         super(Estimator, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_est_table(self, file_path, level, major=False, otu_id=None, est_id=None, task_id=None, name=None,

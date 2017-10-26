@@ -4,14 +4,17 @@
 from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
-from mainapp.config.db import get_mongo_client
-from biocluster.config import Config
+from .core.base import Base
+# from mainapp.config.db import get_mongo_client
+# from biocluster.config import Config
 
 
-class RandomforestStat(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class RandomforestStat(Base):
+    def __init__(self, bind_object = None):
+        super(RandomforestStat, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
 
     #def create_randomforest(self, params, group_id=0, from_otu_table=0, name=None, level_id=0, ntree_id=0, top_number_id=0):

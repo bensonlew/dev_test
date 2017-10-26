@@ -7,7 +7,8 @@ import json
 import datetime
 import os
 from mainapp.models.mongo.export_file import ExportFile
-from biocluster.config import Config
+# from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
 from bson.objectid import ObjectId
 from types import StringTypes
 import re
@@ -15,11 +16,13 @@ from mainapp.libs.signature import check_sig
 from mainapp.libs.input_check import meta_check
 
 
-class ConvertLevel(object):
-    def __init__(self):
-        self._client = Config().mongo_client
-        self._db_name = Config().MONGODB
-        self.db = self._client[self._db_name]
+class ConvertLevel(Base):
+    def __init__(self, bind_object=None):
+        super(ConvertLevel, self).__init__(bind_object)
+        self._project_type = "meta"
+        # self._client = Config().mongo_client
+        # self._db_name = Config().MONGODB
+        # self.db = self._client[self._db_name]
 
     @check_sig
     @meta_check

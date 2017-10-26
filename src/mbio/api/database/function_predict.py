@@ -9,13 +9,14 @@ from bson.objectid import ObjectId
 import types
 import gridfs
 from biocluster.api.database.base import Base, report_check
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class FunctionPredict(Base):
     def __init__(self, bind_object):
         super(FunctionPredict, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_function_prediction(self, name=None, params=None, otu_id=0, sample_path=None):

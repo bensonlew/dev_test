@@ -8,13 +8,14 @@ from bson.objectid import ObjectId
 from types import StringTypes
 from mainapp.models.mongo.core.base import Base
 from bson.son import SON
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class EstimatorsMongo(Base):
     def __init__(self, bind_object):
         super(EstimatorsMongo, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self._params = self.PackParams()
 
     def PackParams(self):

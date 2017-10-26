@@ -4,14 +4,15 @@ from biocluster.api.database.base import Base, report_check
 import datetime
 from bson.objectid import ObjectId
 import json
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 
 
 class MetaSpeciesEnv(Base):
     def __init__(self, bind_object):
         super(MetaSpeciesEnv, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_mantel_table(self, level, otu_id, env_id, task_id=None, name=None, params=None, spname_spid=None):

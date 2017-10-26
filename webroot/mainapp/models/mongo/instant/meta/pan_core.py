@@ -6,13 +6,14 @@ import re
 from bson.objectid import ObjectId
 from types import StringTypes
 from mainapp.models.mongo.core.base import Base
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class PanCoreMongo(Base):
     def __init__(self, bind_object):
         super(PanCoreMongo, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self._params = self.PackParams()
 
     def PackParams(self):

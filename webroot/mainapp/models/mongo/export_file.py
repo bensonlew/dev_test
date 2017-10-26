@@ -6,13 +6,16 @@ import re
 import json
 from bson.objectid import ObjectId
 from types import StringTypes
-from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
+# from biocluster.config import Config
 
 
-class ExportFile(object):
-    def __init__(self):
-        self.client = Config().mongo_client
-        self.db = self.client[Config().MONGODB]
+class ExportFile(Base):
+    def __init__(self, bind_object=None):
+        super(ExportFile, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = Config().mongo_client
+        # self.db = self.client[Config().MONGODB]
         self.level = {
             9: "otu", 8: "s__", 7: "g__", 6: "f__", 5: "o__",
             4: "c__", 3: "p__", 2: "k__", 1: "d__"
@@ -45,8 +48,9 @@ class ExportFile(object):
         return targetPath
 
     def export_otu_table_by_level(self, otuId, targetPath, level=9):
-        self.client = Config().mongo_client
-        self.db = self.client[Config().MONGODB]
+        self._project_type = 'meta'
+        # self.client = Config().mongo_client
+        # self.db = self.client[Config().MONGODB]
         self.level = {
             9: "otu", 8: "s__", 7: "g__", 6: "f__", 5: "o__",
             4: "c__", 3: "p__", 2: "k__", 1: "d__"

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
 import web
-from biocluster.config import Config
+# from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
 from mainapp.libs.signature import check_sig, CreateSignature
 from web import form
 from mainapp.libs.input_check import check_format
@@ -17,10 +18,12 @@ import re
 from mainapp.libs.getip import get_ip
 
 
-class Pipeline(object):
+class Pipeline(Base):
 
-    def __init__(self):
-        self.client = get_mongo_client()
+    def __init__(self, bind_object=None):
+        super(Pipeline, self).__init__(bind_object)
+        self._project_type = "meta"
+        # self.client = get_mongo_client()
         # self.db_name = None
         # self.db = self.client[Config().MONGODB]
 
@@ -75,8 +78,8 @@ class Pipeline(object):
         """
         if json_obj["name"] == "meta.meta_base":
             if json_obj["options"]["file_list"] != "null":
-                self.db_name = Config().MONGODB
-                self.db = self.client[self.db_name]
+                # self.db_name = Config().MONGODB
+                # self.db = self.client[self.db_name]
                 collection = self.db["sg_seq_sample"]
                 id1 = re.sub("sanger", "tsanger", json_obj["id"])
                 id2 = re.sub("i-sanger", "tsanger", json_obj["id"])
@@ -123,8 +126,10 @@ class Pipeline(object):
             json_obj['stage_id'] = 0
         json_obj['type'] = first_stage.find("type").text
         json_obj['name'] = first_stage.find("name").text
+        # json_obj['output'] = "%s/files/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
+        #                                                json_obj['id'], json_obj['stage_id'])
         json_obj['output'] = "%s/files/%s/%s/%s/%s" % (file_path, json_obj["member_id"], json_obj['project_sn'],
-                                                       json_obj['id'], json_obj['stage_id'])
+                                                       json_obj['id'], 'workflow_results')  # zengjing 20170929 修改页面上流程的结果文件夹名称为workflow_results
         option = first_stage.find("parameters")
         # print json_obj
         json_obj['options'] = {}

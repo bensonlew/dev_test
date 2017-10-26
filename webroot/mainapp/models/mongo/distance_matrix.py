@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'shenghe'
-from mainapp.config.db import get_mongo_client
+#from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 import types
-from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
+#from biocluster.config import Config
 
 
-class Distance(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class Distance(Base):
+    def __init__(self, bind_object=None):
+        super(Distance, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
     def get_distance_matrix_info(self, distance_id):
 

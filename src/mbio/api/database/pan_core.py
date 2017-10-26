@@ -9,14 +9,15 @@ import json
 import string
 from bson.objectid import ObjectId
 from types import StringTypes
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort, param_pack
 
 
 class PanCore(Base):
     def __init__(self, bind_object):
         super(PanCore, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self.unique_id = self.get_unique()
 
     @report_check

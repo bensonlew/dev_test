@@ -4,14 +4,17 @@
 from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
-from mainapp.config.db import get_mongo_client
-from biocluster.config import Config
+from .core.base import Base
+# from mainapp.config.db import get_mongo_client
+# from biocluster.config import Config
 
 
-class RocStat(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class RocStat(Base):
+    def __init__(self, bind_object):
+        super(RocStat, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
 
     def create_roc(self, params, group_id=0, from_otu_table=0, level_id=0, name=None, method_type=None, top_n_id=0):

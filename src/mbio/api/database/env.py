@@ -5,13 +5,14 @@ from biocluster.api.database.base import Base, report_check
 import os
 import datetime
 import types
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class Env(Base):
     def __init__(self, bind_object=None):
         super(Env, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_env_table(self, file_path, name_to_id, task_id=None, name=None):

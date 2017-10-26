@@ -7,7 +7,7 @@ import datetime
 from bson import ObjectId, SON
 from bson.objectid import ObjectId
 from types import StringTypes
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class MetaSourcetracker(Base):
@@ -16,7 +16,8 @@ class MetaSourcetracker(Base):
     """
     def __init__(self, bind_object):
         super(MetaSourcetracker, self).__init__(bind_object) #
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self.task_id = ""
 
     @report_check

@@ -2,14 +2,15 @@
 # __author__ = 'shenghe'
 import datetime
 from biocluster.api.database.base import Base, report_check
-from biocluster.config import Config
+# from biocluster.config import Config
 from bson import SON
 
 
 class TaskInfo(Base):
     def __init__(self, bind_object):
         super(TaskInfo, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_task_info(self, db_name=None):

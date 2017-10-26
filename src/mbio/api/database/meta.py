@@ -7,7 +7,7 @@ from bson.objectid import ObjectId
 import datetime
 from bson.son import SON
 from types import StringTypes
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort, param_pack
 
 
@@ -15,7 +15,8 @@ class Meta(Base):
 
     def __init__(self, bind_object):
         super(Meta, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_otu_table(self, file_path, major=False, otu_id=None, from_out_table=0, rep_path=None, task_id=None,

@@ -5,14 +5,15 @@ from bson.objectid import ObjectId
 from types import StringTypes
 from bson.son import SON
 import datetime
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class EnvironmentalRegression(Base):
 
     def __init__(self, bind_object):
         super(EnvironmentalRegression, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_environmental_regression_site(self, file_path, table_id=None, group_id=None, from_otu_table=None, level_id=None, major=False):

@@ -7,7 +7,7 @@ import re
 from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 from types import StringTypes
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 # import re
 # import datetime
@@ -17,7 +17,8 @@ from mainapp.libs.param_pack import group_detail_sort
 class BetaMultiAnalysis(Base):
     def __init__(self, bind_object):
         super(BetaMultiAnalysis, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self._tables = []  # 记录存入了哪些表格
 
     @staticmethod

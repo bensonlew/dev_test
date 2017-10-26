@@ -4,14 +4,17 @@
 from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
-from mainapp.config.db import get_mongo_client
-from biocluster.config import Config
+from .core.base import Base
+# from mainapp.config.db import get_mongo_client
+# from biocluster.config import Config
 
 
-class MetagenomeseqStat(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class MetagenomeseqStat(Base):
+    def __init__(self, bind_object = None):
+        super(MetagenomeseqStat, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
 
     def create_metagenomeseq(self, params, group_id=0, from_otu_table=0, level_id=0, name=None):
