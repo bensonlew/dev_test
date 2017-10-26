@@ -14,7 +14,15 @@ class Base(object):
         self._config = Config()
         self._db = None
         self._ref_db = None
-        self._project_type = None
+        self._project_type = self.__check_project_type()
+
+    def __check_project_type(self):
+        module_name = self.__module__
+        m = re.match(r'mainapp.models.mongo.(?:instant|submit).([\w_]+)', module_name)
+        if m:
+            return m.group(1)
+        else:
+            return None
 
     @property
     def _client(self):
