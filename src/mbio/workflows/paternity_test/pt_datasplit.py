@@ -139,7 +139,7 @@ class PtDatasplitWorkflow(Workflow):
         with open(file_path, 'r') as f:
             for line in f:
                 line = line.strip().split('\t')
-                if re.match('WQ([0-9]{8,})-(M|F|S)(.*)', line[3]):
+                if re.match('WQ([0-9]{2,})-(M|F|S)(.*)', line[3]):
                     self.pt_sample_name.append(line[3])
                 if re.match('(.*)WQ(.+)', line[3]):
                     n += 1
@@ -200,7 +200,7 @@ class PtDatasplitWorkflow(Workflow):
         self.data_dir = self.data_split.output_dir + "/MED"
         sample_name = os.listdir(self.data_dir)
         for j in sample_name:
-            p = re.match('Sample_WQ([0-9]{8,})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
+            p = re.match('Sample_WQ([0-9]{2,})-(M|F|S)(.*)', j)  # 20170703 修改匹配规则
             q = re.match('Sample_WS([0-9]{8,})(.*)', j)
             if p:
                 self.sample_name_wq.append(j)
@@ -312,7 +312,7 @@ class PtDatasplitWorkflow(Workflow):
                     "ref_fasta": Config().SOFTWARE_DIR + "/database/human/hg38.chromosomal_assembly/ref.fa",
                     "targets_bedfile": Config().SOFTWARE_DIR + "/database/human/pt_ref/snp.chr.sort.3.bed",
                     "ref_point": Config().SOFTWARE_DIR + "/database/human/pt_ref/targets.bed.rda",
-                    "err_min": 11,  # 11
+                    "err_min": 9,  # 11
                     "batch_id": self.option('pt_data_split_id'),
                     "dedup_num": 10,
                     "update_info": update_info,
@@ -415,9 +415,10 @@ class PtDatasplitWorkflow(Workflow):
         db_customer = self.api.pt_customer
         if self.option('family_table').is_set:
             db_customer.family_search(self.pt_sample_name)  # 判断这些样本能组成的家系是否存在家系信息
+        self.logger.info("开始检查家系")
+        db_customer.get_urgency_sample(self.option('message_table').prop['path'], self.option('pt_data_split_id'))  # 用于获取加急样本，并导表
         dir_list = db_customer.get_wq_dir(self.option('data_dir').split(":")[1] + '-' + self.message_table)
         # 上述记录拆分表是为了再次拆分的时候，上传表格改变就会重新拆分
-
         self.logger.info(dir_list)
         if len(dir_list) == 3 and (os.path.exists(dir_list[0]) or os.path.exists(dir_list[1])):
             self.wq_dir = dir_list[0]

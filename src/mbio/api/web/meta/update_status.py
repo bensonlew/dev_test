@@ -45,8 +45,8 @@ class UpdateStatus(Log):
             content['files'] = self.data["sync_task_log"]["files"]
         if 'dirs' in self.data['sync_task_log'].keys():
             content['dirs'] = self.data['sync_task_log']['dirs']
-        # if 'base_path' in self.data['sync_task_log'].keys():
-        #     content['base_path'] = self.data['sync_task_log']['base_path']
+        if 'base_path' in self.data['sync_task_log'].keys():
+            content['base_path'] = self.data['sync_task_log']['base_path']
         data['sync_task_log'] = json.dumps(content, cls=CJsonEncoder)
         return urllib.urlencode(data)
 

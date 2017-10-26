@@ -195,9 +195,12 @@ class MetaController(object):
             target_dir = 'sanger'
         else:
             target_dir = 'tsanger'
+        # target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
+        #               '/' + str(task_info['project_sn']) + '/' + \
+        #               task_id + '/report_results/' + main_table_name
         target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
                       '/' + str(task_info['project_sn']) + '/' + \
-                      task_id + '/report_results/' + main_table_name
+                      task_id + '/interaction_results/' + main_table_name  # zengjing 20170929 修改页面上meta多样性交互分析的结果文件夹名称为interaction_results
         return target_dir
 
     def _update_status_api(self):

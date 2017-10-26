@@ -65,7 +65,7 @@ class KeggRegulateTool(Tool):
         self._version = "v1.0.1"
         self.python = '/program/Python/bin/'
         self.r_path = self.config.SOFTWARE_DIR + "/program/R-3.3.3/bin/Rscript"
-        self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map4.r"
+        self.map_path = self.config.SOFTWARE_DIR + "/bioinfo/annotation/scripts/map5.r"
         self.db_path = self.config.SOFTWARE_DIR + "/database/KEGG/xml/"
         self.image_magick = self.config.SOFTWARE_DIR + "/program/ImageMagick/bin/convert"
         self.parafly = "/program/parafly-r2013-01-21/src/ParaFly"

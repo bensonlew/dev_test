@@ -41,8 +41,8 @@ class GatkAgent(Agent):
         self.step.update()
         
     def check_options(self):
-        if not self.option("ref_genome") in self._ref_genome_lst:
-            raise OptionError("请选择参考基因组！")
+        #if not self.option("ref_genome") in self._ref_genome_lst:
+        #    raise OptionError("请选择参考基因组！")
         if self.option("ref_genome") == "customer_mode" and not self.option("ref_fa").is_set:
             raise OptionError("自定义参考基因组文件未提供！")
         if not self.option("input_bam").is_set:
@@ -52,7 +52,7 @@ class GatkAgent(Agent):
         """
         所需资源
         """
-        self._cpu = 10
+        self._cpu = 20
         self._memory = '40G'
         
     def end(self):

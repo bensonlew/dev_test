@@ -91,9 +91,9 @@ class Family2tabDcTool(Tool):
         self.cmd_path = "bioinfo/medical/scripts/"
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')  # 测试机
-        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')  # 正式机
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioruby-vcf-master/bin')  # 测试机
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')  # 测试机
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')  # 正式机
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioruby-vcf-master/bin')  # 测试机
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
@@ -159,8 +159,8 @@ class Family2tabDcTool(Tool):
         api = self.api.tab_file
         temp = os.listdir(self.output_dir)
         api_read_tab = self.api.tab_file  # 二次判断数据库中是否存在tab文件
-        if os.path.getsize(self.output_dir + '/' + self.option(
-                'fastq') + '.mem.sort.hit.vcf.tab') > 0:  # 判断该样本的tab文件是否要入库
+        if os.path.getsize(self.output_dir + '/' + self.option('fastq') + '.mem.sort.hit.vcf.tab') > 0:  # 判断该样本的tab文件是否要入库
+            tab_none = "No"
             with open(self.output_dir + '/' + self.option('fastq') + '.qc', 'r') as r:
                 for line in r:
                     line = line.strip().split(':')
@@ -174,6 +174,7 @@ class Family2tabDcTool(Tool):
                         continue
         else:
             to_mongo = False
+            tab_none = "Yes"
         if to_mongo:
             for i in temp:
                 m = re.search(r'(.*)\.mem.*tab$', i)
@@ -204,10 +205,19 @@ class Family2tabDcTool(Tool):
                         self.set_error('可能样本{}重名，请检查！'.format(tab_name))
                         raise Exception('可能样本重名，请检查！')
         else:
-
-            self.logger.info('{}该样本tab文件为空'.format(self.option('fastq')))
-            self.api.sg_paternity_test.sample_size(self.option('fastq'), self.option('batch_id'))
-            self.api.tab_file.remove_sample(self.option('fastq'))  # 用于删除sg_pt_ref_main中不合格样本信息
+            for i in temp:
+                n = re.search(r'(.*)\.qc', i)
+                if n:
+                    tab_path = self.output_dir + '/' + i
+                    tab_name = n.group(1)
+                    if not api_read_tab.qc_exist(tab_name):
+                        api.problem_sample_qc(tab_path, tab_name)
+                        self.logger.info("导入异常样本{}qc文件成功！".format(tab_name))
+                    else:
+                        self.set_error('样本{}重名，请检查！'.format(tab_name))
+                        raise Exception('可能样本重名，请检查！')
+            self.api.sg_paternity_test.sample_size(self.option('fastq'), self.option('batch_id'), tab_none)
+            # self.api.tab_file.remove_sample(self.option('fastq'))  # 用于删除sg_pt_ref_main中不合格样本信息
 
     def run(self):
         super(Family2tabDcTool, self).run()

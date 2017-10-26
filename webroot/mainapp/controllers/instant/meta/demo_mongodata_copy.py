@@ -80,6 +80,10 @@ class DemoMongodataCopy(object):
                     return json.dumps(info)
             else:
                 info = {"success": False, "info": "demo数据有问题，不能进行拉取"}
+                return json.dumps(info)  # add by hongdongxuan 20171022
+        else:
+            info = {"success": False, "info": "项目类型type：{}不合法!".format(data.type)}
+            return json.dumps(info)  # 85-86 add by hongdongxuan 20171022
         workflow_client = Basic(data=data_json, instant=True)
         try:
             run_info = workflow_client.run()

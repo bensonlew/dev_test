@@ -47,8 +47,8 @@ class TranscriptAbstractAgent(Agent):
             raise OptionError("请设置参考基因组gtf文件或gff文件")
 
     def set_resource(self):
-        self._cpu = 10
-        self._memory = '10G'
+        self._cpu = 1
+        self._memory = '5G'
 
     def end(self):
         super(TranscriptAbstractAgent, self).end()

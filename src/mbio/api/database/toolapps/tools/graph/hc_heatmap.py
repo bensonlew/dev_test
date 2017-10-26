@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'zhouxuan'
+# __last_author__ = 'zengjing'  
 import json
 from biocluster.api.database.base import Base, report_check
 import re
@@ -25,20 +26,32 @@ class HcHeatmap(Base):
         """
         运行函数
         """
-        self.main_id = self.heatmap_in()
-        self.table_ids = self.table_in()
-        return self.main_id
-        pass
+        if self.bind_object._task.option("group_table").is_set:
+            group_name = self.bind_object._task.option("group_table").prop["group_scheme"]
+            self.bind_object.logger.info(group_name)
+            for g in group_name:
+                fp = self.output_dir + "/{}_result_data".format(g)
+                row_path = self.output_dir + "/{}_row_tre".format(g)
+                col_path = self.output_dir + "/{}_col_tre".format(g)
+                self.main_id = self.heatmap_in(fp, row_path, col_path, g)
+                self.table_ids = self.table_in(g)
+        else:
+            fp = self.output_dir + "/new_result_data"
+            row_path = self.output_dir + "/new_row_tre"
+            col_path = self.output_dir + "/new_col_tre"
+            self.main_id = self.heatmap_in(fp, row_path, col_path)
+            self.table_ids = self.table_in()
 
-    def table_in(self):
+    def table_in(self, group=None):
         """
-		导入表格相关信息
-		"""
-        ratation = self.insert_table(self.output_dir + '/result_data', 'heatmap图结果表',
-                                     '画heatmap图时使用的数据')
-        return [ratation]
+        导入表格相关信息
+        """
+        if group:
+            self.insert_table(fp=self.output_dir + '/{}_result_data'.format(group), name='heatmap图结果表', desc='画heatmap图时使用的数据', group_name=group)
+        else:
+            self.insert_table(self.output_dir + '/new_result_data', 'heatmap图结果表', '画heatmap图时使用的数据')
 
-    def insert_table(self, fp, name, desc):
+    def insert_table(self, fp, name, desc, group_name=None):
         with open(fp) as f:
             columns = f.readline().strip().split('\t')
             insert_data = []
@@ -49,6 +62,7 @@ class HcHeatmap(Base):
                 attrs=columns,
                 desc=desc,
                 status='end',
+                group_name=group_name,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )).inserted_id
             for line in f:
@@ -59,11 +73,11 @@ class HcHeatmap(Base):
             self.db['table_detail'].insert_many(insert_data)
         return table_id
 
-    def heatmap_in(self):
+    def heatmap_in(self, fp, row_path, col_path, group_name=None,):
         """
         导入heatmap图相关信息
         """
-        with open(self.output_dir + '/result_data') as f:
+        with open(fp) as f:
             self.bind_object.logger.info("heatmap主表写入")
             heatmap_id = self.db['heatmap'].insert_one(SON(
                 project_sn=self.bind_object.sheet.project_sn,
@@ -71,6 +85,7 @@ class HcHeatmap(Base):
                 name='heatmap',
                 desc='聚类热图',
                 status='failed',
+                group_name=group_name,
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             )).inserted_id
             self.bind_object.logger.info("heatmap主表写入结束")
@@ -98,28 +113,24 @@ class HcHeatmap(Base):
                 raise Exception("heatmap数据表导入出错{}".format(e))
             else:
                 self.bind_object.logger.info("heatmap数据表导入完成")
-            row_tree_path = self.output_dir + '/row_tre'
-            if os.path.exists(row_tree_path):
+            if os.path.exists(row_path):
                 self.bind_object.logger.info("拥有行聚类树")
-                with open(row_tree_path, "r") as m:
+                with open(row_path, "r") as m:
                     row_tree = m.readline().strip()
                     raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', row_tree)
                     row_list = [i[1] for i in raw_samp]
             else:
                 row_tree = ""
                 row_list = r_list
-                # row_list = []
-            col_tree_path = self.output_dir + '/col_tre'
-            if os.path.exists(col_tree_path):
+            if os.path.exists(col_path):
                 self.bind_object.logger.info("拥有列聚类树")
-                with open(col_tree_path, "r") as n:
+                with open(col_path, "r") as n:
                     col_tree = n.readline().strip()
                     raw_samp = re.findall(r'([(,]([\[\]\.\;\'\"\ 0-9a-zA-Z_-]+?):[0-9])', col_tree)
                     col_list = [i[1] for i in raw_samp]
             else:
                 col_tree = ""
                 col_list = new_head
-                # col_list = []
             self.bind_object.logger.info("heatmap_id：{}".format(heatmap_id))
             try:
                 self.db['heatmap'].update_one({'_id': heatmap_id}, {'$set':

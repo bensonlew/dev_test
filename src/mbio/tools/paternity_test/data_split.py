@@ -25,8 +25,6 @@ class DataSplitAgent(Agent):
 			{"name": "message_table", "type": "infile", "format": "paternity_test.tab"},
 			{"name": "data_dir", "type": "string"},
 			{"name": "ws_single", "type": "string"},
-			# {"name": "data_dir", "type": "infile", "format": "paternity_test.tab"}
-			# {"name": "data_dir", "type": "infile", "format": "paternity_test.data_dir"}
 		]
 		self.add_option(options)
 		self.step.add_steps("data_split")
@@ -77,8 +75,8 @@ class DataSplitTool(Tool):
 		super(DataSplitTool, self).__init__(config)
 		self._version = "v1.0"
 		self.script_path = "bioinfo/medical/bcl2fastq-2.17/bin/bcl2fastq"
-		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/lib64')
-		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.4.0/bin')
+		self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
+		self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
 
 	def run(self):
 		"""
@@ -107,21 +105,6 @@ class DataSplitTool(Tool):
 				with open(new_message_table, "a") as w:
 					lines = "Sample_" + line[3] + "," + line[3] + ",,,," + line[8] + "," + line[4] + "," + "\n"
 					w.write(lines)
-		"""
-		当上传为压缩包时用下面的代码获取文件夹路径
-		result = os.system('tar -zxf {} -C {}'.format(self.option('data_dir').prop['path'], self.work_dir))
-		if result != 0:
-			raise OptionError("压缩包解压失败，请重新投递运行！")
-		old_data_dir_1 = os.path.join(self.work_dir, self.option('data_dir').prop['path'].split("/")[-1].split(".")[0])
-		p = re.search('([0-9]+)$', old_data_dir_1)
-		if p:
-			old_data_dir = ("_").join(old_data_dir_1.split("_")[0:-1])
-		else:
-			old_data_dir = old_data_dir_1
-		if not os.path.exists(old_data_dir):
-			self.set_error("下机数据文件夹路径不正确，请设置正确的路径。")
-		"""
-		#old_data_dir = self.option('data_dir')
 
 		index = self.option('data_dir').split(":")[0]
 		name = Config().get_netdata_config(index)
@@ -153,42 +136,59 @@ class DataSplitTool(Tool):
 		将数据拆分的结果，直接存放在同一个文件夹下，按照样本分成不同的小文件夹
 		:return:
 		"""
-		result_dir = os.path.join(self.output_dir, "MED")
-		if os.path.exists(result_dir):
-			self.logger.info("拆分成功")
+		m = re.match('(.*)_A(.*)/', self.option('data_dir'))
+		# n = re.match('(.*)_A(.*)_.*/', self.option('data_dir'))
+		if m:
+			chip_name = m.group(2)[0:9]
+		else:
+			raise Exception('无法获取到相应的数据的芯片名'.format(self.option('data_dir')))
+		self.logger.info("芯片名字:{}".format(chip_name))
+		origin_html = self.output_dir + '/Reports/html/' + chip_name +'/all/all/all/laneBarcode.html'
+		if os.path.exists(origin_html):
+			sample = self.check_yield(origin_html, self.work_dir + '/yield.txt')
+			if len(sample) > 0:
+				self.set_error("以下样本yield为0：{}".format(sample))
+				raise Exception('以下样本yield为0：{}'.format(sample))
+			else:
+				self.logger.info('拆分成功')
 		else:
 			raise Exception("拆分失败")
-		"""
-		# 不把Undetermined文件放入MED了
-		undetermined_file = os.listdir(self.output_dir)
-		undetermined_sample_file = []
-		for file_name in undetermined_file:
-			detail_name = file_name.split(".")
-			if detail_name[-1] == "gz":
-				undetermined_sample_file.append(file_name)
-		undetermined_sample_name = []
-		for name in undetermined_sample_file:
-			sample_ = name.split("_")
-			src = os.path.join(self.output_dir, name)
-			dir_name = os.path.join(self.output_dir + "/MED", "Sample_Undetermined_" + sample_[1])
-			if sample_[1] not in undetermined_sample_name:
-				undetermined_sample_name.append(sample_[1])
-				os.mkdir(dir_name)
-				os.link(src, os.path.join(dir_name, name))
-			else:
-				os.link(src, os.path.join(dir_name, name))
-		"""
-		"""
-		med_result_dir = os.path.join(self.work_dir, "MED")
-		list_name = os.listdir(med_result_dir)
-		for name in list_name:
-			sample_dir = os.path.join(med_result_dir, name)
-			file_name = os.listdir(sample_dir)
-			dir_name = os.path.join(self.output_dir, name)
-			if not os.path.exists(dir_name):
-				os.mkdir(dir_name)
-			for name_ in file_name:
-				dst = os.path.join(dir_name, name_)
-				src = os.path.join(sample_dir, name_)
-				os.link(src, dst)
-		"""
+
+	@staticmethod
+	def check_yield(html_file, txt_table):  # 检查是否存在空的样本
+		'''
+		拆分结束后检查样本是否为空
+		:param html_file: 拆分生成的文件
+		:param txt_table: html导出的TXT表格
+		:return: 数据量为空的样本
+		'''
+		start = 'false'
+		with open(html_file, 'r') as h, open(txt_table, 'w') as t:
+			t.write('Lane\tProject\tSample\tBarcode sequence\tPF Clusters\t% of the lane\t% Perfect barcode\t'
+			        '% One mismatch barcode\tYield (Mbases)\t% PF Clusters\t% >= Q30 bases\tMean Quality Score')
+			for line in h:
+				content = line.rstrip()
+				if content == '<th>Mean Quality<br>Score</th>':
+					start = 'true'
+				else:
+					if start == 'false':
+						continue
+					else:
+						if content == '</tr>':
+							t.write('\n')
+						elif content == '<h2>Top Unknown Barcodes</h2>':
+							break
+						else:
+							m = re.match('<td>(.*)</td>', content)
+							if m:
+								t.write(m.group(1) + '\t')
+							else:
+								pass
+		problem_sample = []
+		with open(txt_table, 'r') as r:
+			for line in r:
+				content = line.rstrip().split('\t')
+				if content[8] == '0':
+					problem_sample.append(content[2])
+		return set(problem_sample)
+

@@ -13,11 +13,12 @@ class GenomeInfo(Base):
         self._db_name = Config().MONGODB + "_ref_rna"
 
     @report_check
-    def add_genome_info(self, file_path, species_name, ref_anno_version, hyperlink, major = True):
+    def add_genome_info(self, file_path, species_name, species, ref_anno_version, hyperlink, major = True):
         main_insert_data = {
             'project_sn': self.bind_object.sheet.project_sn,
             'task_id': self.bind_object.sheet.id,
             'species_name': species_name if species_name else "",
+            'species': species if species else "",
             'ref_anno_version': ref_anno_version if ref_anno_version else "",
             "hyperlink": hyperlink if hyperlink else "",
             'created_ts': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')

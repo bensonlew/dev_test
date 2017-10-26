@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'xuting'
-# lastmodified: shenghe # 对物种名称筛选 进行了重构
+# modified: hesheng  # 对物种筛选进行重构
+# lastmodified: liulinmeng # 对筛选条件中的物种名的特殊字符进行转义，以完成相应筛选功能
+
 import json
 import re
 import os
@@ -64,7 +66,7 @@ class FilterOtuTool(Tool):
         super(FilterOtuTool, self).__init__(config)
         self.otu_sample_dict = self.option("in_otu_table").extract_info()
         self.json = list()
-        self.otu_json = list()  # 将整个OTU表读入，生成一个列表，方便后面进行过滤操作
+        self.otu_json = list()# 将整个OTU表读入，生成一个列表，方便后面进行过滤操作
         with open(self.option("in_otu_table").prop["path"], 'rb') as r:
             self.otu_json = r.readlines()
         self.otu_head = self.otu_json.pop(0)  # OTU表的表头
@@ -87,8 +89,10 @@ class FilterOtuTool(Tool):
         reads_condition = []
         for cond in filter_json:
             if cond['name'] == "species_filter" and cond["type"] == "keep":
+                cond['value'] = self.escapeExprSpecialWord(cond['value'])
                 sp_condition_keep.append(cond)
             elif cond['name'] == "species_filter" and cond["type"] == "remove":
+                cond['value'] = self.escapeExprSpecialWord(cond['value'])
                 sp_condition_remove.append(cond)
             elif cond["name"] == "sample_filter":
                 sam_condition.append(cond)
@@ -104,6 +108,23 @@ class FilterOtuTool(Tool):
             self.filter_samples(i)
         for i in reads_condition:
             self.filter_reads(i)
+
+    def escapeExprSpecialWord(self, words):
+        '''
+        转义正则表达式中的特殊字符
+        
+        :params words: 需要转义的字符串
+        :return : 转义之后的字符串
+        '''
+    
+        fbsArr = [ "\\", "$", "(", ")", "*", "+", ".", "[", "]", "?", "^", "{", "}", "|"]  
+        #fbsArr = ["(", ")", "*", "+", ".", "[", "]", "?"]  
+        for key in fbsArr:    
+            if words.find(key)>=0:  
+                words = words.replace(key, "\\"+key); 
+        return words
+
+
 
 
     def keep_species(self, conditions, fuzzy=False):

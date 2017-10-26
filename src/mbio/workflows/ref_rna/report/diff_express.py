@@ -284,6 +284,7 @@ class DiffExpressWorkflow(Workflow):
         print "compare_column_specimen"
         print compare_column_specimen
 
+        compare_column = sorted(compare_column)
         tmp_compare_column = []
         for col in compare_column:
             if col not in tmp_compare_column:
