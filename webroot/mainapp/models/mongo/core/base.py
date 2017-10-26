@@ -18,7 +18,7 @@ class Base(object):
 
     def __check_project_type(self):
         module_name = self.__module__
-        mlist = module_name.split("")
+        mlist = module_name.split(".")
         mlist.pop()
         m = re.match(r'mainapp.models.mongo.(?:instant|submit).([\w_]+)', ".".join(mlist))
         if m:
