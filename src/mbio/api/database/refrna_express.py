@@ -934,7 +934,7 @@ class RefrnaExpress(Base):
         task_id = self.bind_object.sheet.id
         project_sn = self.bind_object.sheet.project_sn
         if params:
-            params["submit_location"] = "express_diff"
+            params["submit_location"] = "expressdiff"
             params['task_id'] = task_id
             params['task_type'] = ''
         params['group_detail'] = group_detail_sort(params['group_detail'])
