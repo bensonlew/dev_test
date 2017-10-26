@@ -14,7 +14,9 @@ from biocluster.config import Config
 class AnnotationKegg(Base):
     def __init__(self, bind_object):
         super(AnnotationKegg, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+
+        #self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
     def add_annotation_kegg(self, name=None, params=None):

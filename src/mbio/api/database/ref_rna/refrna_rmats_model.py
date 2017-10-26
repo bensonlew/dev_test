@@ -29,7 +29,8 @@ rmats model 导表函数
 class RefrnaRmatsModel(Base):
     def __init__(self, bind_object):
         super(RefrnaRmatsModel, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+        #self._db_name = Config().MONGODB + '_ref_rna'
     
     @report_check
     def add_rmats_model(self, params=None, splicing_id=None, name=None):
