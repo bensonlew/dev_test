@@ -3,14 +3,18 @@
 # last_modify:20170328
 import datetime
 from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
+
 import json
 
 
-class RefDiff(object):
+class RefDiff(Base):
     def __init__(self):
-        self.client = Config().mongo_client
-        self.db_name = Config().MONGODB + '_ref_rna'
-        self.db = self.client[self.db_name]
+        super(RefDiff, self).__init__(bind_object)
+        self._project_type = 'ref_rna'
+        #self.client = Config().mongo_client
+        #self.db_name = Config().MONGODB + '_ref_rna'
+        #self.db = self.client[self.db_name]
 
     def add_express(self, rsem_dir=None, samples=None, params=None, name=None, bam_path=None, project_sn=None, task_id=None):
         insert_data = {
