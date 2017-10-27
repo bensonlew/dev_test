@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zengjing'  
+# __author__ = 'zengjing'
 import json
 from biocluster.api.database.base import Base, report_check
 import re
@@ -17,6 +17,7 @@ class Circos(Base):
             self._db_name = 'toolapps'
         else:
             self._db_name = 'ttoolapps'
+        self._project_type = 'toolapps'
         # self.check()
 
     @report_check
