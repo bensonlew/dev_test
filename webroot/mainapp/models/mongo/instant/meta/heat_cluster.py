@@ -7,12 +7,14 @@ import re
 from types import StringTypes
 from mainapp.models.mongo.core.base import Base
 from mbio.files.meta.beta_diversity.newick_tree import NewickTreeFile
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class HeatClusterMongo(Base):
     def __init__(self, bind_object):
-        self._db_name = Config().MONGODB
+        super(HeatClusterMongo, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self._params = self.PackParams()
 
     def PackParams(self):

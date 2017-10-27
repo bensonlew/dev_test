@@ -4,14 +4,17 @@
 from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
-from mainapp.config.db import get_mongo_client
-from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
+# from mainapp.config.db import get_mongo_client
+# from biocluster.config import Config
 
 
-class EnvironmentalRegressionStat(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class EnvironmentalRegressionStat(Base):
+    def __init__(self, bind_object=None):
+        super(EnvironmentalRegressionStat, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
 
     def create_environmental_regression(self, params, group_id=0, from_otu_table=0, level_id=0, env_id=0, name=None):

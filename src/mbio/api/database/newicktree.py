@@ -5,7 +5,7 @@ from biocluster.api.database.base import Base, report_check
 from bson.objectid import ObjectId
 import datetime
 import json
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 # from bson.son import SON
 # from types import StringTypes
@@ -14,7 +14,8 @@ from mainapp.libs.param_pack import group_detail_sort
 class Newicktree(Base):
     def __init__(self, bind_object):
         super(Newicktree, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_tree_file(self, file_path, major=False, level=None, task_id=None, table_id=None, table_type=None,

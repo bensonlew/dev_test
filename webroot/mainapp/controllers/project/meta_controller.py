@@ -172,9 +172,6 @@ class MetaController(object):
         if otu_id:
             new_id = "{}_{}_{}".format(task_id, otu_id[-4:], random.randint(1, 10000))
         else:
-            # id_ = '%f' % time.time()
-            # ids = str(id_).strip().split(".")
-            # new_id = "{}_{}_{}".format(task_id, ids[0][5:], ids[1])  #改成时间来命名workflow id
             new_id = "{}_{}_{}".format(task_id, random.randint(1000, 10000), random.randint(1, 10000))
         workflow_module = Workflow()
         workflow_data = workflow_module.get_by_workflow_id(new_id)
@@ -195,9 +192,12 @@ class MetaController(object):
             target_dir = 'sanger'
         else:
             target_dir = 'tsanger'
+        # target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
+        #               '/' + str(task_info['project_sn']) + '/' + \
+        #               task_id + '/report_results/' + main_table_name
         target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
                       '/' + str(task_info['project_sn']) + '/' + \
-                      task_id + '/report_results/' + main_table_name
+                      task_id + '/interaction_results/' + main_table_name  # zengjing 20170929 修改页面上meta多样性交互分析的结果文件夹名称为interaction_results
         return target_dir
 
     def _update_status_api(self):

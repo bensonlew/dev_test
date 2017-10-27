@@ -4,7 +4,7 @@
 from biocluster.api.database.base import Base, report_check
 import re
 import datetime
-from bson.objectid import ObjectId
+# from bson.objectid import ObjectId
 from types import StringTypes
 from biocluster.config import Config
 
@@ -15,7 +15,8 @@ class HierarchicalClusteringHeatmap(Base):
     """
     def __init__(self, bind_object):
         super(HierarchicalClusteringHeatmap, self).__init__(bind_object) #
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self.task_id = ""
         self.name_id = dict()
 

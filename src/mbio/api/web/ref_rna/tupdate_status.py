@@ -11,3 +11,4 @@ class TupdateStatus(UpdateStatus):
         self._key = "hM4uZcGs9d"
         self._url = "http://api.tsanger.com/task/add_file"
         self.mongodb = self._mongo_client[self.config.get_mongo_dbname(ref_rna)]
+

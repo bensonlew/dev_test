@@ -5,7 +5,7 @@
 from bson import ObjectId
 from biocluster.api.database.base import Base, report_check
 from collections import OrderedDict
-from biocluster.config import Config
+# from biocluster.config import Config
 """
 分组方案格式如下:
 {
@@ -38,7 +38,8 @@ from biocluster.config import Config
 class Group(Base):
     def __init__(self, bind_object=None):
         super(Group, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_ini_group_table(self, file_path, spname_spid, task_id=None, sort_samples=False):

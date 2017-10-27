@@ -7,14 +7,15 @@ import datetime
 from bson.son import SON
 # from types import StringTypes
 from bson.objectid import ObjectId
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 
 
 class Distance(Base):
     def __init__(self, bind_object):
         super(Distance, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_dist_table(self, file_path, major=False, level=None, dist_id=None, otu_id=None, task_id=None, name=None, params=None, spname_spid=None):

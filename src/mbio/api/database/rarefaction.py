@@ -6,7 +6,7 @@ import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
 import json
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 import copy
 
@@ -14,7 +14,8 @@ import copy
 class Rarefaction(Base):
     def __init__(self, bind_object):
         super(Rarefaction, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self.category_x = []
         self.category_y = []
 

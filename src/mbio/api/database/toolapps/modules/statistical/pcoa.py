@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhouxuan'
+# __author__ = 'zhouxuan'  
 import json
 from biocluster.api.database.base import Base, report_check
 import re
@@ -17,8 +17,10 @@ class Pcoa(Base):
             self._db_name = 'toolapps'
         else:
             self._db_name = 'ttoolapps'
+        self._project_type = 'toolapps'
         self.check()
         self.group_detail = {}
+        self.specimen_ids_dict = {}
 
     @report_check
     def run(self):
@@ -29,12 +31,15 @@ class Pcoa(Base):
             self.group_detail = self.bind_object._task.option("group_table").get_group_detail()
             self.bind_object.logger.info(self.group_detail)
             for group in self.group_detail:
-                specimen_ids_dict = self.table_in(group)
-                self.insert_group(group, specimen_ids_dict)
-                self.main_id = self.pcoa_in(specimen_ids_dict, group)
+                sample_list = self.table_in(group)
+                if self.specimen_ids_dict == {}:
+                    self.specimen_ids_dict = self.insert_specimens(sample_list)
+                self.insert_group(group)
+                self.main_id = self.pcoa_in(group)
         else:
-            specimen_ids_dict = self.table_in()
-            self.main_id = self.pcoa_in(specimen_ids_dict)
+            sample_list = self.table_in()
+            self.specimen_ids_dict = self.insert_specimens(sample_list)
+            self.main_id = self.pcoa_in()
 
     def table_in(self, group=None):
         """
@@ -46,8 +51,7 @@ class Pcoa(Base):
                                       '矩阵特征值', group)
         ratation3 = self.insert_table(self.output_dir + '/Pcoa/pcoa_eigenvaluespre.xls', '主成分解释度表',
                                       '主成分解释度表', group)
-        specimen_ids_dict = self.insert_specimens(sample_list)
-        return specimen_ids_dict
+        return sample_list
 
     def insert_table(self, fp, name, desc, group=None):
         self.bind_object.logger.info('开始导入{}表'.format(fp))
@@ -81,7 +85,7 @@ class Pcoa(Base):
                 self.bind_object.logger.info('开始导入样本id')
         return sample_list
 
-    def pcoa_in(self, specimen_ids_dict, group=None):
+    def pcoa_in(self, group=None):
         """
         导入pcoa相关信息
         """
@@ -94,7 +98,7 @@ class Pcoa(Base):
                 desc='pcoa分析',
                 status='failed',
                 group_name=group,
-                specimen_ids=specimen_ids_dict.values(),
+                specimen_ids=self.specimen_ids_dict.values(),
                 created_ts=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             )).inserted_id
             self.bind_object.logger.info("pcoa画图数据表导入开始")
@@ -110,7 +114,7 @@ class Pcoa(Base):
                 otu_detail = dict()
                 otu_detail['scatter_id'] = scatter_id
                 otu_detail['specimen_name'] = line[0]
-                otu_detail['specimen_id'] = specimen_ids_dict[line[0]]
+                otu_detail['specimen_id'] = self.specimen_ids_dict[line[0]]
                 r_list.append(line[0])  # 后续画图做准备
                 for i in range(0, len(sample_num)):
                     otu_detail[new_head[i]] = float(sample_num[i])  # 保证画图时取到的数据是数值型
@@ -135,7 +139,7 @@ class Pcoa(Base):
         self.bind_object.logger.info("样本id导入结束")
         return SON(zip(specimen_names, ids))
 
-    def insert_group(self, group, specimen_ids_dict):
+    def insert_group(self, group):
         category_names = []
         specimen_names = []
         for s1 in self.group_detail[group]:
@@ -143,7 +147,7 @@ class Pcoa(Base):
             group_specimen_ids = {}
             for s2 in self.group_detail[group][s1]:
                 try:
-                    group_specimen_ids[str(specimen_ids_dict[s2])] = s2
+                    group_specimen_ids[str(self.specimen_ids_dict[s2])] = s2
                 except:
                     raise Exception("分组方案和结果文件里的样本不一致，请检查特征值是否错误")
             specimen_names.append(group_specimen_ids)

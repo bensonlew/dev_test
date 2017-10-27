@@ -84,16 +84,16 @@ class BetaDiversity(Base):
             if not isinstance(main_id, ObjectId):
                 main_id = ObjectId(main_id)
         result = _main_collection.find_one({'_id': main_id})
+        if not result:
+            raise Exception('找不到主表id对应的表')
         if analysis == 'pca':
             site_path = dir_path.rstrip('/') + '/Pca/pca_sites.xls'
-            os.system('head -n 101 ' + dir_path.rstrip('/') + '/Pca/pca_rotation.xls > ' + dir_path.rstrip(
-                '/') + '/Pca/part_pca_rotation.xls')
             rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation.xls'
-            part_rotation_path = dir_path.rstrip('/') + '/Pca/part_pca_rotation.xls'
+            all_rotation_path = dir_path.rstrip('/') + '/Pca/pca_rotation_all.xls'
             importance_path = dir_path.rstrip('/') + '/Pca/pca_importance.xls'
-            _main_collection.update_one({'_id': main_id}, {'$set': {'download_file': rotation_path}})
+            _main_collection.update_one({'_id': main_id}, {'$set': {'download_file': all_rotation_path}})
             self.insert_table_detail(site_path, 'specimen', update_id=main_id)
-            self.insert_table_detail(part_rotation_path, 'species', update_id=main_id, split_fullname=False)
+            self.insert_table_detail(rotation_path, 'species', update_id=main_id, split_fullname=False)
             self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
             if result['env_id']:
                 filelist = os.listdir(dir_path.rstrip('/') + '/Pca')
@@ -151,9 +151,9 @@ class BetaDiversity(Base):
             dca_path = dir_path.rstrip('/') + '/Rda/' + 'dca.xls'
             plot_species_path = dir_path.rstrip(
                 '/') + '/Rda/' + rda_cca + '_plot_species_data.xls'  # add 4 lines by zhouxuan 20170123 20170401
-            #envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
-            #if os.path.exists(envfit_path):
-                #self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
+            # envfit_path = dir_path.rstrip('/') + '/Rda/' + rda_cca + '_envfit.xls'
+            # if os.path.exists(envfit_path):
+            # self.insert_envfit_table(envfit_path, 'envfit', update_id=main_id)
             self.insert_table_detail(plot_species_path, 'plot_species', update_id=main_id)
             self.insert_table_detail(site_path, 'specimen', update_id=main_id)
             self.insert_table_detail(importance_path, 'importance', update_id=main_id, colls=['proportion_variance'])
@@ -208,7 +208,7 @@ class BetaDiversity(Base):
                     insert_data['name'] = values[0].split(';')[-1].strip()
                 else:
                     insert_data['name'] = values[0]
-                values_dict = dict(zip(columns, map(lambda x:round(float(x),4),values[1:])))
+                values_dict = dict(zip(columns, map(lambda x: round(float(x), 4), values[1:])))
                 data_temp.append(dict(insert_data, **values_dict))
             if data_temp:
                 collection.insert_many(data_temp)

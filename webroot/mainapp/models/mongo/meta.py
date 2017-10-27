@@ -1,24 +1,34 @@
 # -*- coding: utf-8 -*-
 # __author__ = 'guoquan'
-from mainapp.config.db import get_mongo_client
+from .core.base import Base
+# from mainapp.config.db import get_mongo_client
 from bson.objectid import ObjectId
 import types
-from biocluster.config import Config
+# from biocluster.config import Config
 from bson import SON
 import re
 import datetime
 
 
-class Meta(object):
-    def __init__(self, db=None):
-        self.client = get_mongo_client()
+class Meta(Base):
+    def __init__(self, bind_object=None):
+        self._bind_object = bind_object
+        super(Meta, self).__init__(self._bind_object)
+        self._project_type = "meta"
+        # self.client = get_mongo_client()
+        '''
         if not db:
-            self.db = self.client[Config().MONGODB]
+            self._db_name = "meta"
+            # self.db = self.client[Config().MONGODB]
         else:
-            self.db = self.client[db]
+            self._db_name = db
+            # self.db = self.client[db]
+        '''
 
+    '''
     def __del__(self):
         self.client.close()
+    '''
 
     def get_otu_table_info(self, otu_id):
 

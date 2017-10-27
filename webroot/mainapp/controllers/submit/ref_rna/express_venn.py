@@ -13,7 +13,7 @@ from bson import ObjectId
 class ExpressVennAction(RefRnaController):
     def __init__(self):
         super(ExpressVennAction, self).__init__(instant=False)
-    
+
     def GET(self):
         return 'khl'
 
@@ -78,10 +78,10 @@ class ExpressVennAction(RefRnaController):
             collection_name = "sg_express_venn"
             main_table_id = self.ref_rna.insert_main_table(collection_name, mongo_data)
             update_info = {str(main_table_id): collection_name}
-            
+
             params = json.loads(express_info['params'])
             express_level = params['type']
-            
+
             options = {
                 "express_file": data.express_id,
                 "group_id": data.group_id,

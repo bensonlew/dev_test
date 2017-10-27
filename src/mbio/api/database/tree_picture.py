@@ -7,14 +7,15 @@ import datetime
 import gridfs
 from bson.son import SON
 from bson.objectid import ObjectId
-from biocluster.config import Config
+# from biocluster.config import Config
 from mainapp.libs.param_pack import group_detail_sort
 
 
 class TreePicture(Base):
     def __init__(self, bind_object):
         super(TreePicture, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def add_tree_picture(self, output_dir, major=False, params=None, main_id=None, otu_id=None, level=9, name=None):

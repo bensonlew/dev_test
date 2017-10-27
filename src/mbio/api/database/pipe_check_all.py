@@ -8,13 +8,14 @@ from bson.son import SON
 import gridfs
 import datetime
 import os
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class PipeCheckAll(Base):
     def __init__(self, bind_object):
         super(PipeCheckAll, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     #@report_check
     def check_all(self, all_results, main_table_id):

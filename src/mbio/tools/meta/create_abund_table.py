@@ -41,7 +41,7 @@ class CreateAbundTableAgent(Agent):
 
     def set_resource(self):
         self._cpu = 1
-        self._memory = '2G'
+        self._memory = '5G'
 
     def end(self):
         super(CreateAbundTableAgent, self).end()
@@ -53,16 +53,19 @@ class CreateAbundTableTool(Tool):
 
     def create_abund_table(self):
         geneset_table_path = self.option("geneset_table").prop["path"]
+        self.logger.info("geneset_table is : " + geneset_table_path)
         geneset_table = pd.read_table(geneset_table_path, sep='\t', header=0)
         new_otu_file_path = os.path.join(self.output_dir, "new_abund_table.xls")
         if self.option("gene_list").is_set:
             gene_list_path = self.option("gene_list").prop["path"]
+            self.logger.info("gene_list is : " + gene_list_path)
             gene_list = pd.read_table(gene_list_path, sep='\t', header=0)
             gene_table = geneset_table.set_index("GeneID").ix[list(gene_list["GeneID"])]
             del gene_table["Total"]
             gene_table.to_csv(new_otu_file_path, sep="\t")
         else:
             anno_table_path = self.option("anno_table").prop["path"]
+            self.logger.info("anno table is : " + anno_table_path)
             anno_table = pd.read_table(anno_table_path, sep='\t', header=0)
             a = pd.DataFrame(anno_table)
             if self.option("level_type_name") != "":

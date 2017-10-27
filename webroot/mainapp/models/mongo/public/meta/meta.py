@@ -5,13 +5,16 @@ from bson.objectid import ObjectId
 import types
 import re
 import json
-from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
+# from biocluster.config import Config
 
 
-class Meta(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class Meta(Base):
+    def __init__(self, bind_object=None):
+        super(Meta, self).__init__(bind_object)
+        self._project_type = "meta"
+        #self.client = get_mongo_client()
+        #self.db = self.client[Config().MONGODB]
 
     def get_otu_table_info(self, otu_id):
 

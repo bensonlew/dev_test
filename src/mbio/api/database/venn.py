@@ -10,13 +10,14 @@ import datetime
 from bson.objectid import ObjectId
 from types import StringTypes
 from mbio.packages.meta.otu.export_otu import export_otu_table_by_level
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class Venn(Base):
     def __init__(self, bind_object):
         super(Venn, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
         self.new_otu_id = list()
         self.single = dict()
         self.num = dict()
@@ -405,7 +406,8 @@ class Venn(Base):
 
     @report_check
     def add_denovo_venn(self, express_id, venn_table=None, venn_graph_path=None, params=None):
-        self._db_name = Config().MONGODB + '_rna'
+        # self._db_name = Config().MONGODB + '_rna'
+        self._project_type = 'refrna'
         if not isinstance(express_id, ObjectId):
             express_id = ObjectId(express_id)
         insert_data = {

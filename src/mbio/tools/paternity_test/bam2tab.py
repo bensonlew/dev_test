@@ -86,9 +86,9 @@ class Bam2tabTool(Tool):
         self.cmd_path = "bioinfo/medical/scripts/bam2tab.sh"
         self.set_environ(LD_LIBRARY_PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/lib64')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/gcc/5.1.0/bin')
-        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')  # 正式机
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')  # 测试机
-        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioruby-vcf-master/bin')  # 测试机
+        self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.4.1/bin')  # 正式机
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/program/ruby-2.3.1')  # 测试机
+        # self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioruby-vcf-master/bin')  # 测试机
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/bioawk')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/seq/seqtk-master')
         self.set_environ(PATH=self.config.SOFTWARE_DIR + '/bioinfo/align/bwa-0.7.15')
@@ -187,7 +187,7 @@ class Bam2tabTool(Tool):
                         self.set_error('样本{}重名，请检查！'.format(tab_name))
                         raise Exception('可能样本重名，请检查！')
             self.api.sg_paternity_test.sample_size(self.option('sample_id'), self.option('batch_id'), tab_none)
-            self.api.tab_file.remove_sample(self.option('sample_id'))  # 用于删除sg_pt_ref_main中不合格样本信息
+            # self.api.tab_file.remove_sample(self.option('sample_id'))  # 用于删除sg_pt_ref_main中不合格样本信息
 
     def run(self):
         super(Bam2tabTool, self).run()

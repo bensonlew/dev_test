@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'shenghe'
+# __author__ = 'shenghe'  
 from biocluster.agent import Agent
 from biocluster.tool import Tool
 import pandas as pd
 import os
 import types
 import subprocess
+import re  # add re by guhaidong 20171025
+from mbio.packages.taxon.mask_taxon import mask_taxon  # add by guhaidong 20171025
 from biocluster.core.exceptions import OptionError
 
 
@@ -134,7 +136,9 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
         self._version = '1.0.1'  # ordination.pl脚本中指定的版本
         # self.cmd_path = os.path.join(
         #     self.config.SOFTWARE_DIR, 'bioinfo/statistical/scripts/ordination.pl')
-        self.cmd_path = 'bioinfo/statistical/scripts/ordination.pl'
+        #self.cmd_path = 'bioinfo/statistical/scripts/ordination.pl'
+        self.perl_path = "program/perl-5.24.0/bin/perl"
+        self.cmd_path = self.config.PACKAGE_DIR + '/statistical/ordination.pl'
         self.script_path = "bioinfo/meta/scripts/beta_diver.sh"
         self.R_path = os.path.join(self.config.SOFTWARE_DIR, 'program/R-3.3.1/bin/R')
 
@@ -252,11 +256,31 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
             table_list = map(lambda *a: '\t'.join(a) + '\n', *table_list)
             w.writelines(table_list)
 
+    def dashrepl(self, matchobj):
+        """
+        add func by guhaidong 20171025
+        """
+        return self.name_to_name[matchobj.groups()[0]]
+
+    def add_taxon(self, old_result, taxon_result):
+        """
+        add func by guhaidong 20171025
+        description: 将旧注释的名称，根据词典替换成新注释名称
+        """
+        with open(old_result, "r") as f, open(taxon_result, "w") as w:
+            # w.write(old_result)
+            for i in f.readlines():
+                #line = i.strip()
+                new_line = re.sub(r"(name\d+)", self.dashrepl, i)
+                w.write(new_line)
+
     def run_ordination(self, group=None, group_table=None, cmd1='cmd', cmd2='pca'):
         """
         运行ordination.pl
         """
         old_otu_table = self.get_otu_table()  # 根据level返回进行计算的丰度表，特殊的format类型才会进行。小工具不用判断
+        self.name_to_name = mask_taxon(old_otu_table, self.work_dir + "/tmp_mask_otu.xls")  # add by guhaidong 20171025
+        old_otu_table = self.work_dir + '/tmp_mask_otu.xls'  # add by guhaidong 20171025
         if self.option('envtable').is_set:  # 小工具不用判断
             old_env_table = self.get_new_env()
             self.otu_table = self.work_dir + '/new_otu.xls'
@@ -271,8 +295,8 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
             real_otu_path = target_path
         else:
             real_otu_path = self.formattable(self.otu_table)  # 获取转置文件
-        cmd = self.cmd_path
-        cmd += ' -type pca -community %s -outdir %s' % (
+        cmd = self.perl_path
+        cmd += ' %s -type pca -community %s -outdir %s' % (self.cmd_path,
             real_otu_path, self.work_dir)
         if self.option('envtable').is_set:
             cmd += ' -pca_env T -environment %s' % self.env_table
@@ -304,6 +328,7 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
             self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls', group)
             self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls', group)
             self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls', group)
+            self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_rotation_all.xls', group)
             os.link(group_table, os.path.join(group_r_path, os.path.basename(group_table)))  # 分组文件link到结果目录下
             os.rename(self.work_dir + '/pca', self.work_dir + '/pca_' + group)
         else:
@@ -311,15 +336,16 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
             self.linkfile(self.work_dir + '/pca/' + allfiles[0], 'pca_importance.xls')
             self.linkfile(self.work_dir + '/pca/' + allfiles[1], 'pca_rotation.xls')
             self.linkfile(self.work_dir + '/pca/' + allfiles[2], 'pca_sites.xls')
+            self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_rotation_all.xls')
         if self.option('envtable').is_set:
-            if allfiles[3]:
-                self.linkfile(self.work_dir + '/pca/' + allfiles[3], 'pca_envfit_factor_scores.xls')
-                self.linkfile(self.work_dir + '/pca/' + allfiles[4], 'pca_envfit_factor.xls')
-            if allfiles[5]:
-                self._magnify_vector(self.work_dir + '/pca/' + allfiles[5], self.work_dir + '/pca/' + allfiles[2],
+            if allfiles[4]:
+                self.linkfile(self.work_dir + '/pca/' + allfiles[4], 'pca_envfit_factor_scores.xls')
+                self.linkfile(self.work_dir + '/pca/' + allfiles[5], 'pca_envfit_factor.xls')
+            if allfiles[6]:
+                self._magnify_vector(self.work_dir + '/pca/' + allfiles[6], self.work_dir + '/pca/' + allfiles[2],
                                      self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls')
                 self.linkfile(self.work_dir + '/pca/' + 'pca_envfit_vector_scores_magnify.xls', 'pca_envfit_vector_scores.xls')
-                self.linkfile(self.work_dir + '/pca/' + allfiles[6], 'pca_envfit_vector.xls')
+                self.linkfile(self.work_dir + '/pca/' + allfiles[7], 'pca_envfit_vector.xls')
         # self.end()
 
     def linkfile(self, oldfile, newname, group=None):
@@ -372,14 +398,16 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
         """
         获取并检查文件夹下的文件是否存在
 
-        :return pca_importance_file, pca_rotation_file,
+        :return pca_importance_file, pca_rotation_file,pca_rotation_all_file,
                 pca_sites_file, pca_factor_score_file, pca_factor_file,
                 pca_vector_score_file, pca_vector_file: 返回各个文件，以及是否存在环境因子，
                 存在则返回环境因子结果
         """
         filelist = os.listdir(self.work_dir + '/pca')
+        pca_dir = os.path.join(self.work_dir, 'pca')
         pca_importance_file = None
         pca_rotation_file = None
+        pca_rotation_all_file =None
         pca_sites_file = None
         pca_factor_score_file = None
         pca_factor_file = None
@@ -390,8 +418,14 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
                 pca_importance_file = name
             elif 'pca_sites.xls' in name:
                 pca_sites_file = name
-            elif 'pca_rotation.xls' in name:
-                pca_rotation_file = name
+            elif 'pca_rotation.xls' in name:  # modified by guhaidong 20171025
+                #pca_rotation_file = name
+                self.add_taxon(os.path.join(pca_dir, name), pca_dir + '/pca_rotation_new.xls')
+                pca_rotation_file = 'pca_rotation_new.xls'
+            elif 'pca_rotation_all.xls' in name:  # modified by guhaidong 20171025
+                # pca_rotation_all_file = name
+                self.add_taxon(os.path.join(pca_dir, name), pca_dir + '/pca_rotation_all_new.xls')
+                pca_rotation_all_file = 'pca_rotation_all_new.xls'
             elif 'pca_envfit_factor_scores.xls' in name:
                 pca_factor_score_file = name
             elif 'pca_envfit_factor.xls' in name:
@@ -417,10 +451,10 @@ class PcaTool(Tool):  # PCA需要第一行开头没有'#'的丰度表，filter_o
                     elif not pca_factor_score_file:
                         self.set_error('未知原因，环境因子相关结果全部丢失或者未生成')
                 return [pca_importance_file, pca_rotation_file,
-                        pca_sites_file, pca_factor_score_file, pca_factor_file,
+                        pca_sites_file, pca_rotation_all_file,pca_factor_score_file, pca_factor_file,
                         pca_vector_score_file, pca_vector_file]
 
             else:
-                return [pca_importance_file, pca_rotation_file, pca_sites_file]
+                return [pca_importance_file, pca_rotation_file,  pca_sites_file,pca_rotation_all_file]
         else:
             self.set_error('未知原因，数据计算结果丢失或者未生成')

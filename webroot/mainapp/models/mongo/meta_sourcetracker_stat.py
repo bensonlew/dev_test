@@ -4,14 +4,17 @@
 from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
-from mainapp.config.db import get_mongo_client
-from biocluster.config import Config
+from .core.base import Base
+# from mainapp.config.db import get_mongo_client
+# from biocluster.config import Config
 
 
-class MetaSourcetrackerStat(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class MetaSourcetrackerStat(Base):
+    def __init__(self, bind_object = None):
+        super(MetaSourcetrackerStat, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
 
     def create_meta_sourcetracker(self, params, group_id_1=0, group_id_2=0, from_otu_table=0, level_id=0, name=None):

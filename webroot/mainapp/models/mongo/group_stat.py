@@ -4,14 +4,17 @@
 from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
-from mainapp.config.db import get_mongo_client
-from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
+# from mainapp.config.db import get_mongo_client
+# from biocluster.config import Config
 
 
-class GroupStat(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class GroupStat(Base):
+    def __init__(self, bind_object=None):
+        super(GroupStat, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
     def create_species_difference_check(self, level, check_type, params, category_name, group_id=0, from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):

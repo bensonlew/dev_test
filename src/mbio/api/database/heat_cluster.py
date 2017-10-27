@@ -6,13 +6,14 @@ from bson.objectid import ObjectId
 from types import StringTypes
 import datetime
 import re
-from biocluster.config import Config
+# from biocluster.config import Config
 
 
 class HeatCluster(Base):
     def __init__(self, bind_object):
         super(HeatCluster, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     def create_newick_table(self, params, linkage, from_otu_table=0, name=None):
         if from_otu_table != 0 and not isinstance(from_otu_table, ObjectId):

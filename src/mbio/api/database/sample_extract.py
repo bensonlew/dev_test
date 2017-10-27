@@ -5,14 +5,15 @@ import os
 import json
 from bson.objectid import ObjectId
 from types import StringTypes
-from biocluster.config import Config
+# from biocluster.config import Config
 from biocluster.api.database.base import Base, report_check
 
 
 class SampleExtract(Base):
     def __init__(self, bind_object):
         super(SampleExtract, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     @report_check
     def update_sg_seq_sample(self, list_path, table_id):

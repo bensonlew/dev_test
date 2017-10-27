@@ -4,16 +4,19 @@
 from bson.objectid import ObjectId
 import datetime
 from types import StringTypes
-from mainapp.config.db import get_mongo_client
+# from mainapp.config.db import get_mongo_client
 import types
 import json
-from biocluster.config import Config
+from mainapp.models.mongo.core.base import Base
+# from biocluster.config import Config
 
 
-class Estimator(object):
-    def __init__(self):
-        self.client = get_mongo_client()
-        self.db = self.client[Config().MONGODB]
+class Estimator(Base):
+    def __init__(self, bind_object=None):
+        super(Estimator, self).__init__(bind_object)
+        self._project_type = 'meta'
+        # self.client = get_mongo_client()
+        # self.db = self.client[Config().MONGODB]
 
     def add_est_collection(self, level, params, from_otu_table=0, name=None):
         if int(level) not in range(1, 10):

@@ -98,9 +98,10 @@ class SimplePieTool(Tool):
                 os.mkdir(sample_dir)
                 select_group.append(self.option("group_table").prop['group_scheme'][i])
                 self.option('group_table').sub_group(sample_dir + '/group_' + str(i + 1), select_group)  # 获得用于计算的一个分组方案
-                group_table = sample_dir + '/group_' + str(i + 1)
-                self.option("input_table").get_table_of_main_table(input_table, sample_dir + '/input_' + str(i + 1),
-                                                                   group_table)
+                # group_table = sample_dir + '/group_' + str(i + 1)
+                os.link(input_table, sample_dir + '/input_' + str(i + 1))
+                # self.option("input_table").get_table_of_main_table(input_table, sample_dir + '/input_' + str(i + 1),
+                #                                                    group_table)
                 new_input_table = sample_dir + '/input_' + str(i + 1)
                 middle_input = sample_dir + "/" + self.option("group_table").prop['group_scheme'][
                     i] + '_middle_input.xls'

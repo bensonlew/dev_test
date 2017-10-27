@@ -11,14 +11,15 @@ import datetime
 # import gridfs
 from bson.son import SON
 from bson.objectid import ObjectId
-from biocluster.config import Config
+# from biocluster.config import Config
 # from mainapp.libs.param_pack import group_detail_sort
 
 
 class PhyloTree(Base):
     def __init__(self, bind_object):
         super(PhyloTree, self).__init__(bind_object)
-        self._db_name = Config().MONGODB
+        self._project_type = 'meta'
+        # self._db_name = Config().MONGODB
 
     # 专门供metabase使用的导表工具，会导入主表以及相关信息，不可用于接口导表
     # 未完成，不可用
