@@ -21,6 +21,7 @@ class Pca(Base):
         else:
             self._db_name = 'ttoolapps'
         self._project_type = 'toolapps'
+        self.specimen_ids_dict = {}
         self.check()
 
     @report_check
@@ -116,11 +117,12 @@ class Pca(Base):
                            scatter_id=scatter_id)
                 data.update(zip(attrs, line_split[1:]))
                 insert_data.append(data)
-            specimen_ids_dict = self.insert_specimens(samples)  # 导入分组原始文件，也就是样本信息
+            if self.specimen_ids_dict == {}:
+                self.specimen_ids_dict = self.insert_specimens(samples)  # 导入分组原始文件，也就是样本信息
             if group:
-                self.insert_group(specimen_ids_dict, group, output_dir + "/" + group + '_group.xls')  # 把分组导入到表中去
+                self.insert_group(self.specimen_ids_dict, group, output_dir + "/" + group + '_group.xls')  # 把分组导入到表中去
             self.db['scatter_detail'].insert_many(insert_data)  # 导入散点信息，画图使用
-            self.db['scatter'].update_one({'_id': scatter_id}, {'$set': {'status': 'end', 'specimen_ids': specimen_ids_dict.values()}})
+            self.db['scatter'].update_one({'_id': scatter_id}, {'$set': {'status': 'end', 'specimen_ids': self.specimen_ids_dict.values()}})
             # 更新主表为成功
             return scatter_id
 
