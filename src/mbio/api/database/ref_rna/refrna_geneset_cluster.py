@@ -19,7 +19,8 @@ from biocluster.config import Config
 class RefrnaGenesetClusterExpress(Base):
     def __init__(self, bind_object):
         super(RefrnaGenesetClusterExpress, self).__init__(bind_object)
-        db = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+        #db = Config().MONGODB + '_ref_rna'
     
     @report_check
     def add_cluster(self, params, express_id, sample_tree=None, gene_tree=None, name=None, samples=None,type=None):
@@ -49,7 +50,7 @@ class RefrnaGenesetClusterExpress(Base):
             'type': type,
             'gene_tree': gene_tree,
         }
-        collection = db['sg_geneset_cluster']
+        collection = self.db['sg_geneset_cluster']
         cluster_id = collection.insert_one(insert_data).inserted_id
         return cluster_id
     
@@ -77,7 +78,7 @@ class RefrnaGenesetClusterExpress(Base):
                 data = SON(data)
                 data_list.append(data)
         try:
-            collection = db["sg_geneset_cluster_detail"]
+            collection = self.db["sg_geneset_cluster_detail"]
             collection.insert_many(data_list)
         except Exception, e:
             print ("导入子聚类统计表：%s信息出错:%s" % (sub_path, e))

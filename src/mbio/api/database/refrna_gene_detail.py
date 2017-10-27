@@ -17,7 +17,8 @@ from biocluster.config import Config
 class RefrnaGeneDetail(Base):
     def __init__(self, bind_object):
         super(RefrnaGeneDetail, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+        #self._db_name = Config().MONGODB + '_ref_rna'
 
     @staticmethod
     def biomart(biomart_path, biomart_type='type1'):
@@ -710,9 +711,10 @@ class RefrnaGeneDetail(Base):
 class TestFunction(unittest.TestCase):
     class TmpRefrnaGeneDetail(RefrnaGeneDetail):
         def __init__(self):
-            self._db_name = Config().MONGODB + '_ref_rna'
-            self._db = None
-            self._config = Config()
+            super(TmpRefrnaGeneDetail, self).__init__(None)
+            #self._db_name = Config().MONGODB + '_ref_rna'
+            #self._db = None
+            #self._config = Config()
 
     def test(self):
         base_path = "/mnt/ilustre/users/sanger-dev/app/database/Genome_DB_finish/vertebrates/Mus_musculus/Ensemble_release_89/"

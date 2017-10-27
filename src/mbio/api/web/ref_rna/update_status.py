@@ -7,4 +7,4 @@ class UpdateStatus(Us):
 
     def __init__(self, data):
         super(UpdateStatus, self).__init__(data)
-        self.mongodb = self._mongo_client[self.config.MONGODB + '_ref_rna']
+        self.mongodb = self._mongo_client[self.config.get_mongo_dbname(ref_rna)]

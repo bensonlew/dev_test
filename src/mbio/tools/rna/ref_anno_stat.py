@@ -411,7 +411,7 @@ class RefAnnoStatTool(Tool):
                 if db == 'kegg':
                     self.movedir2output(self.kegg_stat_path, 'kegg_stat')
                     self.option('gene_kegg_anno_table', self.output_dir + '/kegg_stat/gene_kegg_table.xls')
-                    self.option('kegg_anno_table', self.output_dir + '/kegg_table.xls')
+                    self.option('kegg_anno_table', self.option('kegg_anno_table').prop["path"])
                     if self.option('gene_kegg_anno_table').is_set:
                     #if self.option("kegg_xml").is_set:
                         #self.option('gene_kegg_table', self.output_dir + '/blast/gene_kegg.xls')

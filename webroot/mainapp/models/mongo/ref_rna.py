@@ -12,8 +12,9 @@ import json
 
 class RefRna(Meta):
     def __init__(self):
-        self.db_name = Config().MONGODB + '_ref_rna'
-        super(RefRna, self).__init__(db=self.db_name)
+        self._project_type='ref-rna'
+        #self.db_name = Config().MONGODB + '_ref_rna'
+        #super(RefRna, self).__init__(db=self.db_name)
 
     def get_new_id(self, task_id, main_id):
         new_id = "%s_%s_%s" % (task_id, main_id[-4:], random.randint(1, 10000))

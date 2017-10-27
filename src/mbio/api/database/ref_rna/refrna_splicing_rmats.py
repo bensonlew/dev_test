@@ -23,7 +23,8 @@ from biocluster.config import Config
 class RefrnaSplicingRmats(Base):
     def __init__(self, bind_object):
         super(RefrnaSplicingRmats, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+        #self._db_name = Config().MONGODB + '_ref_rna'
         self._RMATS_DETAIL_TABLE_HEAD = \
             ["event_id", "type", "novel", "old", "gene", "gene_symbol", "chr", "strand",
              "exonStart_0base", "exonEnd", "upstreamES", "upstreamEE", "downstreamES",

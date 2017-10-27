@@ -15,7 +15,8 @@ from biocluster.config import Config
 class RefAssembly(Base):
     def __init__(self, bind_object):
         super(RefAssembly, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+        #self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
     def add_assembly_result(self, name=None, params=None, all_gtf_path=None, merged_path=None, Statistics_path=None):
