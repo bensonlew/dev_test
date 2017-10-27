@@ -860,8 +860,8 @@ class RefAnnotation(Base):
                     ('anno_type', anno_type),
                     ('type', thekey),
                     ('function_categories', category),
-                    ('cog', len(cog_list)),
-                    ('nog', len(nog_list)),
+                    ('cog', len([x for x in cog_list if x ])),
+                    ('nog', len([x for x in nog_list if x])),
                     ('cog_list', ';'.join(cog_list)),
                     ('nog_list', ';'.join(nog_list)),
                 ]
