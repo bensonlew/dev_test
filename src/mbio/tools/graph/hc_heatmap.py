@@ -50,6 +50,12 @@ class HcHeatmapAgent(Agent):
         """
         if not self.option("data_table"):
             raise OptionError("参数data_table不能为空")
+        if self.option('data_T') != "false":
+            if self.option('data_table').prop['row_sample'] < 2:
+                raise OptionError("聚类时样本必须大于等于2")
+        else:
+            if self.option('data_table').prop['col_sample'] < 2:
+                raise OptionError("聚类时样本必须大于等于2")
         if self.option("row_method") not in ['average', 'complete', 'single', 'no']:
             raise OptionError("请选择正确行聚类方式")
         if self.option("col_method") not in ['average', 'complete', 'single', 'no']:
@@ -150,37 +156,27 @@ class HcHeatmapTool(Tool):
                     else:
                         raise OptionError("聚类时样本必须大于等于2,{}分组里样本小于2,不能进行聚类".format(group))
         elif self.option('group_table').is_set:
-            group_samples = self.option('group_table').get_group_detail()
-            self.logger.info(group_samples)
+            samples = self.option('group_table').prop['sample_name']
             with open(self.new_data, "r") as f:
                 lines = f.readlines()
                 line = lines[0].rstrip().split("\t")
-                for group in group_samples:
-                    samples = []
-                    for s1 in group_samples[group]:
-                        for s2 in group_samples[group][s1]:
-                            samples.append(s2)
-                    samples = list(set(samples))
-                    if len(samples) >= 2:
-                        sample_index = {}
+                sample_index = {}
+                for s in samples:
+                    for i in range(len(line)):
+                        if s == line[i]:
+                            sample_index[s]= i
+                table_path = os.path.join(self.work_dir, "new_table.xls")
+                with open(table_path, "w") as w:
+                    header = line[0] + "\t" + '\t'.join(samples) + "\n"
+                    w.write(header)
+                    for item in lines[1:]:
+                        item = item.rstrip().split("\t")
+                        w.write(item[0] + "\t")
+                        tmp = []
                         for s in samples:
-                            for i in range(len(line)):
-                                if s == line[i]:
-                                    sample_index[s]= i
-                        table_path = os.path.join(self.work_dir, group + "_table.xls")
-                        with open(table_path, "w") as w:
-                            header = line[0] + "\t" + '\t'.join(samples) + "\n"
-                            w.write(header)
-                            for item in lines[1:]:
-                                item = item.rstrip().split("\t")
-                                w.write(item[0] + "\t")
-                                tmp = []
-                                for s in samples:
-                                    tmp.append(item[sample_index[s]])
-                                w.write('\t'.join(tmp) + "\n")
-                        self.create_tree(table_path, group)
-                    else:
-                        raise OptionError("聚类时样本必须大于等于2,{}分组里样本小于2,不能进行聚类".format(group))
+                            tmp.append(item[sample_index[s]])
+                        w.write('\t'.join(tmp) + "\n")
+                self.create_tree(table_path, "no")
         else:
             os.link(self.new_data, os.path.join(self.work_dir, "new_table.xls"))
             self.create_tree(os.path.join(self.work_dir, "new_table.xls"), "no")

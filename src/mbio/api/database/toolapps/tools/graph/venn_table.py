@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'wangzhaoyue'  
+# __author__ = 'wangzhaoyue'
 import json
 from biocluster.api.database.base import Base, report_check
 import re
@@ -18,6 +18,7 @@ class VennTable(Base):
             self._db_name = 'toolapps'
         else:
             self._db_name = 'ttoolapps'
+        self._project_type = 'toolapps'
         self.check()
 
     @report_check

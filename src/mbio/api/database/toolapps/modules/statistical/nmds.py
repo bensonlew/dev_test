@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# __author__ = 'zhouxuan'  
+# __author__ = 'zhouxuan'
 import json
 from biocluster.api.database.base import Base, report_check
 import re
@@ -17,6 +17,7 @@ class Nmds(Base):
             self._db_name = 'toolapps'
         else:
             self._db_name = 'ttoolapps'
+        self._project_type = 'toolapps'
         self.check()
         self.group_detail = {}
 
