@@ -14,8 +14,9 @@ class RnaEditing(Base):
     def __init__(self, bind_object):
         super(RnaEditing, self).__init__(bind_object)
         # self._db_name = Config().MONGODB
-        self.mongo_client = Config().mongo_client
-        self.database = self.mongo_client['tsanger_ref_rna']
+        self._project_type = 'ref_rna'
+        #self.mongo_client = Config().mongo_client
+        #self.database = self.mongo_client['tsanger_ref_rna']
 
     # "status": "end",
     @report_check
@@ -29,7 +30,7 @@ class RnaEditing(Base):
             "created_ts": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
-        collection = self.database['sg_tf']
+        collection = self.db['sg_tf']
         new_params = param_pack(params)
         insert_data["params"] = new_params
         # collection.insert_data["params"] = params
@@ -59,7 +60,7 @@ class RnaEditing(Base):
                 }
                 sg_tf.append(insert_data)
             try:
-                collection = self.database['sg_tf_detail']
+                collection = self.db['sg_tf_detail']
                 collection.insert_many(sg_tf)
             except Exception as e:
                 self.bind_object.logger.error('导入转录因子细节表出错：{}'.format(e))

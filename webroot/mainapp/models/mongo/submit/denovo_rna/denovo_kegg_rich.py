@@ -4,13 +4,14 @@
 import datetime
 from biocluster.config import Config
 import json
+from mainapp.models.mongo.core.base import Base
 
 
-class DenovoKeggRich(object):
+class DenovoKeggRich(Base):
     def __init__(self):
-        self.client = Config().mongo_client
-        self.db_name = Config().MONGODB + '_rna'
-        self.db = self.client[self.db_name]
+        super(DenovoKeggRich, self).__init__(bind_object)
+        self._project_type = 'ref_rna'
+
 
     def add_kegg_rich(self, name=None, params=None, project_sn=None, task_id=None):
         insert_data = {

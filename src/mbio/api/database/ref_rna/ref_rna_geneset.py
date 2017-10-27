@@ -17,7 +17,8 @@ import gridfs
 class RefRnaGeneset(Base):
     def __init__(self, bind_object):
         super(RefRnaGeneset, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+        #self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
     def add_main_table(self, collection_name, params, name):

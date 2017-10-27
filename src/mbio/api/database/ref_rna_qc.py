@@ -19,7 +19,8 @@ import os
 class RefRnaQc(Base):
     def __init__(self, bind_object):
         super(RefRnaQc, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + '_ref_rna'
+        self._project_type = 'ref_rna'
+        #self._db_name = Config().MONGODB + '_ref_rna'
 
     @report_check
     def add_samples_info(self, qc_stat, qc_adapt=None, fq_type='se', about_qc='before'):

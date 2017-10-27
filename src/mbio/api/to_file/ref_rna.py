@@ -16,7 +16,8 @@ import gridfs
 
 
 def export_gene_list(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     gene_list_path = os.path.join(dir_path, "%s_gene.list" % option_name)
     bind_obj.logger.debug("正在导出基因集")
     collection = db['sg_geneset_detail']
@@ -36,7 +37,8 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
     """
     获取blast结果
     """
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     nr_table_path = os.path.join(dir_path, "nr_{}.xls".format(option_name))
     gene_nr_table_path = os.path.join(dir_path, "gene_nr_{}.xls".format(option_name))
     sw_table_path = os.path.join(dir_path, "swissprot_{}.xls".format(option_name))
@@ -101,7 +103,8 @@ def export_blast_table(data, option_name, dir_path, bind_obj=None):
 
 
 def export_go_list(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     go_list_path = os.path.join(dir_path, "GO.list")
     bind_obj.logger.debug("正在导出%sgo列表:%s" % (option_name, go_list_path))
     geneset_collection = db["sg_geneset"]
@@ -127,7 +130,8 @@ def export_go_list(data, option_name, dir_path, bind_obj=None):
 
 
 def export_kegg_table(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     kegg_path = os.path.join(dir_path, 'gene_kegg_table.xls')
     bind_obj.logger.debug("正在导出参数%s的kegg_table文件，路径:%s" % (option_name, kegg_path))
     geneset_collection = db["sg_geneset"]
@@ -160,7 +164,8 @@ def export_kegg_table(data, option_name, dir_path, bind_obj=None):
     return kegg_path
 
 def export_kegg_pdf(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fs = gridfs.GridFS(db)
     annotation_collection = db["sg_annotation_kegg"]
     task_id = data.split("\t")[0]
@@ -181,7 +186,8 @@ def export_kegg_pdf(data, option_name, dir_path, bind_obj=None):
     return anno_path
 
 def export_all_list(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     all_list = os.path.join(dir_path, "all_gene.list")
     bind_obj.logger.debug("正在导出所有背景基因{}".format(all_list))
     # collection = conn['sg_geneset_detail']
@@ -210,7 +216,8 @@ def export_all_list(data, option_name, dir_path, bind_obj=None):
 
 
 def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要修改
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     name = bind_obj.sheet.option("name")
     compare_name = bind_obj.sheet.option("compare_name")
     diff_express = os.path.join(dir_path, "%s_vs_%s.diff.exp.xls" % (name, compare_name))
@@ -253,7 +260,8 @@ def export_diff_express(data, option_name, dir_path, bind_obj=None):  # 需要�
 
 
 def export_cog_class(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     cog_path = os.path.join(dir_path, 'cog_class_table.xls')
     bind_obj.logger.debug("正在导出{}".format(cog_path))
     genesets, table_title, task_id, geneset_type = get_geneset_detail(data)
@@ -292,7 +300,8 @@ def export_cog_class(data, option_name, dir_path, bind_obj=None):
 
 
 def get_geneset_detail(data):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     geneset_collection = db["sg_geneset"]
     genesets = {}
     names = []
@@ -316,7 +325,8 @@ def get_geneset_detail(data):
 
 
 def export_go_class(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     go_path = os.path.join(dir_path, 'go_class_table.xls')
     bind_obj.logger.debug("正在导出{}".format(go_path))
     genesets, names, task_id, seq_type = get_geneset_detail(data)
@@ -357,7 +367,8 @@ def export_go_class(data, option_name, dir_path, bind_obj=None):
 
 
 def export_gene_list_ppi(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     gene_list_path = os.path.join(dir_path, "%s_list.txt" % option_name)
     bind_obj.logger.debug("正在导出基因集")
     collection = db['sg_geneset_detail']
@@ -381,7 +392,8 @@ def export_express_matrix_level(data,option_name,dir_path,bind_obj=None):
     type对应的是gene/transcript字段，workflow里确保有这个字段
     express_level对应的是fpkm/tpm字段，workflow里确保有这个字段
     """
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
     count_path = os.path.join(dir_path, "%s_count.matrix" % option_name)
     bind_obj.logger.debug("正在导出计数矩阵:%s；fpkm矩阵:%s" % (count_path, fpkm_path))
@@ -451,7 +463,8 @@ def export_group_table_by_detail(data, option_name, dir_path, bind_obj=None):
     按分组的详细信息获取group表
     使用时确保你的workflow的option里group_detal这个字段
     """
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     file_path = os.path.join(dir_path, "%s_input.group.xls" % option_name)
     bind_obj.logger.debug("正在导出参数%s的GROUP表格为文件，路径:%s" % (option_name, file_path))
     if data in ["all", "All", "ALL"]:
@@ -501,7 +514,8 @@ def _get_objectid(data):
     return data
 
 def export_control_file(data, option_name, dir_path, bind_obj=None):  #此函数待定 不一定对
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     file_path = os.path.join(dir_path, '{}.txt'.format(option_name))
     bind_obj.logger.debug("正在导出计数矩阵:%s" % file_path)
     collection = db['sg_specimen_group_compare']
@@ -544,7 +558,8 @@ def export_geneset_venn_level(data, option_name, dir_path, bind_obj=None):
     """
     level对应的是gene/transcript字段，workflow里确保有这个字段
     """
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     geneset_venn = os.path.join(dir_path,"%s_geneset_venn" %(option_name))
     bind_obj.logger.debug("正在导出计数矩阵:%s" %(geneset_venn))
     collection = db["sg_geneset_detail"]
@@ -566,7 +581,8 @@ def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_cod
     """
     type: 对应的是gene 或transcript
     """
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     class_code = os.path.join(dir_path, "%s_class_code" % option_name)
     bind_obj.logger.debug("正在导出class_code信息:%s" %(class_code))
     type= bind_obj.sheet.option('type')
@@ -596,7 +612,8 @@ def export_class_code(data,option_name,dir_path,bind_obj=None): #输出class_cod
     return class_code
 
 def export_add_info(data,option_name,dir_path,bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     task_id = data.split("\t")[0]
     anno_type = data.split("\t")[1]
     add_info = os.path.join(dir_path, '{}.txt'.format(option_name))
@@ -628,7 +645,8 @@ def export_geneset_cluster_level(data,option_name,dir_path,bind_obj=None):  #这
     type对应的是fpkm/tpm字段，workflow里确保有这个字段
     data 是两个id，由逗号连接，第一个id是geneset_id 第二个是express_id
     """
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     fpkm_path = os.path.join(dir_path, "%s_fpkm.matrix" % option_name)
     bind_obj.logger.debug("正在导出表达量矩阵矩阵:%s" %(fpkm_path))
     log = bind_obj.sheet.option("log")
@@ -668,7 +686,8 @@ def export_geneset_cluster_level(data,option_name,dir_path,bind_obj=None):  #这
 ###########################################
 
 def export_multi_gene_list(data, option_name, dir_path, bind_obj=None):
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     geneset_id = data.split(",")
     multi_geneset_path = dir_path + "/multi_geneset_list"
     collection = db['sg_geneset_detail']
@@ -691,7 +710,8 @@ def export_class_code_for_enrich(data, option_name, dir_path, bind_obj=None):
     tmp = data.split("\t")
     task_id = tmp[0]
     class_code_type = tmp[1]
-    db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+    db = Config().mongo_client[Config().get_mongo_dbname(ref_rna)]
+    #db = Config().mongo_client[Config().MONGODB + "_ref_rna"]
     collection = db['sg_express_class_code']
     result = collection.find_one({"task_id":task_id})
     id = result["_id"]
