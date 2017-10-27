@@ -4,7 +4,7 @@ from mainapp.config.db import Config
 import web
 import datetime
 
-D:\SangerBiocluster\webroot\mainapp\models\workflow.py
+
 class Workflow(object):
     def __init__(self):
         self.table = "workflow"

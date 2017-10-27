@@ -23,8 +23,6 @@ class UpdateStatus(Log):
         self._client = "client01"
         self._key = "1ZYw71APsQ"
         self._url = "http://api.sanger.com/task/add_file"
-        self._mongo_client = self.config.mongo_client
-        self.mongodb = self._mongo_client[self.config.MONGODB]
 
     def __del__(self):
         self._mongo_client.close()
@@ -69,7 +67,7 @@ class UpdateStatus(Log):
         batch_id = self.update_info.pop("batch_id") if 'batch_id' in self.update_info else None
         for obj_id, collection_name in self.update_info.items():
             obj_id = ObjectId(obj_id)
-            collection = self.mongodb[collection_name]
+            collection = self.db[collection_name]
             if status != "start":
                 data = {
                     "status": "end" if status == 'finish' else status,
@@ -77,10 +75,10 @@ class UpdateStatus(Log):
                     "created_ts": create_time
                 }
                 collection.find_one_and_update({"_id": obj_id}, {'$set': data}, upsert=True)
-            sg_status_col = self.mongodb['sg_status']
+            sg_status_col = self.db['sg_status']
             if status == "start":
                 if not batch_id:
-                    tmp_col = self.mongodb[collection_name]
+                    tmp_col = self.db[collection_name]
                     try:
                         temp_find = tmp_col.find_one({"_id": obj_id})
                         tb_name = temp_find["name"]
@@ -136,14 +134,14 @@ class UpdateStatus(Log):
             return
         batch_id = ObjectId(batch_id)
         if str(collection) == "sg_otu" and str(status) == "failed" \
-                and self.mongodb['sg_otu'].find_one({"_id": ObjectId(_id)})['type'] == "otu_statistic":
+                and self.db['sg_otu'].find_one({"_id": ObjectId(_id)})['type'] == "otu_statistic":
             #  用于一键化抽平分析出错后面依赖不能进行报错
-            self.mongodb['sg_pipe_detail'].insert_one({'pipe_batch_id': batch_id, "table_id": ObjectId(_id),
+            self.db['sg_pipe_detail'].insert_one({'pipe_batch_id': batch_id, "table_id": ObjectId(_id),
                                                        'group_name': "", 'level_id': "",
                                                        "submit_location": "otu_statistic", 'status': "failed",
                                                        'desc': "因为OtuSubsample分析计算失败，后面的依赖分"
                                                                "析都不能进行，请重新设定基本参数，再次尝试!"})
-            self.mongodb['sg_pipe_batch'].find_one_and_update({"_id": batch_id},
+            self.db['sg_pipe_batch'].find_one_and_update({"_id": batch_id},
                                                               {'$set': {"ends_count": 1, "all_count": 1}}, upsert=True)
             pass
         # elif str(collection) == "sg_alpha_diversity" and str(status) == "failed":
@@ -152,13 +150,13 @@ class UpdateStatus(Log):
 
             # self.mongodb['sg_pipe_batch'].find_one_and_update({'_id': batch_id}, {"$inc": {"ends_count": 1}})
             self.logger.info("pipe_batch_id: {}, status: {}, desc:{}".format(batch_id, status, desc))
-            self.mongodb['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)},
+            self.db['sg_pipe_detail'].find_one_and_update({'pipe_batch_id': batch_id, "table_id": ObjectId(_id)},
                                                                {"$set": {'status': status, "desc": desc}})
-            end_counts = self.mongodb['sg_pipe_detail'].find({'pipe_batch_id': batch_id,
+            end_counts = self.db['sg_pipe_detail'].find({'pipe_batch_id': batch_id,
                                                               'status': {'$in': ['end', "failed"]}}).count()
             self.logger.info("查询end_counts个数:{}".format(end_counts))  # 测试完成后删除
             # 多样性指数失败，则T检验失败，但是t检验失败后没有插表，这里通过判断多样性指数失败个数来间接判断t检验
-            diversity_end_counts = self.mongodb['sg_pipe_detail'].find({'pipe_batch_id': batch_id,
+            diversity_end_counts = self.db['sg_pipe_detail'].find({'pipe_batch_id': batch_id,
                                                                         "submit_location":
                                                                             {'$in': ["alpha_diversity_index",
                                                                                      "otu_pan_core"]},
@@ -166,5 +164,5 @@ class UpdateStatus(Log):
             self.logger.info("查询diversity_end_counts个数:{}".format(diversity_end_counts))  # 测试完成后删除
             update_counts = end_counts + diversity_end_counts
             self.logger.info("查询update_counts个数:{}".format(update_counts))
-            self.mongodb['sg_pipe_batch'].find_one_and_update({"_id": batch_id},
+            self.db['sg_pipe_batch'].find_one_and_update({"_id": batch_id},
                                                               {'$set': {"ends_count": update_counts}}, upsert=True)

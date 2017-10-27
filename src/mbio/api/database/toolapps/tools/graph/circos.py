@@ -17,6 +17,7 @@ class Circos(Base):
             self._db_name = 'toolapps'
         else:
             self._db_name = 'ttoolapps'
+        self._project_type = 'toolapps'
         # self.check()
 
     @report_check

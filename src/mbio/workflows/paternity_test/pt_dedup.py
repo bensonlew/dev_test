@@ -74,9 +74,24 @@ class PtDedupWorkflow(Workflow):
 
     def fastq2mongo_run(self):
         api_read_tab = self.api.tab_file
-        fastq = os.listdir(self.option('fastq_path').prop['path'])
+        pt_customer = self.api.pt_customer
+        fastq1 = os.listdir(self.option('fastq_path').prop['path'])
         file = []
         file_type = []
+        fastq = []
+        if pt_customer.get_urgency_type(self.option('batch_id')):
+            sample_id_list = pt_customer.get_urgency(self.option('batch_id'))
+            self.logger.info("sample_id_list:{}".format(sample_id_list))
+            if len(sample_id_list) == 0:
+                fastq = fastq1
+            else:
+                for m in sample_id_list:
+                    if str("{}_R1.fastq.gz".format(m)) in fastq1:
+                        fastq.append("{}_R1.fastq.gz".format(m))
+                        fastq.append("{}_R2.fastq.gz".format(m))
+        else:
+            fastq = fastq1
+        # self.logger.info("fastq:{}".format(fastq))
         for j in fastq:
             m = re.match('(.*)_R1.fastq.gz', j)
             if m:
@@ -87,7 +102,8 @@ class PtDedupWorkflow(Workflow):
                 else:
                     self.logger.info(j)
                     pass
-
+        self.logger.info("file:{}".format(file))
+        self.logger.info("file_type:{}".format(file_type))
         n = 0
         for i in file:
             x = api_read_tab.tab_exist(i)
@@ -145,10 +161,12 @@ class PtDedupWorkflow(Workflow):
     def pt_analysis_run(self):
         api_read_tab = self.api.tab_file
         self.family_id = api_read_tab.family_unanalysised()  # tuple
+        self.logger.info(self.family_id)
         # self.family_id = [['WQ17072798-F1', 'WQ17072798-M-1', 'WQ17072798-S-1']]
         self.logger.info("组成的家系个数：%s" % len(self.family_id))
         if not self.family_id:
             self.logger.error("没有符合条件的家系")
+            self.api.pt_customer.update_urgency_info(self.option('batch_id'))
             self.exit(exitcode=1, data='没有符合条件的家系', terminated=False)
             # raise Exception("没有符合条件的家系")
 
@@ -298,7 +316,6 @@ class PtDedupWorkflow(Workflow):
             preg_id = self.family_id[i][2]
             # self.logger.info("iiii%s" % dad_id)
             # self.name_list.remove(dad_id)   # 20170704 xuanhongdong
-# <<<<<<< Updated upstream
             # dad_list = []
             #
             # for i in self.name_list[0:2]:  # 20170704 zhouxuan modify self.name_list → self.name_list[0:2]
@@ -324,30 +341,6 @@ class PtDedupWorkflow(Workflow):
                 pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
                 self.tools_dedup.append(pt_analysis_dedup)
                 n += 1
-# =======
-#             dad_list = []
-#
-#             for i in self.name_list:  # 20170704 zhouxuan modify self.name_list → self.name_list[0:2]
-#                 dad_list.append(self.output_dir + '/' + i + '.tab')
-#             dad_list = ",".join(dad_list)
-#
-#
-#             pt_analysis_dedup = self.add_tool("paternity_test.dedup_analysis")
-#             self.step.add_steps('dedup_{}'.format(n))
-#             pt_analysis_dedup.set_options({
-#                     "dad_list": dad_list,  # 数据库的tab文件
-#                     "mom_tab": self.output_dir + '/' + mom_id +'.tab',
-#                     "preg_tab": self.output_dir +'/' + preg_id+'.tab',
-#                     "ref_point": self.option("ref_point"),
-#                     "err_min": self.option("err_min")
-#             }
-#             )
-#             step = getattr(self.step, 'dedup_{}'.format(n))
-#             step.start()
-#             pt_analysis_dedup.on('end', self.finish_update, 'dedup_{}'.format(n))
-#             self.tools_dedup.append(pt_analysis_dedup)
-#             n += 1
-# >>>>>>> Stashed changes
 
         for j in range(len(self.tools_dedup)):
             self.tools_dedup[j].on('end', self.set_output, 'dedup')
@@ -491,5 +484,5 @@ class PtDedupWorkflow(Workflow):
                     api_main.add_father_qc(self.father_id, self.pt_father_id)
                     # 更新单次运行的状态
                 api_main.update_sg_pt_father(self.pt_father_id)
-
+        api_update_status.update_urgency_info(self.option('batch_id'))
         super(PtDedupWorkflow, self).end()

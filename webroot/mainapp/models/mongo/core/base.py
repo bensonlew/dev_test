@@ -9,7 +9,7 @@ from mainapp.config.db import Config
 
 
 class Base(object):
-    def __init__(self, bind_object):
+    def __init__(self, bind_object=None):
         self._bind_object = bind_object
         self._config = Config()
         self._db = None

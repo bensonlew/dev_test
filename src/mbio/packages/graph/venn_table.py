@@ -13,7 +13,7 @@ def venn_table(otu_table, group_table, R_path):
     :R_path: 软件R的安装路径
     :retuen: venn表格的全路径
     """
-    workpath = os.path.dirname(group_table)
+    workpath = os.path.dirname(otu_table)
     r_file = os.path.join(workpath, 'cmd.r')
     with open(r_file, 'w') as f:
         # 生成输入表格
@@ -80,7 +80,7 @@ def venn_table(otu_table, group_table, R_path):
         }
 
         # write sets to file
-        otuset <- '"'workpath'"'+"venn_table.%(otu_table)s.%(group_table)s.xls"
+        otuset <- "venn_table.%(otu_table)s.%(group_table)s.xls"
         write.table(sets_table,otuset,sep = "\\t",eol="\\n",row.names=FALSE,col.names=FALSE,quote=FALSE)
 
         # add new_table by khl
