@@ -13,7 +13,7 @@ import json
 class RefRna(Meta):
     def __init__(self):
         super(RefRna, self).__init__(bind_object=None)
-        self._project_type='ref-rna'
+        self._project_type='ref_rna'
         #self.db_name = Config().MONGODB + '_ref_rna'
         #super(RefRna, self).__init__(db=self.db_name)
 
@@ -46,8 +46,8 @@ class RefRna(Meta):
          :params query_type: gene or transcript
          :params express_method: 表达量方法 featurecounts/rsem
          """
-         mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-         collection=mongodb["sg_express"]
+         #mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+         collection=self.db["sg_express"]
          db=collection.find({"task_id":task_id})
          new_id = []
          for d in db:
@@ -63,7 +63,7 @@ class RefRna(Meta):
                  """
                  if _type == params['type'] and express_method == params['express_method'].lower():
                        return _id
-                 else: 
+                 else:
                        pass
          if not new_id:   #没有找到对应的表达量信息
              return False
@@ -74,8 +74,8 @@ class RefRna(Meta):
         """
         获得class_code的主表信息，为差异分析得到sequence_id的gene_name
         """
-        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        collection = mongodb["sg_express_class_code"]
+        #mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = self.db["sg_express_class_code"]
         try:
             db=collection.find_one({"task_id":task_id})
             return db["_id"]
@@ -83,8 +83,8 @@ class RefRna(Meta):
             print "没有找到task_id: {}对应的class_code_id".format(task_id)
     
     def get_control_id(self,main_id):
-        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        collection = mongodb['sg_specimen_group_compare']
+        #mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = self.db['sg_specimen_group_compare']
         try:
             if isinstance(main_id, types.StringTypes):
                 main_id = ObjectId(main_id)
@@ -104,8 +104,8 @@ class RefRna(Meta):
             print "{}不存在".format(str(main_id))
 
     def insert_geneset_info(self, geneset_id, col_name, col_id):
-        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        collection = mongodb['sg_geneset']
+        #mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = self.db['sg_geneset']
         geneset_list = []
         if not isinstance(geneset_id, types.StringTypes):
             # geneset_id = ObjectId(geneset_id)
@@ -125,7 +125,7 @@ class RefRna(Meta):
         except Exception:
             print "没有找到geneset_id:{}".format(geneset_id)
         try:
-            collection = mongodb["col_name"]
+            collection = self.db["col_name"]
             collection.find_one({"_id":col_id})
         except:
             "没有找到col_id:{} in {}".format(col_id, col_name)
@@ -135,7 +135,7 @@ class RefRna(Meta):
                 "col_name": col_name,
                 "col_id": col_id
             }
-            collection = mongodb["sg_geneset_info"]
+            collection = self.db["sg_geneset_info"]
             collection.insert_one(opts)
         return True
 
@@ -146,14 +146,14 @@ class RefRna(Meta):
             pass
         else:
             raise Exception("输入geneset_id参数必须为字符串或者ObjectId类型!")
-        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        collection = mongodb['sg_geneset_info']
+        #mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = self.db['sg_geneset_info']
         results = collection.find({"geneset_id":geneset_id})
         for result in results:
             col_name = result["col_name"]
             col_id = result["col_id"]
             print col_id
-            col = mongodb[col_name]
+            col = self.db[col_name]
             print col_name
             try:
                 col_result = col.find_one({"_id":col_id})
@@ -161,15 +161,15 @@ class RefRna(Meta):
                 col.find_one_and_update({"_id":col_id}, {"$set":col_result})
             except:
                 print "不能找到对应id{} in {}".format(col_id, col_name)
-        collection = mongodb["sg_geneset"]
+        collection = self.db["sg_geneset"]
         result = collection.find_one({"_id":geneset_id})
         if result:
             collection.remove({"_id":geneset_id})
         return True
 
     def check_assest_for_demo(self):
-        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        collection = mongodb['sg_task']
+        #mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = self.db['sg_task']
         nums = collection.count({"task_id":{"$regex": "refrna_demo_mouse.*"}})
         if nums:
             if nums <= 5:
@@ -179,8 +179,8 @@ class RefRna(Meta):
 
     def insert_seq(self, mongo_data):
         task_id = mongo_data["task_id"]
-        mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
-        collection = mongodb['sg_query_seq']
+        #mongodb = Config().mongo_client[Config().MONGODB + "_ref_rna"]
+        collection = self.db['sg_query_seq']
         result = collection.find_one({"task_id": task_id})
         if result:
             collection.find_one_and_update({"task_id": task_id}, {"$set": mongo_data})
