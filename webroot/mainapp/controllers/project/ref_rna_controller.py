@@ -5,13 +5,14 @@ from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.ref_rna import RefRna
 from meta_controller import MetaController
+from mainapp.models.mongo.meta import RefRna
 
 
 class RefRnaController(MetaController):
     def __init__(self, instant=False):
         super(RefRnaController, self).__init__(instant)
         self.meta = RefRna()
-        self.ref_rna = self.meta
+        self.ref_rna = RefRna()
 
     def _update_status_api(self):
         """
