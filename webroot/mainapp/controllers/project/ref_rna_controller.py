@@ -5,7 +5,7 @@ from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.ref_rna import RefRna
 from meta_controller import MetaController
-from mainapp.models.mongo.meta import RefRna
+#from mainapp.models.mongo.meta import RefRna
 
 
 class RefRnaController(MetaController):
