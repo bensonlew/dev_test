@@ -9,12 +9,13 @@ from bson import SON
 class Ref(Base):
     def __init__(self, bind_object):
         super(Ref, self).__init__(bind_object)
-        self._db_name = Config().MONGODB + "_ref_rna"
+        self._project_type = 'ref_rna'
+        #self._db_name = Config().MONGODB + "_ref_rna"
 
     #@report_check
     def add_task_info(self, db_name=None):
-        if db_name:
-            self._db_name = db_name
+        #if db_name:
+            #self._db_name = db_name
         json_data = [
             ('task_id', self.bind_object.sheet.id),
             ('member_id', self.bind_object.sheet.member_id),

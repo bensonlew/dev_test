@@ -5,13 +5,14 @@ from ..core.basic import Basic
 from mainapp.libs.signature import check_sig
 from mainapp.models.mongo.ref_rna import RefRna
 from meta_controller import MetaController
+from mainapp.models.mongo.meta import RefRna
 
 
 class RefRnaController(MetaController):
     def __init__(self, instant=False):
         super(RefRnaController, self).__init__(instant)
         self.meta = RefRna()
-        self.ref_rna = self.meta
+        self.ref_rna = RefRna()
 
     def _update_status_api(self):
         """
@@ -86,5 +87,6 @@ class RefRnaController(MetaController):
         #               task_id + '/inter_analysis_results/' + main_table_name
         target_dir += ':rerewrweset/files/' + str(task_info['member_id']) + \
                       '/' + str(task_info['project_sn']) + '/' + \
-                      task_id + '/interaction_results/' + main_table_name  # zengjing 20170929 修改页面上有参rna交互分析的结果文件夹名称为interaction_results
+                      #task_id + '/interaction_results/' + main_table_name  # zengjing 20170929 修改页面上有参rna交互分析的结果文件夹名称为interaction_results
+                      task_id + '/inter_analysis_results/' + main_table_name
         return target_dir
