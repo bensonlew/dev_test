@@ -379,11 +379,13 @@ class RefRnaGeneset(Base):
                     insert_data.update({'pathway_definition': ''})
                 # print path_def[line[0]]
                 for n, gn in enumerate(genesets_name):
-                    gene_list = re.findall(r"(.*?)\(.*?\)", line[3+2*n])
+                    #gene_list = re.findall(r"(.*?)\(.*?\)", line[3+2*n])
+                    gene_list = line[3+2*n].split(";")
+                    gene_list = [ x.split("(")[0] for x in gene_list ]
                     insert_data["{}_geneko".format(gn)] = line[3+2*n]
                     insert_data["{}_numbers".format(gn)] = line[2+2*n]
                     insert_data["{}_genes".format(gn)] = gene_list
-                    insert_data["{}_str".format(gn)] = ";".join(gene_list)
+                    insert_data["{}_str".format(gn)] = ";".join(set(gene_list))
                 data_list.append(insert_data)
             try:
                 collection = self.db['sg_geneset_kegg_class_detail']

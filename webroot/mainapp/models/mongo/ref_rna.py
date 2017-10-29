@@ -13,7 +13,8 @@ import json
 class RefRna(Meta):
     def __init__(self):
         super(RefRna, self).__init__(bind_object=None)
-        self._project_type='ref_rna'
+        self._project_type = 'ref_rna'
+
         #self.db_name = Config().MONGODB + '_ref_rna'
         #super(RefRna, self).__init__(db=self.db_name)
 
